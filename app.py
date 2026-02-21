@@ -96,10 +96,9 @@ def debug_key():
 @app.route("/debug-positions", methods=["GET"])
 def debug_positions():
     try:
-        endpoint_path = "/derivatives/api/v3/openpositions"
-        headers = kraken_auth_headers(endpoint_path)
-        response = requests.get(KRAKEN_BASE + endpoint_path, headers=headers, timeout=10)
-        return jsonify(response.json())
+        trade = get_trade_client()
+        result = trade.get_open_positions()
+        return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
