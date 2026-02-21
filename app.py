@@ -45,12 +45,12 @@ def place_bet():
     direction = (data.get("direction") or "").upper()
     confidence = float(data.get("confidence", 0))
     symbol = data.get("symbol", DEFAULT_SYMBOL)
-    size = data.get("size", data.get("stake_usdc", 1))
+    size = data.get("size", data.get("stake_usdc", 10))
 
     try:
         size = int(float(size))
-        if size < 1:
-            size = 1
+        if size < 10:
+            size = 10
     except Exception:
         return jsonify({"status": "failed", "error": "invalid_size"}), 400
 
