@@ -18,10 +18,11 @@ KRAKEN_BASE = "https://futures.kraken.com"
 # ── Auth helper ──────────────────────────────────────────────────────────────
 
 def kraken_auth_headers(api_path: str) -> dict:
-    nonce = str(int(time.time()))  # secondi, non millisecondi
-    message = nonce + api_path
+    nonce = str(int(time.time()))
+    # Kraken vuole: hash256(nonce + endpoint) firmato con secret
+    msg = hashlib.sha256((nonce + api_path).encode()).digest()
     secret_decoded = base64.b64decode(API_SECRET)
-    sig = hmac.new(secret_decoded, message.encode(), hashlib.sha512)
+    sig = hmac.new(secret_decoded, msg, hashlib.sha512)
     sig_b64 = base64.b64encode(sig.digest()).decode()
     return {
         "APIKey": API_KEY,
