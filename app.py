@@ -15,13 +15,29 @@ DEFAULT_SYMBOL = os.environ.get("KRAKEN_DEFAULT_SYMBOL", "PF_XBTUSD")
 KRAKEN_BASE    = "https://futures.kraken.com"
 
 
+# ── Nonce helper ─────────────────────────────────────────────────────────────
+# Railway ha un clock anomalo (time.time() restituisce valori futuri).
+# Usiamo il serverTime di Kraken come base per il nonce.
+
+def get_kraken_nonce() -> str:
+    try:
+        r = requests.get(KRAKEN_BASE + "/derivatives/api/v3/servertime", timeout=5)
+        server_time = r.json().get("serverTime", "")
+        # serverTime e.g. "2026-02-21T15:24:12.482Z"
+        from datetime import datetime, timezone
+        dt = datetime.strptime(server_time, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
+        return str(int(dt.timestamp() * 1000))
+    except Exception:
+        # Fallback: usa time.time() locale
+        return str(int(time.time() * 1000))
+
+
 # ── Auth helper ──────────────────────────────────────────────────────────────
 # Formula ufficiale Kraken Futures:
 # Authent = Base64( HMAC-SHA512( SHA256(postData + nonce + endpointPath), Base64Decode(secret) ) )
-# Nonce = millisecondi (stringa)
 
 def kraken_auth_headers(endpoint_path: str, post_data: str = "") -> dict:
-    nonce = str(int(time.time() * 1000))  # millisecondi
+    nonce = get_kraken_nonce()
     message = post_data + nonce + endpoint_path
     sha256_hash = hashlib.sha256(message.encode("utf-8")).digest()
     secret_decoded = base64.b64decode(API_SECRET)
@@ -46,15 +62,11 @@ def get_user_client():
 # ── Core: leggi posizione aperta ─────────────────────────────────────────────
 
 def get_open_position(symbol: str) -> dict:
-    """
-    Ritorna {"side": "long"/"short", "size": float} oppure None se flat.
-    """
     try:
         endpoint_path = "/derivatives/api/v3/openpositions"
         headers = kraken_auth_headers(endpoint_path)
         response = requests.get(KRAKEN_BASE + endpoint_path, headers=headers, timeout=10)
         data = response.json()
-
         for pos in data.get("openPositions", []):
             if pos.get("symbol", "").upper() == symbol.upper():
                 size = float(pos.get("size", 0))
@@ -74,9 +86,11 @@ def health():
     return jsonify({
         "status": "ok",
         "ts": int(time.time()),
+        "kraken_nonce": get_kraken_nonce(),
+        "local_ts_ms": str(int(time.time() * 1000)),
         "symbol": DEFAULT_SYMBOL,
         "api_key_set": bool(API_KEY),
-        "version": "2.3.0",
+        "version": "2.4.0",
     })
 
 
@@ -97,7 +111,7 @@ def debug_key():
 def debug_positions():
     try:
         endpoint_path = "/derivatives/api/v3/openpositions"
-        nonce = str(int(time.time() * 1000))
+        nonce = get_kraken_nonce()
         post_data = ""
         message = post_data + nonce + endpoint_path
         sha256_hash = hashlib.sha256(message.encode("utf-8")).digest()
@@ -111,13 +125,15 @@ def debug_positions():
         }
         response = requests.get(KRAKEN_BASE + endpoint_path, headers=headers, timeout=10)
         return jsonify({
-            "nonce": nonce,
+            "nonce_used": nonce,
+            "local_time_ms": str(int(time.time() * 1000)),
             "message_signed": message,
             "http_status": response.status_code,
             "kraken_response": response.json()
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 # ── DEBUG WALLET (raw) ───────────────────────────────────────────────────────
 
@@ -172,7 +188,6 @@ def close_position():
 
     try:
         pos = get_open_position(symbol)
-
         if not pos:
             return jsonify({
                 "status": "no_position",
