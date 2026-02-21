@@ -30,9 +30,8 @@ def get_kraken_servertime():
     except Exception:
         return None
 
-
 def get_open_position(symbol: str):
-     """
+    """
     Legge la posizione con lo SDK (auth=True) => niente firma manuale.
     Ritorna:
       None se flat
@@ -44,25 +43,20 @@ def get_open_position(symbol: str):
         uri="/derivatives/api/v3/openpositions",
         auth=True
     )
-
     open_positions = result.get("openPositions", []) or []
     for pos in open_positions:
         if (pos.get("symbol", "") or "").upper() == symbol.upper():
             size = float(pos.get("size", 0) or 0)
             if size == 0:
                 return None
-
             side = (pos.get("side", "") or "").lower()
             if side not in ("long", "short"):
-                # fallback (raro)
                 side = "long" if size > 0 else "short"
-
             return {
                 "side": side,
                 "size": abs(size),
                 "price": float(pos.get("price", 0) or 0),
             }
-
     return None
 
 
