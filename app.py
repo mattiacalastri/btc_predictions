@@ -83,3 +83,16 @@ def health():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
+
+@app.route('/markets', methods=['GET'])
+def list_markets():
+    try:
+        markets = client.get_markets()
+        btc = [
+            {"question": m.question, "active": m.active, "end": m.end_date_iso}
+            for m in markets.data
+            if "btc" in m.question.lower() or "bitcoin" in m.question.lower()
+        ]
+        return jsonify(btc)
+    except Exception as e:
+        return jsonify({"error": str(e)})
