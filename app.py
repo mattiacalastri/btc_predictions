@@ -205,6 +205,14 @@ def place_bet():
     except Exception as e:
         return jsonify({"status": "error", "error": str(e)}), 500
 
+@app.route("/debug-wallet", methods=["GET"])
+def debug_wallet():
+    try:
+        user = get_user_client()
+        result = user.get_wallets()
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # ── MAIN ─────────────────────────────────────────────────────────────────────
 
