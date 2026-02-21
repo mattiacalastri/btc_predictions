@@ -109,8 +109,8 @@ def health():
 
 @app.route("/auth-check", methods=["GET"])
 def auth_check():
-    # Official: GET /api-keys/v3/check under /derivatives/api/v3
-    full_path = f"{V3_PREFIX}/api-keys/v3/check"
+    # Correct base path for API key check
+    full_path = "/api/auth/v1/api-keys/v3/check"
     payload, code = _private_get(full_path, params={})
     return jsonify(payload), code
 
