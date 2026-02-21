@@ -110,27 +110,14 @@ def debug_key():
 @app.route("/debug-positions", methods=["GET"])
 def debug_positions():
     try:
-        endpoint_path = "/derivatives/api/v3/openpositions"
-        nonce = get_kraken_nonce()
-        post_data = ""
-        message = post_data + nonce + endpoint_path
-        sha256_hash = hashlib.sha256(message.encode("utf-8")).digest()
-        secret_decoded = base64.b64decode(API_SECRET)
-        sig = hmac.new(secret_decoded, sha256_hash, hashlib.sha512)
-        authent = base64.b64encode(sig.digest()).decode()
-        headers = {
-            "APIKey": API_KEY,
-            "Nonce": nonce,
-            "Authent": authent,
-        }
-        response = requests.get(KRAKEN_BASE + endpoint_path, headers=headers, timeout=10)
-        return jsonify({
-            "nonce_used": nonce,
-            "local_time_ms": str(int(time.time() * 1000)),
-            "message_signed": message,
-            "http_status": response.status_code,
-            "kraken_response": response.json()
-        })
+        trade = get_trade_client()
+        # Usa il metodo request interno del SDK che gestisce l'auth
+        result = trade.request(
+            method="GET",
+            uri="/derivatives/api/v3/openpositions",
+            auth=True
+        )
+        return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
