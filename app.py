@@ -17,7 +17,8 @@ KRAKEN_BASE = "https://futures.kraken.com"
 
 # ── Auth helper ──────────────────────────────────────────────────────────────
 
-def kraken_auth_headers(api_path: str, nonce: str) -> dict:
+def kraken_auth_headers(api_path: str) -> dict:
+    nonce = str(int(time.time()))  # secondi, non millisecondi
     message = nonce + api_path
     secret_decoded = base64.b64decode(API_SECRET)
     sig = hmac.new(secret_decoded, message.encode(), hashlib.sha512)
@@ -47,8 +48,7 @@ def get_open_position(symbol: str) -> dict:
     """
     try:
         api_path = "/derivatives/api/v3/openpositions"
-        nonce = str(int(time.time() * 1000))
-        headers = kraken_auth_headers(api_path, nonce)
+        headers = kraken_auth_headers(api_path)
         response = requests.get(KRAKEN_BASE + api_path, headers=headers, timeout=10)
         data = response.json()
 
@@ -73,7 +73,7 @@ def health():
         "ts": int(time.time()),
         "symbol": DEFAULT_SYMBOL,
         "api_key_set": bool(API_KEY),
-        "version": "2.1.0",
+        "version": "2.2.0",
     })
 
 
@@ -94,8 +94,7 @@ def debug_key():
 def debug_positions():
     try:
         api_path = "/derivatives/api/v3/openpositions"
-        nonce = str(int(time.time() * 1000))
-        headers = kraken_auth_headers(api_path, nonce)
+        headers = kraken_auth_headers(api_path)
         response = requests.get(KRAKEN_BASE + api_path, headers=headers, timeout=10)
         return jsonify(response.json())
     except Exception as e:
