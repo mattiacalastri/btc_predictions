@@ -10,67 +10,98 @@ from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-KRAKEN_BASE = os.getenv("KRAKEN_FUTURES_BASE", "https://futures.kraken.com").rstrip("/")
-API_KEY = os.environ["KRAKEN_FUTURES_KEY"]
-API_SECRET_B64 = os.environ["KRAKEN_FUTURES_SECRET"]
-USE_NONCE = os.getenv("USE_NONCE", "1") == "1"
+# ---- ENV (accept multiple names to avoid crashes) ----
+def _get_env(*names):
+    for n in names:
+        v = os.getenv(n)
+        if v:
+            return v
+    return None
+
+BASE_URL = (_get_env("KRAKEN_FUTURES_BASE_URL", "KRAKEN_FUTURES_BASE", "KRAKEN_BASE_URL") or "https://futures.kraken.com").rstrip("/")
+
+API_KEY = _get_env("KRAKEN_FUTURES_API_KEY", "KRAKEN_API_KEY", "KRAKEN_FUTURES_KEY")
+API_SECRET_B64 = _get_env("KRAKEN_FUTURES_API_SECRET", "KRAKEN_API_SECRET", "KRAKEN_FUTURES_SECRET")
 
 DEFAULT_SYMBOL = os.getenv("KRAKEN_DEFAULT_SYMBOL", "PI_XBTUSD")
 
-# ---- Signing (Kraken Futures v3 /derivatives/*) ----
-def _nonce_ms() -> str:
+# Kraken Futures v3 base prefix
+V3_PREFIX = "/derivatives/api/v3"
+
+def _nonce_ms():
     return str(int(time.time() * 1000))
 
-def build_postdata(params: dict) -> str:
-    """
-    Build x-www-form-urlencoded string with %20 for spaces (quote),
-    matching Kraken's "url-encoded as it appears in the request" guidance.
-    """
-    # sort keys for deterministic ordering
+def _postdata(params):
+    # build a stable x-www-form-urlencoded string
     items = [(k, str(v)) for k, v in sorted(params.items(), key=lambda x: x[0])]
     return urlencode(items, quote_via=quote, safe="")
 
-def sign_authent(postdata: str, endpoint_path: str, nonce: str) -> str:
-    """
-    Authent = base64( HMAC-SHA512( base64decode(secret), SHA256(postData + nonce + endpointPath) ) )
-    """
-    message = (postdata + nonce + endpoint_path).encode("utf-8")
-    sha256_digest = hashlib.sha256(message).digest()
-    secret = base64.b64decode(API_SECRET_B64)
-    sig = hmac.new(secret, sha256_digest, hashlib.sha512).digest()
-    return base64.b64encode(sig).decode().strip()
+def _authent(postdata, nonce, endpoint_path, api_secret_b64):
+    # Authent = base64( HMAC_SHA512( base64decode(secret), SHA256(postData + nonce + endpointPath) ) )
+    msg = (postdata + nonce + endpoint_path).encode("utf-8")
+    sha = hashlib.sha256(msg).digest()
+    secret = base64.b64decode(api_secret_b64)
+    sig = hmac.new(secret, sha, hashlib.sha512).digest()
+    return base64.b64encode(sig).decode("utf-8")
 
-def kraken_v3_request(method: str, endpoint_path: str, params: dict | None = None):
+def _private_post(full_path, params):
     """
-    Calls Kraken Futures v3 endpoint under /derivatives/api/v3
-    Example endpoint_path: /derivatives/api/v3/sendorder
+    full_path must be the EXACT path part used in the request, e.g.
+    /derivatives/api/v3/sendorder
     """
-    params = params or {}
-    url = f"{KRAKEN_BASE}{endpoint_path}"
+    if not API_KEY or not API_SECRET_B64:
+        return {
+            "result": "error",
+            "error": "missing_api_env",
+            "hint": "Set KRAKEN_FUTURES_API_KEY and KRAKEN_FUTURES_API_SECRET in Railway variables."
+        }, 500
 
-    nonce = _nonce_ms() if USE_NONCE else ""
-    postdata = build_postdata(params) if params else ""
-
-    authent = sign_authent(postdata, endpoint_path, nonce)
+    nonce = _nonce_ms()
+    postdata = _postdata(params)
+    authent = _authent(postdata, nonce, full_path, API_SECRET_B64)
 
     headers = {
         "APIKey": API_KEY,
         "Authent": authent,
+        "Nonce": nonce,
         "Content-Type": "application/x-www-form-urlencoded",
     }
-    if USE_NONCE:
-        headers["Nonce"] = nonce
 
-    if method.upper() == "GET":
-        # For GET: put params in query string AND sign the same query string
-        resp = requests.get(url, params=params, headers=headers, timeout=20)
-    else:
-        # For POST: send body as the exact postdata string we signed
-        resp = requests.post(url, data=postdata, headers=headers, timeout=20)
+    url = f"{BASE_URL}{full_path}"
+    r = requests.post(url, data=postdata, headers=headers, timeout=20)
 
-    return resp
+    try:
+        return r.json(), r.status_code
+    except Exception:
+        return {"result": "error", "http_status": r.status_code, "raw": r.text}, r.status_code
 
-# ---- Routes ----
+def _private_get(full_path, params=None):
+    if not API_KEY or not API_SECRET_B64:
+        return {
+            "result": "error",
+            "error": "missing_api_env",
+            "hint": "Set KRAKEN_FUTURES_API_KEY and KRAKEN_FUTURES_API_SECRET in Railway variables."
+        }, 500
+
+    params = params or {}
+    nonce = _nonce_ms()
+    # For GET, Kraken expects postData as the querystring formatted the same way
+    postdata = _postdata(params) if params else ""
+    authent = _authent(postdata, nonce, full_path, API_SECRET_B64)
+
+    headers = {
+        "APIKey": API_KEY,
+        "Authent": authent,
+        "Nonce": nonce,
+    }
+
+    url = f"{BASE_URL}{full_path}"
+    r = requests.get(url, params=params, headers=headers, timeout=20)
+
+    try:
+        return r.json(), r.status_code
+    except Exception:
+        return {"result": "error", "http_status": r.status_code, "raw": r.text}, r.status_code
 
 @app.route("/health", methods=["GET"])
 def health():
@@ -78,48 +109,31 @@ def health():
 
 @app.route("/auth-check", methods=["GET"])
 def auth_check():
-    """
-    Quick way to validate your APIKey/Authent signing.
-    """
-    endpoint = "/derivatives/api/v3/api-keys/v3/check"
-    r = kraken_v3_request("GET", endpoint, params={})
-    try:
-        return jsonify({"http": r.status_code, "raw": r.json()})
-    except Exception:
-        return jsonify({"http": r.status_code, "raw": r.text})
+    # Official: GET /api-keys/v3/check under /derivatives/api/v3
+    full_path = f"{V3_PREFIX}/api-keys/v3/check"
+    payload, code = _private_get(full_path, params={})
+    return jsonify(payload), code
 
 @app.route("/place-bet", methods=["POST"])
 def place_bet():
-    """
-    Input from n8n:
-    {
-      "direction": "UP" | "DOWN",
-      "confidence": 0..1,
-      "stake_usdc": 1
-    }
-
-    We translate to Kraken Futures order:
-    - symbol: PI_XBTUSD (default)
-    - side: buy/sell
-    - orderType: mkt
-    - size: 1 (you can map stake->size later)
-    """
     data = request.get_json(force=True) or {}
-    direction = data.get("direction")
-    confidence = float(data.get("confidence", 0))
-    size = float(data.get("size", 1.0))  # allow override
-    symbol = data.get("symbol", DEFAULT_SYMBOL)
 
-    if direction not in ["UP", "DOWN"]:
+    direction = (data.get("direction") or "").upper()
+    confidence = float(data.get("confidence", 0))
+    symbol = data.get("symbol", DEFAULT_SYMBOL)
+    size = data.get("size", 1)
+
+    try:
+        size = float(size)
+    except Exception:
+        return jsonify({"status": "failed", "error": "invalid_size"}), 400
+
+    if direction not in ("UP", "DOWN"):
         return jsonify({"status": "failed", "error": "invalid_direction"}), 400
 
     side = "buy" if direction == "UP" else "sell"
 
-    # Kraken Futures sendorder endpoint
-    endpoint = "/derivatives/api/v3/sendorder"
-
-    # Minimal market order params (most common)
-    # If your account requires "cliOrdId" you can add it.
+    full_path = f"{V3_PREFIX}/sendorder"
     params = {
         "orderType": "mkt",
         "symbol": symbol,
@@ -127,21 +141,17 @@ def place_bet():
         "size": size,
     }
 
-    r = kraken_v3_request("POST", endpoint, params=params)
+    payload, code = _private_post(full_path, params)
 
-    try:
-        payload = r.json()
-    except Exception:
-        payload = {"result": "error", "error": "non_json_response", "raw": r.text}
-
-    ok = (r.status_code == 200) and (payload.get("result") != "error")
+    ok = (code == 200) and isinstance(payload, dict) and payload.get("result") != "error"
 
     return jsonify({
         "status": "placed" if ok else "failed",
+        "direction": direction,
+        "confidence": confidence,
         "symbol": symbol,
         "side": side,
         "size": size,
-        "confidence": confidence,
         "raw": payload,
         "error": payload.get("error") if isinstance(payload, dict) else None
     }), (200 if ok else 400)
