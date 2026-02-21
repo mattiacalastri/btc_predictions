@@ -27,28 +27,17 @@ client.set_api_creds(client.create_or_derive_api_creds())
 
 def find_btc_5min_market():
     try:
-        # I mercati Up/Down usano slug con timestamp unix — cerchiamo via CLOB direttamente
-        # Calcoliamo il timestamp del prossimo slot 5min
         now = int(time.time())
-        # Arrotondiamo al prossimo multiplo di 300 secondi
-        next_slot = ((now // 300) + 1) * 300
-        slug = f"btc-updown-5m-{next_slot}"
-
-        resp = requests.get(f"{GAMMA_HOST}/markets", params={"slug": slug})
-        data = resp.json()
-
-        if data and len(data) > 0:
-            return data[0]
-
-        # Prova anche lo slot corrente
-        current_slot = (now // 300) * 300
-        slug2 = f"btc-updown-5m-{current_slot}"
-        resp2 = requests.get(f"{GAMMA_HOST}/markets", params={"slug": slug2})
-        data2 = resp2.json()
-
-        if data2 and len(data2) > 0:
-            return data2[0]
-
+        # Controlla i prossimi 3 slot
+        for offset in range(0, 4):
+            slot = ((now // 300) + offset) * 300
+            slug = f"btc-updown-5m-{slot}"
+            resp = requests.get(f"{GAMMA_HOST}/markets", params={"slug": slug})
+            data = resp.json()
+            if data and len(data) > 0:
+                market = data[0]
+                if market.get('active') and not market.get('closed'):
+                    return market
         return None
     except Exception as e:
         print(f"Errore find_market: {e}")
@@ -107,8 +96,7 @@ def list_markets():
     try:
         now = int(time.time())
         results = []
-        # Controlla gli ultimi 3 slot e i prossimi 3
-        for offset in range(-3, 4):
+        for offset in range(-2, 5):
             slot = ((now // 300) + offset) * 300
             slug = f"btc-updown-5m-{slot}"
             resp = requests.get(f"{GAMMA_HOST}/markets", params={"slug": slug})
@@ -120,9 +108,10 @@ def list_markets():
                     "question": m.get('question'),
                     "active": m.get('active'),
                     "closed": m.get('closed'),
-                    "endDate": m.get('endDate')
+                    "endDate": m.get('endDate'),
+                    "clobTokenIds": m.get('clobTokenIds')
                 })
-        return jsonify(results if results else {"message": "nessun mercato trovato", "now": now})
+        return jsonify(results)
     except Exception as e:
         return jsonify({"error": str(e)})
 
