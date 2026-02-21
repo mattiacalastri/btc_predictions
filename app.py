@@ -208,6 +208,14 @@ def debug_wallet():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route("/debug-positions", methods=["GET"])
+def debug_positions():
+    try:
+        trade = get_trade_client()
+        result = trade.get_open_positions()
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # ── MAIN ─────────────────────────────────────────────────────────────────────
 
