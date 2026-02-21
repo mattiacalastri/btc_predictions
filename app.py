@@ -344,15 +344,18 @@ def get_execution_fees():
 
         order_fills = [f for f in fills if f.get("order_id") == order_id]
 
-TAKER_RATE = 0.00005  # 0.005% Kraken Futures taker fee
-total_fee = sum(
-    float(f.get("fee", 0) or 0) or
-    (float(f.get("size", 0)) * float(f.get("price", 0)) * TAKER_RATE)
-    for f in order_fills
-)
+        TAKER_RATE = 0.00005  # 0.005% Kraken Futures taker fee
+        total_fee = sum(
+            float(f.get("fee", 0) or 0) or
+            (float(f.get("size", 0)) * float(f.get("price", 0)) * TAKER_RATE)
+            for f in order_fills
+        )
+
+        fee_currency = order_fills[0].get("fee_currency", "USD") if order_fills else "USD"
+
         return jsonify({
             "order_id":     order_id,
-            "total_fee":    total_fee,
+            "total_fee":    round(total_fee, 8),
             "fee_currency": fee_currency,
             "fills_found":  len(order_fills),
             "fills":        order_fills,
