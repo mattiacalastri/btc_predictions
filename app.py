@@ -19,27 +19,21 @@ def get_user_client():
 
 
 def get_open_position(symbol: str) -> dict:
-    """
-    Legge la posizione aperta su un simbolo.
-    Ritorna dict con 'side' ('long'/'short'), 'size' (float), o None se flat.
-    """
     try:
-        user = get_user_client()
-        wallets = user.get_wallets()
-        flex = wallets.get("accounts", {}).get("flex", {})
-        positions = flex.get("positions", {})
-
-        for key, pos in positions.items():
+        trade = get_trade_client()
+        result = trade.get_open_positions()
+        positions = result.get("openPositions", [])
+        
+        for pos in positions:
             if pos.get("symbol", "").upper() == symbol.upper():
-                size = float(pos.get("quantity", 0))
+                size = float(pos.get("size", 0))
                 if size == 0:
                     return None
-                side = "long" if pos.get("side", "long") == "long" else "short"
+                side = "long" if pos.get("side", "").lower() == "long" else "short"
                 return {"side": side, "size": abs(size)}
         return None
     except Exception:
         return None
-
 
 # ── HEALTH ──────────────────────────────────────────────────────────────────
 
