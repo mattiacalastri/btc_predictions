@@ -1,161 +1,151 @@
 import os
 import time
 import base64
-import hmac
 import hashlib
-from urllib.parse import urlencode
+import hmac
+from urllib.parse import urlencode, quote
 
 import requests
 from flask import Flask, request, jsonify
 
-
 app = Flask(__name__)
 
-BASE_URL = os.getenv("KRAKEN_FUTURES_BASE_URL", "https://futures.kraken.com").rstrip("/")
-API_KEY = os.environ["KRAKEN_FUTURES_API_KEY"]
-API_SECRET_B64 = os.environ["KRAKEN_FUTURES_API_SECRET"]
+KRAKEN_BASE = os.getenv("KRAKEN_FUTURES_BASE", "https://futures.kraken.com").rstrip("/")
+API_KEY = os.environ["KRAKEN_FUTURES_KEY"]
+API_SECRET_B64 = os.environ["KRAKEN_FUTURES_SECRET"]
+USE_NONCE = os.getenv("USE_NONCE", "1") == "1"
 
-# Kraken Futures v3 (Derivatives)
-SEND_ORDER_PATH = "/derivatives/api/v3/sendorder"
-TICKERS_PATH = "/derivatives/api/v3/tickers"
+DEFAULT_SYMBOL = os.getenv("KRAKEN_DEFAULT_SYMBOL", "PI_XBTUSD")
 
-
+# ---- Signing (Kraken Futures v3 /derivatives/*) ----
 def _nonce_ms() -> str:
     return str(int(time.time() * 1000))
 
-
-def _build_postdata(params: dict) -> str:
+def build_postdata(params: dict) -> str:
     """
-    Kraken derivatives expects a querystring-like body: k=v&k2=v2
-    Important: hash the *url-encoded* form (new v3 flow). :contentReference[oaicite:1]{index=1}
+    Build x-www-form-urlencoded string with %20 for spaces (quote),
+    matching Kraken's "url-encoded as it appears in the request" guidance.
     """
-    # Keep ordering stable (helps debugging)
-    return urlencode(sorted(params.items()), safe="", doseq=True)
+    # sort keys for deterministic ordering
+    items = [(k, str(v)) for k, v in sorted(params.items(), key=lambda x: x[0])]
+    return urlencode(items, quote_via=quote, safe="")
 
-
-def _authent(postdata: str, nonce: str, endpoint_path: str, api_secret_b64: str) -> str:
+def sign_authent(postdata: str, endpoint_path: str, nonce: str) -> str:
     """
-    authent = base64( HMAC_SHA512( base64decode(secret), SHA256(postData + nonce + endpointPath) ) )
-    :contentReference[oaicite:2]{index=2}
+    Authent = base64( HMAC-SHA512( base64decode(secret), SHA256(postData + nonce + endpointPath) ) )
     """
     message = (postdata + nonce + endpoint_path).encode("utf-8")
     sha256_digest = hashlib.sha256(message).digest()
-    secret = base64.b64decode(api_secret_b64)
+    secret = base64.b64decode(API_SECRET_B64)
     sig = hmac.new(secret, sha256_digest, hashlib.sha512).digest()
-    return base64.b64encode(sig).decode("utf-8")
+    return base64.b64encode(sig).decode().strip()
 
+def kraken_v3_request(method: str, endpoint_path: str, params: dict | None = None):
+    """
+    Calls Kraken Futures v3 endpoint under /derivatives/api/v3
+    Example endpoint_path: /derivatives/api/v3/sendorder
+    """
+    params = params or {}
+    url = f"{KRAKEN_BASE}{endpoint_path}"
 
-def _private_post(path: str, params: dict, timeout: int = 15) -> dict:
-    nonce = _nonce_ms()
-    postdata = _build_postdata(params)
-    authent = _authent(postdata, nonce, path, API_SECRET_B64)
+    nonce = _nonce_ms() if USE_NONCE else ""
+    postdata = build_postdata(params) if params else ""
+
+    authent = sign_authent(postdata, endpoint_path, nonce)
 
     headers = {
         "APIKey": API_KEY,
-        "Nonce": nonce,
         "Authent": authent,
         "Content-Type": "application/x-www-form-urlencoded",
     }
+    if USE_NONCE:
+        headers["Nonce"] = nonce
 
-    url = f"{BASE_URL}{path}"
-    r = requests.post(url, data=postdata, headers=headers, timeout=timeout)
-    # Kraken derivatives returns JSON with {result: "success"|"error", ...}
-    try:
-        return r.json()
-    except Exception:
-        return {"result": "error", "http_status": r.status_code, "raw": r.text}
+    if method.upper() == "GET":
+        # For GET: put params in query string AND sign the same query string
+        resp = requests.get(url, params=params, headers=headers, timeout=20)
+    else:
+        # For POST: send body as the exact postdata string we signed
+        resp = requests.post(url, data=postdata, headers=headers, timeout=20)
 
+    return resp
+
+# ---- Routes ----
 
 @app.route("/health", methods=["GET"])
 def health():
     return jsonify({"status": "ok", "ts": int(time.time())})
 
-
-@app.route("/price", methods=["GET"])
-def price():
+@app.route("/auth-check", methods=["GET"])
+def auth_check():
     """
-    Utility: current mark/last for PI_XBTUSD (no auth).
+    Quick way to validate your APIKey/Authent signing.
     """
-    symbol = request.args.get("symbol", "PI_XBTUSD")
-    url = f"{BASE_URL}{TICKERS_PATH}"
-    r = requests.get(url, params={"symbol": symbol}, timeout=10)
+    endpoint = "/derivatives/api/v3/api-keys/v3/check"
+    r = kraken_v3_request("GET", endpoint, params={})
     try:
-        return jsonify(r.json())
+        return jsonify({"http": r.status_code, "raw": r.json()})
     except Exception:
-        return jsonify({"result": "error", "http_status": r.status_code, "raw": r.text}), 500
-
+        return jsonify({"http": r.status_code, "raw": r.text})
 
 @app.route("/place-bet", methods=["POST"])
 def place_bet():
     """
-    Input (from n8n):
+    Input from n8n:
     {
-      "direction": "UP"|"DOWN",
-      "confidence": 0.0-1.0,
-      "size": 1,
-      "symbol": "PI_XBTUSD",
-      "orderType": "mkt"
+      "direction": "UP" | "DOWN",
+      "confidence": 0..1,
+      "stake_usdc": 1
     }
 
-    direction UP -> buy (LONG), DOWN -> sell (SHORT)
+    We translate to Kraken Futures order:
+    - symbol: PI_XBTUSD (default)
+    - side: buy/sell
+    - orderType: mkt
+    - size: 1 (you can map stake->size later)
     """
     data = request.get_json(force=True) or {}
-
-    direction = (data.get("direction") or "").upper()
+    direction = data.get("direction")
     confidence = float(data.get("confidence", 0))
-    symbol = data.get("symbol", "PI_XBTUSD")
-    order_type = data.get("orderType", "mkt")  # mkt is supported :contentReference[oaicite:3]{index=3}
+    size = float(data.get("size", 1.0))  # allow override
+    symbol = data.get("symbol", DEFAULT_SYMBOL)
 
-    # IMPORTANT: "size" in Kraken Futures is contract size (not USDT/USDC).
-    # Start with a fixed small size (e.g. 1) until you're 100% sure about sizing.
-    size = data.get("size", 1)
-    try:
-        size = float(size)
-    except Exception:
-        return jsonify({"status": "error", "error": "invalid_size"}), 400
-
-    if direction not in {"UP", "DOWN"}:
-        return jsonify({"status": "error", "error": "invalid_direction"}), 400
+    if direction not in ["UP", "DOWN"]:
+        return jsonify({"status": "failed", "error": "invalid_direction"}), 400
 
     side = "buy" if direction == "UP" else "sell"
 
-    # Minimal params for a market order:
-    # orderType=mkt&symbol=PI_XBTUSD&side=buy|sell&size=<n>
+    # Kraken Futures sendorder endpoint
+    endpoint = "/derivatives/api/v3/sendorder"
+
+    # Minimal market order params (most common)
+    # If your account requires "cliOrdId" you can add it.
     params = {
-        "orderType": order_type,
+        "orderType": "mkt",
         "symbol": symbol,
         "side": side,
         "size": size,
     }
 
-    resp = _private_post(SEND_ORDER_PATH, params)
+    r = kraken_v3_request("POST", endpoint, params=params)
 
-    # Normalize response for your Telegram template
-    if resp.get("result") == "success":
-        send_status = resp.get("sendStatus", {}) or {}
-        return jsonify({
-            "status": "placed" if send_status.get("status") == "placed" else send_status.get("status", "ok"),
-            "order_id": send_status.get("order_id") or send_status.get("orderId"),
-            "direction": direction,
-            "side": side,
-            "confidence": confidence,
-            "size": size,
-            "symbol": symbol,
-            "raw": resp,
-        })
+    try:
+        payload = r.json()
+    except Exception:
+        payload = {"result": "error", "error": "non_json_response", "raw": r.text}
+
+    ok = (r.status_code == 200) and (payload.get("result") != "error")
 
     return jsonify({
-        "status": "failed",
-        "direction": direction,
-        "side": side,
-        "confidence": confidence,
-        "size": size,
+        "status": "placed" if ok else "failed",
         "symbol": symbol,
-        "error": resp.get("error") or resp.get("errorMessage") or resp,
-        "raw": resp,
-    }), 400
-
+        "side": side,
+        "size": size,
+        "confidence": confidence,
+        "raw": payload,
+        "error": payload.get("error") if isinstance(payload, dict) else None
+    }), (200 if ok else 400)
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", "5000"))
     app.run(host="0.0.0.0", port=port)
