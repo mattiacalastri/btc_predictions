@@ -210,52 +210,50 @@ def close_position():
 
 @app.route("/place-bet", methods=["POST"])
 def place_bet():
+    data = request.get_json(force=True) or {}
+    direction  = (data.get("direction") or "").upper()
+    confidence = float(data.get("confidence", 0))
+    symbol     = data.get("symbol", DEFAULT_SYMBOL)
+
     try:
-        data = request.get_json(force=True) or {}
-        direction  = (data.get("direction") or "").upper()
-        symbol     = data.get("symbol", DEFAULT_SYMBOL)
-        size       = float(data.get("size", 0.0001))
+        size = float(data.get("size", data.get("stake_usdc", 0.0001)))
+        if size <= 0:
+            size = 0.0001
+    except Exception:
+        return jsonify({"status": "failed", "error": "invalid_size"}), 400
 
-        if direction not in ("UP", "DOWN"):
-            return jsonify({"status": "failed", "error": "invalid_direction"}), 400
+    if direction not in ("UP", "DOWN"):
+        return jsonify({"status": "failed", "error": "invalid_direction"}), 400
 
-        # --- NON leggiamo più openPositions (causa principale dei crash) ---
-        # Il lifecycle ora è gestito da n8n, quindi qui apriamo SOLO.
+    desired_side = "long" if direction == "UP" else "short"
+    pos = get_open_position(symbol)
 
-        order_side = "buy" if direction == "UP" else "sell"
-
-        trade = get_trade_client()
-
-        result = trade.create_order(
-            orderType="mkt",
-            symbol=symbol,
-            side=order_side,
-            size=size,
-        )
-
+    # Gia nella stessa direzione -> skip
+    if pos and pos["side"] == desired_side:
         return jsonify({
-            "status": "placed",
-            "symbol": symbol,
-            "side": order_side,
-            "size": size,
-            "raw": result
+            "status": "skipped",
+            "reason": f"Posizione {pos['side']} gia aperta nella stessa direzione.",
+            "existing_position": pos,
         })
 
-    except Exception as e:
-        # 👇 MAI PIÙ crash → ritorna errore JSON
-        return jsonify({
-            "status": "error",
-            "message": str(e)
-        }), 500
+    # Direzione opposta -> chiudi prima
+    if pos and pos["side"] != desired_side:
+        try:
+            close_side = "sell" if pos["side"] == "long" else "buy"
+            trade = get_trade_client()
+            trade.create_order(
+                orderType="mkt",
+                symbol=symbol,
+                side=close_side,
+                size=pos["size"],
+                reduceOnly=True,
+            )
+        except Exception as e:
+            return jsonify({
+                "status": "error",
+                "error": f"Impossibile chiudere posizione esistente: {str(e)}"
+            }), 500
 
-# Se esiste già una posizione → non apriamo nulla.
-if pos:
-    return jsonify({
-        "status": "skipped",
-        "reason": "Existing position must finish lifecycle before opening a new one.",
-        "existing_position": pos,
-    })
-    
     # Apri nuova posizione
     order_side = "buy" if direction == "UP" else "sell"
 
