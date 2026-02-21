@@ -84,3 +84,11 @@ def place_bet():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "5000"))
     app.run(host="0.0.0.0", port=port)
+
+@app.route("/debug-key", methods=["GET"])
+def debug_key():
+    return jsonify({
+        "key_prefix": API_KEY[:10] if API_KEY else "EMPTY",
+        "key_length": len(API_KEY),
+        "secret_length": len(API_SECRET),
+    })
