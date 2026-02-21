@@ -4,8 +4,9 @@ import hmac
 import hashlib
 import base64
 import requests
+from urllib.parse import urlencode
 from flask import Flask, request, jsonify
-from kraken.futures import Trade, User
+from kraken.futures import User  # lo usiamo solo per wallet/balance
 
 app = Flask(__name__)
 
@@ -16,7 +17,7 @@ KRAKEN_BASE    = "https://futures.kraken.com"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Global error handler: evita HTML 500, restituisce JSON con errore reale
+# Error handler: mai HTML 500, solo JSON
 # ─────────────────────────────────────────────────────────────────────────────
 @app.errorhandler(Exception)
 def handle_exception(e):
@@ -42,7 +43,8 @@ def get_kraken_nonce() -> str:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Auth helper (per endpoint GET openpositions via requests)
+# Auth helper (Kraken Futures v3)
+# Authent = Base64( HMAC-SHA512( SHA256(postData + nonce + endpointPath), Base64Decode(secret) ) )
 # ─────────────────────────────────────────────────────────────────────────────
 def kraken_auth_headers(endpoint_path: str, post_data: str = "") -> dict:
     nonce = get_kraken_nonce()
@@ -54,73 +56,61 @@ def kraken_auth_headers(endpoint_path: str, post_data: str = "") -> dict:
     return {"APIKey": API_KEY, "Nonce": nonce, "Authent": authent}
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# SDK clients
-# ─────────────────────────────────────────────────────────────────────────────
-def get_trade_client():
-    return Trade(key=API_KEY, secret=API_SECRET)
-
 def get_user_client():
     return User(key=API_KEY, secret=API_SECRET)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Helper: crea ordine MARKET forzando GTC con il nome parametro giusto per lo SDK
-# ─────────────────────────────────────────────────────────────────────────────
-def create_order_with_tif(trade: Trade, *, orderType: str, symbol: str, side: str, size: float, reduceOnly: bool = False):
-    """
-    Prova diversi nomi di parametro per impostare time-in-force.
-    Obiettivo: evitare che lo SDK mandi IOC di default.
-    """
-    base_kwargs = dict(
-        orderType=orderType,
-        symbol=symbol,
-        side=side,
-        size=size,
-        reduceOnly=reduceOnly,
-    )
-
-    # tenta timeInForce (camelCase), poi snake_case, poi tif
-    attempts = [
-        ("timeInForce", "gtc"),
-        ("time_in_force", "gtc"),
-        ("tif", "gtc"),
-    ]
-
-    last_type_error = None
-    for k, v in attempts:
-        try:
-            return trade.create_order(**base_kwargs, **{k: v})
-        except TypeError as te:
-            last_type_error = te
-            continue
-
-    # Se nessun parametro è supportato, falliamo con errore chiaro
-    raise TypeError(
-        "Impossibile impostare time-in-force su questo SDK. "
-        "Ho provato: timeInForce, time_in_force, tif. Ultimo errore: "
-        + str(last_type_error)
-    )
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Core: leggi posizione aperta (via REST v3 openpositions)
+# Core: leggi posizione aperta
 # ─────────────────────────────────────────────────────────────────────────────
 def get_open_position(symbol: str):
     endpoint_path = "/derivatives/api/v3/openpositions"
     headers = kraken_auth_headers(endpoint_path)
-    response = requests.get(KRAKEN_BASE + endpoint_path, headers=headers, timeout=10)
-    data = response.json()
+    r = requests.get(KRAKEN_BASE + endpoint_path, headers=headers, timeout=10)
+    data = r.json()
 
     for pos in data.get("openPositions", []):
         if pos.get("symbol", "").upper() == symbol.upper():
             size = float(pos.get("size", 0))
-            if size == 0:
+            if abs(size) < 1e-12:
                 return None
-            side = "long" if size > 0 else "short"
-            return {"side": side, "size": abs(size), "raw": pos}
-
+            return {
+                "side": "long" if size > 0 else "short",
+                "size": abs(size),
+                "raw": pos,
+            }
     return None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# REST v3: sendorder (qui possiamo forzare timeInForce=gtc)
+# Docs: POST /sendorder :contentReference[oaicite:1]{index=1}
+# ─────────────────────────────────────────────────────────────────────────────
+def futures_sendorder(params: dict):
+    """
+    In Kraken Futures v3, i parametri per gli endpoint privati vengono firmati come
+    stringa urlencoded (postData) e inviati come body form-urlencoded (affidabile).
+    """
+    endpoint_path = "/derivatives/api/v3/sendorder"
+
+    # IMPORTANT: firma sul payload urlencoded
+    post_data = urlencode(params)
+
+    headers = kraken_auth_headers(endpoint_path, post_data)
+    headers["Content-Type"] = "application/x-www-form-urlencoded"
+
+    r = requests.post(
+        KRAKEN_BASE + endpoint_path,
+        headers=headers,
+        data=post_data,
+        timeout=15
+    )
+
+    # Kraken ritorna JSON sempre (in caso errori spesso 4xx con json)
+    try:
+        return r.status_code, r.json()
+    except Exception:
+        return r.status_code, {"result": "error", "http": r.status_code, "raw": r.text}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -134,40 +124,8 @@ def health():
         "kraken_nonce": get_kraken_nonce(),
         "symbol": DEFAULT_SYMBOL,
         "api_key_set": bool(API_KEY),
-        "version": "2.5.0",
+        "version": "2.6.0",
     })
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# DEBUG KEY
-# ─────────────────────────────────────────────────────────────────────────────
-@app.route("/debug-key", methods=["GET"])
-def debug_key():
-    return jsonify({
-        "key_prefix": API_KEY[:10] if API_KEY else "EMPTY",
-        "key_length": len(API_KEY),
-        "secret_length": len(API_SECRET),
-    })
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# DEBUG POSITIONS (raw, SDK)
-# ─────────────────────────────────────────────────────────────────────────────
-@app.route("/debug-positions", methods=["GET"])
-def debug_positions():
-    trade = get_trade_client()
-    result = trade.request(method="GET", uri="/derivatives/api/v3/openpositions", auth=True)
-    return jsonify(result)
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# DEBUG WALLET (raw)
-# ─────────────────────────────────────────────────────────────────────────────
-@app.route("/debug-wallet", methods=["GET"])
-def debug_wallet():
-    user = get_user_client()
-    result = user.get_wallets()
-    return jsonify(result)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -202,7 +160,7 @@ def position():
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# CLOSE POSITION (reduceOnly + GTC)
+# CLOSE POSITION (reduceOnly + timeInForce=gtc)
 # ─────────────────────────────────────────────────────────────────────────────
 @app.route("/close-position", methods=["POST"])
 def close_position():
@@ -214,27 +172,31 @@ def close_position():
         return jsonify({"status": "no_position", "message": "Nessuna posizione aperta, nulla da chiudere."})
 
     close_side = "sell" if pos["side"] == "long" else "buy"
-    trade = get_trade_client()
 
-    result = create_order_with_tif(
-        trade,
-        orderType="mkt",
-        symbol=symbol,
-        side=close_side,
-        size=pos["size"],
-        reduceOnly=True,
-    )
+    # sendorder params
+    params = {
+        "orderType": "mkt",
+        "symbol": symbol,
+        "side": close_side,
+        "size": str(pos["size"]),
+        "reduceOnly": "true",
+        "timeInForce": "gtc",
+    }
+
+    http, result = futures_sendorder(params)
+    ok = (result.get("result") == "success")
 
     return jsonify({
-        "status": "closed",
+        "status": "closed" if ok else "failed",
+        "http": http,
         "close_order_side": close_side,
         "size": pos["size"],
         "raw": result,
-    })
+    }), (200 if ok else 400)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# PLACE BET (apre posizione reale: GTC)
+# PLACE BET (apre posizione reale: timeInForce=gtc)
 # ─────────────────────────────────────────────────────────────────────────────
 @app.route("/place-bet", methods=["POST"])
 def place_bet():
@@ -244,7 +206,6 @@ def place_bet():
     confidence = float(data.get("confidence", 0))
     symbol     = data.get("symbol", DEFAULT_SYMBOL)
 
-    # size = contratti (es. BTC) sul perpetual. Mantieni il tuo default.
     try:
         size = float(data.get("size", data.get("stake_usdc", 0.0001)))
         if size <= 0:
@@ -258,7 +219,7 @@ def place_bet():
     desired_side = "long" if direction == "UP" else "short"
     pos = get_open_position(symbol)
 
-    # se già nella stessa direzione → skip (evita stacking)
+    # già stessa direzione -> skip (evita stacking)
     if pos and pos["side"] == desired_side:
         return jsonify({
             "status": "skipped",
@@ -266,38 +227,47 @@ def place_bet():
             "existing_position": pos,
         })
 
-    trade = get_trade_client()
-
-    # se opposta → chiudi prima (reduceOnly + GTC)
+    # se opposta -> chiudi prima
     if pos and pos["side"] != desired_side:
         close_side = "sell" if pos["side"] == "long" else "buy"
-        create_order_with_tif(
-            trade,
-            orderType="mkt",
-            symbol=symbol,
-            side=close_side,
-            size=pos["size"],
-            reduceOnly=True,
-        )
+        http_c, res_c = futures_sendorder({
+            "orderType": "mkt",
+            "symbol": symbol,
+            "side": close_side,
+            "size": str(pos["size"]),
+            "reduceOnly": "true",
+            "timeInForce": "gtc",
+        })
+        if res_c.get("result") != "success":
+            return jsonify({
+                "status": "error",
+                "error": "failed_to_close_existing_position",
+                "http": http_c,
+                "raw": res_c,
+            }), 500
         time.sleep(0.6)
 
-    # apri nuova posizione (GTC)
+    # apri nuova posizione
     order_side = "buy" if direction == "UP" else "sell"
-    result = create_order_with_tif(
-        trade,
-        orderType="mkt",
-        symbol=symbol,
-        side=order_side,
-        size=size,
-        reduceOnly=False,
-    )
 
-    order_id = (result or {}).get("sendStatus", {}).get("order_id")
+    http_o, result = futures_sendorder({
+        "orderType": "mkt",
+        "symbol": symbol,
+        "side": order_side,
+        "size": str(size),
+        "timeInForce": "gtc",
+        # reduceOnly deve essere false/assente in apertura
+    })
+
+    ok = (result.get("result") == "success")
+    order_id = result.get("sendStatus", {}).get("order_id")
+
+    # verifica posizione (breve delay)
     time.sleep(0.6)
     confirmed = get_open_position(symbol)
 
     return jsonify({
-        "status": "placed",
+        "status": "placed" if ok else "failed",
         "direction": direction,
         "confidence": confidence,
         "symbol": symbol,
@@ -305,11 +275,11 @@ def place_bet():
         "size": size,
         "order_id": order_id,
         "position_confirmed": bool(confirmed),
+        "http": http_o,
         "raw": result,
-    })
+    }), (200 if ok else 400)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "5000"))
     app.run(host="0.0.0.0", port=port)
