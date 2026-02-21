@@ -212,10 +212,22 @@ def debug_wallet():
 def debug_positions():
     try:
         trade = get_trade_client()
-        result = trade.get_open_positions()
+        result = trade.get_open_positions_v3()
         return jsonify(result)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception as e1:
+        try:
+            result = trade.get_positions()
+            return jsonify({"method": "get_positions", "result": result})
+        except Exception as e2:
+            try:
+                result = trade.get_open_position()
+                return jsonify({"method": "get_open_position", "result": result})
+            except Exception as e3:
+                return jsonify({
+                    "error1": str(e1),
+                    "error2": str(e2), 
+                    "error3": str(e3)
+                })
 
 # ── MAIN ─────────────────────────────────────────────────────────────────────
 
