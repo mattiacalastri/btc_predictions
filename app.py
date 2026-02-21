@@ -26,7 +26,6 @@ client.set_api_creds(client.create_or_derive_api_creds())
 
 def find_btc_5min_market():
     try:
-        # Usa Gamma API per cercare mercati con slug dinamico
         resp = requests.get(
             f"{GAMMA_HOST}/markets",
             params={
@@ -39,7 +38,6 @@ def find_btc_5min_market():
         markets = resp.json()
         if not markets:
             return None
-        # Prendi quello con endDate più vicina
         markets.sort(key=lambda m: m.get('endDate', ''))
         return markets[0]
     except Exception as e:
@@ -61,10 +59,9 @@ def place_bet():
     if not market:
         return jsonify({"status": "skipped", "reason": "no_btc_5min_market_found"})
 
-    # Token: cerca YES (UP) o NO (DOWN) nei clobTokenIds
     clob_token_ids = market.get('clobTokenIds', [])
     if len(clob_token_ids) < 2:
-        return jsonify({"status": "skipped", "reason": "token_ids_not_found"})
+        return jsonify({"status": "skipped", "reason": "token_ids_not_found", "market_raw": market})
 
     token_index = 0 if direction == 'UP' else 1
     token_id = clob_token_ids[token_index]
