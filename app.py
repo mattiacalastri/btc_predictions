@@ -1,6 +1,7 @@
 import os
 import time
 import requests
+import json
 from flask import Flask, request, jsonify
 from py_clob_client.client import ClobClient
 from py_clob_client.clob_types import MarketOrderArgs, OrderType
@@ -26,29 +27,27 @@ client.set_api_creds(client.create_or_derive_api_creds())
 
 def find_btc_5min_market():
     try:
-        # Cerca eventi con slug che contiene "btc-updown-5m"
-        resp = requests.get(
-            f"{GAMMA_HOST}/events",
-            params={
-                "active": "true",
-                "closed": "false",
-                "limit": 20
-            }
-        )
-        events = resp.json()
+        # I mercati Up/Down usano slug con timestamp unix — cerchiamo via CLOB direttamente
+        # Calcoliamo il timestamp del prossimo slot 5min
+        now = int(time.time())
+        # Arrotondiamo al prossimo multiplo di 300 secondi
+        next_slot = ((now // 300) + 1) * 300
+        slug = f"btc-updown-5m-{next_slot}"
 
-        for event in events:
-            slug = event.get('slug', '')
-            title = event.get('title', '')
-            if 'btc' in slug.lower() and ('updown' in slug.lower() or 'up-down' in slug.lower() or '5m' in slug.lower()):
-                markets = event.get('markets', [])
-                for market in markets:
-                    question = market.get('question', '').lower()
-                    if 'up' in question or 'higher' in question:
-                        return market
-                # Se non trovato per question, prendi il primo mercato
-                if markets:
-                    return markets[0]
+        resp = requests.get(f"{GAMMA_HOST}/markets", params={"slug": slug})
+        data = resp.json()
+
+        if data and len(data) > 0:
+            return data[0]
+
+        # Prova anche lo slot corrente
+        current_slot = (now // 300) * 300
+        slug2 = f"btc-updown-5m-{current_slot}"
+        resp2 = requests.get(f"{GAMMA_HOST}/markets", params={"slug": slug2})
+        data2 = resp2.json()
+
+        if data2 and len(data2) > 0:
+            return data2[0]
 
         return None
     except Exception as e:
@@ -72,7 +71,6 @@ def place_bet():
 
     clob_token_ids = market.get('clobTokenIds', '[]')
     if isinstance(clob_token_ids, str):
-        import json
         clob_token_ids = json.loads(clob_token_ids)
 
     if len(clob_token_ids) < 2:
@@ -107,17 +105,24 @@ def place_bet():
 @app.route('/markets', methods=['GET'])
 def list_markets():
     try:
-        resp = requests.get(
-            f"{GAMMA_HOST}/events",
-            params={"active": "true", "closed": "false", "limit": 20}
-        )
-        events = resp.json()
-        btc = [
-            {"slug": e.get('slug'), "title": e.get('title'), "markets_count": len(e.get('markets', []))}
-            for e in events
-            if 'btc' in e.get('slug', '').lower() or 'bitcoin' in e.get('title', '').lower()
-        ]
-        return jsonify({"btc_events": btc, "all_slugs": [e.get('slug') for e in events]})
+        now = int(time.time())
+        results = []
+        # Controlla gli ultimi 3 slot e i prossimi 3
+        for offset in range(-3, 4):
+            slot = ((now // 300) + offset) * 300
+            slug = f"btc-updown-5m-{slot}"
+            resp = requests.get(f"{GAMMA_HOST}/markets", params={"slug": slug})
+            data = resp.json()
+            if data and len(data) > 0:
+                m = data[0]
+                results.append({
+                    "slug": slug,
+                    "question": m.get('question'),
+                    "active": m.get('active'),
+                    "closed": m.get('closed'),
+                    "endDate": m.get('endDate')
+                })
+        return jsonify(results if results else {"message": "nessun mercato trovato", "now": now})
     except Exception as e:
         return jsonify({"error": str(e)})
 
