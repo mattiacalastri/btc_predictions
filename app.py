@@ -236,24 +236,14 @@ def place_bet():
             "existing_position": pos,
         })
 
-    # Direzione opposta -> chiudi prima
-    if pos and pos["side"] != desired_side:
-        try:
-            close_side = "sell" if pos["side"] == "long" else "buy"
-            trade = get_trade_client()
-            trade.create_order(
-                orderType="mkt",
-                symbol=symbol,
-                side=close_side,
-                size=pos["size"],
-                reduceOnly=True,
-            )
-        except Exception as e:
-            return jsonify({
-                "status": "error",
-                "error": f"Impossibile chiudere posizione esistente: {str(e)}"
-            }), 500
-
+# Se esiste già una posizione → non apriamo nulla.
+if pos:
+    return jsonify({
+        "status": "skipped",
+        "reason": "Existing position must finish lifecycle before opening a new one.",
+        "existing_position": pos,
+    })
+    
     # Apri nuova posizione
     order_side = "buy" if direction == "UP" else "sell"
 
