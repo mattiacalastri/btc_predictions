@@ -96,12 +96,28 @@ def debug_key():
 @app.route("/debug-positions", methods=["GET"])
 def debug_positions():
     try:
-        trade = get_trade_client()
-        result = trade.get_open_positions()
-        return jsonify(result)
+        endpoint_path = "/derivatives/api/v3/openpositions"
+        nonce = str(int(time.time() * 1000))
+        post_data = ""
+        message = post_data + nonce + endpoint_path
+        sha256_hash = hashlib.sha256(message.encode("utf-8")).digest()
+        secret_decoded = base64.b64decode(API_SECRET)
+        sig = hmac.new(secret_decoded, sha256_hash, hashlib.sha512)
+        authent = base64.b64encode(sig.digest()).decode()
+        headers = {
+            "APIKey": API_KEY,
+            "Nonce": nonce,
+            "Authent": authent,
+        }
+        response = requests.get(KRAKEN_BASE + endpoint_path, headers=headers, timeout=10)
+        return jsonify({
+            "nonce": nonce,
+            "message_signed": message,
+            "http_status": response.status_code,
+            "kraken_response": response.json()
+        })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 
 # ── DEBUG WALLET (raw) ───────────────────────────────────────────────────────
 
