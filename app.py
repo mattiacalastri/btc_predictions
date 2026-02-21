@@ -7,13 +7,16 @@ app = Flask(__name__)
 
 API_KEY = os.environ.get("KRAKEN_FUTURES_API_KEY", "")
 API_SECRET = os.environ.get("KRAKEN_FUTURES_API_SECRET", "")
-DEFAULT_SYMBOL = os.environ.get("KRAKEN_DEFAULT_SYMBOL", "PI_XBTUSD")
+DEFAULT_SYMBOL = os.environ.get("KRAKEN_DEFAULT_SYMBOL", "PF_XBTUSD")
+
 
 def get_trade_client():
     return Trade(key=API_KEY, secret=API_SECRET)
 
+
 def get_user_client():
     return User(key=API_KEY, secret=API_SECRET)
+
 
 @app.route("/health", methods=["GET"])
 def health():
@@ -24,6 +27,7 @@ def health():
         "api_key_set": bool(API_KEY),
     })
 
+
 @app.route("/debug-key", methods=["GET"])
 def debug_key():
     return jsonify({
@@ -31,6 +35,7 @@ def debug_key():
         "key_length": len(API_KEY),
         "secret_length": len(API_SECRET),
     })
+
 
 @app.route("/balance", methods=["GET"])
 def balance():
@@ -41,22 +46,28 @@ def balance():
     except Exception as e:
         return jsonify({"status": "error", "error": str(e)}), 500
 
+
 @app.route("/place-bet", methods=["POST"])
 def place_bet():
     data = request.get_json(force=True) or {}
     direction = (data.get("direction") or "").upper()
     confidence = float(data.get("confidence", 0))
     symbol = data.get("symbol", DEFAULT_SYMBOL)
-    size = data.get("size", data.get("stake_usdc", 10))
+
+    # PF_XBTUSD usa BTC come unità (es. 0.0001 BTC ≈ $6)
+    # PI_XBTUSD usa USD come unità (es. 10 = $10)
     try:
-        size = int(float(size))
-        if size < 1:
-            size = 1
+        size = float(data.get("size", data.get("stake_usdc", 0.0001)))
+        if size <= 0:
+            size = 0.0001
     except Exception:
         return jsonify({"status": "failed", "error": "invalid_size"}), 400
+
     if direction not in ("UP", "DOWN"):
         return jsonify({"status": "failed", "error": "invalid_direction"}), 400
+
     side = "buy" if direction == "UP" else "sell"
+
     try:
         trade = get_trade_client()
         result = trade.create_order(
@@ -77,6 +88,7 @@ def place_bet():
         }), (200 if ok else 400)
     except Exception as e:
         return jsonify({"status": "error", "error": str(e)}), 500
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "5000"))
