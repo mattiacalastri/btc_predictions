@@ -1,30 +1,58 @@
 import os
 import time
+import hmac
+import hashlib
+import base64
+import requests
 from flask import Flask, request, jsonify
 from kraken.futures import Trade, User
 
 app = Flask(__name__)
 
-API_KEY = os.environ.get("KRAKEN_FUTURES_API_KEY", "")
+API_KEY    = os.environ.get("KRAKEN_FUTURES_API_KEY", "")
 API_SECRET = os.environ.get("KRAKEN_FUTURES_API_SECRET", "")
 DEFAULT_SYMBOL = os.environ.get("KRAKEN_DEFAULT_SYMBOL", "PF_XBTUSD")
+KRAKEN_BASE = "https://futures.kraken.com"
 
+
+# ── Auth helper ──────────────────────────────────────────────────────────────
+
+def kraken_auth_headers(api_path: str, nonce: str) -> dict:
+    message = nonce + api_path
+    secret_decoded = base64.b64decode(API_SECRET)
+    sig = hmac.new(secret_decoded, message.encode(), hashlib.sha512)
+    sig_b64 = base64.b64encode(sig.digest()).decode()
+    return {
+        "APIKey": API_KEY,
+        "Nonce": nonce,
+        "Authent": sig_b64,
+    }
+
+
+# ── SDK clients ──────────────────────────────────────────────────────────────
 
 def get_trade_client():
     return Trade(key=API_KEY, secret=API_SECRET)
-
 
 def get_user_client():
     return User(key=API_KEY, secret=API_SECRET)
 
 
+# ── Core: leggi posizione aperta ─────────────────────────────────────────────
+
 def get_open_position(symbol: str) -> dict:
+    """
+    Ritorna {"side": "long"/"short", "size": float} oppure None se flat.
+    Usa REST diretto perche il SDK non espone get_open_positions.
+    """
     try:
-        trade = get_trade_client()
-        result = trade.get_open_positions()
-        positions = result.get("openPositions", [])
-        
-        for pos in positions:
+        api_path = "/derivatives/api/v3/openpositions"
+        nonce = str(int(time.time() * 1000))
+        headers = kraken_auth_headers(api_path, nonce)
+        response = requests.get(KRAKEN_BASE + api_path, headers=headers, timeout=10)
+        data = response.json()
+
+        for pos in data.get("openPositions", []):
             if pos.get("symbol", "").upper() == symbol.upper():
                 size = float(pos.get("size", 0))
                 if size == 0:
@@ -35,7 +63,8 @@ def get_open_position(symbol: str) -> dict:
     except Exception:
         return None
 
-# ── HEALTH ──────────────────────────────────────────────────────────────────
+
+# ── HEALTH ───────────────────────────────────────────────────────────────────
 
 @app.route("/health", methods=["GET"])
 def health():
@@ -44,10 +73,11 @@ def health():
         "ts": int(time.time()),
         "symbol": DEFAULT_SYMBOL,
         "api_key_set": bool(API_KEY),
+        "version": "2.1.0",
     })
 
 
-# ── DEBUG ────────────────────────────────────────────────────────────────────
+# ── DEBUG KEY ────────────────────────────────────────────────────────────────
 
 @app.route("/debug-key", methods=["GET"])
 def debug_key():
@@ -58,6 +88,32 @@ def debug_key():
     })
 
 
+# ── DEBUG POSITIONS (raw) ────────────────────────────────────────────────────
+
+@app.route("/debug-positions", methods=["GET"])
+def debug_positions():
+    try:
+        api_path = "/derivatives/api/v3/openpositions"
+        nonce = str(int(time.time() * 1000))
+        headers = kraken_auth_headers(api_path, nonce)
+        response = requests.get(KRAKEN_BASE + api_path, headers=headers, timeout=10)
+        return jsonify(response.json())
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ── DEBUG WALLET (raw) ───────────────────────────────────────────────────────
+
+@app.route("/debug-wallet", methods=["GET"])
+def debug_wallet():
+    try:
+        user = get_user_client()
+        result = user.get_wallets()
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 # ── BALANCE ──────────────────────────────────────────────────────────────────
 
 @app.route("/balance", methods=["GET"])
@@ -65,7 +121,16 @@ def balance():
     try:
         user = get_user_client()
         result = user.get_wallets()
-        return jsonify(result)
+        flex = result.get("accounts", {}).get("flex", {})
+        return jsonify({
+            "status": "ok",
+            "margin_equity": flex.get("marginEquity"),
+            "available_margin": flex.get("availableMargin"),
+            "pnl": flex.get("pnl"),
+            "usdc": flex.get("currencies", {}).get("USDC", {}).get("available"),
+            "usd": flex.get("currencies", {}).get("USD", {}).get("available"),
+            "raw": result,
+        })
     except Exception as e:
         return jsonify({"status": "error", "error": str(e)}), 500
 
@@ -74,7 +139,6 @@ def balance():
 
 @app.route("/position", methods=["GET"])
 def position():
-    """Endpoint per vedere la posizione aperta attuale."""
     symbol = request.args.get("symbol", DEFAULT_SYMBOL)
     pos = get_open_position(symbol)
     if pos:
@@ -98,7 +162,6 @@ def close_position():
                 "message": "Nessuna posizione aperta, nulla da chiudere."
             })
 
-        # Per chiudere: lato inverso rispetto alla posizione aperta
         close_side = "sell" if pos["side"] == "long" else "buy"
         size = pos["size"]
 
@@ -129,9 +192,9 @@ def close_position():
 @app.route("/place-bet", methods=["POST"])
 def place_bet():
     data = request.get_json(force=True) or {}
-    direction = (data.get("direction") or "").upper()
+    direction  = (data.get("direction") or "").upper()
     confidence = float(data.get("confidence", 0))
-    symbol = data.get("symbol", DEFAULT_SYMBOL)
+    symbol     = data.get("symbol", DEFAULT_SYMBOL)
 
     try:
         size = float(data.get("size", data.get("stake_usdc", 0.0001)))
@@ -143,18 +206,18 @@ def place_bet():
     if direction not in ("UP", "DOWN"):
         return jsonify({"status": "failed", "error": "invalid_direction"}), 400
 
-    # Controlla posizione aperta: se già nella stessa direzione, salta
-    pos = get_open_position(symbol)
     desired_side = "long" if direction == "UP" else "short"
+    pos = get_open_position(symbol)
 
+    # Gia nella stessa direzione -> skip
     if pos and pos["side"] == desired_side:
         return jsonify({
             "status": "skipped",
-            "reason": f"Posizione {pos['side']} già aperta, stessa direzione. Nulla da fare.",
+            "reason": f"Posizione {pos['side']} gia aperta nella stessa direzione.",
             "existing_position": pos,
         })
 
-    # Se c'è una posizione nel lato opposto, la chiudiamo prima
+    # Direzione opposta -> chiudi prima
     if pos and pos["side"] != desired_side:
         try:
             close_side = "sell" if pos["side"] == "long" else "buy"
@@ -172,7 +235,7 @@ def place_bet():
                 "error": f"Impossibile chiudere posizione esistente: {str(e)}"
             }), 500
 
-    # Apri la nuova posizione
+    # Apri nuova posizione
     order_side = "buy" if direction == "UP" else "sell"
 
     try:
@@ -185,6 +248,8 @@ def place_bet():
         )
 
         ok = result.get("result") == "success"
+        order_id = result.get("sendStatus", {}).get("order_id", None)
+
         return jsonify({
             "status": "placed" if ok else "failed",
             "direction": direction,
@@ -192,6 +257,7 @@ def place_bet():
             "symbol": symbol,
             "side": order_side,
             "size": size,
+            "order_id": order_id,
             "previous_position_closed": pos is not None,
             "raw": result,
         }), (200 if ok else 400)
@@ -199,23 +265,6 @@ def place_bet():
     except Exception as e:
         return jsonify({"status": "error", "error": str(e)}), 500
 
-@app.route("/debug-wallet", methods=["GET"])
-def debug_wallet():
-    try:
-        user = get_user_client()
-        result = user.get_wallets()
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route("/debug-positions", methods=["GET"])
-def debug_positions():
-    try:
-        trade = get_trade_client()
-        methods = [m for m in dir(trade) if 'pos' in m.lower() or 'open' in m.lower()]
-        return jsonify({"available_methods": methods})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 
 # ── MAIN ─────────────────────────────────────────────────────────────────────
 
