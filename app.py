@@ -294,6 +294,67 @@ def place_bet():
     except Exception as e:
         return jsonify({"status": "error", "error": str(e)}), 500
 
+# ── BTC PRICE (Kraken Futures mark price) ────────────────────────────────────
+
+@app.route("/btc-price", methods=["GET"])
+def get_btc_price():
+    try:
+        trade = get_trade_client()
+        result = trade.request(
+            method="GET",
+            uri="/derivatives/api/v3/tickers",
+            auth=False
+        )
+        tickers = result.get("tickers", []) or []
+        ticker = next(
+            (t for t in tickers if (t.get("symbol") or "").upper() == "PF_XBTUSD"),
+            None
+        )
+        if not ticker:
+            return jsonify({"error": "ticker PF_XBTUSD not found"}), 404
+
+        return jsonify({
+            "symbol":     "PF_XBTUSD",
+            "mark_price": float(ticker.get("markPrice") or 0),
+            "last_price": float(ticker.get("last")      or 0),
+            "bid":        float(ticker.get("bid")        or 0),
+            "ask":        float(ticker.get("ask")        or 0),
+            "funding_rate": ticker.get("fundingRate"),
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ── EXECUTION FEES ───────────────────────────────────────────────────────────
+
+@app.route("/execution-fees", methods=["GET"])
+def get_execution_fees():
+    order_id = request.args.get("order_id")
+    if not order_id:
+        return jsonify({"error": "order_id required"}), 400
+
+    try:
+        trade = get_trade_client()
+        result = trade.request(
+            method="GET",
+            uri="/derivatives/api/v3/fills",
+            auth=True
+        )
+        fills = result.get("fills", []) or []
+
+        order_fills = [f for f in fills if f.get("order_id") == order_id]
+        total_fee = sum(float(f.get("fee", 0) or 0) for f in order_fills)
+        fee_currency = order_fills[0].get("fee_currency", "USD") if order_fills else "USD"
+
+        return jsonify({
+            "order_id":     order_id,
+            "total_fee":    total_fee,
+            "fee_currency": fee_currency,
+            "fills_found":  len(order_fills),
+            "fills":        order_fills,
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # ── MAIN ─────────────────────────────────────────────────────────────────────
 
