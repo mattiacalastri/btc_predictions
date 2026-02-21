@@ -1,177 +1,140 @@
 import os
 import time
-import hmac
-import hashlib
-import base64
 import requests
-
-from urllib.parse import urlencode, quote
 from flask import Flask, request, jsonify
 from kraken.futures import Trade, User
 
 app = Flask(__name__)
 
-API_KEY        = os.environ.get("KRAKEN_FUTURES_API_KEY", "")
-API_SECRET_B64 = os.environ.get("KRAKEN_FUTURES_API_SECRET", "")
+API_KEY = os.environ.get("KRAKEN_FUTURES_API_KEY", "")
+API_SECRET = os.environ.get("KRAKEN_FUTURES_API_SECRET", "")
 DEFAULT_SYMBOL = os.environ.get("KRAKEN_DEFAULT_SYMBOL", "PF_XBTUSD")
-KRAKEN_BASE    = "https://futures.kraken.com"
+KRAKEN_BASE = "https://futures.kraken.com"
 
-# -----------------------------------------------------------------------------
-# Nonce helper (Railway clock safety): use Kraken serverTime as source
-# -----------------------------------------------------------------------------
-def get_kraken_nonce() -> str:
-    try:
-        r = requests.get(f"{KRAKEN_BASE}/derivatives/api/v3/servertime", timeout=5)
-        server_time = r.json().get("serverTime", "")
-        # e.g. "2026-02-21T15:24:12.482Z"
-        from datetime import datetime, timezone
-        dt = datetime.strptime(server_time, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
-        return str(int(dt.timestamp() * 1000))
-    except Exception:
-        return str(int(time.time() * 1000))
 
-# -----------------------------------------------------------------------------
-# Auth helper (Kraken Derivatives v3):
-# authent = Base64( HMAC-SHA512( SHA256(postData + nonce + endpointPath), Base64Decode(secret) ) )
-# NOTE: postData MUST be url-encoded exactly as sent in request (per 2024/2025 guidance)
-# -----------------------------------------------------------------------------
-def _secret_decoded() -> bytes:
-    if not API_SECRET_B64:
-        return b""
-    return base64.b64decode(API_SECRET_B64)
+# ── SDK clients ──────────────────────────────────────────────────────────────
 
-def build_post_data(params: dict) -> str:
-    """
-    Build x-www-form-urlencoded body using %20 for spaces (not '+') to match
-    'url-encoded as it appears in the request' requirement.
-    """
-    if not params:
-        return ""
-    # quote_via=quote => spaces become %20
-    return urlencode(params, doseq=True, quote_via=quote, safe="")
-
-def kraken_auth_headers(endpoint_path: str, post_data: str = "") -> dict:
-    nonce = get_kraken_nonce()
-    message = (post_data or "") + nonce + endpoint_path
-    sha256_hash = hashlib.sha256(message.encode("utf-8")).digest()
-    sig = hmac.new(_secret_decoded(), sha256_hash, hashlib.sha512)
-    authent = base64.b64encode(sig.digest()).decode()
-
-    return {
-        "APIKey": API_KEY,
-        "Nonce": nonce,
-        "Authent": authent,
-        "Content-Type": "application/x-www-form-urlencoded",
-        "Accept": "application/json",
-        "User-Agent": "n8n-kraken-bot/1.0",
-    }
-
-# -----------------------------------------------------------------------------
-# SDK clients (used for wallet) - for trading we use raw REST to avoid SDK limits
-# -----------------------------------------------------------------------------
 def get_trade_client():
-    return Trade(key=API_KEY, secret=API_SECRET_B64)
+    return Trade(key=API_KEY, secret=API_SECRET)
 
 def get_user_client():
-    return User(key=API_KEY, secret=API_SECRET_B64)
+    return User(key=API_KEY, secret=API_SECRET)
 
-# -----------------------------------------------------------------------------
-# Core: open positions (list) + single position helper
-# -----------------------------------------------------------------------------
-def get_open_positions() -> list:
-    endpoint_path = "/derivatives/api/v3/openpositions"
-    headers = kraken_auth_headers(endpoint_path, post_data="")
-    r = requests.get(f"{KRAKEN_BASE}{endpoint_path}", headers=headers, timeout=10)
-    data = r.json() if r.ok else {"result": "error", "http": r.status_code, "text": r.text}
-    positions = []
-    for pos in data.get("openPositions", []) or []:
-        try:
-            size = float(pos.get("size", 0) or 0)
-        except Exception:
-            size = 0.0
-        if size == 0:
-            continue
-        positions.append({
-            "symbol": (pos.get("symbol") or "").upper(),
-            "side": (pos.get("side") or "").lower(),   # "long" / "short"
-            "size": abs(size),
-            "raw": pos,
-        })
-    return positions
 
-def get_open_position(symbol: str) -> dict | None:
-    symbol_u = (symbol or "").upper()
-    for p in get_open_positions():
-        if p["symbol"] == symbol_u:
-            return {"side": p["side"], "size": p["size"], "symbol": p["symbol"]}
-    return None
+# ── Time helper (solo diagnostica) ───────────────────────────────────────────
 
-def auto_detect_position(preferred_symbol: str | None = None) -> dict | None:
-    """
-    If preferred_symbol not found, but there is exactly ONE open position, return it.
-    This fixes the common PF vs PI mismatch problem.
-    """
-    if preferred_symbol:
-        pos = get_open_position(preferred_symbol)
-        if pos:
-            return pos
-
-    positions = get_open_positions()
-    if len(positions) == 1:
-        p = positions[0]
-        return {"side": p["side"], "size": p["size"], "symbol": p["symbol"]}
-
-    return None
-
-# -----------------------------------------------------------------------------
-# Core: send order (raw REST)
-# -----------------------------------------------------------------------------
-def send_order(symbol: str, side: str, size: float, order_type: str = "mkt", reduce_only: bool = False) -> dict:
-    endpoint_path = "/derivatives/api/v3/sendorder"
-    params = {
-        "orderType": order_type,   # "mkt"
-        "symbol": symbol,
-        "side": side,              # "buy" / "sell"
-        "size": str(size),
-    }
-    if reduce_only:
-        params["reduceOnly"] = "true"
-
-    post_data = build_post_data(params)
-    headers = kraken_auth_headers(endpoint_path, post_data=post_data)
-
-    r = requests.post(f"{KRAKEN_BASE}{endpoint_path}", data=post_data, headers=headers, timeout=15)
+def get_kraken_servertime():
     try:
-        data = r.json()
+        r = requests.get(KRAKEN_BASE + "/derivatives/api/v3/servertime", timeout=5)
+        return r.json().get("serverTime")
     except Exception:
-        data = {"result": "error", "error": "non_json_response", "http": r.status_code, "text": r.text}
+        return None
 
-    data["_http_status"] = r.status_code
-    return data
 
-def wait_position_sync(symbol: str, max_wait_s: float = 3.0, step_s: float = 0.4) -> bool:
-    """Poll openpositions a few times to let Kraken update."""
-    deadline = time.time() + max_wait_s
-    while time.time() < deadline:
-        if get_open_position(symbol):
-            return True
-        time.sleep(step_s)
-    return False
+# ── Core: leggi posizione aperta (SDK auth=True, NO firma manuale) ───────────
 
-# -----------------------------------------------------------------------------
-# Routes
-# -----------------------------------------------------------------------------
+def get_open_position(symbol: str):
+    """
+    Ritorna:
+      None se flat
+      { "side": "long"/"short", "size": float } se posizione aperta
+    """
+    trade = get_trade_client()
+
+    # usa endpoint v3 con auth gestita dallo SDK
+    result = trade.request(
+        method="GET",
+        uri="/derivatives/api/v3/openpositions",
+        auth=True
+    )
+
+    open_positions = result.get("openPositions", []) or []
+    for pos in open_positions:
+        if (pos.get("symbol", "") or "").upper() == symbol.upper():
+            size = float(pos.get("size", 0) or 0)
+            if size == 0:
+                return None
+            side = (pos.get("side", "") or "").lower()
+            # Kraken restituisce "long"/"short" (di solito)
+            if side not in ("long", "short"):
+                side = "long" if size > 0 else "short"
+            return {"side": side, "size": abs(size)}
+    return None
+
+
+def wait_for_position_state(symbol: str, want_open: bool, retries: int = 6, sleep_s: float = 0.4):
+    """
+    want_open=True  -> aspetta che compaia una posizione su quel symbol
+    want_open=False -> aspetta che sparisca (flat)
+    """
+    last = None
+    for _ in range(retries):
+        try:
+            last = get_open_position(symbol)
+            if want_open and last:
+                return last
+            if (not want_open) and (last is None):
+                return None
+        except Exception:
+            pass
+        time.sleep(sleep_s)
+    return last
+
+
+# ── HEALTH ───────────────────────────────────────────────────────────────────
+
 @app.route("/health", methods=["GET"])
 def health():
     return jsonify({
         "status": "ok",
         "ts": int(time.time()),
-        "kraken_nonce": get_kraken_nonce(),
+        "serverTime": get_kraken_servertime(),
         "symbol": DEFAULT_SYMBOL,
         "api_key_set": bool(API_KEY),
-        "api_secret_set": bool(API_SECRET_B64),
         "version": "3.0.0",
     })
+
+
+# ── DEBUG KEY ────────────────────────────────────────────────────────────────
+
+@app.route("/debug-key", methods=["GET"])
+def debug_key():
+    return jsonify({
+        "key_prefix": API_KEY[:10] if API_KEY else "EMPTY",
+        "key_length": len(API_KEY),
+        "secret_length": len(API_SECRET),
+    })
+
+
+# ── DEBUG POSITIONS (raw via SDK) ────────────────────────────────────────────
+
+@app.route("/debug-positions", methods=["GET"])
+def debug_positions():
+    try:
+        trade = get_trade_client()
+        result = trade.request(
+            method="GET",
+            uri="/derivatives/api/v3/openpositions",
+            auth=True
+        )
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ── DEBUG WALLET (raw) ───────────────────────────────────────────────────────
+
+@app.route("/debug-wallet", methods=["GET"])
+def debug_wallet():
+    try:
+        user = get_user_client()
+        result = user.get_wallets()
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ── BALANCE ──────────────────────────────────────────────────────────────────
 
 @app.route("/balance", methods=["GET"])
 def balance():
@@ -186,27 +149,27 @@ def balance():
             "pnl": flex.get("pnl"),
             "usdc": flex.get("currencies", {}).get("USDC", {}).get("available"),
             "usd": flex.get("currencies", {}).get("USD", {}).get("available"),
+            "raw": result,
         })
     except Exception as e:
         return jsonify({"status": "error", "error": str(e)}), 500
 
-@app.route("/open-positions", methods=["GET"])
-def open_positions():
-    try:
-        return jsonify({"status": "ok", "positions": get_open_positions()})
-    except Exception as e:
-        return jsonify({"status": "error", "error": str(e)}), 500
+
+# ── POSITION ─────────────────────────────────────────────────────────────────
 
 @app.route("/position", methods=["GET"])
 def position():
     symbol = request.args.get("symbol", DEFAULT_SYMBOL)
     try:
-        pos = auto_detect_position(symbol)
+        pos = get_open_position(symbol)
         if pos:
-            return jsonify({"status": "open", **pos})
-        return jsonify({"status": "flat", "symbol": (symbol or DEFAULT_SYMBOL)})
+            return jsonify({"status": "open", "symbol": symbol, **pos})
+        return jsonify({"status": "flat", "symbol": symbol})
     except Exception as e:
-        return jsonify({"status": "error", "error": str(e)}), 500
+        return jsonify({"status": "error", "error": str(e), "symbol": symbol}), 500
+
+
+# ── CLOSE POSITION ───────────────────────────────────────────────────────────
 
 @app.route("/close-position", methods=["POST"])
 def close_position():
@@ -214,57 +177,52 @@ def close_position():
     symbol = data.get("symbol", DEFAULT_SYMBOL)
 
     try:
-        pos = auto_detect_position(symbol)
+        pos = get_open_position(symbol)
         if not pos:
             return jsonify({
                 "status": "no_position",
-                "message": "Nessuna posizione aperta (sul symbol richiesto o unica posizione auto-detect).",
-                "requested_symbol": symbol,
-                "open_positions": get_open_positions(),
+                "message": "Nessuna posizione aperta, nulla da chiudere.",
+                "symbol": symbol
             })
 
         close_side = "sell" if pos["side"] == "long" else "buy"
-        size = float(pos["size"])
+        size = pos["size"]
 
-        raw = send_order(
-            symbol=pos["symbol"],
+        trade = get_trade_client()
+        result = trade.create_order(
+            orderType="mkt",
+            symbol=symbol,
             side=close_side,
             size=size,
-            order_type="mkt",
-            reduce_only=True,
+            reduceOnly=True,
         )
 
-        ok = raw.get("result") == "success"
-        # let Kraken update
-        wait_position_sync(pos["symbol"], max_wait_s=2.0, step_s=0.4)
+        # aspetta conferma che sia flat (evita mismatch tempo reale)
+        final_state = wait_for_position_state(symbol, want_open=False, retries=8, sleep_s=0.35)
 
+        ok = result.get("result") == "success"
         return jsonify({
-            "status": "closed" if ok else "failed",
-            "requested_symbol": symbol,
-            "closed_symbol": pos["symbol"],
+            "status": "closed" if (ok and final_state is None) else ("closing" if ok else "failed"),
+            "symbol": symbol,
             "closed_side": pos["side"],
             "close_order_side": close_side,
             "size": size,
-            "raw": raw,
+            "position_after": final_state,
+            "raw": result,
         }), (200 if ok else 400)
 
     except Exception as e:
-        return jsonify({"status": "error", "error": str(e)}), 500
+        return jsonify({"status": "error", "error": str(e), "symbol": symbol}), 500
+
+
+# ── PLACE BET ────────────────────────────────────────────────────────────────
 
 @app.route("/place-bet", methods=["POST"])
 def place_bet():
-    """
-    Default behavior: NO-STACK.
-    - If any position exists on the symbol -> close it first (even same direction), then open new.
-    This prevents positions from accumulating into one net position.
-    """
     data = request.get_json(force=True) or {}
-    direction  = (data.get("direction") or "").upper()
-    confidence = float(data.get("confidence", 0) or 0)
-    symbol     = (data.get("symbol") or DEFAULT_SYMBOL).upper()
-
-    # NO-STACK (default True)
-    no_stack = bool(data.get("no_stack", True))
+    direction = (data.get("direction") or "").upper()
+    confidence = float(data.get("confidence", 0))
+    symbol = data.get("symbol", DEFAULT_SYMBOL)
 
     try:
         size = float(data.get("size", data.get("stake_usdc", 0.0001)))
@@ -277,56 +235,74 @@ def place_bet():
         return jsonify({"status": "failed", "error": "invalid_direction"}), 400
 
     desired_side = "long" if direction == "UP" else "short"
-    order_side = "buy" if direction == "UP" else "sell"
 
     try:
-        existing = get_open_position(symbol)
+        # Leggi posizione attuale (SDK)
+        pos = get_open_position(symbol)
 
-        # If NO-STACK, close any existing position first (even same direction)
-        if no_stack and existing:
-            close_side = "sell" if existing["side"] == "long" else "buy"
-            _ = send_order(
+        # Se già nella stessa direzione, non “impilare” size (evita sommatoria)
+        if pos and pos["side"] == desired_side:
+            return jsonify({
+                "status": "skipped",
+                "reason": f"Posizione {pos['side']} già aperta nella stessa direzione (no stacking).",
+                "symbol": symbol,
+                "existing_position": pos,
+                "no_stack": True,
+                "confidence": confidence,
+                "direction": direction,
+                "desired_position": desired_side,
+            }), 200
+
+        trade = get_trade_client()
+
+        # Se opposta, chiudi prima e attendi flat
+        if pos and pos["side"] != desired_side:
+            close_side = "sell" if pos["side"] == "long" else "buy"
+            trade.create_order(
+                orderType="mkt",
                 symbol=symbol,
                 side=close_side,
-                size=float(existing["size"]),
-                order_type="mkt",
-                reduce_only=True,
+                size=pos["size"],
+                reduceOnly=True,
             )
-            # wait for sync
-            time.sleep(0.6)
+            wait_for_position_state(symbol, want_open=False, retries=10, sleep_s=0.35)
 
-        # Open new position
-        raw = send_order(
+        # Apri nuova posizione
+        order_side = "buy" if direction == "UP" else "sell"
+        result = trade.create_order(
+            orderType="mkt",
             symbol=symbol,
             side=order_side,
             size=size,
-            order_type="mkt",
-            reduce_only=False,
         )
 
-        ok = raw.get("result") == "success"
-        order_id = (raw.get("sendStatus") or {}).get("order_id")
+        ok = result.get("result") == "success"
+        order_id = result.get("sendStatus", {}).get("order_id")
 
-        # Optional confirmation (helps debugging + n8n logic)
-        position_confirmed = wait_position_sync(symbol, max_wait_s=3.0, step_s=0.4)
+        # Conferma che la posizione sia effettivamente comparsa (retry)
+        confirmed_pos = wait_for_position_state(symbol, want_open=True, retries=10, sleep_s=0.35)
+        position_confirmed = confirmed_pos is not None
 
+        http_code = 200 if ok else 400
         return jsonify({
             "status": "placed" if ok else "failed",
+            "symbol": symbol,
             "direction": direction,
             "confidence": confidence,
-            "symbol": symbol,
-            "desired_position": desired_side,
             "side": order_side,
             "size": size,
             "order_id": order_id,
-            "no_stack": no_stack,
-            "previous_position_existed": existing is not None,
             "position_confirmed": position_confirmed,
-            "raw": raw,
-        }), (200 if ok else 400)
+            "position": confirmed_pos,
+            "previous_position_existed": pos is not None,
+            "raw": result,
+        }), http_code
 
     except Exception as e:
-        return jsonify({"status": "error", "error": str(e)}), 500
+        return jsonify({"status": "error", "error": str(e), "symbol": symbol}), 500
+
+
+# ── MAIN ─────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "5000"))
