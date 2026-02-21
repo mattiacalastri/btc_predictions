@@ -9,25 +9,28 @@ from kraken.futures import Trade, User
 
 app = Flask(__name__)
 
-API_KEY    = os.environ.get("KRAKEN_FUTURES_API_KEY", "")
-API_SECRET = os.environ.get("KRAKEN_FUTURES_API_SECRET", "")
+API_KEY        = os.environ.get("KRAKEN_FUTURES_API_KEY", "")
+API_SECRET     = os.environ.get("KRAKEN_FUTURES_API_SECRET", "")
 DEFAULT_SYMBOL = os.environ.get("KRAKEN_DEFAULT_SYMBOL", "PF_XBTUSD")
-KRAKEN_BASE = "https://futures.kraken.com"
+KRAKEN_BASE    = "https://futures.kraken.com"
 
 
 # ── Auth helper ──────────────────────────────────────────────────────────────
+# Formula ufficiale Kraken Futures:
+# Authent = Base64( HMAC-SHA512( SHA256(postData + nonce + endpointPath), Base64Decode(secret) ) )
+# Nonce = millisecondi (stringa)
 
-def kraken_auth_headers(api_path: str) -> dict:
-    nonce = str(int(time.time()))
-    # Kraken vuole: hash256(nonce + endpoint) firmato con secret
-    msg = hashlib.sha256((nonce + api_path).encode()).digest()
+def kraken_auth_headers(endpoint_path: str, post_data: str = "") -> dict:
+    nonce = str(int(time.time() * 1000))  # millisecondi
+    message = post_data + nonce + endpoint_path
+    sha256_hash = hashlib.sha256(message.encode("utf-8")).digest()
     secret_decoded = base64.b64decode(API_SECRET)
-    sig = hmac.new(secret_decoded, msg, hashlib.sha512)
-    sig_b64 = base64.b64encode(sig.digest()).decode()
+    sig = hmac.new(secret_decoded, sha256_hash, hashlib.sha512)
+    authent = base64.b64encode(sig.digest()).decode()
     return {
         "APIKey": API_KEY,
         "Nonce": nonce,
-        "Authent": sig_b64,
+        "Authent": authent,
     }
 
 
@@ -45,12 +48,11 @@ def get_user_client():
 def get_open_position(symbol: str) -> dict:
     """
     Ritorna {"side": "long"/"short", "size": float} oppure None se flat.
-    Usa REST diretto perche il SDK non espone get_open_positions.
     """
     try:
-        api_path = "/derivatives/api/v3/openpositions"
-        headers = kraken_auth_headers(api_path)
-        response = requests.get(KRAKEN_BASE + api_path, headers=headers, timeout=10)
+        endpoint_path = "/derivatives/api/v3/openpositions"
+        headers = kraken_auth_headers(endpoint_path)
+        response = requests.get(KRAKEN_BASE + endpoint_path, headers=headers, timeout=10)
         data = response.json()
 
         for pos in data.get("openPositions", []):
@@ -74,7 +76,7 @@ def health():
         "ts": int(time.time()),
         "symbol": DEFAULT_SYMBOL,
         "api_key_set": bool(API_KEY),
-        "version": "2.2.0",
+        "version": "2.3.0",
     })
 
 
@@ -94,9 +96,9 @@ def debug_key():
 @app.route("/debug-positions", methods=["GET"])
 def debug_positions():
     try:
-        api_path = "/derivatives/api/v3/openpositions"
-        headers = kraken_auth_headers(api_path)
-        response = requests.get(KRAKEN_BASE + api_path, headers=headers, timeout=10)
+        endpoint_path = "/derivatives/api/v3/openpositions"
+        headers = kraken_auth_headers(endpoint_path)
+        response = requests.get(KRAKEN_BASE + endpoint_path, headers=headers, timeout=10)
         return jsonify(response.json())
     except Exception as e:
         return jsonify({"error": str(e)}), 500
