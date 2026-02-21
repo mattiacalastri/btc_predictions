@@ -26,20 +26,31 @@ client.set_api_creds(client.create_or_derive_api_creds())
 
 def find_btc_5min_market():
     try:
+        # Cerca eventi con slug che contiene "btc-updown-5m"
         resp = requests.get(
-            f"{GAMMA_HOST}/markets",
+            f"{GAMMA_HOST}/events",
             params={
-                "slug_contains": "btc-updown-5m",
                 "active": "true",
                 "closed": "false",
-                "limit": 10
+                "limit": 20
             }
         )
-        markets = resp.json()
-        if not markets:
-            return None
-        markets.sort(key=lambda m: m.get('endDate', ''))
-        return markets[0]
+        events = resp.json()
+
+        for event in events:
+            slug = event.get('slug', '')
+            title = event.get('title', '')
+            if 'btc' in slug.lower() and ('updown' in slug.lower() or 'up-down' in slug.lower() or '5m' in slug.lower()):
+                markets = event.get('markets', [])
+                for market in markets:
+                    question = market.get('question', '').lower()
+                    if 'up' in question or 'higher' in question:
+                        return market
+                # Se non trovato per question, prendi il primo mercato
+                if markets:
+                    return markets[0]
+
+        return None
     except Exception as e:
         print(f"Errore find_market: {e}")
         return None
@@ -59,7 +70,11 @@ def place_bet():
     if not market:
         return jsonify({"status": "skipped", "reason": "no_btc_5min_market_found"})
 
-    clob_token_ids = market.get('clobTokenIds', [])
+    clob_token_ids = market.get('clobTokenIds', '[]')
+    if isinstance(clob_token_ids, str):
+        import json
+        clob_token_ids = json.loads(clob_token_ids)
+
     if len(clob_token_ids) < 2:
         return jsonify({"status": "skipped", "reason": "token_ids_not_found", "market_raw": market})
 
@@ -93,10 +108,16 @@ def place_bet():
 def list_markets():
     try:
         resp = requests.get(
-            f"{GAMMA_HOST}/markets",
-            params={"slug_contains": "btc-updown-5m", "limit": 10}
+            f"{GAMMA_HOST}/events",
+            params={"active": "true", "closed": "false", "limit": 20}
         )
-        return jsonify(resp.json())
+        events = resp.json()
+        btc = [
+            {"slug": e.get('slug'), "title": e.get('title'), "markets_count": len(e.get('markets', []))}
+            for e in events
+            if 'btc' in e.get('slug', '').lower() or 'bitcoin' in e.get('title', '').lower()
+        ]
+        return jsonify({"btc_events": btc, "all_slugs": [e.get('slug') for e in events]})
     except Exception as e:
         return jsonify({"error": str(e)})
 
