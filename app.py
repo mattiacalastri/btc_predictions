@@ -50,8 +50,8 @@ def place_bet():
     size = data.get("size", data.get("stake_usdc", 10))
     try:
         size = int(float(size))
-        if size < 10:
-            size = 10
+        if size < 1:
+            size = 1
     except Exception:
         return jsonify({"status": "failed", "error": "invalid_size"}), 400
     if direction not in ("UP", "DOWN"):
