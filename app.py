@@ -47,6 +47,33 @@ def balance():
         return jsonify({"status": "error", "error": str(e)}), 500
 
 
+@app.route("/close-position", methods=["POST"])
+def close_position():
+    data = request.get_json(force=True) or {}
+    symbol = data.get("symbol", DEFAULT_SYMBOL)
+    try:
+        trade = get_trade_client()
+        # Leggi posizione aperta
+        user = get_user_client()
+        wallets = user.get_wallets()
+        
+        # Trova la posizione nel wallet flex/multi-collateral
+        flex = wallets.get("accounts", {}).get("flex", {})
+        positions = flex.get("positions", {})
+        
+        # Chiudi con ordine inverso reduceOnly
+        result = trade.create_order(
+            orderType="mkt",
+            symbol=symbol,
+            side="sell",  # sempre sell per chiudere long
+            size=0.0004,  # size totale delle 4 posizioni aperte
+            reduceOnly=True,
+        )
+        return jsonify({"status": "closed", "raw": result})
+    except Exception as e:
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+
 @app.route("/place-bet", methods=["POST"])
 def place_bet():
     data = request.get_json(force=True) or {}
@@ -54,8 +81,6 @@ def place_bet():
     confidence = float(data.get("confidence", 0))
     symbol = data.get("symbol", DEFAULT_SYMBOL)
 
-    # PF_XBTUSD usa BTC come unità (es. 0.0001 BTC ≈ $6)
-    # PI_XBTUSD usa USD come unità (es. 10 = $10)
     try:
         size = float(data.get("size", data.get("stake_usdc", 0.0001)))
         if size <= 0:
