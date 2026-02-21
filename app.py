@@ -210,31 +210,43 @@ def close_position():
 
 @app.route("/place-bet", methods=["POST"])
 def place_bet():
-    data = request.get_json(force=True) or {}
-    direction  = (data.get("direction") or "").upper()
-    confidence = float(data.get("confidence", 0))
-    symbol     = data.get("symbol", DEFAULT_SYMBOL)
-
     try:
-        size = float(data.get("size", data.get("stake_usdc", 0.0001)))
-        if size <= 0:
-            size = 0.0001
-    except Exception:
-        return jsonify({"status": "failed", "error": "invalid_size"}), 400
+        data = request.get_json(force=True) or {}
+        direction  = (data.get("direction") or "").upper()
+        symbol     = data.get("symbol", DEFAULT_SYMBOL)
+        size       = float(data.get("size", 0.0001))
 
-    if direction not in ("UP", "DOWN"):
-        return jsonify({"status": "failed", "error": "invalid_direction"}), 400
+        if direction not in ("UP", "DOWN"):
+            return jsonify({"status": "failed", "error": "invalid_direction"}), 400
 
-    desired_side = "long" if direction == "UP" else "short"
-    pos = get_open_position(symbol)
+        # --- NON leggiamo più openPositions (causa principale dei crash) ---
+        # Il lifecycle ora è gestito da n8n, quindi qui apriamo SOLO.
 
-    # Gia nella stessa direzione -> skip
-    if pos and pos["side"] == desired_side:
+        order_side = "buy" if direction == "UP" else "sell"
+
+        trade = get_trade_client()
+
+        result = trade.create_order(
+            orderType="mkt",
+            symbol=symbol,
+            side=order_side,
+            size=size,
+        )
+
         return jsonify({
-            "status": "skipped",
-            "reason": f"Posizione {pos['side']} gia aperta nella stessa direzione.",
-            "existing_position": pos,
+            "status": "placed",
+            "symbol": symbol,
+            "side": order_side,
+            "size": size,
+            "raw": result
         })
+
+    except Exception as e:
+        # 👇 MAI PIÙ crash → ritorna errore JSON
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
 
 # Se esiste già una posizione → non apriamo nulla.
 if pos:
