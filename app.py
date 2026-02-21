@@ -21,7 +21,7 @@ def get_user_client():
     return User(key=API_KEY, secret=API_SECRET)
 
 
-# ── Time helper (solo diagnostica) ───────────────────────────────────────────
+# ── Helpers ──────────────────────────────────────────────────────────────────
 
 def get_kraken_servertime():
     try:
@@ -31,17 +31,14 @@ def get_kraken_servertime():
         return None
 
 
-# ── Core: leggi posizione aperta (SDK auth=True, NO firma manuale) ───────────
-
 def get_open_position(symbol: str):
     """
+    Legge la posizione con lo SDK (auth=True) => niente firma manuale.
     Ritorna:
       None se flat
-      { "side": "long"/"short", "size": float } se posizione aperta
+      { "side": "long"/"short", "size": float } se aperta
     """
     trade = get_trade_client()
-
-    # usa endpoint v3 con auth gestita dallo SDK
     result = trade.request(
         method="GET",
         uri="/derivatives/api/v3/openpositions",
@@ -54,17 +51,20 @@ def get_open_position(symbol: str):
             size = float(pos.get("size", 0) or 0)
             if size == 0:
                 return None
+
             side = (pos.get("side", "") or "").lower()
-            # Kraken restituisce "long"/"short" (di solito)
             if side not in ("long", "short"):
+                # fallback (raro)
                 side = "long" if size > 0 else "short"
+
             return {"side": side, "size": abs(size)}
+
     return None
 
 
-def wait_for_position_state(symbol: str, want_open: bool, retries: int = 6, sleep_s: float = 0.4):
+def wait_for_position(symbol: str, want_open: bool, retries: int = 10, sleep_s: float = 0.35):
     """
-    want_open=True  -> aspetta che compaia una posizione su quel symbol
+    want_open=True  -> aspetta che compaia una posizione
     want_open=False -> aspetta che sparisca (flat)
     """
     last = None
@@ -91,7 +91,7 @@ def health():
         "serverTime": get_kraken_servertime(),
         "symbol": DEFAULT_SYMBOL,
         "api_key_set": bool(API_KEY),
-        "version": "3.0.0",
+        "version": "2.4.1",
     })
 
 
@@ -106,7 +106,7 @@ def debug_key():
     })
 
 
-# ── DEBUG POSITIONS (raw via SDK) ────────────────────────────────────────────
+# ── DEBUG POSITIONS (raw) ────────────────────────────────────────────────────
 
 @app.route("/debug-positions", methods=["GET"])
 def debug_positions():
@@ -197,17 +197,16 @@ def close_position():
             reduceOnly=True,
         )
 
-        # aspetta conferma che sia flat (evita mismatch tempo reale)
-        final_state = wait_for_position_state(symbol, want_open=False, retries=8, sleep_s=0.35)
-
         ok = result.get("result") == "success"
+        after = wait_for_position(symbol, want_open=False, retries=12, sleep_s=0.35)
+
         return jsonify({
-            "status": "closed" if (ok and final_state is None) else ("closing" if ok else "failed"),
+            "status": "closed" if (ok and after is None) else ("closing" if ok else "failed"),
             "symbol": symbol,
             "closed_side": pos["side"],
             "close_order_side": close_side,
             "size": size,
-            "position_after": final_state,
+            "position_after": after,
             "raw": result,
         }), (200 if ok else 400)
 
@@ -237,25 +236,23 @@ def place_bet():
     desired_side = "long" if direction == "UP" else "short"
 
     try:
-        # Leggi posizione attuale (SDK)
         pos = get_open_position(symbol)
 
-        # Se già nella stessa direzione, non “impilare” size (evita sommatoria)
+        # NO stacking: se stessa direzione => skip (evita che aumenti la size)
         if pos and pos["side"] == desired_side:
             return jsonify({
                 "status": "skipped",
                 "reason": f"Posizione {pos['side']} già aperta nella stessa direzione (no stacking).",
                 "symbol": symbol,
                 "existing_position": pos,
-                "no_stack": True,
                 "confidence": confidence,
                 "direction": direction,
-                "desired_position": desired_side,
+                "no_stack": True,
             }), 200
 
         trade = get_trade_client()
 
-        # Se opposta, chiudi prima e attendi flat
+        # se opposta => chiudi prima e attendi flat
         if pos and pos["side"] != desired_side:
             close_side = "sell" if pos["side"] == "long" else "buy"
             trade.create_order(
@@ -265,9 +262,9 @@ def place_bet():
                 size=pos["size"],
                 reduceOnly=True,
             )
-            wait_for_position_state(symbol, want_open=False, retries=10, sleep_s=0.35)
+            wait_for_position(symbol, want_open=False, retries=15, sleep_s=0.35)
 
-        # Apri nuova posizione
+        # apri nuova posizione
         order_side = "buy" if direction == "UP" else "sell"
         result = trade.create_order(
             orderType="mkt",
@@ -279,16 +276,14 @@ def place_bet():
         ok = result.get("result") == "success"
         order_id = result.get("sendStatus", {}).get("order_id")
 
-        # Conferma che la posizione sia effettivamente comparsa (retry)
-        confirmed_pos = wait_for_position_state(symbol, want_open=True, retries=10, sleep_s=0.35)
+        confirmed_pos = wait_for_position(symbol, want_open=True, retries=15, sleep_s=0.35)
         position_confirmed = confirmed_pos is not None
 
-        http_code = 200 if ok else 400
         return jsonify({
             "status": "placed" if ok else "failed",
-            "symbol": symbol,
             "direction": direction,
             "confidence": confidence,
+            "symbol": symbol,
             "side": order_side,
             "size": size,
             "order_id": order_id,
@@ -296,10 +291,10 @@ def place_bet():
             "position": confirmed_pos,
             "previous_position_existed": pos is not None,
             "raw": result,
-        }), http_code
+        }), (200 if ok else 400)
 
     except Exception as e:
-        return jsonify({"status": "error", "error": str(e), "symbol": symbol}), 500
+        return jsonify({"status": "error", "error": str(e)}), 500
 
 
 # ── MAIN ─────────────────────────────────────────────────────────────────────
