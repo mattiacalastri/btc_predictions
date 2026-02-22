@@ -568,6 +568,71 @@ def get_signals():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# ── BET SIZING ───────────────────────────────────────────────────────────────
+
+@app.route("/bet-sizing", methods=["GET"])
+def bet_sizing():
+    base_size = float(request.args.get("base_size", 0.0005))
+    
+    try:
+        supabase_url = os.environ.get("SUPABASE_URL", "")
+        supabase_key = os.environ.get("SUPABASE_KEY", "")
+        
+        url = f"{supabase_url}/rest/v1/btc_predictions?select=correct,pnl_usd&bet_taken=eq.true&correct=not.is.null&order=id.desc&limit=10"
+        res = requests.get(url, headers={
+            "apikey": supabase_key,
+            "Authorization": f"Bearer {supabase_key}"
+        }, timeout=5)
+        
+        trades = res.json()
+        if not trades or len(trades) < 3:
+            return jsonify({"size": base_size, "reason": "insufficient_history"})
+        
+        results = [t.get("correct") for t in trades if t.get("correct") is not None]
+        pnls = [float(t.get("pnl_usd") or 0) for t in trades]
+        
+        streak = 0
+        streak_type = None
+        for r in results:
+            if streak_type is None:
+                streak_type = r
+                streak = 1
+            elif r == streak_type:
+                streak += 1
+            else:
+                break
+        
+        recent_pnl = sum(pnls[:5])
+        
+        multiplier = 1.0
+        reason = "base"
+        
+        if recent_pnl < -0.15:
+            multiplier = 0.25
+            reason = "drawdown_protection"
+        elif streak_type == False and streak >= 2:
+            multiplier = 0.5
+            reason = f"loss_streak_{streak}"
+        elif streak_type == True and streak >= 3:
+            multiplier = 1.5
+            reason = f"win_streak_{streak}"
+        
+        final_size = round(base_size * multiplier, 6)
+        final_size = max(0.0001, min(0.001, final_size))
+        
+        return jsonify({
+            "size": final_size,
+            "multiplier": multiplier,
+            "reason": reason,
+            "streak": streak,
+            "streak_type": "win" if streak_type else "loss",
+            "recent_pnl_5": round(recent_pnl, 6),
+        })
+        
+    except Exception as e:
+        return jsonify({"size": base_size, "reason": "error", "error": str(e)})
+
+
 # ── DASHBOARD ────────────────────────────────────────────────────────────────
 
 @app.route("/dashboard", methods=["GET"])
