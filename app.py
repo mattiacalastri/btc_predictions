@@ -568,6 +568,13 @@ def get_signals():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# ── DASHBOARD ────────────────────────────────────────────────────────────────
+
+@app.route("/dashboard", methods=["GET"])
+def dashboard():
+    with open("index.html", "r") as f:
+        return f.read(), 200, {"Content-Type": "text/html"}
+
 # ── MAIN ─────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
