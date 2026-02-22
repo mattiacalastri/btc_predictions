@@ -644,11 +644,10 @@
 //  CONFIG — replace with your Supabase credentials to go live
 // ══════════════════════════════════════════════════════════════════
 const CONFIG = {
-  SUPABASE_URL: 'https://oimlamjilivrcnhztwvj.supabase.co',       // e.g. 'https://xxxx.supabase.co'
-  SUPABASE_KEY: 'REDACTED_SUPABASE_ANON_KEY',       // anon public key
-  TABLE: 'btc_predictions',
+  RAILWAY_URL: 'https://web-production-e27d0.up.railway.app',
+  BTC_REFRESH: 10000,
   LIMIT: 500,
-  REFRESH_INTERVAL: 60000 // 1 minute
+  REFRESH_INTERVAL: 60000
 };
 
 // ══════════════════════════════════════════════════════════════════
@@ -660,25 +659,16 @@ const SAMPLE_DATA = [{"idx":0,"id":259,"created_at":"2026-02-22 10:01:08.547953+
 //  DATA FETCHER
 // ══════════════════════════════════════════════════════════════════
 async function fetchData() {
-  if (CONFIG.SUPABASE_URL && CONFIG.SUPABASE_KEY) {
-    try {
-      const url = `${CONFIG.SUPABASE_URL}/rest/v1/${CONFIG.TABLE}?select=*&order=id.desc&limit=${CONFIG.LIMIT}`;
-      const res = await fetch(url, {
-        headers: {
-          'apikey': CONFIG.SUPABASE_KEY,
-          'Authorization': `Bearer ${CONFIG.SUPABASE_KEY}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      if (!res.ok) throw new Error('Supabase fetch failed');
-      return await res.json();
-    } catch (e) {
-      console.warn('Supabase fetch failed, using sample data:', e);
-    }
+  try {
+    const res = await fetch(`${CONFIG.RAILWAY_URL}/signals?limit=${CONFIG.LIMIT}`);
+    if (!res.ok) throw new Error('Railway fetch failed');
+    return await res.json();
+  } catch(e) {
+    console.warn('Fetch failed, using sample data:', e);
+    return SAMPLE_DATA;
   }
-  return SAMPLE_DATA;
 }
-
+  
 // ══════════════════════════════════════════════════════════════════
 //  HELPERS
 // ══════════════════════════════════════════════════════════════════
