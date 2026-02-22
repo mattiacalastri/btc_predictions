@@ -516,6 +516,12 @@ def get_signals():
             limit = max(1, min(int(request.args.get("limit", 500)), 1000))
         except (ValueError, TypeError):
             limit = 500
+
+        try:
+            days = max(1, min(int(request.args.get("days", 0)), 365))
+        except (ValueError, TypeError):
+            days = 0
+
         supabase_url = os.environ.get("SUPABASE_URL", "")
         supabase_key = os.environ.get("SUPABASE_KEY", "")
 
@@ -523,6 +529,11 @@ def get_signals():
             return jsonify({"error": "Supabase credentials not configured"}), 500
 
         url = f"{supabase_url}/rest/v1/btc_predictions?select=*&order=id.desc&limit={limit}"
+        if days > 0:
+            from datetime import datetime, timedelta, timezone
+            since = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%SZ")
+            url += f"&created_at=gte.{since}"
+
         res = requests.get(url, headers={
             "apikey": supabase_key,
             "Authorization": f"Bearer {supabase_key}"
