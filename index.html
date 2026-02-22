@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BTC BOT · ASTRA DIGITAL</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080b0f;
+    --surface: #0d1117;
+    --card: #111820;
+    --border: #1e2d3d;
+    --accent: #00ff88;
+    --accent2: #ff4466;
+    --accent3: #ffaa00;
+    --blue: #00aaff;
+    --text: #e8f0fe;
+    --muted: #4a6070;
+    --success: #00ff88;
+    --danger: #ff4466;
+    --warn: #ffaa00;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* GRID BG */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: 
+      linear-gradient(rgba(0,255,136,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,136,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container { position: relative; z-index: 1; max-width: 1600px; margin: 0 auto; padding: 24px; }
+
+  /* HEADER */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 0 28px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .logo span { color: var(--accent); }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(20px, 3vw, 32px);
+    font-weight: 800;
+    letter-spacing: -1px;
+  }
+
+  h1 span { color: var(--accent); }
+
+  .live-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid rgba(0,255,136,0.3);
+    padding: 6px 14px;
+    border-radius: 2px;
+    background: rgba(0,255,136,0.05);
+  }
+
+  .live-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 1.5s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 6px var(--accent); }
+    50% { opacity: 0.4; box-shadow: none; }
+  }
+
+  .last-update {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  /* KPI GRID */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .kpi {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .kpi:hover { border-color: var(--accent); }
+
+  .kpi::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+  }
+
+  .kpi.green::after { background: var(--accent); }
+  .kpi.red::after { background: var(--danger); }
+  .kpi.yellow::after { background: var(--warn); }
+  .kpi.blue::after { background: var(--blue); }
+
+  .kpi-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .kpi-value {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(22px, 2.5vw, 30px);
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .kpi-value.green { color: var(--accent); }
+  .kpi-value.red { color: var(--danger); }
+  .kpi-value.yellow { color: var(--warn); }
+  .kpi-value.white { color: var(--text); }
+  .kpi-value.blue { color: var(--blue); }
+
+  .kpi-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  /* MAIN GRID */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  @media (max-width: 1100px) { .main-grid { grid-template-columns: 1fr; } }
+
+  /* PANEL */
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,0.02);
+  }
+
+  .panel-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .panel-tag {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 2px;
+  }
+
+  .tag-green { background: rgba(0,255,136,0.1); color: var(--accent); border: 1px solid rgba(0,255,136,0.2); }
+  .tag-red { background: rgba(255,68,102,0.1); color: var(--danger); border: 1px solid rgba(255,68,102,0.2); }
+  .tag-yellow { background: rgba(255,170,0,0.1); color: var(--warn); border: 1px solid rgba(255,170,0,0.2); }
+  .tag-blue { background: rgba(0,170,255,0.1); color: var(--blue); border: 1px solid rgba(0,170,255,0.2); }
+
+  /* TABLE */
+  .table-wrap { overflow-x: auto; max-height: 520px; overflow-y: auto; }
+
+  .table-wrap::-webkit-scrollbar { width: 4px; height: 4px; }
+  .table-wrap::-webkit-scrollbar-track { background: transparent; }
+  .table-wrap::-webkit-scrollbar-thumb { background: var(--border); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+
+  thead th {
+    text-align: left;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky; top: 0; z-index: 2;
+    white-space: nowrap;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid rgba(30,45,61,0.5);
+    transition: background 0.15s;
+    cursor: default;
+  }
+
+  tbody tr:hover { background: rgba(255,255,255,0.03); }
+
+  tbody td {
+    padding: 9px 14px;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+
+  .dir-up { color: var(--accent); font-weight: 700; }
+  .dir-down { color: var(--danger); font-weight: 700; }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 2px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .badge-bet { background: rgba(0,170,255,0.1); color: var(--blue); }
+  .badge-nobet { background: rgba(74,96,112,0.2); color: var(--muted); }
+  .badge-correct { background: rgba(0,255,136,0.1); color: var(--accent); }
+  .badge-wrong { background: rgba(255,68,102,0.1); color: var(--danger); }
+
+  .pnl-pos { color: var(--accent); }
+  .pnl-neg { color: var(--danger); }
+  .pnl-null { color: var(--muted); }
+
+  /* CHART AREA */
+  .chart-area { padding: 20px; }
+
+  .pnl-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 100px;
+    margin-bottom: 8px;
+  }
+
+  .bar {
+    flex: 1;
+    border-radius: 1px 1px 0 0;
+    min-width: 8px;
+    transition: opacity 0.2s;
+    cursor: pointer;
+    position: relative;
+  }
+
+  .bar:hover { opacity: 0.8; }
+  .bar.pos { background: var(--accent); }
+  .bar.neg { background: var(--danger); align-self: flex-start; border-radius: 0 0 1px 1px; }
+  .bar.zero { background: var(--muted); height: 2px !important; }
+
+  .bar-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  /* SIGNAL METERS */
+  .signal-grid { padding: 16px 20px; display: flex; flex-direction: column; gap: 14px; }
+
+  .signal-row { display: flex; flex-direction: column; gap: 6px; }
+
+  .signal-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .signal-label { color: var(--muted); }
+  .signal-val { color: var(--text); }
+
+  .signal-bar-bg {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .signal-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.6s ease;
+  }
+
+  /* EQUITY CURVE (fake sparkline) */
+  .equity-svg { width: 100%; }
+
+  /* STATS ROW */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    margin-bottom: 16px;
+  }
+
+  .stat-cell {
+    background: var(--card);
+    padding: 16px 20px;
+    text-align: center;
+  }
+
+  .stat-cell-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .stat-cell-val {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+  }
+
+  /* CONF DIST */
+  .conf-bars { padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; }
+  .conf-row { display: flex; align-items: center; gap: 10px; }
+  .conf-label { font-size: 10px; color: var(--muted); width: 40px; text-align: right; }
+  .conf-bar-bg { flex: 1; height: 14px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .conf-bar-fill { height: 100%; background: var(--blue); transition: width 0.6s ease; }
+  .conf-count { font-size: 10px; color: var(--muted); width: 24px; text-align: right; }
+
+  /* FOOTER */
+  footer {
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .footer-text { font-size: 10px; color: var(--muted); letter-spacing: 1px; }
+  .footer-text span { color: var(--accent); }
+
+  .config-hint {
+    font-size: 10px;
+    color: var(--muted);
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    padding: 6px 14px;
+    border-radius: 2px;
+    letter-spacing: 1px;
+  }
+
+  .config-hint code { color: var(--accent); }
+
+  /* SCROLLBAR global */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); }
+
+  /* LOADING STATE */
+  .loading { 
+    display: inline-block;
+    animation: blink 1s step-end infinite;
+    color: var(--accent);
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  /* TOOLTIP */
+  .tooltip {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 4px 8px;
+    font-size: 10px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 100;
+    display: none;
+  }
+
+  .bar:hover .tooltip { display: block; }
+
+  .no-data-row td { text-align: center; color: var(--muted); padding: 32px; font-size: 12px; letter-spacing: 2px; }
+
+  /* Responsive tweaks */
+  @media (max-width: 640px) {
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .stats-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- HEADER -->
+  <header>
+    <div>
+      <div class="logo">ASTRA DIGITAL · <span>BOT ENGINE v2.0</span></div>
+      <h1>BTC <span>SIGNAL</span> DASHBOARD</h1>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+      <span class="last-update" id="lastUpdate">LAST UPDATE: <span class="loading">—</span></span>
+      <div class="live-badge"><div class="live-dot"></div>LIVE DATA</div>
+    </div>
+  </header>
+
+  <!-- KPI STRIP -->
+  <div class="kpi-grid" id="kpiGrid">
+    <div class="kpi blue">
+      <div class="kpi-label">BTC Price</div>
+      <div class="kpi-value blue" id="kpiPrice">—</div>
+      <div class="kpi-sub">Last entry</div>
+    </div>
+    <div class="kpi green">
+      <div class="kpi-label">Total Signals</div>
+      <div class="kpi-value white" id="kpiTotal">—</div>
+      <div class="kpi-sub">All time</div>
+    </div>
+    <div class="kpi green">
+      <div class="kpi-label">Accuracy</div>
+      <div class="kpi-value green" id="kpiAccuracy">—</div>
+      <div class="kpi-sub">Correct predictions</div>
+    </div>
+    <div class="kpi green">
+      <div class="kpi-label">Total PnL</div>
+      <div class="kpi-value green" id="kpiPnl">—</div>
+      <div class="kpi-sub">USD (real bets)</div>
+    </div>
+    <div class="kpi yellow">
+      <div class="kpi-label">Win Rate (BET)</div>
+      <div class="kpi-value yellow" id="kpiWinRate">—</div>
+      <div class="kpi-sub">Executed trades</div>
+    </div>
+    <div class="kpi blue">
+      <div class="kpi-label">Fear & Greed</div>
+      <div class="kpi-value blue" id="kpiFG">—</div>
+      <div class="kpi-sub" id="kpiFGLabel">Loading...</div>
+    </div>
+    <div class="kpi green">
+      <div class="kpi-label">Bets Taken</div>
+      <div class="kpi-value white" id="kpiBets">—</div>
+      <div class="kpi-sub">Out of total</div>
+    </div>
+    <div class="kpi red">
+      <div class="kpi-label">Max Drawdown</div>
+      <div class="kpi-value red" id="kpiDrawdown">—</div>
+      <div class="kpi-sub">Single trade</div>
+    </div>
+  </div>
+
+  <!-- STATS ROW -->
+  <div class="stats-row">
+    <div class="stat-cell">
+      <div class="stat-cell-label">Avg Confidence</div>
+      <div class="stat-cell-val" id="statConf" style="color:var(--blue)">—</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-cell-label">Best Trade PnL</div>
+      <div class="stat-cell-val" id="statBest" style="color:var(--accent)">—</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-cell-label">Worst Trade PnL</div>
+      <div class="stat-cell-val" id="statWorst" style="color:var(--danger)">—</div>
+    </div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="main-grid">
+
+    <!-- LEFT: TABLE -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Signal Log</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="filterDir" style="background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:inherit;font-size:10px;padding:4px 8px;letter-spacing:1px;cursor:pointer;outline:none;">
+            <option value="ALL">ALL DIRECTIONS</option>
+            <option value="UP">UP ONLY</option>
+            <option value="DOWN">DOWN ONLY</option>
+          </select>
+          <select id="filterClass" style="background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:inherit;font-size:10px;padding:4px 8px;letter-spacing:1px;cursor:pointer;outline:none;">
+            <option value="ALL">ALL TYPES</option>
+            <option value="BET">BETS ONLY</option>
+            <option value="NO_BET">NO-BET ONLY</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>TIME</th>
+              <th>DIR</th>
+              <th>CONF</th>
+              <th>ENTRY $</th>
+              <th>EXIT $</th>
+              <th>RSI</th>
+              <th>EMA</th>
+              <th>SCORE</th>
+              <th>TYPE</th>
+              <th>RESULT</th>
+              <th>PnL $</th>
+            </tr>
+          </thead>
+          <tbody id="signalTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- RIGHT: PANELS -->
+    <div style="display:flex;flex-direction:column;gap:16px;">
+
+      <!-- PnL CHART -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">PnL per Trade</div>
+          <div class="panel-tag tag-green" id="totalPnlTag">TOTAL: —</div>
+        </div>
+        <div class="chart-area">
+          <div class="pnl-chart" id="pnlChart"></div>
+          <div class="bar-labels">
+            <span id="chartStart">—</span>
+            <span>PnL (USD)</span>
+            <span id="chartEnd">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SIGNAL QUALITY -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Signal Quality</div>
+          <div class="panel-tag tag-blue">LIVE</div>
+        </div>
+        <div class="signal-grid" id="signalQuality"></div>
+      </div>
+
+      <!-- CONFIDENCE DIST -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Confidence Distribution</div>
+          <div class="panel-tag tag-yellow">HISTOGRAM</div>
+        </div>
+        <div class="conf-bars" id="confDist"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- EQUITY CURVE -->
+  <div class="panel" style="margin-bottom:16px;">
+    <div class="panel-header">
+      <div class="panel-title">Cumulative Equity Curve (Real Bets)</div>
+      <div class="panel-tag tag-green" id="equityTag">LOADING</div>
+    </div>
+    <div style="padding:20px 20px 10px;">
+      <svg id="equitySvg" class="equity-svg" height="120" viewBox="0 0 1000 120" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="eqGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.3"/>
+            <stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-text">
+      ASTRA DIGITAL MARKETING · <span>BOT ENGINE</span> · AUTO REFRESH 60s
+    </div>
+    <div class="config-hint">
+      Tabella: <code>btc_predictions</code> · Auto-refresh <code>60s</code> · Live
+    </div>
+  </footer>
+
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+//  CONFIG — replace with your Supabase credentials to go live
+// ══════════════════════════════════════════════════════════════════
+const CONFIG = {
+  SUPABASE_URL: 'https://oimlamjilivrcnhztwvj.supabase.co',       // e.g. 'https://xxxx.supabase.co'
+  SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9pbWxhbWppbGl2cmNuaHp0d3ZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1NDAzNzksImV4cCI6MjA4NzExNjM3OX0.n1_ABkUUoq1txhw3dUcqFlbFM1gh6fNjCI45L7BAmHE',       // anon public key
+  TABLE: 'btc_predictions',
+  LIMIT: 500,
+  REFRESH_INTERVAL: 60000 // 1 minute
+};
+
+// ══════════════════════════════════════════════════════════════════
+//  EMBEDDED SAMPLE DATA (from your Supabase export)
+// ══════════════════════════════════════════════════════════════════
+const SAMPLE_DATA = [{"idx":0,"id":259,"created_at":"2026-02-22 10:01:08.547953+00","direction":"DOWN","confidence":"0.500","reasoning":"Insufficient market data available.","signal_technical":"No data available","signal_sentiment":"No data available","signal_fear_greed":"No data available","signal_volume":"No data available","btc_price_entry":null,"fear_greed_value":null,"rsi14":"52.97","ema_trend":"bullish_cross","candle_pattern":"no_pattern","technical_score":"1.00","technical_bias":"mild_bullish","btc_price_exit":"68028.07","actual_direction":"FLAT","correct":false,"pnl_pct":null,"bet_taken":false,"classification":"NO_BET","pnl_usd":null,"fees_total":"0"},{"idx":1,"id":260,"created_at":"2026-02-22 10:07:51.339353+00","direction":"UP","confidence":"0.520","reasoning":"Extreme fear (F&G=9) + C3 recovery above VWAP with bullish EMA cross suggest mean-reversion bounce, but thin volume.","signal_technical":"bullish","signal_sentiment":"bearish","signal_fear_greed":"fear","signal_volume":"decreasing","btc_price_entry":"68027.62","fear_greed_value":9,"rsi14":"52.28","ema_trend":"bullish_cross","candle_pattern":"no_pattern","technical_score":"1.00","technical_bias":"mild_bullish","btc_price_exit":"68026.43","actual_direction":"DOWN","correct":false,"pnl_pct":"-0.0017","bet_taken":false,"classification":"NO_BET","pnl_usd":"-0.000238","fees_total":"0"},{"idx":2,"id":261,"created_at":"2026-02-22 10:13:30.621721+00","direction":"UP","confidence":"0.520","reasoning":"EMA bullish cross + extreme fear signal mean-reversion potential, but thin volume.","signal_technical":"neutral","signal_sentiment":"neutral","signal_fear_greed":"fear","signal_volume":"decreasing","btc_price_entry":"68026.86","fear_greed_value":9,"rsi14":"53.41","ema_trend":"bullish_cross","candle_pattern":"doji_indecision","technical_score":"1.00","technical_bias":"mild_bullish","btc_price_exit":"68013.68","actual_direction":"DOWN","correct":false,"pnl_pct":"-0.0194","bet_taken":false,"classification":"NO_BET","pnl_usd":"-0.002637","fees_total":"0"},{"idx":3,"id":262,"created_at":"2026-02-22 10:19:33.195713+00","direction":"DOWN","confidence":"0.550","reasoning":"Bitdeer institutional dump + Spot ETF outflows + Candle 3 rejection confirm bearish pressure.","signal_technical":"bearish","signal_sentiment":"bearish","signal_fear_greed":"extreme_fear_unconfirmed","signal_volume":"normal_with_selling_conviction","btc_price_entry":"68016.24","fear_greed_value":9,"rsi14":"50.58","ema_trend":"bullish_cross","candle_pattern":"no_pattern","technical_score":"1.00","technical_bias":"mild_bullish","btc_price_exit":"68092.49","actual_direction":"UP","correct":false,"pnl_pct":"-0.1121","bet_taken":false,"classification":"NO_BET","pnl_usd":"-0.01525","fees_total":"0"},{"idx":4,"id":263,"created_at":"2026-02-22 10:25:32.592951+00","direction":"UP","confidence":"0.580","reasoning":"Technical score +4 combined with extreme fear F&G=9 triggers mean-reversion signal.","signal_technical":"bullish","signal_sentiment":"bearish","signal_fear_greed":"fear","signal_volume":"decreasing","btc_price_entry":"68088.14","fear_greed_value":9,"rsi14":"62.42","ema_trend":"bullish_cross","candle_pattern":"doji_indecision","technical_score":"4.00","technical_bias":"strong_bullish","btc_price_exit":"68074.00","actual_direction":"DOWN","correct":false,"pnl_pct":"-0.0059","bet_taken":true,"classification":"BET","entry_fill_price":"68078","exit_fill_price":"68074","entry_filled_amount":"0.0002","pnl_usd":"-0.001481","fees_total":"0.00068074"},{"idx":5,"id":264,"created_at":"2026-02-22 10:31:28.3121+00","direction":"UP","confidence":"0.680","reasoning":"Technical score of +4/6 with all 4 signal categories aligned.","signal_technical":"bullish","signal_sentiment":"bullish","signal_fear_greed":"fear","signal_volume":"decreasing","btc_price_entry":"68077.50","fear_greed_value":9,"rsi14":"58.23","ema_trend":"bullish_cross","candle_pattern":"no_pattern","technical_score":"4.00","technical_bias":"strong_bullish","btc_price_exit":"68066.00","actual_direction":"DOWN","correct":false,"pnl_pct":"-0.0279","bet_taken":true,"classification":"BET","entry_fill_price":"68085","exit_fill_price":"68066","entry_filled_amount":"0.0002","pnl_usd":"-0.004481","fees_total":"0.00068066"},{"idx":6,"id":265,"created_at":"2026-02-22 10:38:08.745721+00","direction":"UP","confidence":"0.550","reasoning":"Extreme fear index (9) triggers mean-reversion bias with 3/4 signals bullish.","signal_technical":"bullish","signal_sentiment":"bearish","signal_fear_greed":"fear","signal_volume":"decreasing","btc_price_entry":"68067.61","fear_greed_value":9,"rsi14":"56.34","ema_trend":"bullish_cross","candle_pattern":"no_pattern","technical_score":"2.00","technical_bias":"mild_bullish","btc_price_exit":"68082.05","actual_direction":"UP","correct":true,"pnl_pct":"0.0212","bet_taken":false,"classification":"NO_BET","pnl_usd":"0.002887","fees_total":"0"},{"idx":7,"id":266,"created_at":"2026-02-22 10:44:40.085844+00","direction":"UP","confidence":"0.630","reasoning":"Strong bullish technical score (4/6) with bullish EMA cross.","signal_technical":"bullish","signal_sentiment":"neutral","signal_fear_greed":"fear","signal_volume":"decreasing","btc_price_entry":"68075.88","fear_greed_value":9,"rsi14":"59.82","ema_trend":"bullish_cross","candle_pattern":"no_pattern","technical_score":"4.00","technical_bias":"strong_bullish","btc_price_exit":"68088.00","actual_direction":"UP","correct":true,"pnl_pct":"0.0162","bet_taken":true,"classification":"BET","entry_fill_price":"68077","exit_fill_price":"68088","entry_filled_amount":"0.0002","pnl_usd":"0.001519","fees_total":"0.00068088"},{"idx":8,"id":267,"created_at":"2026-02-22 10:49:52.437268+00","direction":"UP","confidence":"0.620","reasoning":"Technical score 4/6 + RSI 61.31 + momentum up + F&G 9 override thin volume.","signal_technical":"bullish","signal_sentiment":"neutral","signal_fear_greed":"fear","signal_volume":"decreasing","btc_price_entry":"68087.57","fear_greed_value":9,"rsi14":"61.31","ema_trend":"bullish_cross","candle_pattern":"no_pattern","technical_score":"4.00","technical_bias":"strong_bullish","btc_price_exit":"68127.00","actual_direction":"UP","correct":true,"pnl_pct":"0.0543","bet_taken":true,"classification":"BET","entry_fill_price":"68090","exit_fill_price":"68127","entry_filled_amount":"0.0002","pnl_usd":"0.006719","fees_total":"0.00068127"},{"idx":9,"id":268,"created_at":"2026-02-22 11:29:00.989308+00","direction":"DOWN","confidence":"0.600","reasoning":"RSI 70.56 (overbought) with candle 3 closing below candle 2 triggers overbought rejection rule.","signal_technical":"bullish","signal_sentiment":"bearish","signal_fear_greed":"fear","signal_volume":"stable","btc_price_entry":"68210.00","fear_greed_value":9,"rsi14":"70.56","ema_trend":"bullish_cross","candle_pattern":"no_pattern","technical_score":"2.50","technical_bias":"mild_bullish","btc_price_exit":"68202.00","actual_direction":"DOWN","correct":true,"pnl_pct":"0.0161","bet_taken":true,"classification":"BET","entry_fill_price":"68213","exit_fill_price":"68202","entry_filled_amount":"0.0002","pnl_usd":"0.001518","fees_total":"0.00068202"},{"idx":10,"id":269,"created_at":"2026-02-22 11:37:36.210367+00","direction":"DOWN","confidence":"0.620","reasoning":"RSI 72.92 (overbought) + candle 3 closes below candle 2 triggers OVERBOUGHT REJECTION RULE.","signal_technical":"bearish","signal_sentiment":"bearish","signal_fear_greed":"fear","signal_volume":"decreasing","btc_price_entry":"68234.02","fear_greed_value":9,"rsi14":"72.92","ema_trend":"bullish_cross","candle_pattern":"no_pattern","technical_score":"2.50","technical_bias":"mild_bullish","btc_price_exit":"68169.00","actual_direction":"DOWN","correct":true,"pnl_pct":"0.0191","bet_taken":true,"classification":"BET","entry_fill_price":"68182","exit_fill_price":"68169","entry_filled_amount":"0.0002","pnl_usd":"0.001918","fees_total":"0.00068169"},{"idx":11,"id":270,"created_at":"2026-02-22 11:43:12.98632+00","direction":"UP","confidence":"0.580","reasoning":"Extreme fear (F&G=9) combined with EMA bullish cross and C3 recovery candle.","signal_technical":"bullish","signal_sentiment":"bullish","signal_fear_greed":"fear","signal_volume":"decreasing","btc_price_entry":"68186.45","fear_greed_value":9,"rsi14":"59.42","ema_trend":"bullish_cross","candle_pattern":"no_pattern","technical_score":"2.50","technical_bias":"mild_bullish","btc_price_exit":"68176.00","actual_direction":"UP","correct":true,"pnl_pct":"0.0132","bet_taken":true,"classification":"BET","entry_fill_price":"68167","exit_fill_price":"68176","entry_filled_amount":"0.0002","pnl_usd":"0.001118","fees_total":"0.00068176"},{"idx":12,"id":271,"created_at":"2026-02-22 11:49:17.105754+00","direction":"UP","confidence":"0.520","reasoning":"Extreme fear (F&G=9) creates mean-reversion setup but thin volume and MACD bearish cross.","signal_technical":"bullish","signal_sentiment":"bullish","signal_fear_greed":"fear","signal_volume":"decreasing","btc_price_entry":"68186.46","fear_greed_value":9,"rsi14":"58.76","ema_trend":"bullish_cross","candle_pattern":"doji_indecision","technical_score":"1.00","technical_bias":"mild_bullish","btc_price_exit":"68183.99","actual_direction":"DOWN","correct":false,"pnl_pct":"-0.0036","bet_taken":false,"classification":"NO_BET","pnl_usd":"-0.000493","fees_total":"0"},{"idx":13,"id":272,"created_at":"2026-02-22 11:56:29.105842+00","direction":"UP","confidence":"0.700","reasoning":"Technical score 3.5/7 with bullish EMA cross and RSI at 59.25.","signal_technical":"bullish","signal_sentiment":"bullish","signal_fear_greed":"fear (contrarian bullish)","signal_volume":"stable","btc_price_entry":"68188.71","fear_greed_value":9,"rsi14":"59.25","ema_trend":"bullish_cross","candle_pattern":"doji_indecision","technical_score":"3.50","technical_bias":"strong_bullish","btc_price_exit":"68209.00","actual_direction":"UP","correct":true,"pnl_pct":"0.0484","bet_taken":true,"classification":"BET","entry_fill_price":"68176","exit_fill_price":"68209","entry_filled_amount":"0.0002","pnl_usd":"0.005918","fees_total":"0.00068209"},{"idx":14,"id":273,"created_at":"2026-02-22 12:02:06.830267+00","direction":"DOWN","confidence":"0.580","reasoning":"MACD bearish divergence + crowd extremely long + volume collapse on C3.","signal_technical":"bullish_score_but_bearish_divergence","signal_sentiment":"bullish_but_exhausted","signal_fear_greed":"extreme_fear_with_crowd_long_reversal_risk","signal_volume":"thin_collapse_after_spike","btc_price_entry":"68219.98","fear_greed_value":9,"rsi14":"64.92","ema_trend":"bullish_cross","candle_pattern":"no_pattern","technical_score":"3.50","technical_bias":"strong_bullish","btc_price_exit":"68041.00","actual_direction":"DOWN","correct":true,"pnl_pct":"0.2039","bet_taken":true,"classification":"BET","entry_fill_price":"68180","exit_fill_price":"68041","entry_filled_amount":"0.0002","pnl_usd":"0.02712","fees_total":"0.00068041"},{"idx":15,"id":274,"created_at":"2026-02-22 12:07:59.458165+00","direction":"UP","confidence":"0.620","reasoning":"Extreme Fear (F&G=9) triggers mean-reversion bounce at support (68021.28).","signal_technical":"bearish","signal_sentiment":"neutral","signal_fear_greed":"fear","signal_volume":"increasing","btc_price_entry":"68021.28","fear_greed_value":9,"rsi14":"35.07","ema_trend":"bullish_cross","candle_pattern":"no_pattern","technical_score":"-2.50","technical_bias":"mild_bearish","btc_price_exit":"67966.00","actual_direction":"DOWN","correct":false,"pnl_pct":"-0.1029","bet_taken":true,"classification":"BET","entry_fill_price":"68036","exit_fill_price":"67966","entry_filled_amount":"0.0002","pnl_usd":"-0.01468","fees_total":"0.00067966"},{"idx":16,"id":275,"created_at":"2026-02-22 12:13:07.44466+00","direction":"DOWN","confidence":"0.720","reasoning":"Strong bearish technical score (-4.5/7) with three consecutive red candles.","signal_technical":"bearish","signal_sentiment":"bearish","signal_fear_greed":"extreme_fear","signal_volume":"increasing","btc_price_entry":"67991.81","fear_greed_value":9,"rsi14":"32.59","ema_trend":"bearish_cross","candle_pattern":"three_red_continuation","technical_score":"-4.50","technical_bias":"strong_bearish","btc_price_exit":"68045.00","actual_direction":"UP","correct":false,"pnl_pct":"-0.0941","bet_taken":true,"classification":"BET","entry_fill_price":"67981","exit_fill_price":"68045","entry_filled_amount":"0.0002","pnl_usd":"-0.01348","fees_total":"0.00068045"},{"idx":17,"id":276,"created_at":"2026-02-22 12:26:01.590627+00","direction":"UP","confidence":"0.600","reasoning":"Hammer bullish candle pattern + extreme fear regime (F&G=9) suggests mean-reversion bounce.","signal_technical":"bearish","signal_sentiment":"neutral","signal_fear_greed":"fear","signal_volume":"stable","btc_price_entry":"68054.78","fear_greed_value":9,"rsi14":"41.21","ema_trend":"bearish_cross","candle_pattern":"hammer_bullish","technical_score":"-2.50","technical_bias":"mild_bearish","btc_price_exit":"68042.00","actual_direction":"DOWN","correct":false,"pnl_pct":"-0.0206","bet_taken":true,"classification":"BET","entry_fill_price":"68056","exit_fill_price":"68042","entry_filled_amount":"0.0003","pnl_usd":"-0.005221","fees_total":"0.00102063"},{"idx":18,"id":277,"created_at":"2026-02-22 12:31:42.77584+00","direction":"DOWN","confidence":"0.510","reasoning":"Thin volume with weak technical score triggers NO_BET protocol.","signal_technical":"bearish","signal_sentiment":"bearish","signal_fear_greed":"fear","signal_volume":"decreasing","btc_price_entry":"68052.41","fear_greed_value":9,"rsi14":"42.04","ema_trend":"bearish_cross","candle_pattern":"no_pattern","technical_score":"-2.50","technical_bias":"mild_bearish","btc_price_exit":"68016.02","actual_direction":"DOWN","correct":true,"pnl_pct":"0.0535","bet_taken":false,"classification":"NO_BET","pnl_usd":"0.007279","fees_total":"0"},{"idx":19,"id":278,"created_at":"2026-02-22 12:37:11.445076+00","direction":"DOWN","confidence":"0.650","reasoning":"Strong bearish technical score (-4.5/7) with 4 aligned signals.","signal_technical":"bearish","signal_sentiment":"neutral","signal_fear_greed":"fear","signal_volume":"decreasing","btc_price_entry":"68027.23","fear_greed_value":9,"rsi14":"39.49","ema_trend":"bearish_cross","candle_pattern":"no_pattern","technical_score":"-4.50","technical_bias":"strong_bearish","btc_price_exit":"67920.00","actual_direction":"DOWN","correct":true,"pnl_pct":"0.1265","bet_taken":true,"classification":"BET","entry_fill_price":"68006","exit_fill_price":"67920","entry_filled_amount":"0.0003","pnl_usd":"0.024781","fees_total":"0.0010188"},{"idx":20,"id":279,"created_at":"2026-02-22 12:43:57.883722+00","direction":"DOWN","confidence":"0.660","reasoning":"Technical Score -5.5 + MACD bearish + L/S Ratio 1.77 form consensus DOWN signal.","signal_technical":"bearish","signal_sentiment":"neutral","signal_fear_greed":"fear","signal_volume":"increasing","btc_price_entry":"67941.68","fear_greed_value":9,"rsi14":"33.79","ema_trend":"bearish_cross","candle_pattern":"no_pattern","technical_score":"-5.50","technical_bias":"strong_bearish","btc_price_exit":"67916.00","actual_direction":"DOWN","correct":true,"pnl_pct":"0.0515","bet_taken":true,"classification":"BET","entry_fill_price":"67951","exit_fill_price":"67916","entry_filled_amount":"0.0003","pnl_usd":"0.009481","fees_total":"0.00101874"},{"idx":21,"id":280,"created_at":"2026-02-22 12:49:52.973462+00","direction":"DOWN","confidence":"0.680","reasoning":"Technical score -4.5 dominates with EMA bearish cross.","signal_technical":"bearish","signal_sentiment":"bearish","signal_fear_greed":"fear","signal_volume":"stable","btc_price_entry":"67940.27","fear_greed_value":9,"rsi14":"35.92","ema_trend":"bearish_cross","candle_pattern":"no_pattern","technical_score":"-4.50","technical_bias":"strong_bearish","btc_price_exit":"67926.00","actual_direction":"DOWN","correct":true,"pnl_pct":"0.0132","bet_taken":true,"classification":"BET","entry_fill_price":"67935","exit_fill_price":"67926","entry_filled_amount":"0.0003","pnl_usd":"0.001681","fees_total":"0.00101889"},{"idx":22,"id":281,"created_at":"2026-02-22 12:55:00.524965+00","direction":"DOWN","confidence":"0.550","reasoning":"Mild bearish technical score (-2.5) with bearish MACD histogram.","signal_technical":"bearish","signal_sentiment":"neutral","signal_fear_greed":"fear","signal_volume":"decreasing","btc_price_entry":"67946.66","fear_greed_value":9,"rsi14":"37.25","ema_trend":"bearish_cross","candle_pattern":"no_pattern","technical_score":"-2.50","technical_bias":"mild_bearish","btc_price_exit":"67933.22","actual_direction":"DOWN","correct":true,"pnl_pct":"0.0198","bet_taken":false,"classification":"NO_BET","pnl_usd":"0.002688","fees_total":"0"},{"idx":23,"id":282,"created_at":"2026-02-22 13:01:01.97939+00","direction":"DOWN","confidence":"0.520","reasoning":"Thin volume with weak technical score, crowd heavily long.","signal_technical":"bearish","signal_sentiment":"neutral","signal_fear_greed":"fear","signal_volume":"decreasing","btc_price_entry":"67959.36","fear_greed_value":9,"rsi14":"40.32","ema_trend":"bearish_cross","candle_pattern":"no_pattern","technical_score":"-2.50","technical_bias":"mild_bearish","btc_price_exit":"67987.65","actual_direction":"UP","correct":false,"pnl_pct":"-0.0416","bet_taken":false,"classification":"NO_BET","pnl_usd":"-0.005659","fees_total":"0"},{"idx":24,"id":283,"created_at":"2026-02-22 13:07:23.447093+00","direction":"DOWN","confidence":"0.600","reasoning":"5 of 6 signals agree on bearish bias.","signal_technical":"bearish","signal_sentiment":"bearish","signal_fear_greed":"fear","signal_volume":"decreasing","btc_price_entry":"67974.49","fear_greed_value":9,"rsi14":"42.70","ema_trend":"bearish_cross","candle_pattern":"no_pattern","technical_score":"-2.50","technical_bias":"mild_bearish","btc_price_exit":"67943.00","actual_direction":"DOWN","correct":true,"pnl_pct":"0.0441","bet_taken":true,"classification":"BET","entry_fill_price":"67973","exit_fill_price":"67943","entry_filled_amount":"0.0003","pnl_usd":"0.007981","fees_total":"0.00101914"},{"idx":25,"id":284,"created_at":"2026-02-22 13:13:04.82928+00","direction":"DOWN","confidence":"0.540","reasoning":"Thin volume blocks high conviction per rules.","signal_technical":"bearish","signal_sentiment":"neutral","signal_fear_greed":"fear","signal_volume":"decreasing","btc_price_entry":"67955.91","fear_greed_value":9,"rsi14":"40.98","ema_trend":"bearish_cross","candle_pattern":"no_pattern","technical_score":"-2.50","technical_bias":"mild_bearish","btc_price_exit":"67997.69","actual_direction":"UP","correct":false,"pnl_pct":"-0.0615","bet_taken":false,"classification":"NO_BET","pnl_usd":"-0.008356","fees_total":"0"},{"idx":26,"id":285,"created_at":"2026-02-22 13:19:11.263687+00","direction":"UP","confidence":"0.560","reasoning":"Extreme Fear (F&G=9) creates mean-reversion capitulation signal.","signal_technical":"bearish","signal_sentiment":"bearish","signal_fear_greed":"fear","signal_volume":"decreasing","btc_price_entry":"68040.80","fear_greed_value":9,"rsi14":"49.88","ema_trend":"bearish_cross","candle_pattern":"no_pattern","technical_score":"-1.50","technical_bias":"mild_bearish","btc_price_exit":"67924.33","actual_direction":"DOWN","correct":false,"pnl_pct":"-0.1289","bet_taken":true,"classification":"BET","entry_fill_price":"68012","exit_fill_price":"67924","entry_filled_amount":"0.0003","pnl_usd":"-0.02732","fees_total":"0.00101887"},{"idx":27,"id":286,"created_at":"2026-02-22 13:25:48.608671+00","direction":"DOWN","confidence":"0.620","reasoning":"Strong bearish technical score (-4.5/7) with confirmed bearish engulfing.","signal_technical":"bearish","signal_sentiment":"bearish","signal_fear_greed":"fear","signal_volume":"decreasing","btc_price_entry":"67959.99","fear_greed_value":9,"rsi14":"41.83","ema_trend":"bearish_cross","candle_pattern":"bearish_engulfing","technical_score":"-4.50","technical_bias":"strong_bearish","btc_price_exit":"67917.00","actual_direction":"DOWN","correct":true,"pnl_pct":"0.0309","bet_taken":true,"classification":"BET","entry_fill_price":"67938","exit_fill_price":"67917","entry_filled_amount":"0.0003","pnl_usd":"0.005281","fees_total":"0.00101876"},{"idx":28,"id":287,"created_at":"2026-02-22 13:33:11.121314+00","direction":"DOWN","confidence":"0.630","reasoning":"Strong bearish technical score (-4.5/7) with MACD negative.","signal_technical":"bearish","signal_sentiment":"bearish","signal_fear_greed":"fear","signal_volume":"decreasing","btc_price_entry":"67953.99","fear_greed_value":9,"rsi14":"42.52","ema_trend":"bearish_cross","candle_pattern":"no_pattern","technical_score":"-4.50","technical_bias":"strong_bearish","btc_price_exit":"67735.00","actual_direction":"DOWN","correct":true,"pnl_pct":"0.2268","bet_taken":true,"classification":"BET","entry_fill_price":"67889","exit_fill_price":"67735","entry_filled_amount":"0.0003","pnl_usd":"0.045184","fees_total":"0.00101603"},{"idx":29,"id":288,"created_at":"2026-02-22 13:37:42.625978+00","direction":"UP","confidence":"0.620","reasoning":"Extreme Fear triggers mean-reversion rule. RSI 26.42 deeply oversold.","signal_technical":"bearish","signal_sentiment":"bearish","signal_fear_greed":"fear","signal_volume":"increasing","btc_price_entry":"67717.66","fear_greed_value":9,"rsi14":"26.42","ema_trend":"bearish_cross","candle_pattern":"three_red_continuation","technical_score":"-2.50","technical_bias":"mild_bearish","btc_price_exit":"67568.00","actual_direction":"DOWN","correct":false,"pnl_pct":"-0.1920","bet_taken":true,"classification":"BET","entry_fill_price":"67698","exit_fill_price":"67568","entry_filled_amount":"0.0003","pnl_usd":"-0.040014","fees_total":"0.00101352"},{"idx":30,"id":289,"created_at":"2026-02-22 13:43:00.3615+00","direction":"UP","confidence":"0.620","reasoning":"Extreme oversold RSI (22.72) + Extreme Fear + Below Bollinger lower band.","signal_technical":"bearish","signal_sentiment":"neutral","signal_fear_greed":"fear","signal_volume":"stable","btc_price_entry":"67617.75","fear_greed_value":9,"rsi14":"22.72","ema_trend":"bearish_cross","candle_pattern":"three_red_continuation","technical_score":"-1.50","technical_bias":"mild_bearish","btc_price_exit":"67677.00","actual_direction":"UP","correct":true,"pnl_pct":"0.1124","bet_taken":true,"classification":"BET","entry_fill_price":"67601","exit_fill_price":"67677","entry_filled_amount":"0.0003","pnl_usd":"0.021785","fees_total":"0.00101516"},{"idx":31,"id":290,"created_at":"2026-02-22 13:49:09.529886+00","direction":"UP","confidence":"0.620","reasoning":"OVERSOLD BOUNCE RULE fully triggered: RSI 30.27 < 35 with candle 3 closing higher.","signal_technical":"bearish","signal_sentiment":"neutral","signal_fear_greed":"greed","signal_volume":"stable","btc_price_entry":"67696.01","fear_greed_value":9,"rsi14":"30.27","ema_trend":"bearish_cross","candle_pattern":"no_pattern","technical_score":"-4.50","technical_bias":"strong_bearish","btc_price_exit":"67632.00","actual_direction":"DOWN","correct":false,"pnl_pct":"-0.0817","bet_taken":true,"classification":"BET","entry_fill_price":"67687","exit_fill_price":"67632","entry_filled_amount":"0.0003","pnl_usd":"-0.017614","fees_total":"0.00101448"},{"idx":32,"id":291,"created_at":"2026-02-22 13:56:26.54427+00","direction":"UP","confidence":"0.600","reasoning":"RSI 26.31 deeply oversold + Extreme Fear + volume spike.","signal_technical":"bearish","signal_sentiment":"neutral","signal_fear_greed":"fear","signal_volume":"increasing","btc_price_entry":"67622.45","fear_greed_value":9,"rsi14":"26.31","ema_trend":"bearish_cross","candle_pattern":"no_pattern","technical_score":"-1.50","technical_bias":"mild_bearish","btc_price_exit":"67651.00","actual_direction":"UP","correct":true,"pnl_pct":"0.1051","bet_taken":true,"classification":"BET","entry_fill_price":"67580","exit_fill_price":"67651","entry_filled_amount":"0.0003","pnl_usd":"0.020285","fees_total":"0.00101476"},{"idx":33,"id":292,"created_at":"2026-02-22 14:00:43.763088+00","direction":"DOWN","confidence":"0.620","reasoning":"Strong bearish technical score (-4.5) combined with bearish EMA cross.","signal_technical":"bearish","signal_sentiment":"bearish","signal_fear_greed":"fear","signal_volume":"decreasing","btc_price_entry":"67654.80","fear_greed_value":9,"rsi14":"30.11","ema_trend":"bearish_cross","candle_pattern":"hammer_bullish","technical_score":"-4.50","technical_bias":"strong_bearish","btc_price_exit":"67541.62","actual_direction":"DOWN","correct":true,"pnl_pct":"0.1587","bet_taken":true,"classification":"BET","entry_fill_price":"67649","exit_fill_price":"67542","entry_filled_amount":"0.0003","pnl_usd":"0.021477","fees_total":"0"},{"idx":34,"id":293,"created_at":"2026-02-22 14:07:07.641424+00","direction":"DOWN","confidence":"0.580","reasoning":"4 out of 6 signals agree on bearish bias.","signal_technical":"bearish","signal_sentiment":"bearish","signal_fear_greed":"extreme_fear_mean_reversion_risk","signal_volume":"thin","btc_price_entry":"67523.93","fear_greed_value":9,"rsi14":"24.80","ema_trend":"bearish_cross","candle_pattern":"no_pattern","technical_score":"-2.50","technical_bias":"mild_bearish","btc_price_exit":"67590.00","actual_direction":"UP","correct":false,"pnl_pct":"-0.0795","bet_taken":true,"classification":"BET","entry_fill_price":"67536","exit_fill_price":"67590","entry_filled_amount":"0.0003","pnl_usd":"-0.017114","fees_total":"0.00101385"},{"idx":35,"id":294,"created_at":"2026-02-22 14:12:37.565763+00","direction":"DOWN","confidence":"0.650","reasoning":"Technical score -4.5 + EMA bearish cross + MACD bearish histogram.","signal_technical":"bearish","signal_sentiment":"bearish","signal_fear_greed":"fear","signal_volume":"decreasing","btc_price_entry":"67593.10","fear_greed_value":9,"rsi14":"31.08","ema_trend":"bearish_cross","candle_pattern":"no_pattern","technical_score":"-4.50","technical_bias":"strong_bearish","btc_price_exit":"67659.00","actual_direction":"UP","correct":false,"pnl_pct":"-0.1169","bet_taken":true,"classification":"BET","entry_fill_price":"67580","exit_fill_price":"67659","entry_filled_amount":"0.0005","pnl_usd":"-0.041191","fees_total":"0.00169148"},{"idx":36,"id":295,"created_at":"2026-02-22 14:18:40.014413+00","direction":"DOWN","confidence":"0.600","reasoning":"Mild bearish technicals + bearish engulfing + contrarian long positioning.","signal_technical":"bearish","signal_sentiment":"bearish","signal_fear_greed":"fear","signal_volume":"decreasing","btc_price_entry":"67573.49","fear_greed_value":9,"rsi14":"32.85","ema_trend":"bearish_cross","candle_pattern":"bearish_engulfing","technical_score":"-2.50","technical_bias":"mild_bearish","btc_price_exit":"67643.00","actual_direction":"UP","correct":false,"pnl_pct":"-0.1021","bet_taken":true,"classification":"BET","entry_fill_price":"67574","exit_fill_price":"67643","entry_filled_amount":"0.0005","pnl_usd":"-0.036191","fees_total":"0.00169108"},{"idx":37,"id":296,"created_at":"2026-02-22 14:25:19.366512+00","direction":"UP","confidence":"0.550","reasoning":"Extreme fear + oversold RSI + C3 recovery.","signal_technical":"bearish","signal_sentiment":"bearish","signal_fear_greed":"fear","signal_volume":"decreasing","btc_price_entry":"67630.52","fear_greed_value":9,"rsi14":"37.44","ema_trend":"bearish_cross","candle_pattern":"no_pattern","technical_score":"-2.50","technical_bias":"mild_bearish","btc_price_exit":null,"actual_direction":null,"correct":null,"pnl_pct":null,"bet_taken":false,"classification":"NO_BET","pnl_usd":null,"fees_total":null}];
+
+// ══════════════════════════════════════════════════════════════════
+//  DATA FETCHER
+// ══════════════════════════════════════════════════════════════════
+async function fetchData() {
+  if (CONFIG.SUPABASE_URL && CONFIG.SUPABASE_KEY) {
+    try {
+      const url = `${CONFIG.SUPABASE_URL}/rest/v1/${CONFIG.TABLE}?select=*&order=id.desc&limit=${CONFIG.LIMIT}`;
+      const res = await fetch(url, {
+        headers: {
+          'apikey': CONFIG.SUPABASE_KEY,
+          'Authorization': `Bearer ${CONFIG.SUPABASE_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (!res.ok) throw new Error('Supabase fetch failed');
+      return await res.json();
+    } catch (e) {
+      console.warn('Supabase fetch failed, using sample data:', e);
+    }
+  }
+  return SAMPLE_DATA;
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════════════════════════════════
+function fmtTime(ts) {
+  const d = new Date(ts);
+  return d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+}
+
+function fmtPrice(p) {
+  if (!p) return '—';
+  return '$' + parseFloat(p).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+function fmtConf(c) {
+  return (parseFloat(c) * 100).toFixed(0) + '%';
+}
+
+function fmtPnl(v) {
+  if (v === null || v === undefined) return '—';
+  const n = parseFloat(v);
+  return (n >= 0 ? '+' : '') + '$' + n.toFixed(4);
+}
+
+function emaLabel(e) {
+  if (!e) return '—';
+  return e.includes('bullish') ? '🟢 BULL' : '🔴 BEAR';
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════════════════════════════════
+function render(data) {
+  const now = new Date();
+  document.getElementById('lastUpdate').innerHTML =
+    `LAST UPDATE: <strong>${now.toLocaleTimeString('it-IT')}</strong>`;
+
+  const bets = data.filter(d => d.bet_taken || d.classification === 'BET');
+  const realBets = bets.filter(d => d.pnl_usd !== null);
+  const correct = data.filter(d => d.correct === true);
+  const correctBets = bets.filter(d => d.correct === true);
+  const totalPnl = realBets.reduce((s, d) => s + parseFloat(d.pnl_usd || 0), 0);
+  const avgConf = data.reduce((s, d) => s + parseFloat(d.confidence || 0), 0) / data.length;
+
+  const pnlValues = realBets.map(d => parseFloat(d.pnl_usd || 0));
+  const bestPnl = pnlValues.length ? Math.max(...pnlValues) : 0;
+  const worstPnl = pnlValues.length ? Math.min(...pnlValues) : 0;
+
+  // Latest price
+  const lastEntry = [...data].reverse().find(d => d.btc_price_entry);
+  const lastPrice = lastEntry ? parseFloat(lastEntry.btc_price_entry) : null;
+  const lastFG = lastEntry ? lastEntry.fear_greed_value : null;
+
+  // KPIs
+  document.getElementById('kpiPrice').textContent = lastPrice ? fmtPrice(lastPrice) : '—';
+  document.getElementById('kpiTotal').textContent = data.length;
+  document.getElementById('kpiAccuracy').textContent = data.filter(d=>d.correct!==null).length
+    ? Math.round((correct.length / data.filter(d=>d.correct!==null).length) * 100) + '%' : '—';
+  document.getElementById('kpiPnl').textContent = (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toFixed(4);
+  document.getElementById('kpiPnl').className = 'kpi-value ' + (totalPnl >= 0 ? 'green' : 'red');
+  document.getElementById('kpiWinRate').textContent = bets.length
+    ? Math.round((correctBets.length / bets.length) * 100) + '%' : '—';
+  document.getElementById('kpiFG').textContent = lastFG !== null ? lastFG : '—';
+  const fgLabel = lastFG !== null ? (lastFG < 20 ? 'EXTREME FEAR' : lastFG < 40 ? 'FEAR' : lastFG < 60 ? 'NEUTRAL' : lastFG < 80 ? 'GREED' : 'EXTREME GREED') : '';
+  document.getElementById('kpiFGLabel').textContent = fgLabel;
+  document.getElementById('kpiBets').textContent = bets.length + '/' + data.length;
+  document.getElementById('kpiDrawdown').textContent = worstPnl ? '$' + worstPnl.toFixed(4) : '—';
+
+  // Stats row
+  document.getElementById('statConf').textContent = (avgConf * 100).toFixed(1) + '%';
+  document.getElementById('statBest').textContent = bestPnl ? '+$' + bestPnl.toFixed(4) : '—';
+  document.getElementById('statWorst').textContent = worstPnl ? '$' + worstPnl.toFixed(4) : '—';
+
+  // Table
+  renderTable(data);
+
+  // PnL chart
+  renderPnlChart(realBets);
+
+  // Signal quality
+  renderSignalQuality(data);
+
+  // Confidence distribution
+  renderConfDist(data);
+
+  // Equity curve
+  renderEquityCurve(realBets, totalPnl);
+
+  document.getElementById('totalPnlTag').textContent = 'TOTAL: ' + (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toFixed(4);
+  document.getElementById('totalPnlTag').className = 'panel-tag ' + (totalPnl >= 0 ? 'tag-green' : 'tag-red');
+}
+
+function renderTable(data) {
+  const dirFilter = document.getElementById('filterDir').value;
+  const classFilter = document.getElementById('filterClass').value;
+
+  let filtered = [...data].reverse().filter(d => {
+    if (dirFilter !== 'ALL' && d.direction !== dirFilter) return false;
+    if (classFilter !== 'ALL' && d.classification !== classFilter) return false;
+    return true;
+  });
+
+  const tbody = document.getElementById('signalTable');
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr class="no-data-row"><td colspan="12">NO DATA</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(d => {
+    const dirCls = d.direction === 'UP' ? 'dir-up' : 'dir-down';
+    const dirIcon = d.direction === 'UP' ? '↑' : '↓';
+    const betBadge = d.classification === 'BET'
+      ? '<span class="badge badge-bet">BET</span>'
+      : '<span class="badge badge-nobet">NO BET</span>';
+    const resultBadge = d.correct === true
+      ? '<span class="badge badge-correct">✓ WIN</span>'
+      : d.correct === false
+        ? '<span class="badge badge-wrong">✗ LOSS</span>'
+        : '<span style="color:var(--muted);font-size:11px;">OPEN</span>';
+    const pnlCls = d.pnl_usd === null ? 'pnl-null' : parseFloat(d.pnl_usd) >= 0 ? 'pnl-pos' : 'pnl-neg';
+    const score = d.technical_score ? parseFloat(d.technical_score).toFixed(1) : '—';
+    const scoreColor = parseFloat(d.technical_score) >= 0 ? 'var(--accent)' : 'var(--danger)';
+
+    return `<tr>
+      <td style="color:var(--muted)">${d.id}</td>
+      <td style="color:var(--muted)">${fmtTime(d.created_at)}</td>
+      <td class="${dirCls}">${dirIcon} ${d.direction}</td>
+      <td>${fmtConf(d.confidence)}</td>
+      <td>${fmtPrice(d.btc_price_entry)}</td>
+      <td>${fmtPrice(d.btc_price_exit)}</td>
+      <td>${d.rsi14 ? parseFloat(d.rsi14).toFixed(1) : '—'}</td>
+      <td>${emaLabel(d.ema_trend)}</td>
+      <td style="color:${scoreColor}">${score}</td>
+      <td>${betBadge}</td>
+      <td>${resultBadge}</td>
+      <td class="${pnlCls}">${fmtPnl(d.pnl_usd)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderPnlChart(bets) {
+  if (!bets.length) return;
+  const chart = document.getElementById('pnlChart');
+  const maxAbs = Math.max(...bets.map(d => Math.abs(parseFloat(d.pnl_usd || 0))));
+  const maxH = 90;
+
+  chart.innerHTML = bets.map((d, i) => {
+    const v = parseFloat(d.pnl_usd || 0);
+    const h = maxAbs > 0 ? Math.max(2, Math.abs(v) / maxAbs * maxH) : 2;
+    const cls = v > 0 ? 'pos' : v < 0 ? 'neg' : 'zero';
+    return `<div class="bar ${cls}" style="height:${h}px" title="${fmtPnl(v)}">
+      <div class="tooltip">${fmtPnl(v)}</div>
+    </div>`;
+  }).join('');
+
+  const times = bets.map(d => fmtTime(d.created_at));
+  document.getElementById('chartStart').textContent = times[0];
+  document.getElementById('chartEnd').textContent = times[times.length - 1];
+}
+
+function renderSignalQuality(data) {
+  const container = document.getElementById('signalQuality');
+  const total = data.filter(d => d.correct !== null).length;
+  const metrics = [
+    {
+      label: 'Overall Accuracy',
+      value: total ? Math.round(data.filter(d=>d.correct===true).length / total * 100) : 0,
+      color: 'var(--accent)',
+      suffix: '%'
+    },
+    {
+      label: 'Bet Win Rate',
+      value: (() => {
+        const b = data.filter(d=>d.classification==='BET' && d.correct!==null);
+        return b.length ? Math.round(b.filter(d=>d.correct).length / b.length * 100) : 0;
+      })(),
+      color: 'var(--blue)',
+      suffix: '%'
+    },
+    {
+      label: 'UP Signal Accuracy',
+      value: (() => {
+        const u = data.filter(d=>d.direction==='UP' && d.correct!==null);
+        return u.length ? Math.round(u.filter(d=>d.correct).length / u.length * 100) : 0;
+      })(),
+      color: 'var(--accent)',
+      suffix: '%'
+    },
+    {
+      label: 'DOWN Signal Accuracy',
+      value: (() => {
+        const u = data.filter(d=>d.direction==='DOWN' && d.correct!==null);
+        return u.length ? Math.round(u.filter(d=>d.correct).length / u.length * 100) : 0;
+      })(),
+      color: 'var(--danger)',
+      suffix: '%'
+    },
+    {
+      label: 'Bet Coverage',
+      value: data.length ? Math.round(data.filter(d=>d.classification==='BET').length / data.length * 100) : 0,
+      color: 'var(--warn)',
+      suffix: '%'
+    }
+  ];
+
+  container.innerHTML = metrics.map(m => `
+    <div class="signal-row">
+      <div class="signal-meta">
+        <span class="signal-label">${m.label}</span>
+        <span class="signal-val" style="color:${m.color}">${m.value}${m.suffix}</span>
+      </div>
+      <div class="signal-bar-bg">
+        <div class="signal-bar-fill" style="width:${m.value}%;background:${m.color}"></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderConfDist(data) {
+  const buckets = [
+    { label: '50-54%', min: 0.50, max: 0.55 },
+    { label: '55-59%', min: 0.55, max: 0.60 },
+    { label: '60-64%', min: 0.60, max: 0.65 },
+    { label: '65-69%', min: 0.65, max: 0.70 },
+    { label: '70%+',   min: 0.70, max: 1.01 },
+  ];
+
+  const counts = buckets.map(b => ({
+    ...b,
+    count: data.filter(d => {
+      const c = parseFloat(d.confidence);
+      return c >= b.min && c < b.max;
+    }).length
+  }));
+
+  const maxCount = Math.max(...counts.map(c => c.count), 1);
+
+  document.getElementById('confDist').innerHTML = counts.map(c => `
+    <div class="conf-row">
+      <div class="conf-label">${c.label}</div>
+      <div class="conf-bar-bg">
+        <div class="conf-bar-fill" style="width:${Math.round(c.count / maxCount * 100)}%"></div>
+      </div>
+      <div class="conf-count">${c.count}</div>
+    </div>
+  `).join('');
+}
+
+function renderEquityCurve(bets, totalPnl) {
+  const svg = document.getElementById('equitySvg');
+  if (!bets.length) { svg.innerHTML = ''; return; }
+
+  let cum = 0;
+  const points = [{ x: 0, cum: 0 }];
+  bets.forEach((d, i) => {
+    cum += parseFloat(d.pnl_usd || 0);
+    points.push({ x: i + 1, cum });
+  });
+
+  const minV = Math.min(...points.map(p => p.cum));
+  const maxV = Math.max(...points.map(p => p.cum));
+  const range = maxV - minV || 0.001;
+  const W = 1000, H = 110;
+
+  const toX = i => (i / (points.length - 1)) * W;
+  const toY = v => H - ((v - minV) / range) * (H - 10) - 5;
+
+  const pts = points.map((p, i) => `${toX(i).toFixed(1)},${toY(p.cum).toFixed(1)}`).join(' ');
+  const areaClose = `${toX(points.length-1).toFixed(1)},${H} 0,${H}`;
+
+  const color = totalPnl >= 0 ? 'var(--accent)' : 'var(--danger)';
+  const gradId = totalPnl >= 0 ? 'eqGrad' : 'eqGradRed';
+
+  svg.innerHTML = `
+    <defs>
+      <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${color}" stop-opacity="0.35"/>
+        <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <polygon points="${pts} ${areaClose}" fill="url(#${gradId})"/>
+    <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="${toX(points.length-1).toFixed(1)}" cy="${toY(points[points.length-1].cum).toFixed(1)}" r="4" fill="${color}"/>
+  `;
+
+  document.getElementById('equityTag').textContent =
+    (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toFixed(4);
+  document.getElementById('equityTag').className =
+    'panel-tag ' + (totalPnl >= 0 ? 'tag-green' : 'tag-red');
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  MAIN LOOP
+// ══════════════════════════════════════════════════════════════════
+let allData = [];
+
+async function refresh() {
+  try {
+    allData = await fetchData();
+    render(allData);
+  } catch(e) {
+    console.error('Render error:', e);
+  }
+}
+
+// Filters
+document.getElementById('filterDir').addEventListener('change', () => renderTable(allData));
+document.getElementById('filterClass').addEventListener('change', () => renderTable(allData));
+
+// Init
+refresh();
+setInterval(refresh, CONFIG.REFRESH_INTERVAL);
+</script>
+</body>
+</html>
