@@ -91,7 +91,7 @@
   @keyframes blink    { 0%,100%{opacity:1} 50%{opacity:0} }
   .loading { display: inline-block; animation: blink 1s step-end infinite; color: var(--accent); }
 
-  /* KPI GRID — 9 columns, fixed font 18px, no overflow */
+  /* KPI GRID */
   .kpi-grid {
     display: grid;
     grid-template-columns: repeat(9, 1fr);
@@ -111,8 +111,6 @@
   .kpi.purple::after { background: #aa66ff; }
 
   .kpi-label { font-size: 9px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-  /* FIXED: 18px, no clamp, text-overflow prevents clipping */
   .kpi-value { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
   .kpi-value.green  { color: var(--accent); }
   .kpi-value.red    { color: var(--danger); }
@@ -120,7 +118,6 @@
   .kpi-value.white  { color: var(--text); }
   .kpi-value.blue   { color: var(--blue); }
   .kpi-value.purple { color: #aa66ff; }
-
   .kpi-sub { font-size: 10px; color: var(--muted); margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   /* STATS ROW */
@@ -166,6 +163,14 @@
   .pnl-neg  { color: var(--danger); }
   .pnl-null { color: var(--muted); }
   .no-data-row td { text-align: center; color: var(--muted); padding: 28px; font-size: 11px; letter-spacing: 2px; }
+
+  /* SIZE cell */
+  .size-val    { color: var(--blue); font-weight: 700; font-size: 10px; display: block; }
+  .size-reason { color: var(--muted); font-size: 9px; display: block; margin-top: 2px; letter-spacing: 0.5px; }
+  .size-mult   { font-size: 9px; }
+  .size-mult.up   { color: var(--accent); }
+  .size-mult.down { color: var(--danger); }
+  .size-mult.base { color: var(--muted); }
 
   /* FILTERS */
   .filters-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
@@ -240,7 +245,7 @@
     </div>
   </header>
 
-  <!-- 9 KPI tiles — font 18px fixed, no clipping -->
+  <!-- 9 KPI tiles -->
   <div class="kpi-grid">
     <div class="kpi blue">
       <div class="kpi-label">BTC Price</div>
@@ -322,9 +327,19 @@
         <table>
           <thead>
             <tr>
-              <th>#</th><th>DATE/TIME</th><th>DIR</th><th>CONF</th>
-              <th>ENTRY $</th><th>EXIT $</th><th>RSI</th><th>EMA</th>
-              <th>SCORE</th><th>TYPE</th><th>RESULT</th><th>PnL $</th>
+              <th>#</th>
+              <th>DATE/TIME</th>
+              <th>DIR</th>
+              <th>CONF</th>
+              <th>ENTRY $</th>
+              <th>EXIT $</th>
+              <th>RSI</th>
+              <th>EMA</th>
+              <th>SCORE</th>
+              <th>SIZE</th>
+              <th>TYPE</th>
+              <th>RESULT</th>
+              <th>PnL $</th>
             </tr>
           </thead>
           <tbody id="signalTable"></tbody>
@@ -425,6 +440,42 @@ function emaLabel(e) {
   return e.includes('bullish') ? '🟢 BULL' : '🔴 BEAR';
 }
 
+// Render SIZE cell with multiplier context
+function renderSizeCell(d) {
+  if (!d.bet_size) return '<span style="color:var(--muted)">—</span>';
+
+  const size = parseFloat(d.bet_size);
+  const reason = d.size_reason || '';
+
+  // Determine multiplier style from reason
+  let multClass = 'base';
+  let multLabel = '×1.0';
+
+  if (reason.includes('win_streak')) {
+    multClass = 'up';
+    multLabel = reason.includes('high_conf') ? '×1.5' : '×1.2';
+  } else if (reason.includes('loss_streak')) {
+    multClass = 'down';
+    multLabel = '×0.5';
+  } else if (reason.includes('drawdown')) {
+    multClass = 'down';
+    multLabel = '×0.25';
+  }
+
+  // Format reason for display — shorten it
+  let reasonDisplay = reason
+    .replace('_high_conf', '')
+    .replace('_low_conf', '')
+    .replace('win_streak_', 'W×')
+    .replace('loss_streak_', 'L×')
+    .replace('drawdown_protection', 'drawdown')
+    .replace('insufficient_history', 'no hist.')
+    .replace('base', '—');
+
+  return `<span class="size-val">${size.toFixed(5)}</span>` +
+         `<span class="size-mult ${multClass}">${multLabel} ${reasonDisplay}</span>`;
+}
+
 let currentPeriod = 'ALL';
 let allData = [];
 
@@ -504,7 +555,6 @@ function render(data) {
   document.getElementById('lastUpdate').innerHTML =
     `LAST UPDATE: <strong>${new Date().toLocaleTimeString('it-IT')}</strong>`;
 
-  // Railway returns data desc (newest first)
   const bets        = data.filter(d => d.classification === 'BET');
   const realBets    = bets.filter(d => d.pnl_usd !== null);
   const closedBets  = bets.filter(d => d.correct !== null);
@@ -550,7 +600,6 @@ function render(data) {
 
   renderTable(data);
 
-  // Charts: chronological order (oldest first)
   const chronoBets = [...realBets].reverse();
   renderPnlChart(chronoBets);
   renderSignalQuality(data);
@@ -565,14 +614,16 @@ function render(data) {
 function renderTable(data) {
   const dirFilter   = document.getElementById('filterDir').value;
   const classFilter = document.getElementById('filterClass').value;
-  // data is newest-first from Railway — keep that order
   const filtered = data.filter(d => {
     if (dirFilter   !== 'ALL' && d.direction      !== dirFilter)   return false;
     if (classFilter !== 'ALL' && d.classification !== classFilter) return false;
     return true;
   });
   const tbody = document.getElementById('signalTable');
-  if (!filtered.length) { tbody.innerHTML = '<tr class="no-data-row"><td colspan="12">NO DATA</td></tr>'; return; }
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr class="no-data-row"><td colspan="13">NO DATA</td></tr>';
+    return;
+  }
   tbody.innerHTML = filtered.map(d => {
     const dirCls  = d.direction === 'UP' ? 'dir-up' : 'dir-down';
     const dirIcon = d.direction === 'UP' ? '↑' : '↓';
@@ -597,6 +648,7 @@ function renderTable(data) {
       <td>${d.rsi14 ? parseFloat(d.rsi14).toFixed(1) : '—'}</td>
       <td>${emaLabel(d.ema_trend)}</td>
       <td style="color:${scoreColor}">${score}</td>
+      <td>${renderSizeCell(d)}</td>
       <td>${betBadge}</td>
       <td>${resultBadge}</td>
       <td class="${pnlCls}">${fmtPnl(d.pnl_usd)}</td>
