@@ -93,44 +93,6 @@ def health():
     })
 
 
-# ── DEBUG KEY ────────────────────────────────────────────────────────────────
-
-@app.route("/debug-key", methods=["GET"])
-def debug_key():
-    return jsonify({
-        "key_prefix": API_KEY[:10] if API_KEY else "EMPTY",
-        "key_length": len(API_KEY),
-        "secret_length": len(API_SECRET),
-    })
-
-
-# ── DEBUG POSITIONS (raw) ────────────────────────────────────────────────────
-
-@app.route("/debug-positions", methods=["GET"])
-def debug_positions():
-    try:
-        trade = get_trade_client()
-        result = trade.request(
-            method="GET",
-            uri="/derivatives/api/v3/openpositions",
-            auth=True
-        )
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-# ── DEBUG WALLET (raw) ───────────────────────────────────────────────────────
-
-@app.route("/debug-wallet", methods=["GET"])
-def debug_wallet():
-    try:
-        user = get_user_client()
-        result = user.get_wallets()
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
 
 # ── BALANCE ──────────────────────────────────────────────────────────────────
 
@@ -550,7 +512,10 @@ def account_summary():
 @app.route("/signals", methods=["GET"])
 def get_signals():
     try:
-        limit = request.args.get("limit", 500)
+        try:
+            limit = max(1, min(int(request.args.get("limit", 500)), 1000))
+        except (ValueError, TypeError):
+            limit = 500
         supabase_url = os.environ.get("SUPABASE_URL", "")
         supabase_key = os.environ.get("SUPABASE_KEY", "")
 
