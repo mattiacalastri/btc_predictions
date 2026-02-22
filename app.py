@@ -573,24 +573,26 @@ def get_signals():
 @app.route("/bet-sizing", methods=["GET"])
 def bet_sizing():
     base_size = float(request.args.get("base_size", 0.0005))
-    
+    confidence = float(request.args.get("confidence", 0.60))
+
     try:
         supabase_url = os.environ.get("SUPABASE_URL", "")
         supabase_key = os.environ.get("SUPABASE_KEY", "")
-        
+
         url = f"{supabase_url}/rest/v1/btc_predictions?select=correct,pnl_usd&bet_taken=eq.true&correct=not.is.null&order=id.desc&limit=10"
         res = requests.get(url, headers={
             "apikey": supabase_key,
             "Authorization": f"Bearer {supabase_key}"
         }, timeout=5)
-        
+
         trades = res.json()
         if not trades or len(trades) < 3:
-            return jsonify({"size": base_size, "reason": "insufficient_history"})
-        
+            return jsonify({"size": base_size, "reason": "insufficient_history", "multiplier": 1.0})
+
         results = [t.get("correct") for t in trades if t.get("correct") is not None]
         pnls = [float(t.get("pnl_usd") or 0) for t in trades]
-        
+
+        # streak
         streak = 0
         streak_type = None
         for r in results:
@@ -601,12 +603,13 @@ def bet_sizing():
                 streak += 1
             else:
                 break
-        
+
         recent_pnl = sum(pnls[:5])
-        
+
+        # logica moltiplicatore
         multiplier = 1.0
         reason = "base"
-        
+
         if recent_pnl < -0.15:
             multiplier = 0.25
             reason = "drawdown_protection"
@@ -614,12 +617,16 @@ def bet_sizing():
             multiplier = 0.5
             reason = f"loss_streak_{streak}"
         elif streak_type == True and streak >= 3:
-            multiplier = 1.5
-            reason = f"win_streak_{streak}"
-        
+            if confidence >= 0.70:
+                multiplier = 1.5
+                reason = f"win_streak_{streak}_high_conf"
+            else:
+                multiplier = 1.2
+                reason = f"win_streak_{streak}_low_conf"
+
         final_size = round(base_size * multiplier, 6)
         final_size = max(0.0001, min(0.001, final_size))
-        
+
         return jsonify({
             "size": final_size,
             "multiplier": multiplier,
@@ -627,11 +634,11 @@ def bet_sizing():
             "streak": streak,
             "streak_type": "win" if streak_type else "loss",
             "recent_pnl_5": round(recent_pnl, 6),
+            "confidence_used": confidence,
         })
-        
+
     except Exception as e:
         return jsonify({"size": base_size, "reason": "error", "error": str(e)})
-
 
 # ── DASHBOARD ────────────────────────────────────────────────────────────────
 
