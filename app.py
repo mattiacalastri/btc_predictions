@@ -354,6 +354,17 @@ def account_summary():
         if portfolio_value and portfolio_value > 0 and initial_margin is not None:
             margin_usage_pct = round((initial_margin / portfolio_value) * 100, 2)
 
+        # ── TICKERS (chiamata unica per sezioni 2 e 3) ──────────────────────
+        all_tickers = []
+        try:
+            all_tickers = trade.request(
+                method="GET",
+                uri="/derivatives/api/v3/tickers",
+                auth=False
+            ).get("tickers", [])
+        except Exception:
+            pass
+
         # ── 2. POSIZIONE APERTA ──────────────────────────────────────────────
         pos = get_open_position(symbol)
 
@@ -362,13 +373,8 @@ def account_summary():
         position_pnl_pct = None
         if pos:
             try:
-                tickers = trade.request(
-                    method="GET",
-                    uri="/derivatives/api/v3/tickers",
-                    auth=False
-                ).get("tickers", [])
                 ticker = next(
-                    (t for t in tickers if (t.get("symbol") or "").upper() == symbol.upper()),
+                    (t for t in all_tickers if (t.get("symbol") or "").upper() == symbol.upper()),
                     None
                 )
                 if ticker and pos["price"] > 0:
@@ -382,13 +388,8 @@ def account_summary():
         # ── 3. PREZZO BTC ────────────────────────────────────────────────────
         btc_data = {}
         try:
-            tickers = trade.request(
-                method="GET",
-                uri="/derivatives/api/v3/tickers",
-                auth=False
-            ).get("tickers", [])
             ticker_btc = next(
-                (t for t in tickers if (t.get("symbol") or "").upper() == "PF_XBTUSD"),
+                (t for t in all_tickers if (t.get("symbol") or "").upper() == "PF_XBTUSD"),
                 None
             )
             if ticker_btc:
