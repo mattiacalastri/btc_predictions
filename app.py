@@ -582,6 +582,13 @@ def bet_sizing():
 
         recent_pnl = sum(pnls[:5])
 
+        # asimmetria win/loss
+        wins = [p for p in pnls if p > 0]
+        losses = [p for p in pnls if p < 0]
+        avg_win = sum(wins) / len(wins) if wins else 0
+        avg_loss = abs(sum(losses) / len(losses)) if losses else 0
+        profit_factor = round(avg_win / avg_loss, 3) if avg_loss > 0 else 1.0
+
         # logica moltiplicatore
         multiplier = 1.0
         reason = "base"
@@ -593,24 +600,35 @@ def bet_sizing():
             multiplier = 0.5
             reason = f"loss_streak_{streak}"
         elif streak_type == True and streak >= 3:
-            if confidence >= 0.70:
+            if confidence >= 0.65:
                 multiplier = 1.5
                 reason = f"win_streak_{streak}_high_conf"
             else:
                 multiplier = 1.2
                 reason = f"win_streak_{streak}_low_conf"
 
-        final_size = round(base_size * multiplier, 6)
-        final_size = max(0.001, min(0.002, final_size))
+        # asymmetry penalty: perdite medie >1.5× i guadagni medi
+        if profit_factor < 0.67 and reason == "base":
+            multiplier *= 0.75
+            reason = "asymmetry_penalty"
+
+        # confidence scaling: 0.55→0.80x | 0.60→1.00x | 0.70→1.20x
+        conf_mult = 0.8 + (confidence - 0.55) * (0.4 / 0.15)
+        conf_mult = round(max(0.8, min(1.2, conf_mult)), 2)
+
+        final_size = round(base_size * multiplier * conf_mult, 6)
+        final_size = max(0.0005, min(0.002, final_size))
 
         return jsonify({
             "size": final_size,
             "multiplier": multiplier,
+            "conf_multiplier": conf_mult,
             "reason": reason,
             "streak": streak,
             "streak_type": "win" if streak_type else "loss",
             "recent_pnl_5": round(recent_pnl, 6),
             "confidence_used": confidence,
+            "profit_factor": profit_factor,
         })
 
     except Exception as e:
