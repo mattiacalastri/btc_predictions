@@ -545,6 +545,29 @@ def account_summary():
     except Exception as e:
         return jsonify({"status": "error", "error": str(e)}), 500
 
+# ── SIGNALS PROXY (Supabase) ─────────────────────────────────────────────────
+
+@app.route("/signals", methods=["GET"])
+def get_signals():
+    try:
+        limit = request.args.get("limit", 500)
+        supabase_url = os.environ.get("SUPABASE_URL", "")
+        supabase_key = os.environ.get("SUPABASE_KEY", "")
+
+        if not supabase_url or not supabase_key:
+            return jsonify({"error": "Supabase credentials not configured"}), 500
+
+        url = f"{supabase_url}/rest/v1/btc_predictions?select=*&order=id.desc&limit={limit}"
+        res = requests.get(url, headers={
+            "apikey": supabase_key,
+            "Authorization": f"Bearer {supabase_key}"
+        }, timeout=10)
+
+        return jsonify(res.json()), res.status_code
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 # ── MAIN ─────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
