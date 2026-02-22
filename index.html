@@ -210,6 +210,15 @@
 
   .equity-svg { width: 100%; }
 
+  /* WALLET STRIP */
+  .wallet-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 700px) { .wallet-strip { grid-template-columns: repeat(2, 1fr); } }
+
   footer { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
   .footer-text { font-size: 9px; color: var(--muted); letter-spacing: 1px; }
   .footer-text span { color: var(--accent); }
@@ -291,6 +300,30 @@
       <div class="kpi-label">Max Drawdown</div>
       <div class="kpi-value red" id="kpiDrawdown">—</div>
       <div class="kpi-sub">Single trade</div>
+    </div>
+  </div>
+
+  <!-- WALLET & FEES STRIP -->
+  <div class="wallet-strip">
+    <div class="kpi yellow">
+      <div class="kpi-label">Wallet Equity</div>
+      <div class="kpi-value white" id="walletEquity">—</div>
+      <div class="kpi-sub" id="walletEquitySub">fetching...</div>
+    </div>
+    <div class="kpi blue">
+      <div class="kpi-label">USDC Available</div>
+      <div class="kpi-value blue" id="walletUsdc">—</div>
+      <div class="kpi-sub">cash on hand</div>
+    </div>
+    <div class="kpi green">
+      <div class="kpi-label">Live P&amp;L</div>
+      <div class="kpi-value white" id="walletDelta">—</div>
+      <div class="kpi-sub">vs $20.00 initial</div>
+    </div>
+    <div class="kpi red">
+      <div class="kpi-label">Fees Paid</div>
+      <div class="kpi-value yellow" id="feesTotal">—</div>
+      <div class="kpi-sub" id="feesSub">exit fees · supabase</div>
     </div>
   </div>
 
@@ -562,7 +595,8 @@ function render(data) {
   const closed      = data.filter(d => d.correct !== null);
   const correct     = closed.filter(d => d.correct === true);
 
-  const totalPnl = realBets.reduce((s, d) => s + parseFloat(d.pnl_usd || 0), 0);
+  const totalPnl  = realBets.reduce((s, d) => s + parseFloat(d.pnl_usd   || 0), 0);
+  const totalFees = realBets.reduce((s, d) => s + parseFloat(d.fees_total || 0), 0);
   const roiPct   = (totalPnl / CONFIG.CAPITAL) * 100;
   const avgConf  = data.length ? data.reduce((s, d) => s + parseFloat(d.confidence || 0), 0) / data.length : 0;
   const pnlVals  = realBets.map(d => parseFloat(d.pnl_usd || 0));
@@ -593,6 +627,9 @@ function render(data) {
     ? (lastFG < 20 ? 'EXTREME FEAR' : lastFG < 40 ? 'FEAR' : lastFG < 60 ? 'NEUTRAL' : lastFG < 80 ? 'GREED' : 'EXTREME GREED') : '';
   document.getElementById('kpiBets').textContent    = bets.length + '/' + data.length;
   document.getElementById('kpiDrawdown').textContent= worstPnl ? '$' + worstPnl.toFixed(4) : '—';
+
+  document.getElementById('feesTotal').textContent = '$' + totalFees.toFixed(4);
+  document.getElementById('feesSub').textContent   = 'exit fees · ' + realBets.filter(d => parseFloat(d.fees_total || 0) > 0).length + ' trades';
 
   document.getElementById('statConf').textContent  = (avgConf * 100).toFixed(1) + '%';
   document.getElementById('statBest').textContent  = bestPnl  ? '+$' + bestPnl.toFixed(4)  : '—';
@@ -743,6 +780,37 @@ function renderEquityCurve(chronoBets, totalPnl) {
   document.getElementById('equityTag').className   = 'panel-tag ' + (totalPnl >= 0 ? 'tag-green' : 'tag-red');
 }
 
+async function fetchWalletData() {
+  try {
+    const res = await fetch(CONFIG.RAILWAY_URL + '/account-summary', { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) throw new Error();
+    const d = await res.json();
+    const portfolio = d.wallet?.portfolio_value;
+    const usdc      = d.wallet?.usdc_available;
+    const margin    = d.wallet?.margin_usage_pct;
+    const posOpen   = d.position?.open;
+
+    if (portfolio != null) {
+      const eq = parseFloat(portfolio);
+      const equityEl = document.getElementById('walletEquity');
+      equityEl.textContent = '$' + eq.toFixed(4);
+      equityEl.className   = 'kpi-value ' + (eq >= CONFIG.CAPITAL ? 'green' : 'red');
+      document.getElementById('walletEquitySub').textContent =
+        posOpen ? 'margin ' + (margin ?? 0) + '% · position open' : 'flat · no position';
+
+      const delta   = eq - CONFIG.CAPITAL;
+      const deltaEl = document.getElementById('walletDelta');
+      deltaEl.textContent = (delta >= 0 ? '+' : '') + '$' + delta.toFixed(4);
+      deltaEl.className   = 'kpi-value ' + (delta >= 0 ? 'green' : 'red');
+    }
+    if (usdc != null) {
+      document.getElementById('walletUsdc').textContent = '$' + parseFloat(usdc).toFixed(4);
+    }
+  } catch(e) {
+    console.warn('Wallet fetch failed:', e);
+  }
+}
+
 async function refresh() {
   try { allData = await fetchData(); renderAll(allData); }
   catch(e) { console.error('Render error:', e); }
@@ -755,6 +823,8 @@ refresh();
 setInterval(refresh, CONFIG.REFRESH_INTERVAL);
 fetchLiveBtcPrice();
 setInterval(fetchLiveBtcPrice, CONFIG.BTC_REFRESH);
+fetchWalletData();
+setInterval(fetchWalletData, 30000);
 </script>
 </body>
 </html>
