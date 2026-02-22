@@ -363,6 +363,188 @@ def get_execution_fees():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# ── ACCOUNT SUMMARY (tutto in uno) ───────────────────────────────────────────
+
+@app.route("/account-summary", methods=["GET"])
+def account_summary():
+    symbol = request.args.get("symbol", DEFAULT_SYMBOL)
+    try:
+        trade = get_trade_client()
+        user  = get_user_client()
+
+        # ── 1. WALLET ────────────────────────────────────────────────────────
+        wallets = user.get_wallets()
+        flex = wallets.get("accounts", {}).get("flex", {})
+
+        usdc_available  = flex.get("currencies", {}).get("USDC", {}).get("available")
+        usd_available   = flex.get("currencies", {}).get("USD",  {}).get("available")
+        margin_equity   = flex.get("marginEquity")
+        available_margin= flex.get("availableMargin")
+        portfolio_value = flex.get("portfolioValue")
+        collateral      = flex.get("collateralValue")
+        pnl_unrealized  = flex.get("totalUnrealized")       # P&L mark-to-market aggregato
+        funding_unrealized = flex.get("unrealizedFunding")  # funding maturato non ancora pagato
+        initial_margin  = flex.get("initialMargin")
+        maint_margin    = flex.get("maintenanceMargin")
+
+        # margin usage %
+        margin_usage_pct = None
+        if portfolio_value and portfolio_value > 0 and initial_margin is not None:
+            margin_usage_pct = round((initial_margin / portfolio_value) * 100, 2)
+
+        # ── 2. POSIZIONE APERTA ──────────────────────────────────────────────
+        pos = get_open_position(symbol)
+
+        # P&L della posizione se aperta: (mark - entry) * size * direction
+        position_pnl = None
+        position_pnl_pct = None
+        if pos:
+            try:
+                tickers = trade.request(
+                    method="GET",
+                    uri="/derivatives/api/v3/tickers",
+                    auth=False
+                ).get("tickers", [])
+                ticker = next(
+                    (t for t in tickers if (t.get("symbol") or "").upper() == symbol.upper()),
+                    None
+                )
+                if ticker and pos["price"] > 0:
+                    mark = float(ticker.get("markPrice") or 0)
+                    direction = 1 if pos["side"] == "long" else -1
+                    position_pnl = round((mark - pos["price"]) * direction * pos["size"], 6)
+                    position_pnl_pct = round((position_pnl / (pos["price"] * pos["size"])) * 100, 4)
+            except Exception:
+                pass
+
+        # ── 3. PREZZO BTC ────────────────────────────────────────────────────
+        btc_data = {}
+        try:
+            tickers = trade.request(
+                method="GET",
+                uri="/derivatives/api/v3/tickers",
+                auth=False
+            ).get("tickers", [])
+            ticker_btc = next(
+                (t for t in tickers if (t.get("symbol") or "").upper() == "PF_XBTUSD"),
+                None
+            )
+            if ticker_btc:
+                btc_data = {
+                    "mark_price":   float(ticker_btc.get("markPrice") or 0),
+                    "last_price":   float(ticker_btc.get("last")      or 0),
+                    "bid":          float(ticker_btc.get("bid")        or 0),
+                    "ask":          float(ticker_btc.get("ask")        or 0),
+                    "funding_rate": ticker_btc.get("fundingRate"),         # rate attuale (es. 0.0001)
+                    "funding_rate_pct": round(float(ticker_btc.get("fundingRate") or 0) * 100, 6),
+                    "open_interest": ticker_btc.get("openInterest"),
+                    "volume_24h":   ticker_btc.get("vol24h"),
+                }
+        except Exception:
+            pass
+
+        # ── 4. ORDINI APERTI ─────────────────────────────────────────────────
+        open_orders = []
+        try:
+            orders_raw = trade.request(
+                method="GET",
+                uri="/derivatives/api/v3/openorders",
+                auth=True
+            ).get("openOrders", []) or []
+            open_orders = [
+                {
+                    "order_id":   o.get("order_id"),
+                    "symbol":     o.get("symbol"),
+                    "side":       o.get("side"),
+                    "type":       o.get("orderType"),
+                    "size":       o.get("size"),
+                    "limit_price": o.get("limitPrice"),
+                    "stop_price": o.get("stopPrice"),
+                    "filled":     o.get("filled"),
+                    "reduce_only": o.get("reduceOnly"),
+                    "timestamp":  o.get("timestamp"),
+                }
+                for o in orders_raw
+                if (o.get("symbol") or "").upper() == symbol.upper()
+            ]
+        except Exception:
+            pass
+
+        # ── 5. ULTIMI 5 FILL (P&L realizzato recente) ────────────────────────
+        recent_fills = []
+        realized_pnl_recent = 0.0
+        try:
+            fills_raw = trade.request(
+                method="GET",
+                uri="/derivatives/api/v3/fills",
+                auth=True
+            ).get("fills", []) or []
+            symbol_fills = [
+                f for f in fills_raw
+                if (f.get("symbol") or "").upper() == symbol.upper()
+            ][:5]  # ultimi 5
+            for f in symbol_fills:
+                fee = float(f.get("fee", 0) or 0)
+                pnl_f = float(f.get("pnl", 0) or 0)
+                realized_pnl_recent += pnl_f
+                recent_fills.append({
+                    "order_id":  f.get("order_id"),
+                    "side":      f.get("side"),
+                    "size":      f.get("size"),
+                    "price":     f.get("price"),
+                    "pnl":       pnl_f,
+                    "fee":       fee,
+                    "timestamp": f.get("fillTime"),
+                })
+        except Exception:
+            pass
+
+        # ── RISPOSTA FINALE ──────────────────────────────────────────────────
+        return jsonify({
+            "status": "ok",
+            "symbol": symbol,
+            "timestamp": get_kraken_servertime(),
+
+            "wallet": {
+                "usdc_available":    usdc_available,
+                "usd_available":     usd_available,
+                "margin_equity":     margin_equity,
+                "available_margin":  available_margin,
+                "portfolio_value":   portfolio_value,
+                "collateral":        collateral,
+                "initial_margin":    initial_margin,
+                "maintenance_margin": maint_margin,
+                "margin_usage_pct":  margin_usage_pct,
+                "pnl_unrealized":    pnl_unrealized,
+                "funding_unrealized": funding_unrealized,
+            },
+
+            "position": {
+                "open":         pos is not None,
+                "side":         pos["side"]  if pos else None,
+                "size":         pos["size"]  if pos else None,
+                "entry_price":  pos["price"] if pos else None,
+                "pnl":          position_pnl,
+                "pnl_pct":      position_pnl_pct,
+            },
+
+            "btc": btc_data,
+
+            "open_orders": {
+                "count":  len(open_orders),
+                "orders": open_orders,
+            },
+
+            "recent_activity": {
+                "fills_count":          len(recent_fills),
+                "realized_pnl_recent":  round(realized_pnl_recent, 6),
+                "fills":                recent_fills,
+            },
+        })
+
+    except Exception as e:
+        return jsonify({"status": "error", "error": str(e)}), 500
+
 # ── MAIN ─────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
