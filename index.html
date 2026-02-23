@@ -210,6 +210,224 @@
 
   .equity-svg { width: 100%; }
 
+  /* ═══════════════════════════════════════════
+     ACCOUNT SUMMARY SECTION
+  ═══════════════════════════════════════════ */
+
+  .account-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  @media (max-width: 1200px) { .account-summary-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 600px)  { .account-summary-grid { grid-template-columns: 1fr; } }
+
+  .acct-panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .acct-panel:hover { border-color: rgba(255,255,255,0.1); }
+
+  .acct-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,0.015);
+  }
+  .acct-panel-title {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .acct-panel-title .icon { font-size: 11px; }
+  .acct-refresh-ts {
+    font-size: 8px;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+  }
+
+  .acct-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+
+  /* Wallet rows */
+  .acct-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(30,45,61,0.5);
+  }
+  .acct-row:last-child { border-bottom: none; }
+  .acct-row-label {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .acct-row-val {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .acct-row-val.green  { color: var(--accent); }
+  .acct-row-val.red    { color: var(--danger); }
+  .acct-row-val.blue   { color: var(--blue); }
+  .acct-row-val.yellow { color: var(--warn); }
+  .acct-row-val.muted  { color: var(--muted); }
+
+  /* Margin bar */
+  .margin-bar-wrap { margin-top: 4px; }
+  .margin-bar-label { display: flex; justify-content: space-between; font-size: 8px; color: var(--muted); margin-bottom: 4px; letter-spacing: 1px; text-transform: uppercase; }
+  .margin-bar-bg { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .margin-bar-fill { height: 100%; border-radius: 2px; transition: width 0.6s ease, background 0.3s; }
+
+  /* Position badge */
+  .position-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 2px;
+    margin-bottom: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+  .position-status.flat {
+    background: rgba(74,96,112,0.12);
+    border: 1px solid rgba(74,96,112,0.3);
+    color: var(--muted);
+  }
+  .position-status.long {
+    background: rgba(0,255,136,0.07);
+    border: 1px solid rgba(0,255,136,0.25);
+    color: var(--accent);
+  }
+  .position-status.short {
+    background: rgba(255,68,102,0.07);
+    border: 1px solid rgba(255,68,102,0.25);
+    color: var(--danger);
+  }
+  .position-dot {
+    width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+  }
+  .position-status.flat  .position-dot { background: var(--muted); }
+  .position-status.long  .position-dot { background: var(--accent); box-shadow: 0 0 5px var(--accent); animation: pulse 2s infinite; }
+  .position-status.short .position-dot { background: var(--danger); box-shadow: 0 0 5px var(--danger); animation: pulse 2s infinite; }
+
+  /* Fills table */
+  .fills-table { width: 100%; border-collapse: collapse; font-size: 10px; }
+  .fills-table th {
+    text-align: left;
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .fills-table td {
+    padding: 7px 8px;
+    border-bottom: 1px solid rgba(30,45,61,0.3);
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+  .fills-table tr:last-child td { border-bottom: none; }
+  .fill-buy  { color: var(--accent); font-weight: 700; }
+  .fill-sell { color: var(--danger); font-weight: 700; }
+
+  /* BTC Price card big number */
+  .btc-mark-big {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--accent);
+    letter-spacing: -1px;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .btc-price-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(30,45,61,0.4);
+  }
+  .btc-price-row:last-child { border-bottom: none; }
+  .btc-price-row-label { font-size: 9px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+  .btc-price-row-val   { font-size: 11px; font-weight: 700; color: var(--text); }
+
+  /* Summary section divider */
+  .section-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 6px 0 14px;
+  }
+  .section-divider-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .section-divider-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+  .section-divider-ts {
+    font-size: 8px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    white-space: nowrap;
+  }
+
+  /* Unrealized PnL indicator in position card */
+  .pnl-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-radius: 2px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .pnl-indicator.pos { background: rgba(0,255,136,0.07); border: 1px solid rgba(0,255,136,0.2); color: var(--accent); }
+  .pnl-indicator.neg { background: rgba(255,68,102,0.07); border: 1px solid rgba(255,68,102,0.2); color: var(--danger); }
+  .pnl-indicator.zero { background: rgba(74,96,112,0.1); border: 1px solid rgba(74,96,112,0.2); color: var(--muted); }
+
+  /* Loading skeleton */
+  .acct-skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px 16px;
+  }
+  .skeleton-line {
+    height: 14px;
+    background: var(--border);
+    border-radius: 2px;
+    animation: shimmer 1.5s infinite linear;
+    background: linear-gradient(90deg, var(--border) 25%, rgba(30,45,61,0.8) 50%, var(--border) 75%);
+    background-size: 200% 100%;
+  }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
   footer { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
   .footer-text { font-size: 9px; color: var(--muted); letter-spacing: 1px; }
   .footer-text span { color: var(--accent); }
@@ -312,6 +530,81 @@
     </div>
   </div>
 
+  <!-- ═══════════════════════════════════════════
+       ACCOUNT SUMMARY SECTION
+  ═══════════════════════════════════════════ -->
+  <div class="section-divider">
+    <div class="section-divider-label">Account Summary</div>
+    <div class="section-divider-line"></div>
+    <div class="section-divider-ts" id="acctTs">Loading...</div>
+  </div>
+
+  <div class="account-summary-grid">
+
+    <!-- WALLET -->
+    <div class="acct-panel">
+      <div class="acct-panel-header">
+        <div class="acct-panel-title"><span class="icon">💰</span>Wallet</div>
+        <div class="panel-tag tag-blue" id="acctWalletTag">—</div>
+      </div>
+      <div class="acct-body" id="acctWalletBody">
+        <div class="acct-skeleton">
+          <div class="skeleton-line" style="width:100%"></div>
+          <div class="skeleton-line" style="width:80%"></div>
+          <div class="skeleton-line" style="width:60%"></div>
+          <div class="skeleton-line" style="width:90%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- POSITION -->
+    <div class="acct-panel">
+      <div class="acct-panel-header">
+        <div class="acct-panel-title"><span class="icon">📍</span>Position</div>
+        <div class="panel-tag" id="acctPositionTag" style="background:rgba(74,96,112,0.15);color:var(--muted);border:1px solid rgba(74,96,112,0.3)">FLAT</div>
+      </div>
+      <div class="acct-body" id="acctPositionBody">
+        <div class="acct-skeleton">
+          <div class="skeleton-line" style="width:100%"></div>
+          <div class="skeleton-line" style="width:70%"></div>
+          <div class="skeleton-line" style="width:85%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BTC PRICE -->
+    <div class="acct-panel">
+      <div class="acct-panel-header">
+        <div class="acct-panel-title"><span class="icon">₿</span>BTC Live</div>
+        <div class="panel-tag tag-green" id="acctBtcTag">—</div>
+      </div>
+      <div class="acct-body" id="acctBtcBody">
+        <div class="acct-skeleton">
+          <div class="skeleton-line" style="width:100%"></div>
+          <div class="skeleton-line" style="width:75%"></div>
+          <div class="skeleton-line" style="width:60%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RECENT FILLS -->
+    <div class="acct-panel">
+      <div class="acct-panel-header">
+        <div class="acct-panel-title"><span class="icon">🕐</span>Recent Fills</div>
+        <div class="panel-tag tag-yellow" id="acctFillsTag">—</div>
+      </div>
+      <div id="acctFillsBody" style="padding:0;">
+        <div class="acct-skeleton">
+          <div class="skeleton-line" style="width:100%;margin:14px 16px 0;width:calc(100% - 32px)"></div>
+          <div class="skeleton-line" style="width:90%;margin:0 16px;width:calc(90% - 32px)"></div>
+          <div class="skeleton-line" style="width:80%;margin:0 16px 14px;width:calc(80% - 32px)"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <!-- END ACCOUNT SUMMARY -->
+
   <div class="main-grid">
 
     <div class="panel">
@@ -404,10 +697,253 @@ const CONFIG = {
   BTC_REFRESH: 10000,
   LIMIT: 500,
   REFRESH_INTERVAL: 60000,
+  ACCT_REFRESH: 30000,
   CAPITAL: 20
 };
 
 const SAMPLE_DATA = [];
+
+// ── ACCOUNT SUMMARY ──────────────────────────────────────────────────────────
+
+async function fetchAccountSummary() {
+  try {
+    const res = await fetch(`${CONFIG.RAILWAY_URL}/account-summary`, {
+      signal: AbortSignal.timeout(8000)
+    });
+    if (!res.ok) throw new Error('account-summary fetch failed: ' + res.status);
+    return await res.json();
+  } catch(e) {
+    console.warn('Account summary fetch error:', e);
+    return null;
+  }
+}
+
+function fmtUsd(v, decimals = 2) {
+  if (v === null || v === undefined) return '—';
+  const n = parseFloat(v);
+  return '$' + n.toFixed(decimals).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+function fmtPnlAcct(v, decimals = 4) {
+  if (v === null || v === undefined) return '—';
+  const n = parseFloat(v);
+  return (n >= 0 ? '+' : '') + '$' + Math.abs(n).toFixed(decimals);
+}
+
+function pnlClass(v) {
+  if (v === null || v === undefined) return 'muted';
+  return parseFloat(v) > 0 ? 'green' : parseFloat(v) < 0 ? 'red' : 'muted';
+}
+
+function renderAccountSummary(data) {
+  if (!data || data.status !== 'ok') {
+    ['acctWalletBody', 'acctPositionBody', 'acctBtcBody'].forEach(id => {
+      document.getElementById(id).innerHTML =
+        '<div style="padding:16px;color:var(--danger);font-size:10px;letter-spacing:1px">⚠️ FETCH ERROR</div>';
+    });
+    return;
+  }
+
+  // Timestamp
+  const ts = data.timestamp ? new Date(data.timestamp).toLocaleTimeString('it-IT') : '—';
+  document.getElementById('acctTs').textContent = 'Updated: ' + ts;
+
+  // ── WALLET ────────────────────────────────────────────────────────────────
+  const w = data.wallet || {};
+  const equity = parseFloat(w.margin_equity || 0);
+  const usdc   = parseFloat(w.usdc_available || 0);
+  const marginUsage = parseFloat(w.margin_usage_pct || 0);
+  const unrealPnl = parseFloat(w.pnl_unrealized || 0);
+  const funding   = parseFloat(w.funding_unrealized || 0);
+
+  // Tag: total equity
+  const walletTag = document.getElementById('acctWalletTag');
+  walletTag.textContent = fmtUsd(equity);
+  walletTag.className = 'panel-tag ' + (equity >= CONFIG.CAPITAL ? 'tag-green' : 'tag-red');
+
+  // Margin bar color
+  let marginBarColor = 'var(--accent)';
+  if (marginUsage > 70) marginBarColor = 'var(--danger)';
+  else if (marginUsage > 40) marginBarColor = 'var(--warn)';
+
+  document.getElementById('acctWalletBody').innerHTML = `
+    <div class="acct-row">
+      <span class="acct-row-label">USDC Available</span>
+      <span class="acct-row-val blue">${fmtUsd(usdc)}</span>
+    </div>
+    <div class="acct-row">
+      <span class="acct-row-label">Margin Equity</span>
+      <span class="acct-row-val ${equity >= CONFIG.CAPITAL ? 'green' : 'red'}">${fmtUsd(equity)}</span>
+    </div>
+    <div class="acct-row">
+      <span class="acct-row-label">Free Margin</span>
+      <span class="acct-row-val">${fmtUsd(w.available_margin)}</span>
+    </div>
+    <div class="acct-row">
+      <span class="acct-row-label">Portfolio</span>
+      <span class="acct-row-val">${fmtUsd(w.portfolio_value)}</span>
+    </div>
+    <div class="acct-row">
+      <span class="acct-row-label">P&amp;L Unrealized</span>
+      <span class="acct-row-val ${pnlClass(unrealPnl)}">${fmtPnlAcct(unrealPnl)}</span>
+    </div>
+    <div class="acct-row">
+      <span class="acct-row-label">Funding Accum.</span>
+      <span class="acct-row-val ${pnlClass(funding)}">${fmtPnlAcct(funding, 6)}</span>
+    </div>
+    <div class="margin-bar-wrap">
+      <div class="margin-bar-label">
+        <span>Margin Usage</span>
+        <span style="color:${marginBarColor}">${marginUsage.toFixed(2)}%</span>
+      </div>
+      <div class="margin-bar-bg">
+        <div class="margin-bar-fill" style="width:${Math.min(marginUsage,100)}%;background:${marginBarColor}"></div>
+      </div>
+    </div>
+  `;
+
+  // ── POSITION ──────────────────────────────────────────────────────────────
+  const pos = data.position || {};
+  const posTag = document.getElementById('acctPositionTag');
+
+  if (!pos.open) {
+    posTag.textContent = 'FLAT';
+    posTag.className = 'panel-tag';
+    posTag.style.cssText = 'background:rgba(74,96,112,0.15);color:var(--muted);border:1px solid rgba(74,96,112,0.3)';
+    document.getElementById('acctPositionBody').innerHTML = `
+      <div class="position-status flat">
+        <div class="position-dot"></div>
+        FLAT — No open position
+      </div>
+    `;
+  } else {
+    const side = pos.side || 'unknown';
+    const pnl  = parseFloat(pos.pnl || 0);
+    const pnlPct = parseFloat(pos.pnl_pct || 0);
+    posTag.textContent = side.toUpperCase();
+    if (side === 'long') {
+      posTag.className = 'panel-tag tag-green';
+    } else {
+      posTag.className = 'panel-tag tag-red';
+    }
+    posTag.style.cssText = '';
+
+    const pnlIndicatorClass = pnl > 0 ? 'pos' : pnl < 0 ? 'neg' : 'zero';
+
+    document.getElementById('acctPositionBody').innerHTML = `
+      <div class="position-status ${side}">
+        <div class="position-dot"></div>
+        ${side.toUpperCase()} — ${pos.size} BTC
+      </div>
+      <div class="acct-row">
+        <span class="acct-row-label">Entry Price</span>
+        <span class="acct-row-val">${fmtUsd(pos.entry_price, 2)}</span>
+      </div>
+      <div class="acct-row">
+        <span class="acct-row-label">Size</span>
+        <span class="acct-row-val blue">${pos.size} BTC</span>
+      </div>
+      <div class="pnl-indicator ${pnlIndicatorClass}" style="margin-top:4px;">
+        <span style="font-size:9px;letter-spacing:1px;text-transform:uppercase;opacity:0.7">Unrealized P&amp;L</span>
+        <span>${fmtPnlAcct(pnl)} (${pnlPct > 0 ? '+' : ''}${pnlPct}%)</span>
+      </div>
+    `;
+  }
+
+  // ── BTC PRICE ─────────────────────────────────────────────────────────────
+  const btc = data.btc || {};
+  const mark = parseFloat(btc.mark_price || 0);
+  const last = parseFloat(btc.last_price || 0);
+  const fundingRate = parseFloat(btc.funding_rate_pct || 0);
+  const oi = btc.open_interest;
+
+  const btcTag = document.getElementById('acctBtcTag');
+  btcTag.textContent = mark > 0 ? fmtUsd(mark, 0) : '—';
+
+  document.getElementById('acctBtcBody').innerHTML = `
+    <div class="btc-mark-big">${mark > 0 ? fmtUsd(mark, 2) : '—'}</div>
+    <div style="font-size:8px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">MARK PRICE</div>
+    <div class="btc-price-row">
+      <span class="btc-price-row-label">Last Price</span>
+      <span class="btc-price-row-val">${fmtUsd(last, 2)}</span>
+    </div>
+    <div class="btc-price-row">
+      <span class="btc-price-row-label">Funding Rate</span>
+      <span class="btc-price-row-val" style="color:${fundingRate > 0 ? 'var(--danger)' : fundingRate < 0 ? 'var(--accent)' : 'var(--muted)'}">
+        ${fundingRate > 0 ? '+' : ''}${fundingRate.toFixed(4)}%
+      </span>
+    </div>
+    <div class="btc-price-row">
+      <span class="btc-price-row-label">Open Interest</span>
+      <span class="btc-price-row-val">${oi != null ? parseFloat(oi).toFixed(2) + ' BTC' : '—'}</span>
+    </div>
+    <div class="btc-price-row">
+      <span class="btc-price-row-label">Vol 24h</span>
+      <span class="btc-price-row-val">${btc.volume_24h != null ? parseFloat(btc.volume_24h).toLocaleString('en-US', {maximumFractionDigits:0}) : '—'}</span>
+    </div>
+  `;
+
+  // ── RECENT FILLS ──────────────────────────────────────────────────────────
+  const activity = data.recent_activity || {};
+  const fills    = activity.fills || [];
+  const realizedPnl = parseFloat(activity.realized_pnl_recent || 0);
+
+  const fillsTag = document.getElementById('acctFillsTag');
+  fillsTag.textContent = fmtPnlAcct(realizedPnl);
+  fillsTag.className = 'panel-tag ' + (realizedPnl >= 0 ? 'tag-green' : 'tag-red');
+
+  if (!fills.length) {
+    document.getElementById('acctFillsBody').innerHTML =
+      '<div style="padding:18px 16px;color:var(--muted);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;">No recent fills</div>';
+    return;
+  }
+
+  const rows = fills.map(f => {
+    const side     = (f.side || '').toLowerCase();
+    const sideClass = side === 'buy' ? 'fill-buy' : 'fill-sell';
+    const sideLabel = side === 'buy' ? '▲ BUY' : '▼ SELL';
+    const fillPnl   = parseFloat(f.pnl || 0);
+    const fee       = parseFloat(f.fee || 0);
+    const ts        = f.timestamp ? new Date(f.timestamp).toLocaleTimeString('it-IT', {hour:'2-digit',minute:'2-digit'}) : '—';
+    return `<tr>
+      <td><span class="${sideClass}">${sideLabel}</span></td>
+      <td style="color:var(--text)">${parseFloat(f.size || 0).toFixed(4)}</td>
+      <td style="color:var(--blue)">${fmtUsd(f.price, 0)}</td>
+      <td class="${fillPnl >= 0 ? 'pnl-pos' : 'pnl-neg'}">${fmtPnlAcct(fillPnl, 4)}</td>
+      <td style="color:var(--muted)">${fee > 0 ? '-$' + fee.toFixed(5) : '—'}</td>
+      <td style="color:var(--muted)">${ts}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('acctFillsBody').innerHTML = `
+    <div style="padding:8px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase">Realized P&amp;L (recent)</span>
+      <span style="font-size:12px;font-weight:700;font-family:'Syne',sans-serif;color:${realizedPnl >= 0 ? 'var(--accent)' : 'var(--danger)'}">${fmtPnlAcct(realizedPnl, 4)}</span>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="fills-table">
+        <thead>
+          <tr>
+            <th>Side</th>
+            <th>Size</th>
+            <th>Price</th>
+            <th>P&amp;L</th>
+            <th>Fee</th>
+            <th>Time</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+async function refreshAccountSummary() {
+  const data = await fetchAccountSummary();
+  if (data) renderAccountSummary(data);
+}
+
+// ── SIGNALS ──────────────────────────────────────────────────────────────────
 
 async function fetchData() {
   try {
@@ -443,17 +979,12 @@ function emaLabel(e) {
   return e.includes('bullish') ? '🟢 BULL' : '🔴 BEAR';
 }
 
-// Render SIZE cell with multiplier context
 function renderSizeCell(d) {
   if (!d.bet_size) return '<span style="color:var(--muted)">—</span>';
-
   const size = parseFloat(d.bet_size);
   const reason = d.size_reason || '';
-
-  // Determine multiplier style from reason
   let multClass = 'base';
   let multLabel = '×1.0';
-
   if (reason.includes('win_streak')) {
     multClass = 'up';
     multLabel = reason.includes('high_conf') ? '×1.5' : '×1.2';
@@ -464,8 +995,6 @@ function renderSizeCell(d) {
     multClass = 'down';
     multLabel = '×0.25';
   }
-
-  // Format reason for display — shorten it
   let reasonDisplay = reason
     .replace('_high_conf', '')
     .replace('_low_conf', '')
@@ -474,7 +1003,6 @@ function renderSizeCell(d) {
     .replace('drawdown_protection', 'drawdown')
     .replace('insufficient_history', 'no hist.')
     .replace('base', '—');
-
   return `<span class="size-val">${size.toFixed(5)}</span>` +
          `<span class="size-mult ${multClass}">${multLabel} ${reasonDisplay}</span>`;
 }
@@ -575,7 +1103,6 @@ function render(data) {
   const lastEntry = data.find(d => d.btc_price_entry);
   const lastFG    = lastEntry ? lastEntry.fear_greed_value : null;
 
-  // KPIs
   document.getElementById('kpiPrice').textContent   = lastEntry ? fmtPrice(lastEntry.btc_price_entry) : '—';
   document.getElementById('kpiTotal').textContent   = data.length;
 
@@ -746,6 +1273,8 @@ function renderEquityCurve(chronoBets, totalPnl) {
   document.getElementById('equityTag').className   = 'panel-tag ' + (totalPnl >= 0 ? 'tag-green' : 'tag-red');
 }
 
+// ── INIT ─────────────────────────────────────────────────────────────────────
+
 async function refresh() {
   try { allData = await fetchData(); renderAll(allData); }
   catch(e) { console.error('Render error:', e); }
@@ -754,11 +1283,17 @@ async function refresh() {
 document.getElementById('filterDir').addEventListener('change',   () => renderTable(filterByPeriod(allData)));
 document.getElementById('filterClass').addEventListener('change', () => renderTable(filterByPeriod(allData)));
 
+// Start everything
 refresh();
 setInterval(refresh, CONFIG.REFRESH_INTERVAL);
+
 fetchLiveBtcPrice();
 setInterval(fetchLiveBtcPrice, CONFIG.BTC_REFRESH);
 
+refreshAccountSummary();
+setInterval(refreshAccountSummary, CONFIG.ACCT_REFRESH);
+
+// Dry-run banner + health check
 fetch(CONFIG.RAILWAY_URL + '/health')
   .then(r => r.json())
   .then(data => {
