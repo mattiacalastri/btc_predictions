@@ -491,7 +491,7 @@
     <div class="kpi purple">
       <div class="kpi-label">Capital ROI</div>
       <div class="kpi-value purple" id="kpiRoi">—</div>
-      <div class="kpi-sub">on $20 USDC</div>
+      <div class="kpi-sub" id="kpiRoiSub">on $20 USDC</div>
     </div>
     <div class="kpi yellow">
       <div class="kpi-label">Win Rate</div>
@@ -690,7 +690,7 @@
 
   <footer>
     <div class="footer-text">ASTRA DIGITAL MARKETING · <span>BOT ENGINE</span> · AUTO REFRESH 60s</div>
-    <div class="config-hint">Table: <code>btc_predictions</code> · Capital: <code>$20 USDC</code> · Refresh <code>60s</code></div>
+    <div class="config-hint">Table: <code>btc_predictions</code> · Capital: <code id="footerCapital">$20 USDC</code> · Refresh <code>60s</code></div>
   </footer>
 
 </div>
@@ -703,6 +703,8 @@ const CONFIG = {
   ACCT_REFRESH: 30000,
   CAPITAL: 20
 };
+
+let liveWalletEquity = null;   // aggiornato da renderAccountSummary()
 
 const SAMPLE_DATA = [];
 
@@ -754,6 +756,7 @@ function renderAccountSummary(data) {
   // ── WALLET ────────────────────────────────────────────────────────────────
   const w = data.wallet || {};
   const equity = parseFloat(w.margin_equity || 0);
+  if (equity > 0) liveWalletEquity = equity;
   const usdc   = parseFloat(w.usdc_available || 0);
   const marginUsage = parseFloat(w.margin_usage_pct || 0);
   const unrealPnl = parseFloat(w.pnl_unrealized || 0);
@@ -1097,8 +1100,9 @@ function render(data) {
   const closed      = data.filter(d => d.correct !== null);
   const correct     = closed.filter(d => d.correct === true);
 
-  const totalPnl = realBets.reduce((s, d) => s + parseFloat(d.pnl_usd || 0), 0);
-  const roiPct   = (totalPnl / CONFIG.CAPITAL) * 100;
+  const totalPnl   = realBets.reduce((s, d) => s + parseFloat(d.pnl_usd || 0), 0);
+  const capitalBase = liveWalletEquity || CONFIG.CAPITAL;
+  const roiPct     = (totalPnl / capitalBase) * 100;
   const avgConf  = data.length ? data.reduce((s, d) => s + parseFloat(d.confidence || 0), 0) / data.length : 0;
   const pnlVals  = realBets.map(d => parseFloat(d.pnl_usd || 0));
   const bestPnl  = pnlVals.length ? Math.max(...pnlVals) : 0;
@@ -1120,6 +1124,8 @@ function render(data) {
   const roiEl = document.getElementById('kpiRoi');
   roiEl.textContent = (roiPct >= 0 ? '+' : '') + roiPct.toFixed(2) + '%';
   roiEl.className   = 'kpi-value ' + (roiPct >= 0 ? 'purple' : 'red');
+  document.getElementById('kpiRoiSub').textContent = 'on ' + fmtUsd(capitalBase) + ' equity';
+  document.getElementById('footerCapital').textContent = fmtUsd(capitalBase) + ' equity';
 
   document.getElementById('kpiWinRate').textContent = closedBets.length ? Math.round(correctBets.length / closedBets.length * 100) + '%' : '—';
   document.getElementById('kpiFG').textContent      = lastFG !== null ? lastFG : '—';
