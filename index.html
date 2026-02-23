@@ -705,6 +705,7 @@ const CONFIG = {
 };
 
 let liveWalletEquity = null;   // aggiornato da renderAccountSummary()
+let lastTotalPnl = 0;          // aggiornato da renderAll(), usato per ricalcolare ROI live
 
 const SAMPLE_DATA = [];
 
@@ -756,7 +757,19 @@ function renderAccountSummary(data) {
   // ── WALLET ────────────────────────────────────────────────────────────────
   const w = data.wallet || {};
   const equity = parseFloat(w.margin_equity || 0);
-  if (equity > 0) liveWalletEquity = equity;
+  if (equity > 0) {
+    liveWalletEquity = equity;
+    const roiPct = (lastTotalPnl / equity) * 100;
+    const roiEl = document.getElementById('kpiRoi');
+    if (roiEl) {
+      roiEl.textContent = (roiPct >= 0 ? '+' : '') + roiPct.toFixed(2) + '%';
+      roiEl.className   = 'kpi-value ' + (roiPct >= 0 ? 'purple' : 'red');
+    }
+    const roiSubEl = document.getElementById('kpiRoiSub');
+    if (roiSubEl) roiSubEl.textContent = 'on ' + fmtUsd(equity) + ' equity';
+    const footerCapEl = document.getElementById('footerCapital');
+    if (footerCapEl) footerCapEl.textContent = fmtUsd(equity) + ' equity';
+  }
   const usdc   = parseFloat(w.usdc_available || 0);
   const marginUsage = parseFloat(w.margin_usage_pct || 0);
   const unrealPnl = parseFloat(w.pnl_unrealized || 0);
@@ -1101,6 +1114,7 @@ function render(data) {
   const correct     = closed.filter(d => d.correct === true);
 
   const totalPnl   = realBets.reduce((s, d) => s + parseFloat(d.pnl_usd || 0), 0);
+  lastTotalPnl = totalPnl;
   const capitalBase = liveWalletEquity || CONFIG.CAPITAL;
   const roiPct     = (totalPnl / capitalBase) * 100;
   const avgConf  = data.length ? data.reduce((s, d) => s + parseFloat(d.confidence || 0), 0) / data.length : 0;
