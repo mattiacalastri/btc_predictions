@@ -601,24 +601,48 @@ def bet_sizing():
     try:
         supabase_url = os.environ.get("SUPABASE_URL", "")
         supabase_key = os.environ.get("SUPABASE_KEY", "")
-
-        url = f"{supabase_url}/rest/v1/btc_predictions?select=correct,pnl_usd&bet_taken=eq.true&correct=not.is.null&order=id.desc&limit=10"
-        res = requests.get(url, headers={
+        headers = {
             "apikey": supabase_key,
             "Authorization": f"Bearer {supabase_key}"
-        }, timeout=5)
+        }
 
-        trades = res.json()
-        if not trades or len(trades) < 3:
-            return jsonify({"size": base_size, "reason": "insufficient_history", "multiplier": 1.0})
+        # Ultimi 20 trade per expectancy e avg_confidence
+        url_20 = (
+            f"{supabase_url}/rest/v1/btc_predictions"
+            f"?select=correct,pnl_usd,confidence"
+            f"&bet_taken=eq.true&correct=not.is.null&pnl_usd=not.is.null"
+            f"&order=id.desc&limit=20"
+        )
+        trades_20 = requests.get(url_20, headers=headers, timeout=5).json()
 
-        results = [t.get("correct") for t in trades if t.get("correct") is not None]
-        pnls = [float(t.get("pnl_usd") or 0) for t in trades]
+        # Ultimi 10 per streak e drawdown
+        url_10 = (
+            f"{supabase_url}/rest/v1/btc_predictions"
+            f"?select=correct,pnl_usd,confidence"
+            f"&bet_taken=eq.true&correct=not.is.null&pnl_usd=not.is.null"
+            f"&order=id.desc&limit=10"
+        )
+        trades_10 = requests.get(url_10, headers=headers, timeout=5).json()
 
-        # streak
+        if not trades_10 or len(trades_10) < 3:
+            return jsonify({
+                "size": base_size,
+                "reason": "insufficient_history",
+                "multiplier": 1.0,
+                "streak": 0,
+                "streak_type": "none",
+                "recent_pnl_5": 0,
+                "confidence_used": confidence,
+            })
+
+        # ── METRICHE ─────────────────────────────────────────────────────────
+        results_10 = [t.get("correct") for t in trades_10 if t.get("correct") is not None]
+        pnls_10    = [float(t.get("pnl_usd") or 0) for t in trades_10]
+
+        # Streak corrente
         streak = 0
         streak_type = None
-        for r in results:
+        for r in results_10:
             if streak_type is None:
                 streak_type = r
                 streak = 1
@@ -627,28 +651,75 @@ def bet_sizing():
             else:
                 break
 
-        recent_pnl = sum(pnls[:5])
+        # Max drawdown rolling sugli ultimi 10
+        peak = 0
+        cumulative = 0
+        max_drawdown = 0
+        for p in reversed(pnls_10):
+            cumulative += p
+            if cumulative > peak:
+                peak = cumulative
+            dd = peak - cumulative
+            if dd > max_drawdown:
+                max_drawdown = dd
 
-        # logica moltiplicatore
+        # Avg confidence ultimi 10
+        confidences = [float(t.get("confidence") or 0) for t in trades_10 if t.get("confidence")]
+        avg_confidence_10 = sum(confidences) / len(confidences) if confidences else 0
+
+        # Expectancy ultimi 20
+        expectancy_20 = 0.0
+        if trades_20 and len(trades_20) >= 5:
+            wins_20   = [float(t.get("pnl_usd") or 0) for t in trades_20 if t.get("correct") == True]
+            losses_20 = [abs(float(t.get("pnl_usd") or 0)) for t in trades_20 if t.get("correct") == False]
+            total     = len(trades_20)
+            win_rate  = len(wins_20) / total
+            loss_rate = len(losses_20) / total
+            avg_win   = sum(wins_20) / len(wins_20) if wins_20 else 0
+            avg_loss  = sum(losses_20) / len(losses_20) if losses_20 else 0
+            expectancy_20 = (win_rate * avg_win) - (loss_rate * avg_loss)
+
+        recent_pnl_5 = sum(pnls_10[:5])
+
+        # ── LOGICA MOLTIPLICATORE ─────────────────────────────────────────────
         multiplier = 1.0
         reason = "base"
 
-        if recent_pnl < -0.15:
+        # RIDUCI — priorità alta, condizioni di pericolo
+        if max_drawdown > 0.15:
             multiplier = 0.25
+            reason = "drawdown_protection_severe"
+        elif max_drawdown > 0.05:
+            multiplier = 0.5
             reason = "drawdown_protection"
-        elif streak_type == False and streak >= 2:
+        elif streak_type == False and streak >= 3:
             multiplier = 0.5
             reason = f"loss_streak_{streak}"
-        elif streak_type == True and streak >= 3:
+        elif streak_type == False and streak >= 2:
+            multiplier = 0.75
+            reason = f"loss_streak_{streak}"
+
+        # AUMENTA — solo se tutte e tre le condizioni di qualità sono soddisfatte
+        elif (
+            streak_type == True
+            and streak >= 3
+            and avg_confidence_10 >= 0.62
+            and expectancy_20 > 0
+        ):
             if confidence >= 0.70:
                 multiplier = 1.5
-                reason = f"win_streak_{streak}_high_conf"
+                reason = f"quality_confirmed_high_conf_streak_{streak}"
             else:
-                multiplier = 1.2
-                reason = f"win_streak_{streak}_low_conf"
+                multiplier = 1.25
+                reason = f"quality_confirmed_streak_{streak}"
+
+        # NEUTRO — win streak ma qualità non ancora confermata
+        elif streak_type == True and streak >= 3:
+            multiplier = 1.0
+            reason = f"win_streak_{streak}_quality_not_confirmed"
 
         final_size = round(base_size * multiplier, 6)
-        final_size = max(0.001, min(0.002, final_size))
+        final_size = max(0.001, min(0.003, final_size))
 
         return jsonify({
             "size": final_size,
@@ -656,12 +727,20 @@ def bet_sizing():
             "reason": reason,
             "streak": streak,
             "streak_type": "win" if streak_type else "loss",
-            "recent_pnl_5": round(recent_pnl, 6),
+            "avg_confidence_10": round(avg_confidence_10, 4),
+            "expectancy_20": round(expectancy_20, 6),
+            "max_drawdown_rolling": round(max_drawdown, 6),
+            "recent_pnl_5": round(recent_pnl_5, 6),
             "confidence_used": confidence,
         })
 
     except Exception as e:
-        return jsonify({"size": base_size, "reason": "error", "error": str(e)})
+        return jsonify({
+            "size": base_size,
+            "reason": "error",
+            "error": str(e),
+            "multiplier": 1.0,
+        })
 
 # ── DASHBOARD ────────────────────────────────────────────────────────────────
 
