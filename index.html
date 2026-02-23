@@ -1166,16 +1166,21 @@ function renderTable(data) {
       : '<span class="badge badge-nobet">NO BET</span>';
     const isDry = (d.entry_order_id || '').startsWith('DRY_');
     let resultBadge;
+    const isBet = d.classification === 'BET' && d.bet_taken;
     if (d.correct === true) {
       resultBadge = isDry
         ? '<span class="badge" style="background:rgba(0,255,136,0.06);color:rgba(0,255,136,0.6);border:1px solid rgba(0,255,136,0.2)">✓ SIM WIN</span>'
-        : '<span class="badge badge-correct">✓ WIN</span>';
+        : isBet
+          ? '<span class="badge badge-correct">✓ WIN</span>'
+          : '<span class="badge badge-correct" style="opacity:0.75">✓ RIGHT</span>';
     } else if (d.correct === false) {
       resultBadge = isDry
         ? '<span class="badge" style="background:rgba(255,68,102,0.06);color:rgba(255,68,102,0.6);border:1px solid rgba(255,68,102,0.2)">✗ SIM LOSS</span>'
-        : '<span class="badge badge-wrong">✗ LOSS</span>';
+        : isBet
+          ? '<span class="badge badge-wrong">✗ LOSS</span>'
+          : '<span class="badge badge-wrong" style="opacity:0.75">✗ WRONG</span>';
     } else {
-      resultBadge = d.bet_taken && d.classification === 'BET'
+      resultBadge = isBet
         ? '<span style="color:var(--warn);font-size:9px;letter-spacing:1px">⏳ OPEN</span>'
         : '<span style="color:var(--muted);font-size:10px;">—</span>';
     }
