@@ -719,8 +719,8 @@ async function fetchAccountSummary() {
 }
 
 function fmtUsd(v, decimals = 2) {
-  if (v === null || v === undefined) return '—';
-  const n = parseFloat(v);
+  const n = Number(v);
+  if (!isFinite(n)) return '—';
   return '$' + n.toFixed(decimals).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
