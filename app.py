@@ -302,9 +302,21 @@ def place_bet():
         )
 
         ok = result.get("result") == "success"
-        order_id = result.get("sendStatus", {}).get("order_id")
+        send_status = result.get("sendStatus", {}) or {}
+        send_status_type = send_status.get("status", "")
+        order_id = send_status.get("order_id")
 
-        confirmed_pos = wait_for_position(symbol, want_open=True, retries=15, sleep_s=0.35)
+        # Kraken può restituire result="success" ma sendStatus.status="invalidSize"
+        # (o altri errori) quando l'ordine non è effettivamente piazzato.
+        FAILED_SEND_STATUSES = {
+            "invalidSize", "invalidOrderType", "invalidSide",
+            "unknownError", "insufficientAvailableFunds",
+            "marketSuspended", "tooManyRequests",
+        }
+        if send_status_type in FAILED_SEND_STATUSES:
+            ok = False
+
+        confirmed_pos = wait_for_position(symbol, want_open=True, retries=15, sleep_s=0.35) if ok else None
         position_confirmed = confirmed_pos is not None
 
         return jsonify({
@@ -315,6 +327,7 @@ def place_bet():
             "side": order_side,
             "size": size,
             "order_id": order_id,
+            "send_status_type": send_status_type,
             "position_confirmed": position_confirmed,
             "position": confirmed_pos,
             "previous_position_existed": pos is not None,
