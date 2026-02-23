@@ -758,6 +758,15 @@ refresh();
 setInterval(refresh, CONFIG.REFRESH_INTERVAL);
 fetchLiveBtcPrice();
 setInterval(fetchLiveBtcPrice, CONFIG.BTC_REFRESH);
+
+fetch(CONFIG.RAILWAY_URL + '/health')
+  .then(r => r.json())
+  .then(data => {
+    if (data.dry_run) {
+      document.getElementById('dry-run-banner').style.display = 'block';
+    }
+  })
+  .catch(() => {});
 </script>
 </body>
 </html>
