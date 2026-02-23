@@ -79,6 +79,72 @@ def wait_for_position(symbol: str, want_open: bool, retries: int = 10, sleep_s: 
     return last
 
 
+def _get_mark_price(symbol: str) -> float:
+    """Ritorna il mark price corrente da Kraken Futures. 0.0 se fallisce."""
+    try:
+        trade = get_trade_client()
+        result = trade.request(method="GET", uri="/derivatives/api/v3/tickers", auth=False)
+        tickers = result.get("tickers", []) or []
+        ticker = next((t for t in tickers if (t.get("symbol") or "").upper() == symbol.upper()), None)
+        return float(ticker.get("markPrice") or 0) if ticker else 0.0
+    except Exception:
+        return 0.0
+
+
+def _close_prev_bet_on_reverse(old_side: str, exit_price: float, closed_size: float):
+    """
+    Quando viene aperta una posizione opposta (reverse bet), aggiorna in Supabase
+    il bet precedente che è stato chiuso automaticamente da Kraken.
+    """
+    try:
+        supabase_url = os.environ.get("SUPABASE_URL", "")
+        supabase_key = os.environ.get("SUPABASE_KEY", "")
+        if not supabase_url or not supabase_key or exit_price <= 0:
+            return
+
+        old_direction = "UP" if old_side == "long" else "DOWN"
+        headers = {"apikey": supabase_key, "Authorization": f"Bearer {supabase_key}"}
+
+        # Trova il bet aperto più recente nella direzione opposta
+        query = (
+            f"{supabase_url}/rest/v1/btc_predictions"
+            f"?bet_taken=eq.true&correct=is.null&direction=eq.{old_direction}"
+            f"&order=id.desc&limit=1&select=id,entry_fill_price,btc_price_entry,bet_size"
+        )
+        resp = requests.get(query, headers=headers, timeout=5)
+        rows = resp.json() if resp.ok else []
+        if not rows:
+            return
+
+        row = rows[0]
+        bet_id = row["id"]
+        entry_price = float(row.get("entry_fill_price") or row.get("btc_price_entry") or exit_price)
+        bet_size = float(row.get("bet_size") or closed_size or 0.0005)
+
+        if old_direction == "UP":
+            pnl_gross = (exit_price - entry_price) * bet_size
+            correct = exit_price >= entry_price
+        else:
+            pnl_gross = (entry_price - exit_price) * bet_size
+            correct = exit_price <= entry_price
+
+        fee = bet_size * exit_price * 0.00005
+        pnl_net = round(pnl_gross - fee, 6)
+
+        patch_url = f"{supabase_url}/rest/v1/btc_predictions?id=eq.{bet_id}"
+        patch_headers = {**headers, "Content-Type": "application/json", "Prefer": "return=minimal"}
+        requests.patch(patch_url, json={
+            "btc_price_exit":     exit_price,
+            "exit_fill_price":    exit_price,
+            "correct":            correct,
+            "pnl_usd":            pnl_net,
+            "close_reason":       "closed_by_reverse_bet",
+            "has_real_exit_fill": False,
+        }, headers=patch_headers, timeout=5)
+    except Exception:
+        pass  # non bloccare il flusso principale
+
+
 # ── HEALTH ───────────────────────────────────────────────────────────────────
 
 @app.route("/health", methods=["GET"])
@@ -212,7 +278,7 @@ def place_bet():
 
         trade = get_trade_client()
 
-        # se opposta => chiudi prima e attendi flat
+        # se opposta => chiudi prima e attendi flat, poi aggiorna Supabase
         if pos and pos["side"] != desired_side:
             close_side = "sell" if pos["side"] == "long" else "buy"
             trade.create_order(
@@ -223,6 +289,8 @@ def place_bet():
                 reduceOnly=True,
             )
             wait_for_position(symbol, want_open=False, retries=15, sleep_s=0.35)
+            exit_price_at_close = _get_mark_price(symbol) or float(pos.get("price") or 0)
+            _close_prev_bet_on_reverse(pos["side"], exit_price_at_close, pos["size"])
 
         # apri nuova posizione
         order_side = "buy" if direction == "UP" else "sell"
