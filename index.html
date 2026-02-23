@@ -531,6 +531,89 @@
   </div>
 
   <!-- ═══════════════════════════════════════════
+       CUMULATIVE EQUITY CURVE
+  ═══════════════════════════════════════════ -->
+  <div class="panel" style="margin-bottom:14px;">
+    <div class="panel-header">
+      <div class="panel-title">Cumulative Equity Curve (Real Bets)</div>
+      <div class="panel-tag tag-green" id="equityTag">LOADING</div>
+    </div>
+    <div style="padding:16px 18px 10px;">
+      <svg id="equitySvg" class="equity-svg" height="110" viewBox="0 0 1000 110" preserveAspectRatio="none"></svg>
+    </div>
+  </div>
+
+  <div class="main-grid">
+
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title" id="signalLogTitle">Signal Log</div>
+        <div class="filters-row">
+          <button class="time-pill active" data-period="ALL"   onclick="setTimePeriod(this)">ALL</button>
+          <button class="time-pill"        data-period="TODAY" onclick="setTimePeriod(this)">TODAY</button>
+          <button class="time-pill"        data-period="24H"   onclick="setTimePeriod(this)">24H</button>
+          <button class="time-pill"        data-period="7D"    onclick="setTimePeriod(this)">7D</button>
+          <select id="filterDir"   class="filter-sel"><option value="ALL">ALL DIR</option><option value="UP">UP</option><option value="DOWN">DOWN</option></select>
+          <select id="filterClass" class="filter-sel"><option value="ALL">ALL</option><option value="BET">BETS</option><option value="NO_BET">NO-BET</option></select>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>DATE/TIME</th>
+              <th>DIR</th>
+              <th>CONF</th>
+              <th>ENTRY $</th>
+              <th>EXIT $</th>
+              <th>RSI</th>
+              <th>EMA</th>
+              <th>SCORE</th>
+              <th>SIZE</th>
+              <th>TYPE</th>
+              <th>RESULT</th>
+              <th>PnL $</th>
+            </tr>
+          </thead>
+          <tbody id="signalTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px;">
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">PnL per Trade</div>
+          <div class="panel-tag tag-green" id="totalPnlTag">TOTAL: —</div>
+        </div>
+        <div class="chart-area">
+          <div class="pnl-chart" id="pnlChart"></div>
+          <div class="bar-labels"><span id="chartStart">—</span><span>PnL USD</span><span id="chartEnd">—</span></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Signal Quality</div>
+          <div class="panel-tag tag-blue">LIVE</div>
+        </div>
+        <div class="signal-grid" id="signalQuality"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Confidence Distribution</div>
+          <div class="panel-tag tag-yellow">HISTOGRAM</div>
+        </div>
+        <div class="conf-bars" id="confDist"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
        ACCOUNT SUMMARY SECTION
   ═══════════════════════════════════════════ -->
   <div class="section-divider">
@@ -604,86 +687,6 @@
 
   </div>
   <!-- END ACCOUNT SUMMARY -->
-
-  <div class="main-grid">
-
-    <div class="panel">
-      <div class="panel-header">
-        <div class="panel-title" id="signalLogTitle">Signal Log</div>
-        <div class="filters-row">
-          <button class="time-pill active" data-period="ALL"   onclick="setTimePeriod(this)">ALL</button>
-          <button class="time-pill"        data-period="TODAY" onclick="setTimePeriod(this)">TODAY</button>
-          <button class="time-pill"        data-period="24H"   onclick="setTimePeriod(this)">24H</button>
-          <button class="time-pill"        data-period="7D"    onclick="setTimePeriod(this)">7D</button>
-          <select id="filterDir"   class="filter-sel"><option value="ALL">ALL DIR</option><option value="UP">UP</option><option value="DOWN">DOWN</option></select>
-          <select id="filterClass" class="filter-sel"><option value="ALL">ALL</option><option value="BET">BETS</option><option value="NO_BET">NO-BET</option></select>
-        </div>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>DATE/TIME</th>
-              <th>DIR</th>
-              <th>CONF</th>
-              <th>ENTRY $</th>
-              <th>EXIT $</th>
-              <th>RSI</th>
-              <th>EMA</th>
-              <th>SCORE</th>
-              <th>SIZE</th>
-              <th>TYPE</th>
-              <th>RESULT</th>
-              <th>PnL $</th>
-            </tr>
-          </thead>
-          <tbody id="signalTable"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <div style="display:flex;flex-direction:column;gap:14px;">
-
-      <div class="panel">
-        <div class="panel-header">
-          <div class="panel-title">PnL per Trade</div>
-          <div class="panel-tag tag-green" id="totalPnlTag">TOTAL: —</div>
-        </div>
-        <div class="chart-area">
-          <div class="pnl-chart" id="pnlChart"></div>
-          <div class="bar-labels"><span id="chartStart">—</span><span>PnL USD</span><span id="chartEnd">—</span></div>
-        </div>
-      </div>
-
-      <div class="panel">
-        <div class="panel-header">
-          <div class="panel-title">Signal Quality</div>
-          <div class="panel-tag tag-blue">LIVE</div>
-        </div>
-        <div class="signal-grid" id="signalQuality"></div>
-      </div>
-
-      <div class="panel">
-        <div class="panel-header">
-          <div class="panel-title">Confidence Distribution</div>
-          <div class="panel-tag tag-yellow">HISTOGRAM</div>
-        </div>
-        <div class="conf-bars" id="confDist"></div>
-      </div>
-
-    </div>
-  </div>
-
-  <div class="panel" style="margin-bottom:14px;">
-    <div class="panel-header">
-      <div class="panel-title">Cumulative Equity Curve (Real Bets)</div>
-      <div class="panel-tag tag-green" id="equityTag">LOADING</div>
-    </div>
-    <div style="padding:16px 18px 10px;">
-      <svg id="equitySvg" class="equity-svg" height="110" viewBox="0 0 1000 110" preserveAspectRatio="none"></svg>
-    </div>
-  </div>
 
   <footer>
     <div class="footer-text">ASTRA DIGITAL MARKETING · <span>BOT ENGINE</span> · AUTO REFRESH 60s</div>
