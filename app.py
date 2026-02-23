@@ -10,7 +10,7 @@ API_KEY = os.environ.get("KRAKEN_FUTURES_API_KEY", "")
 API_SECRET = os.environ.get("KRAKEN_FUTURES_API_SECRET", "")
 DEFAULT_SYMBOL = os.environ.get("KRAKEN_DEFAULT_SYMBOL", "PF_XBTUSD")
 KRAKEN_BASE = "https://futures.kraken.com"
-
+DRY_RUN = os.environ.get("DRY_RUN", "false").lower() == "true"
 
 # ── SDK clients ──────────────────────────────────────────────────────────────
 
@@ -232,6 +232,29 @@ def place_bet():
         return jsonify({"status": "failed", "error": "invalid_direction"}), 400
 
     desired_side = "long" if direction == "UP" else "short"
+
+    # ── DRY RUN ──────────────────────────────────────────────────────────────
+    if DRY_RUN:
+        order_side = "buy" if direction == "UP" else "sell"
+        return jsonify({
+            "status": "placed",
+            "dry_run": True,
+            "direction": direction,
+            "confidence": confidence,
+            "symbol": symbol,
+            "side": order_side,
+            "size": size,
+            "order_id": f"DRY_{int(time.time())}",
+            "position_confirmed": True,
+            "position": {
+                "side": "long" if direction == "UP" else "short",
+                "size": size,
+                "price": 0.0,
+            },
+            "previous_position_existed": False,
+            "raw": {"result": "success", "dry_run": True},
+        }), 200
+    # ─────────────────────────────────────────────────────────────────────────
 
     try:
         pos = get_open_position(symbol)
