@@ -886,11 +886,12 @@ function renderAccountSummary(data) {
   // ── RECENT FILLS ──────────────────────────────────────────────────────────
   const activity = data.recent_activity || {};
   const fills    = activity.fills || [];
-  const realizedPnl = parseFloat(activity.realized_pnl_recent || 0);
+  // realized_pnl_recent is now -(sum of fees) since Kraken fills don't return P&L
+  const totalFeesCost = Math.abs(parseFloat(activity.realized_pnl_recent || 0));
 
   const fillsTag = document.getElementById('acctFillsTag');
-  fillsTag.textContent = fmtPnlAcct(realizedPnl);
-  fillsTag.className = 'panel-tag ' + (realizedPnl >= 0 ? 'tag-green' : 'tag-red');
+  fillsTag.textContent = totalFeesCost > 0 ? '-$' + totalFeesCost.toFixed(5) : '+$0.0000';
+  fillsTag.className = 'panel-tag ' + (totalFeesCost > 0 ? 'tag-yellow' : 'tag-green');
 
   if (!fills.length) {
     document.getElementById('acctFillsBody').innerHTML =
@@ -902,23 +903,23 @@ function renderAccountSummary(data) {
     const side     = (f.side || '').toLowerCase();
     const sideClass = side === 'buy' ? 'fill-buy' : 'fill-sell';
     const sideLabel = side === 'buy' ? '▲ BUY' : '▼ SELL';
-    const fillPnl   = parseFloat(f.pnl || 0);
+    const fillPnl   = f.pnl != null ? parseFloat(f.pnl) : null;
     const fee       = parseFloat(f.fee || 0);
     const ts        = f.timestamp ? new Date(f.timestamp).toLocaleTimeString('it-IT', {hour:'2-digit',minute:'2-digit'}) : '—';
     return `<tr>
       <td><span class="${sideClass}">${sideLabel}</span></td>
       <td style="color:var(--text)">${parseFloat(f.size || 0).toFixed(4)}</td>
       <td style="color:var(--blue)">${fmtUsd(f.price, 0)}</td>
-      <td class="${fillPnl >= 0 ? 'pnl-pos' : 'pnl-neg'}">${fmtPnlAcct(fillPnl, 4)}</td>
-      <td style="color:var(--muted)">${fee > 0 ? '-$' + fee.toFixed(5) : '—'}</td>
+      <td class="${fillPnl != null ? (fillPnl >= 0 ? 'pnl-pos' : 'pnl-neg') : 'pnl-null'}">${fillPnl != null ? fmtPnlAcct(fillPnl, 4) : '—'}</td>
+      <td style="color:${fee > 0 ? 'var(--warn)' : 'var(--muted)'}">${fee > 0 ? '-$' + fee.toFixed(5) : '—'}</td>
       <td style="color:var(--muted)">${ts}</td>
     </tr>`;
   }).join('');
 
   document.getElementById('acctFillsBody').innerHTML = `
     <div style="padding:8px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
-      <span style="font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase">Realized P&amp;L (recent)</span>
-      <span style="font-size:12px;font-weight:700;font-family:'Syne',sans-serif;color:${realizedPnl >= 0 ? 'var(--accent)' : 'var(--danger)'}">${fmtPnlAcct(realizedPnl, 4)}</span>
+      <span style="font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase">Fees Paid (recent)</span>
+      <span style="font-size:12px;font-weight:700;font-family:'Syne',sans-serif;color:var(--warn)">${totalFeesCost > 0 ? '-$' + totalFeesCost.toFixed(5) : '+$0.0000'}</span>
     </div>
     <div style="overflow-x:auto;">
       <table class="fills-table">
@@ -1160,21 +1161,33 @@ function renderTable(data) {
     const betBadge = d.classification === 'BET'
       ? '<span class="badge badge-bet">BET</span>'
       : '<span class="badge badge-nobet">NO BET</span>';
-    const resultBadge = d.correct === true
-      ? '<span class="badge badge-correct">✓ WIN</span>'
-      : d.correct === false
-        ? '<span class="badge badge-wrong">✗ LOSS</span>'
-        : '<span style="color:var(--muted);font-size:10px;">OPEN</span>';
+    const isDry = (d.entry_order_id || '').startsWith('DRY_');
+    let resultBadge;
+    if (d.correct === true) {
+      resultBadge = isDry
+        ? '<span class="badge" style="background:rgba(0,255,136,0.06);color:rgba(0,255,136,0.6);border:1px solid rgba(0,255,136,0.2)">✓ SIM WIN</span>'
+        : '<span class="badge badge-correct">✓ WIN</span>';
+    } else if (d.correct === false) {
+      resultBadge = isDry
+        ? '<span class="badge" style="background:rgba(255,68,102,0.06);color:rgba(255,68,102,0.6);border:1px solid rgba(255,68,102,0.2)">✗ SIM LOSS</span>'
+        : '<span class="badge badge-wrong">✗ LOSS</span>';
+    } else {
+      resultBadge = d.bet_taken && d.classification === 'BET'
+        ? '<span style="color:var(--warn);font-size:9px;letter-spacing:1px">⏳ OPEN</span>'
+        : '<span style="color:var(--muted);font-size:10px;">—</span>';
+    }
     const pnlCls    = d.pnl_usd === null ? 'pnl-null' : parseFloat(d.pnl_usd) >= 0 ? 'pnl-pos' : 'pnl-neg';
     const score     = (d.technical_score !== null && d.technical_score !== undefined) ? parseFloat(d.technical_score).toFixed(1) : '—';
     const scoreColor= parseFloat(d.technical_score) >= 0 ? 'var(--accent)' : 'var(--danger)';
+    // EXIT $: use actual fill price first, fallback to signal exit price
+    const exitPrice = d.exit_fill_price ?? d.btc_price_exit;
     return `<tr>
       <td style="color:var(--muted)">${d.id}</td>
       <td style="color:var(--muted)">${fmtDate(d.created_at)}</td>
       <td class="${dirCls}">${dirIcon} ${d.direction}</td>
       <td>${fmtConf(d.confidence)}</td>
       <td>${fmtPrice(d.btc_price_entry)}</td>
-      <td>${fmtPrice(d.btc_price_exit)}</td>
+      <td>${fmtPrice(exitPrice)}</td>
       <td>${d.rsi14 ? parseFloat(d.rsi14).toFixed(1) : '—'}</td>
       <td>${emaLabel(d.ema_trend)}</td>
       <td style="color:${scoreColor}">${score}</td>
