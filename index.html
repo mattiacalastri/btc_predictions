@@ -558,8 +558,8 @@
       <div class="stat-cell-val" id="statBest" style="color:var(--accent)">—</div>
     </div>
     <div class="stat-cell">
-      <div class="stat-cell-label">Worst Trade PnL</div>
-      <div class="stat-cell-val" id="statWorst" style="color:var(--danger)">—</div>
+      <div class="stat-cell-label">Current Streak</div>
+      <div class="stat-cell-val" id="statStreak" style="color:var(--text)">—</div>
     </div>
     <div class="stat-cell">
       <div class="stat-cell-label">Avg Entry Slippage</div>
@@ -1221,7 +1221,18 @@ function render(data) {
 
   document.getElementById('statConf').textContent  = (avgConf * 100).toFixed(1) + '%';
   document.getElementById('statBest').textContent  = bestPnl  ? '+$' + bestPnl.toFixed(4)  : '—';
-  document.getElementById('statWorst').textContent = worstPnl ? '$'  + worstPnl.toFixed(4) : '—';
+  const closedBetsDesc = bets.filter(d => d.correct !== null);
+  let streak = 0, streakType = null;
+  if (closedBetsDesc.length) {
+    streakType = closedBetsDesc[0].correct ? 'W' : 'L';
+    for (const b of closedBetsDesc) {
+      if ((b.correct ? 'W' : 'L') === streakType) streak++;
+      else break;
+    }
+  }
+  const streakEl = document.getElementById('statStreak');
+  streakEl.textContent = streak > 0 ? streakType + '×' + streak : '—';
+  streakEl.style.color = streakType === 'W' ? 'var(--accent)' : streakType === 'L' ? 'var(--danger)' : 'var(--muted)';
   const betsWithSlip = realBets.filter(d => d.entry_slippage !== null && d.entry_slippage !== undefined);
   const avgSlip = betsWithSlip.length
     ? betsWithSlip.reduce((s, d) => s + parseFloat(d.entry_slippage || 0), 0) / betsWithSlip.length
@@ -1352,24 +1363,33 @@ function renderPnlChart(chronoBets) {
 
 function renderSignalQuality(data) {
   const pct = (arr, fn) => arr.length ? Math.round(arr.filter(fn).length / arr.length * 100) : 0;
-  const closed    = data.filter(d => d.correct !== null);
   const upClosed  = data.filter(d => d.direction === 'UP'   && d.correct !== null);
   const dnClosed  = data.filter(d => d.direction === 'DOWN' && d.correct !== null);
-  const betClosed = data.filter(d => d.classification === 'BET' && d.correct !== null);
+
+  const betsWithPnl = data.filter(d => d.classification === 'BET' && d.pnl_usd !== null);
+  const grossWin  = betsWithPnl.filter(d => parseFloat(d.pnl_usd) > 0).reduce((s, d) => s + parseFloat(d.pnl_usd), 0);
+  const grossLoss = Math.abs(betsWithPnl.filter(d => parseFloat(d.pnl_usd) < 0).reduce((s, d) => s + parseFloat(d.pnl_usd), 0));
+  const pf = grossLoss > 0 ? grossWin / grossLoss : grossWin > 0 ? 99 : 0;
+  const pfLabel = betsWithPnl.length ? pf.toFixed(2) + 'x' : '—';
+
+  const totalPnlSig = betsWithPnl.reduce((s, d) => s + parseFloat(d.pnl_usd || 0), 0);
+  const avgPnl = betsWithPnl.length ? totalPnlSig / betsWithPnl.length : 0;
+  const avgPnlLabel = betsWithPnl.length ? (avgPnl >= 0 ? '+' : '') + '$' + avgPnl.toFixed(4) : '—';
+
   const metrics = [
-    { label: 'Overall Accuracy',     value: pct(closed,    d => d.correct), color: 'var(--accent)' },
-    { label: 'Bet Win Rate',         value: pct(betClosed, d => d.correct), color: 'var(--blue)'   },
-    { label: 'UP Signal Accuracy',   value: pct(upClosed,  d => d.correct), color: 'var(--accent)' },
-    { label: 'DOWN Signal Accuracy', value: pct(dnClosed,  d => d.correct), color: 'var(--danger)' },
-    { label: 'Bet Coverage',         value: data.length ? Math.round(data.filter(d => d.classification === 'BET').length / data.length * 100) : 0, color: 'var(--warn)' },
+    { label: 'Profit Factor',        barVal: Math.min(pf / 2 * 100, 100), displayVal: pfLabel,    color: pf >= 1 ? 'var(--accent)' : 'var(--danger)' },
+    { label: 'Avg PnL / Trade',      barVal: 50,                           displayVal: avgPnlLabel, color: avgPnl >= 0 ? 'var(--accent)' : 'var(--danger)' },
+    { label: 'UP Signal Accuracy',   barVal: pct(upClosed, d => d.correct), displayVal: null,      color: 'var(--accent)' },
+    { label: 'DOWN Signal Accuracy', barVal: pct(dnClosed, d => d.correct), displayVal: null,      color: 'var(--danger)' },
+    { label: 'Bet Coverage',         barVal: data.length ? Math.round(data.filter(d => d.classification === 'BET').length / data.length * 100) : 0, displayVal: null, color: 'var(--warn)' },
   ];
   document.getElementById('signalQuality').innerHTML = metrics.map(m => `
     <div class="signal-row">
       <div class="signal-meta">
         <span class="signal-label">${m.label}</span>
-        <span class="signal-val" style="color:${m.color}">${m.value}%</span>
+        <span class="signal-val" style="color:${m.color}">${m.displayVal !== null ? m.displayVal : m.barVal + '%'}</span>
       </div>
-      <div class="signal-bar-bg"><div class="signal-bar-fill" style="width:${m.value}%;background:${m.color}"></div></div>
+      <div class="signal-bar-bg"><div class="signal-bar-fill" style="width:${m.barVal}%;background:${m.color}"></div></div>
     </div>`).join('');
 }
 
