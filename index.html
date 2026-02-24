@@ -816,7 +816,9 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 22px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 1px;
       background: rgba(255,255,255,0.03);
       transition: transform 0.15s;
     }
@@ -1121,32 +1123,32 @@
   <!-- TASK 2: Story Highlights (mobile only) -->
   <div class="story-highlights" id="storyHighlights">
     <div class="story-item" data-source="kpiWinRate">
-      <div class="story-ring story-ring-yellow"><span class="story-emoji">📊</span></div>
-      <div class="story-label">WR</div>
+      <div class="story-ring story-ring-yellow" style="color:var(--warn)">WR%</div>
+      <div class="story-label">WIN RATE</div>
       <div class="story-val" id="storyWR">—</div>
     </div>
     <div class="story-item" data-source="kpiRoi">
-      <div class="story-ring story-ring-purple"><span class="story-emoji">📈</span></div>
-      <div class="story-label">ROI</div>
+      <div class="story-ring story-ring-purple" style="color:#aa66ff">ROI</div>
+      <div class="story-label">P&amp;L</div>
       <div class="story-val" id="storyROI">—</div>
     </div>
     <div class="story-item" data-source="kpiFG">
-      <div class="story-ring story-ring-blue"><span class="story-emoji">😱</span></div>
-      <div class="story-label">F&amp;G</div>
+      <div class="story-ring story-ring-blue" style="color:var(--blue)">F/G</div>
+      <div class="story-label">FEAR/GREED</div>
       <div class="story-val" id="storyFG">—</div>
     </div>
     <div class="story-item" data-source="kpiBets">
-      <div class="story-ring story-ring-green"><span class="story-emoji">🎯</span></div>
+      <div class="story-ring story-ring-green" style="color:var(--accent)">#BET</div>
       <div class="story-label">BETS</div>
       <div class="story-val" id="storyBets">—</div>
     </div>
     <div class="story-item" data-source="kpiDrawdown">
-      <div class="story-ring story-ring-red"><span class="story-emoji">📉</span></div>
-      <div class="story-label">DD</div>
+      <div class="story-ring story-ring-red" style="color:var(--danger)">DD</div>
+      <div class="story-label">DRAWDOWN</div>
       <div class="story-val" id="storyDD">—</div>
     </div>
     <div class="story-item" data-source="statStreak">
-      <div class="story-ring story-ring-orange"><span class="story-emoji">🔥</span></div>
+      <div class="story-ring story-ring-orange" style="color:#ff8800">STK</div>
       <div class="story-label">STREAK</div>
       <div class="story-val" id="storyStreak">—</div>
     </div>
