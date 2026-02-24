@@ -734,6 +734,113 @@ def get_signals():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# ── PERFORMANCE STATS ────────────────────────────────────────────────────────
+
+@app.route("/performance-stats", methods=["GET"])
+def performance_stats():
+    """
+    Calcola statistiche storiche live da Supabase e restituisce un testo
+    compatto da iniettare nel prompt di Claude come contesto di calibrazione.
+    """
+    try:
+        supabase_url = os.environ.get("SUPABASE_URL", "")
+        supabase_key = os.environ.get("SUPABASE_KEY", "")
+        if not supabase_url or not supabase_key:
+            return jsonify({"perf_stats_text": "n/a (no Supabase config)"})
+
+        # Fetch ultimi 50 bet risolti
+        url = (
+            f"{supabase_url}/rest/v1/btc_predictions"
+            "?select=direction,confidence,correct,pnl_usd,created_at"
+            "&bet_taken=eq.true&correct=not.is.null"
+            "&order=id.desc&limit=50"
+        )
+        res = requests.get(url, headers={
+            "apikey": supabase_key,
+            "Authorization": f"Bearer {supabase_key}"
+        }, timeout=5)
+        rows = res.json()
+
+        if not rows or len(rows) < 5:
+            return jsonify({"perf_stats_text": "n/a (insufficient history)"})
+
+        from datetime import datetime, timezone
+
+        current_hour = datetime.now(timezone.utc).hour
+
+        # ── Recent WR (last 10) ──────────────────────────────────────────────
+        last10 = rows[:10]
+        w10 = sum(1 for r in last10 if r.get("correct") is True)
+        l10 = len(last10) - w10
+        wr10 = round(w10 / len(last10) * 100)
+
+        # ── Current streak ───────────────────────────────────────────────────
+        streak, streak_val = 0, None
+        for r in rows:
+            v = r.get("correct")
+            if streak_val is None:
+                streak_val, streak = v, 1
+            elif v == streak_val:
+                streak += 1
+            else:
+                break
+        streak_label = f"{streak} {'WIN' if streak_val else 'LOSS'}"
+
+        # ── Last 5 PnL ───────────────────────────────────────────────────────
+        pnl5 = sum(float(r.get("pnl_usd") or 0) for r in rows[:5])
+        pnl5_str = f"+${pnl5:.2f}" if pnl5 >= 0 else f"-${abs(pnl5):.2f}"
+
+        # ── Hour WR (current UTC hour) ───────────────────────────────────────
+        hour_rows = []
+        for r in rows:
+            try:
+                h = int((r.get("created_at") or "T00:")[11:13])
+                if h == current_hour:
+                    hour_rows.append(r)
+            except Exception:
+                pass
+        if len(hour_rows) >= 3:
+            hw = sum(1 for r in hour_rows if r.get("correct") is True)
+            hour_wr = f"WR {round(hw/len(hour_rows)*100)}% ({len(hour_rows)} bets)"
+        else:
+            hour_wr = "insufficient data"
+
+        # ── Direction WR ─────────────────────────────────────────────────────
+        up_rows   = [r for r in rows if r.get("direction") == "UP"]
+        down_rows = [r for r in rows if r.get("direction") == "DOWN"]
+        def _wr(lst):
+            if not lst:
+                return "n/a"
+            w = sum(1 for r in lst if r.get("correct") is True)
+            return f"{round(w/len(lst)*100)}% ({len(lst)})"
+        dir_stats = f"UP→{_wr(up_rows)} | DOWN→{_wr(down_rows)}"
+
+        # ── Confidence bucket WR ─────────────────────────────────────────────
+        def _bucket_wr(lo, hi):
+            b = [r for r in rows if lo <= float(r.get("confidence") or 0) < hi]
+            if len(b) < 3:
+                return "n/a"
+            w = sum(1 for r in b if r.get("correct") is True)
+            return f"{round(w/len(b)*100)}%({len(b)})"
+        conf_stats = (
+            f"[<0.62]→{_bucket_wr(0.50,0.62)} "
+            f"[0.62-0.65]→{_bucket_wr(0.62,0.65)} "
+            f"[≥0.65]→{_bucket_wr(0.65,1.01)}"
+        )
+
+        stats_text = (
+            f"Last 10 bets: {w10}W/{l10}L ({wr10}%) | Streak: {streak_label} | Last5 PnL: {pnl5_str}\n"
+            f"Hour {current_hour:02d}h UTC: {hour_wr}\n"
+            f"Direction WR: {dir_stats}\n"
+            f"Confidence calibration: {conf_stats}"
+        )
+
+        return jsonify({"perf_stats_text": stats_text})
+
+    except Exception as e:
+        return jsonify({"perf_stats_text": f"n/a ({str(e)[:60)})"})
+
+
 # ── XGB PREDICT ──────────────────────────────────────────────────────────────
 
 @app.route("/predict-xgb", methods=["GET"])
