@@ -2004,6 +2004,7 @@ def n8n_status():
         "eLmZ6d8t9slAx5pj",  # 04_BTC_Talker
         "xCwf53UGBq1SyP0c",  # 05_BTC_Prediction_Verifier
         "O2ilssVhSFs9jsMF",  # 06_Nightly_Maintenance
+        "Ei1eeVdA4ZYuc4o6",  # 07_BTC_Commander
     ]
 
     headers = {"X-N8N-API-KEY": n8n_key}
@@ -2023,9 +2024,9 @@ def n8n_status():
                     "name":   wf.get("name", wf_id),
                     "active": wf.get("active", False),
                 }
-                # Ultima execution per questo workflow
+                # Ultime 5 executions per stats e sparkline
                 ex_r = requests.get(
-                    f"{n8n_url}/api/v1/executions?workflowId={wf_id}&limit=1",
+                    f"{n8n_url}/api/v1/executions?workflowId={wf_id}&limit=5",
                     headers=headers, timeout=4
                 )
                 if ex_r.ok:
@@ -2038,6 +2039,10 @@ def n8n_status():
                             "started_at": last.get("startedAt"),
                             "stopped_at": last.get("stoppedAt"),
                         }
+                        history = [ex.get("status", "unknown") for ex in executions]
+                        successes = sum(1 for s in history if s == "success")
+                        wf_data["exec_history"]  = history
+                        wf_data["success_rate"]  = round(successes / len(history) * 100) if history else None
                 result.append(wf_data)
             except Exception:
                 pass
