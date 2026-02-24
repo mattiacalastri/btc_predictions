@@ -1055,11 +1055,21 @@ def bet_sizing():
 
 # ── N8N STATUS (proxy) ───────────────────────────────────────────────────────
 
+# ID fissi dei workflow BTC — evita paginazione su 100+ workflow nell'account
+_BTC_WORKFLOW_IDS = [
+    ("kaevyOIbHpm8vJmF", "01_BTC_Prediction_Bot"),
+    ("vallzU6ceD5gPwSP",  "02_BTC_Trade_Checker"),
+    ("KITZHsfVSMtVTpfx",  "03_BTC_Wallet_Checker"),
+    ("eLmZ6d8t9slAx5pj",  "04_BTC_Talker"),
+    ("xCwf53UGBq1SyP0c",  "05_BTC_Prediction_Verifier"),
+    ("O2ilssVhSFs9jsMF",  "06_Nightly_Maintenance"),
+]
+
 @app.route("/n8n-status", methods=["GET"])
 def n8n_status():
     """
     Proxy verso n8n API — richiede N8N_API_KEY env var su Railway.
-    Ritorna lista workflow con id, name, active, last_execution.
+    Carica direttamente i 6 workflow BTC per ID (evita paginazione su 100+ wf).
     """
     n8n_key = os.environ.get("N8N_API_KEY", "")
     n8n_url = os.environ.get("N8N_URL", "https://mattiacalastri.app.n8n.cloud")
@@ -1067,22 +1077,24 @@ def n8n_status():
         return jsonify({"status": "error", "error": "N8N_API_KEY not configured on Railway"}), 200
 
     headers = {"X-N8N-API-KEY": n8n_key}
+    result = []
     try:
-        r = requests.get(f"{n8n_url}/api/v1/workflows?limit=20", headers=headers, timeout=8)
-        if not r.ok:
-            return jsonify({"status": "error", "error": f"n8n HTTP {r.status_code}"}), 200
-
-        wfs = r.json().get("data", [])
-        result = []
-        for wf in wfs:
-            wf_data = {
-                "id":     wf.get("id"),
-                "name":   wf.get("name"),
-                "active": wf.get("active", False),
-            }
+        for wf_id, wf_label in _BTC_WORKFLOW_IDS:
+            wf_data = {"id": wf_id, "name": wf_label, "active": False}
+            # Carica dettagli workflow (active/inactive)
+            try:
+                r = requests.get(f"{n8n_url}/api/v1/workflows/{wf_id}",
+                                 headers=headers, timeout=5)
+                if r.ok:
+                    wf = r.json()
+                    wf_data["name"]   = wf.get("name", wf_label)
+                    wf_data["active"] = wf.get("active", False)
+            except Exception:
+                pass
+            # Ultima execution
             try:
                 ex_r = requests.get(
-                    f"{n8n_url}/api/v1/executions?workflowId={wf['id']}&limit=1",
+                    f"{n8n_url}/api/v1/executions?workflowId={wf_id}&limit=1",
                     headers=headers, timeout=4
                 )
                 if ex_r.ok:
