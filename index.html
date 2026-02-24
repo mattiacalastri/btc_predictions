@@ -2377,6 +2377,46 @@ async function fetchBacktestReport() {
   }
 }
 
+
+// -- EQUITY HISTORY (real data from /equity-history) --------------------------
+
+async function fetchEquityHistory() {
+  try {
+    const res = await fetch(CONFIG.RAILWAY_URL + '/equity-history', { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) return;
+    const d = await res.json();
+    if (!d.history || d.history.length === 0) return;
+    const svg = document.getElementById('equitySvg');
+    const tag = document.getElementById('equityTag');
+    if (!svg) return;
+    const capitalBase = d.capital_base || 100;
+    const pts = [{ v: capitalBase }];
+    d.history.forEach(row => pts.push({ v: row.equity }));
+    const totalPnl = d.final_equity - capitalBase;
+    const minV  = Math.min(...pts.map(p => p.v));
+    const maxV  = Math.max(...pts.map(p => p.v));
+    const range = maxV - minV || 0.001;
+    const W = 1000, H = 100;
+    const toX = i => (i / (pts.length - 1)) * W;
+    const toY = v => H - ((v - minV) / range) * (H - 10) - 5;
+    const polyPts   = pts.map((p, i) => toX(i).toFixed(1) + ',' + toY(p.v).toFixed(1)).join(' ');
+    const areaClose = toX(pts.length - 1).toFixed(1) + ',' + H + ' 0,' + H;
+    const color  = totalPnl >= 0 ? 'var(--accent)' : 'var(--danger)';
+    const gradId = totalPnl >= 0 ? 'eqGH' : 'eqGHR';
+    svg.innerHTML =
+      '<defs><linearGradient id="' + gradId + '" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0%" stop-color="' + color + '" stop-opacity="0.3"/>' +
+      '<stop offset="100%" stop-color="' + color + '" stop-opacity="0"/>' +
+      '</linearGradient></defs>' +
+      '<polygon points="' + polyPts + ' ' + areaClose + '" fill="url(#' + gradId + ')"/>' +
+      '<polyline points="' + polyPts + '" fill="none" stroke="' + color + '" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>' +
+      '<circle cx="' + toX(pts.length-1).toFixed(1) + '" cy="' + toY(pts[pts.length-1].v).toFixed(1) + '" r="3.5" fill="' + color + '"/>';
+    if (tag) {
+      tag.textContent = (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toFixed(4) + ' (' + d.count + ' bets)';
+      tag.className   = 'panel-tag ' + (totalPnl >= 0 ? 'tag-green' : 'tag-red');
+    }
+  } catch(e) { /* fallback silenzioso */ }
+}
 // Start everything
 refresh();
 setInterval(refresh, CONFIG.REFRESH_INTERVAL);
@@ -2386,6 +2426,8 @@ setInterval(fetchLiveBtcPrice, CONFIG.BTC_REFRESH);
 
 refreshAccountSummary();
 setInterval(refreshAccountSummary, CONFIG.ACCT_REFRESH);
+
+fetchEquityHistory();
 
 // ── COSTS TAB ─────────────────────────────────────────────────────────────────
 
