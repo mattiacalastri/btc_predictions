@@ -1150,27 +1150,37 @@
   <!-- COSTS TAB -->
   <div id="tab-costs" class="tab-content">
 
-    <!-- 4 KPI -->
-    <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
+    <!-- 6 KPI -->
+    <div class="kpi-grid" style="grid-template-columns:repeat(6,1fr);margin-bottom:16px">
       <div class="kpi red" id="costKpiTotal">
         <div class="kpi-label">Total Cost MTD</div>
         <div class="kpi-value red" id="costKpiTotalVal">—</div>
         <div class="kpi-sub" id="costKpiTotalSub">loading...</div>
       </div>
       <div class="kpi yellow" id="costKpiKraken">
-        <div class="kpi-label">Kraken Fees (real)</div>
+        <div class="kpi-label">Kraken Fees</div>
         <div class="kpi-value yellow" id="costKpiKrakenVal">—</div>
         <div class="kpi-sub" id="costKpiKrakenSub">loading...</div>
       </div>
       <div class="kpi blue" id="costKpiN8n">
-        <div class="kpi-label">n8n Executions</div>
+        <div class="kpi-label">n8n Plan</div>
         <div class="kpi-value blue" id="costKpiN8nVal">—</div>
         <div class="kpi-sub" id="costKpiN8nSub">loading...</div>
       </div>
-      <div class="kpi purple" id="costKpiLlm">
-        <div class="kpi-label">LLM API (est.)</div>
-        <div class="kpi-value purple" id="costKpiLlmVal">—</div>
-        <div class="kpi-sub" id="costKpiLlmSub">loading...</div>
+      <div class="kpi purple" id="costKpiClaudeApi">
+        <div class="kpi-label">Claude API</div>
+        <div class="kpi-value purple" id="costKpiClaudeApiVal">—</div>
+        <div class="kpi-sub" id="costKpiClaudeApiSub">loading...</div>
+      </div>
+      <div class="kpi" style="--kc:#e5251b" id="costKpiClaudeCode">
+        <div class="kpi-label">Claude Code</div>
+        <div class="kpi-value" style="color:#e5251b" id="costKpiClaudeCodeVal">—</div>
+        <div class="kpi-sub" id="costKpiClaudeCodeSub">loading...</div>
+      </div>
+      <div class="kpi" id="costKpiRailway">
+        <div class="kpi-label">Railway</div>
+        <div class="kpi-value white" id="costKpiRailwayVal">—</div>
+        <div class="kpi-sub" id="costKpiRailwaySub">loading...</div>
       </div>
     </div>
 
@@ -2122,7 +2132,7 @@ setInterval(refreshAccountSummary, CONFIG.ACCT_REFRESH);
 async function refreshCostsTab() {
   const body = document.getElementById('costBreakdownBody');
   body.innerHTML = 'Loading<span class="loading">...</span>';
-  ['costKpiTotalVal','costKpiKrakenVal','costKpiN8nVal','costKpiLlmVal'].forEach(id => {
+  ['costKpiTotalVal','costKpiKrakenVal','costKpiN8nVal','costKpiClaudeApiVal','costKpiClaudeCodeVal','costKpiRailwayVal'].forEach(id => {
     document.getElementById(id).textContent = '—';
   });
   try {
@@ -2136,43 +2146,64 @@ async function refreshCostsTab() {
 }
 
 function renderCosts(d) {
-  // KPI
   const fmtUsd = v => '$' + (v ?? 0).toFixed(2);
-  document.getElementById('costKpiTotalVal').textContent  = fmtUsd(d.total_usd);
-  document.getElementById('costKpiTotalSub').textContent  = d.cached ? 'parzialmente cached' : 'live';
-  document.getElementById('costKpiKrakenVal').textContent = fmtUsd(d.kraken_fees?.total_usd);
-  document.getElementById('costKpiKrakenSub').textContent = `${d.kraken_fees?.trade_count ?? 0} trade chiusi`;
-  document.getElementById('costKpiN8nVal').textContent    = (d.n8n?.pct_used ?? 0).toFixed(1) + '%';
-  document.getElementById('costKpiN8nSub').textContent    = `${d.n8n?.executions_est ?? 0} / ${d.n8n?.limit ?? 2500} exec`;
-  document.getElementById('costKpiLlmVal').textContent    = fmtUsd(d.llm?.cost_usd);
-  document.getElementById('costKpiLlmSub').textContent    = `~${d.llm?.calls_est ?? 0} call · ${d.llm?.model ?? '—'}`;
+  const ca = d.claude_api || {};
+  const cc = d.claude_code || {};
+
+  // KPI
+  document.getElementById('costKpiTotalVal').textContent       = fmtUsd(d.total_usd);
+  document.getElementById('costKpiTotalSub').textContent       = d.cached ? 'parz. cached' : 'live';
+  document.getElementById('costKpiKrakenVal').textContent      = fmtUsd(d.kraken_fees?.total_usd);
+  document.getElementById('costKpiKrakenSub').textContent      = `${d.kraken_fees?.trade_count ?? 0} trade · REALE`;
+  document.getElementById('costKpiN8nVal').textContent         = (d.n8n?.pct_used ?? 0).toFixed(1) + '%';
+  document.getElementById('costKpiN8nSub').textContent         = `${d.n8n?.executions_est ?? 0} / ${d.n8n?.limit ?? 2500} exec`;
+  document.getElementById('costKpiClaudeApiVal').textContent   = fmtUsd(ca.cost_usd);
+  document.getElementById('costKpiClaudeApiSub').textContent   = `${ca.monthly_calls ?? 0} call · ${ca.model ?? '—'}`.replace('claude-','').replace('-20251001','');
+  document.getElementById('costKpiClaudeCodeVal').textContent  = cc.cost_usd > 0 ? fmtUsd(cc.cost_usd) : '—';
+  document.getElementById('costKpiClaudeCodeSub').textContent  = cc.cost_usd > 0 ? 'impostato manualmente' : 'set CLAUDE_CODE_MONTHLY_USD';
+  document.getElementById('costKpiRailwayVal').textContent     = fmtUsd(d.railway?.cost_usd);
+  document.getElementById('costKpiRailwaySub').textContent     = `piano ${d.railway?.plan ?? '—'}`;
 
   // Breakdown table
   const total = d.total_usd || 1;
   const rows = [
-    { name: 'Kraken Fees',  usd: d.kraken_fees?.total_usd ?? 0, type: 'REALE',  color: 'var(--warn)' },
-    { name: 'n8n Plan',     usd: d.n8n?.cost_usd ?? 0,          type: 'PIANO',  color: 'var(--blue)' },
-    { name: 'LLM API',      usd: d.llm?.cost_usd ?? 0,          type: 'STIMA',  color: '#aa66ff' },
-    { name: 'Railway',      usd: d.railway?.cost_usd ?? 0,       type: 'PIANO',  color: 'var(--muted)' },
-    { name: 'Supabase',     usd: d.supabase?.cost_usd ?? 0,      type: 'PIANO',  color: 'var(--muted)' },
+    { name: 'Kraken Fees',    sub: `${d.kraken_fees?.trade_count ?? 0} trade, avg ${fmtUsd(d.kraken_fees?.avg_per_trade)} ciascuno`,
+      usd: d.kraken_fees?.total_usd ?? 0, type: 'REALE', color: 'var(--warn)' },
+    { name: 'n8n Plan',       sub: `${d.n8n?.executions_est ?? 0} exec stimate · piano Starter`,
+      usd: d.n8n?.cost_usd ?? 0,          type: 'PIANO', color: 'var(--blue)' },
+    { name: 'Claude API',     sub: `${ca.monthly_calls ?? 0} call · ${(ca.avg_input_tokens ?? 0)/1000}k in + ${ca.avg_output_tokens ?? 0} out token`,
+      usd: ca.cost_usd ?? 0,              type: 'REALE', color: '#aa66ff' },
+    { name: 'Claude Code',    sub: cc.cost_usd > 0 ? 'spese sviluppo (sessioni CLI)' : 'aggiungi env CLAUDE_CODE_MONTHLY_USD',
+      usd: cc.cost_usd ?? 0,              type: cc.cost_usd > 0 ? 'REALE' : 'ND',    color: '#e5251b' },
+    { name: 'Railway',        sub: `piano ${d.railway?.plan ?? '—'}`,
+      usd: d.railway?.cost_usd ?? 0,      type: 'PIANO', color: 'var(--muted)' },
+    { name: 'Supabase',       sub: `${d.supabase?.row_count ?? 0} righe · piano free`,
+      usd: d.supabase?.cost_usd ?? 0,     type: 'PIANO', color: 'var(--muted)' },
   ];
-  const typeColor = { REALE: 'tag-yellow', PIANO: 'tag-blue', STIMA: 'tag-muted' };
+  const typeColor = { REALE: 'tag-yellow', PIANO: 'tag-blue', STIMA: 'tag-muted', ND: 'tag-muted' };
 
   const rowHtml = rows.map(r => {
-    const pct = Math.min(100, (r.usd / total) * 100);
+    const pct = Math.min(100, total > 0 ? (r.usd / total) * 100 : 0);
     return `
     <tr>
-      <td style="color:var(--text)">${r.name}</td>
-      <td style="font-family:'Syne',sans-serif;font-weight:700;color:${r.color}">${fmtUsd(r.usd)}</td>
+      <td>
+        <span style="color:var(--text);font-weight:700">${r.name}</span>
+        <span style="display:block;font-size:9px;color:var(--muted);margin-top:2px">${r.sub}</span>
+      </td>
+      <td style="font-family:'Syne',sans-serif;font-weight:700;color:${r.color};font-size:14px">${fmtUsd(r.usd)}</td>
       <td><span class="cost-type-badge panel-tag ${typeColor[r.type]}">${r.type}</span></td>
       <td>
-        <div class="cost-bar-wrap">
+        <div class="cost-bar-wrap" style="width:100px">
           <div class="cost-bar-fill" style="width:${pct.toFixed(1)}%;background:${r.color}"></div>
         </div>
-        <span style="font-size:10px;color:var(--muted);margin-left:6px">${pct.toFixed(0)}%</span>
+        <span style="font-size:9px;color:var(--muted);margin-left:6px">${pct.toFixed(0)}%</span>
       </td>
     </tr>`;
   }).join('');
+
+  const modelShort = (ca.model ?? '—').replace('claude-','').replace('-20251001','');
+  const prIn  = ca.pricing?.input  ?? 0;
+  const prOut = ca.pricing?.output ?? 0;
 
   document.getElementById('costBreakdownBody').innerHTML = `
     <div class="table-wrap">
@@ -2181,16 +2212,17 @@ function renderCosts(d) {
         <tbody>
           ${rowHtml}
           <tr>
-            <td>TOTALE</td>
-            <td style="font-family:'Syne',sans-serif;font-weight:700;color:var(--danger)">${fmtUsd(d.total_usd)}</td>
-            <td></td>
-            <td></td>
+            <td style="font-weight:700;color:var(--text)">TOTALE MTD</td>
+            <td style="font-family:'Syne',sans-serif;font-weight:800;color:var(--danger);font-size:16px">${fmtUsd(d.total_usd)}</td>
+            <td></td><td></td>
           </tr>
         </tbody>
       </table>
     </div>
-    <div style="font-size:10px;color:var(--muted);margin-top:12px;padding:0 4px">
-      Supabase: ${d.supabase?.row_count ?? 0} righe · n8n: ${d.n8n?.executions_est ?? 0} exec stimate (wf01 ×6) · Railway: piano ${d.railway?.plan ?? '—'}
+    <div style="font-size:9px;color:var(--muted);margin-top:12px;padding:0 4px;display:flex;gap:16px;flex-wrap:wrap">
+      <span>Modello: <strong style="color:var(--text)">${modelShort}</strong></span>
+      <span>Prezzi: <strong style="color:var(--text)">$${prIn}/1M in · $${prOut}/1M out</strong></span>
+      <span>Per imposta Claude Code: Railway → <code style="color:var(--blue)">CLAUDE_CODE_MONTHLY_USD=XX</code></span>
     </div>`;
 }
 
