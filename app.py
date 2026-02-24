@@ -1335,8 +1335,15 @@ def n8n_status():
 
 @app.route("/dashboard", methods=["GET"])
 def dashboard():
+    railway_url = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "")
+    if railway_url and not railway_url.startswith("http"):
+        railway_url = "https://" + railway_url
     with open("index.html", "r") as f:
-        return f.read(), 200, {"Content-Type": "text/html"}
+        html = f.read()
+    if railway_url:
+        inject = f'<script>window.RAILWAY_URL = "{railway_url}";</script>'
+        html = html.replace("</head>", inject + "\n</head>", 1)
+    return html, 200, {"Content-Type": "text/html"}
 
 # ── MAIN ─────────────────────────────────────────────────────────────────────
 
