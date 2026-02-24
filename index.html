@@ -465,6 +465,57 @@
 
   ::-webkit-scrollbar { width: 3px; }
   ::-webkit-scrollbar-thumb { background: var(--border); }
+
+  /* ── TAB SYSTEM ──────────────────────────────────────────── */
+  .tab-nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 0 16px; border-bottom: 1px solid var(--border);
+    margin-bottom: 20px; flex-wrap: wrap; gap: 10px;
+  }
+  .tab-buttons { display: flex; gap: 4px; }
+  .tab-btn {
+    font-family: inherit; font-size: 10px; font-weight: 700;
+    letter-spacing: 2px; text-transform: uppercase; padding: 7px 16px;
+    border: 1px solid var(--border); background: transparent;
+    color: var(--muted); cursor: pointer; border-radius: 2px; transition: all 0.15s;
+  }
+  .tab-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+  .tab-btn.active { background: rgba(0,255,136,0.08); border-color: rgba(0,255,136,0.3); color: var(--accent); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* ── AGENTS TAB ──────────────────────────────────────────── */
+  .agents-section-header {
+    font-size: 9px; font-weight: 700; letter-spacing: 2.5px;
+    text-transform: uppercase; color: var(--muted);
+    margin: 20px 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .agents-section-header:first-child { margin-top: 0; }
+  .wf-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px;
+  }
+  @media (max-width: 1100px) { .wf-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 600px)  { .wf-grid { grid-template-columns: 1fr; } }
+  .wf-card {
+    background: var(--card); border: 1px solid var(--border);
+    padding: 14px 16px; transition: border-color 0.2s;
+  }
+  .wf-card:hover { border-color: rgba(255,255,255,0.1); }
+  .wf-card-name {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 4px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .wf-card-id { font-size: 9px; color: var(--muted); letter-spacing: 0.5px; margin-bottom: 10px; }
+  .wf-card-meta { font-size: 10px; color: var(--muted); margin-top: 8px; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .agents-refresh-btn {
+    font-family: inherit; font-size: 9px; font-weight: 700; letter-spacing: 1.5px;
+    text-transform: uppercase; padding: 4px 10px; border: 1px solid var(--border);
+    background: transparent; color: var(--muted); cursor: pointer;
+    border-radius: 2px; transition: all 0.15s;
+  }
+  .agents-refresh-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+  .launchd-table td code { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--blue); }
 </style>
 </head>
 <body>
@@ -494,6 +545,24 @@
       </div>
     </div>
   </header>
+
+  <!-- TAB NAVIGATION + GLOBAL TIME FILTER -->
+  <div class="tab-nav">
+    <div class="tab-buttons">
+      <button class="tab-btn active" data-tab="dashboard" onclick="switchTab(this)">📊 Dashboard</button>
+      <button class="tab-btn"        data-tab="agents"    onclick="switchTab(this)">🤖 Agents</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <span style="font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-right:4px">PERIOD</span>
+      <button class="time-pill active" data-period="ALL"   onclick="setTimePeriod(this)">ALL</button>
+      <button class="time-pill"        data-period="7D"    onclick="setTimePeriod(this)">7D</button>
+      <button class="time-pill"        data-period="24H"   onclick="setTimePeriod(this)">24H</button>
+      <button class="time-pill"        data-period="TODAY" onclick="setTimePeriod(this)">TODAY</button>
+    </div>
+  </div>
+
+  <!-- DASHBOARD TAB -->
+  <div id="tab-dashboard" class="tab-content active">
 
   <!-- API error banner -->
   <div id="apiErrorBanner">
@@ -669,10 +738,6 @@
       <div class="panel-header">
         <div class="panel-title" id="signalLogTitle">Signal Log</div>
         <div class="filters-row">
-          <button class="time-pill active" data-period="ALL"   onclick="setTimePeriod(this)">ALL</button>
-          <button class="time-pill"        data-period="TODAY" onclick="setTimePeriod(this)">TODAY</button>
-          <button class="time-pill"        data-period="24H"   onclick="setTimePeriod(this)">24H</button>
-          <button class="time-pill"        data-period="7D"    onclick="setTimePeriod(this)">7D</button>
           <select id="filterDir"   class="filter-sel"><option value="ALL">ALL DIR</option><option value="UP">UP</option><option value="DOWN">DOWN</option></select>
           <select id="filterClass" class="filter-sel"><option value="ALL">ALL</option><option value="BET">BETS</option><option value="NO_BET">NO-BET</option></select>
         </div>
@@ -815,7 +880,84 @@
     <div class="config-hint">Table: <code>btc_predictions</code> · Capital: <code id="footerCapital">$20 USDC</code> · Refresh <code>60s</code></div>
   </footer>
 
-</div>
+  </div><!-- /#tab-dashboard -->
+
+  <!-- AGENTS TAB -->
+  <div id="tab-agents" class="tab-content">
+
+    <!-- n8n Workflows -->
+    <div class="agents-section-header">
+      <span>n8n Workflows</span>
+      <button class="agents-refresh-btn" onclick="refreshAgentsTab()">↻ Refresh</button>
+    </div>
+    <div id="n8nWorkflowsGrid" class="wf-grid">
+      <div style="grid-column:1/-1;padding:20px;color:var(--muted);font-size:11px;letter-spacing:1px">
+        Premi Refresh per caricare i workflow n8n.
+      </div>
+    </div>
+
+    <!-- launchd Agents -->
+    <div class="agents-section-header"><span>launchd Agents — Mac Local</span></div>
+    <div class="panel" style="margin-bottom:14px">
+      <div class="panel-header">
+        <div class="panel-title">Scheduled Tasks</div>
+        <div class="panel-tag tag-muted">LOCAL · macOS launchd</div>
+      </div>
+      <div class="table-wrap">
+        <table class="launchd-table">
+          <thead>
+            <tr>
+              <th>AGENT</th>
+              <th>LABEL</th>
+              <th>SCHEDULE</th>
+              <th>LOG</th>
+              <th>STATUS</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Health Monitor</td>
+              <td><code>com.btcbot.health</code></td>
+              <td>Every 1h</td>
+              <td style="color:var(--muted);font-size:10px">/tmp/btcbot_health.log</td>
+              <td><span class="badge badge-correct">ACTIVE</span></td>
+            </tr>
+            <tr>
+              <td>Daily Report</td>
+              <td><code>com.btcbot.daily</code></td>
+              <td>Daily 07:00</td>
+              <td style="color:var(--muted);font-size:10px">/tmp/btcbot_daily.log</td>
+              <td><span class="badge badge-correct">ACTIVE</span></td>
+            </tr>
+            <tr>
+              <td>Weekly Analysis</td>
+              <td><code>com.btcbot.weekly</code></td>
+              <td>Sun 08:00</td>
+              <td style="color:var(--muted);font-size:10px">/tmp/btcbot_weekly.log</td>
+              <td><span class="badge badge-correct">ACTIVE</span></td>
+            </tr>
+            <tr>
+              <td>Bet Monitor</td>
+              <td><code>com.btcbot.monitor_bets</code></td>
+              <td>Every 5min</td>
+              <td style="color:var(--muted);font-size:10px">/tmp/btcbot_monitor.log</td>
+              <td><span class="badge badge-correct">ACTIVE</span></td>
+            </tr>
+            <tr>
+              <td>XGBoost Retrain</td>
+              <td><code>com.btcbot.xgb_retrain</code></td>
+              <td>Sun 03:00</td>
+              <td style="color:var(--muted);font-size:10px">/tmp/btcbot_xgb_retrain.log</td>
+              <td><span class="badge badge-correct">ACTIVE</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /#tab-agents -->
+
+</div><!-- /.container -->
 <script>
 const CONFIG = {
   RAILWAY_URL: 'https://web-production-e27d0.up.railway.app',
@@ -1670,6 +1812,71 @@ async function refresh() {
 
 document.getElementById('filterDir').addEventListener('change',   () => renderTable(filterByPeriod(allData)));
 document.getElementById('filterClass').addEventListener('change', () => renderTable(filterByPeriod(allData)));
+
+// ── TAB SYSTEM ────────────────────────────────────────────────────────────────
+
+function switchTab(btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const targetTab = btn.dataset.tab;
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + targetTab).classList.add('active');
+  if (targetTab === 'agents') refreshAgentsTab();
+}
+
+// ── AGENTS TAB ────────────────────────────────────────────────────────────────
+
+async function refreshAgentsTab() {
+  const grid = document.getElementById('n8nWorkflowsGrid');
+  grid.innerHTML = '<div style="grid-column:1/-1;padding:20px;color:var(--muted);font-size:11px;letter-spacing:1px">Loading n8n workflows<span class="loading">...</span></div>';
+  try {
+    const res = await fetch(CONFIG.RAILWAY_URL + '/n8n-status', { signal: AbortSignal.timeout(15000) });
+    const data = res.ok ? await res.json() : null;
+    renderAgents(data);
+  } catch(e) {
+    renderAgents(null, e.message);
+  }
+}
+
+function renderAgents(data, errorMsg) {
+  const grid = document.getElementById('n8nWorkflowsGrid');
+  if (!data || data.status !== 'ok') {
+    const errDetail = errorMsg || (data && data.error) || 'Railway non raggiungibile';
+    const hint = (data && data.error && data.error.includes('N8N_API_KEY'))
+      ? '<br><span style="font-size:10px;color:var(--muted)">Configura <code style="color:var(--blue)">N8N_API_KEY</code> su Railway per abilitare questo pannello</span>'
+      : '';
+    grid.innerHTML = `<div style="grid-column:1/-1;padding:24px 16px;color:var(--danger);font-size:11px;letter-spacing:1px">⚠️ n8n status non disponibile: ${errDetail}${hint}</div>`;
+    return;
+  }
+  const wfs = data.workflows || [];
+  if (!wfs.length) {
+    grid.innerHTML = '<div style="grid-column:1/-1;padding:24px;color:var(--muted);font-size:11px">No workflows found</div>';
+    return;
+  }
+  grid.innerHTML = wfs.map(wf => {
+    const isActive = wf.active;
+    const lastEx   = wf.last_execution;
+    let lastExHtml = '<div class="wf-card-meta" style="color:var(--muted)">No executions</div>';
+    if (lastEx) {
+      const when = lastEx.started_at ? new Date(lastEx.started_at).toLocaleString('it-IT') : '—';
+      const statusTag = lastEx.status === 'success'
+        ? `<span class="panel-tag tag-green" style="font-size:8px">SUCCESS</span>`
+        : lastEx.status === 'error'
+          ? `<span class="panel-tag tag-red" style="font-size:8px">ERROR</span>`
+          : `<span class="panel-tag tag-yellow" style="font-size:8px">${(lastEx.status||'?').toUpperCase()}</span>`;
+      lastExHtml = `<div class="wf-card-meta">${statusTag}<span>${when}</span></div>`;
+    }
+    return `
+    <div class="wf-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+        <div class="wf-card-name">${wf.name || '—'}</div>
+        <span class="panel-tag ${isActive ? 'tag-green' : 'tag-muted'}" style="flex-shrink:0;font-size:8px">${isActive ? 'ACTIVE' : 'INACTIVE'}</span>
+      </div>
+      <div class="wf-card-id">${wf.id}</div>
+      ${lastExHtml}
+    </div>`;
+  }).join('');
+}
 
 // Start everything
 refresh();

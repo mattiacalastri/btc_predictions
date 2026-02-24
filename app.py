@@ -1053,6 +1053,58 @@ def bet_sizing():
     except Exception as e:
         return jsonify({"size": base_size, "reason": "error", "error": str(e)})
 
+# ── N8N STATUS (proxy) ───────────────────────────────────────────────────────
+
+@app.route("/n8n-status", methods=["GET"])
+def n8n_status():
+    """
+    Proxy verso n8n API — richiede N8N_API_KEY env var su Railway.
+    Ritorna lista workflow con id, name, active, last_execution.
+    """
+    n8n_key = os.environ.get("N8N_API_KEY", "")
+    n8n_url = os.environ.get("N8N_URL", "https://mattiacalastri.app.n8n.cloud")
+    if not n8n_key:
+        return jsonify({"status": "error", "error": "N8N_API_KEY not configured on Railway"}), 200
+
+    headers = {"X-N8N-API-KEY": n8n_key}
+    try:
+        r = requests.get(f"{n8n_url}/api/v1/workflows?limit=20", headers=headers, timeout=8)
+        if not r.ok:
+            return jsonify({"status": "error", "error": f"n8n HTTP {r.status_code}"}), 200
+
+        wfs = r.json().get("data", [])
+        result = []
+        for wf in wfs:
+            wf_data = {
+                "id":     wf.get("id"),
+                "name":   wf.get("name"),
+                "active": wf.get("active", False),
+            }
+            try:
+                ex_r = requests.get(
+                    f"{n8n_url}/api/v1/executions?workflowId={wf['id']}&limit=1",
+                    headers=headers, timeout=4
+                )
+                if ex_r.ok:
+                    executions = ex_r.json().get("data", [])
+                    if executions:
+                        last = executions[0]
+                        wf_data["last_execution"] = {
+                            "id":         last.get("id"),
+                            "status":     last.get("status"),
+                            "started_at": last.get("startedAt"),
+                            "stopped_at": last.get("stoppedAt"),
+                        }
+            except Exception:
+                pass
+            result.append(wf_data)
+
+        return jsonify({"status": "ok", "workflows": result, "ts": int(time.time())})
+
+    except Exception as e:
+        return jsonify({"status": "error", "error": str(e)[:120]}), 200
+
+
 # ── DASHBOARD ────────────────────────────────────────────────────────────────
 
 @app.route("/dashboard", methods=["GET"])
