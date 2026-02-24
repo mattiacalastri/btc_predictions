@@ -654,6 +654,126 @@
   margin-bottom: 10px;
   opacity: 0.6;
 }
+
+/* ═══════════════════════════════════════
+   LIVE POSITION WIDGET
+═══════════════════════════════════════ */
+  .live-pos-card {
+    display: grid;
+    grid-template-columns: 200px 1fr 160px;
+    gap: 0;
+    background: var(--card);
+    border: 1px solid rgba(0,255,136,0.25);
+    box-shadow: 0 0 24px rgba(0,255,136,0.06);
+    position: relative;
+    overflow: hidden;
+  }
+  .live-pos-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0,255,136,0.5), transparent);
+    animation: shimmer 3s linear infinite;
+  }
+  .lp-left {
+    padding: 16px 18px;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .lp-header { display: flex; align-items: center; gap: 7px; margin-bottom: 2px; }
+  .lp-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); animation: pulse 1s ease-in-out infinite; flex-shrink: 0; }
+  .lp-label { font-size: 9px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--accent); }
+  .lp-id   { font-size: 22px; font-weight: 800; font-family:'Syne',sans-serif; color: var(--text); letter-spacing: -0.5px; line-height: 1; }
+  .lp-dir  { font-size: 12px; font-weight: 700; letter-spacing: 1px; }
+  .lp-conf { font-size: 10px; font-weight: 700; color: var(--warn); letter-spacing: 1px; }
+  .lp-time { font-size: 9px; color: var(--muted); letter-spacing: 0.5px; line-height: 1.4; }
+  .lp-pnl  { font-size: 14px; font-weight: 700; letter-spacing: 0.5px; margin-top: 2px; }
+  .lp-size { font-size: 9px; color: var(--muted); letter-spacing: 1px; }
+
+  .lp-center {
+    padding: 14px 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+  }
+  .lp-gauge-header { display: flex; justify-content: space-between; font-size: 9px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; }
+  .lp-gauge-sl    { color: var(--danger); }
+  .lp-gauge-entry { color: var(--warn); }
+  .lp-gauge-tp    { color: var(--accent); }
+  .lp-gauge-track {
+    position: relative;
+    height: 8px;
+    background: linear-gradient(90deg, #ff4466 0%, #ffaa00 42%, #00ff88 100%);
+    border-radius: 4px;
+    margin: 6px 0;
+  }
+  .lp-gauge-marker {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    border: 2px solid var(--bg);
+    transition: left 1s ease;
+    z-index: 2;
+  }
+  .lp-gauge-marker.entry { width: 10px; height: 10px; background: var(--warn); box-shadow: 0 0 8px rgba(255,170,0,0.7); }
+  .lp-gauge-marker.live  { width: 16px; height: 16px; background: var(--text); box-shadow: 0 0 16px rgba(255,255,255,0.8); }
+  .lp-gauge-marker.live::after {
+    content: '';
+    position: absolute;
+    inset: -5px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.3);
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  .lp-gauge-footer { display: flex; align-items: center; justify-content: space-between; font-size: 9px; font-weight: 700; letter-spacing: 1px; }
+  .lp-current-price { font-size: 16px; font-weight: 900; font-family:'Syne',sans-serif; color: var(--text); letter-spacing: -0.5px; }
+
+  .lp-right {
+    padding: 14px 16px;
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .ai-cube-scene { width: 56px; height: 56px; perspective: 160px; }
+  .ai-cube {
+    width: 100%; height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    animation: cubeRotate 9s linear infinite;
+  }
+  @keyframes cubeRotate {
+    0%   { transform: rotateX(15deg) rotateY(0deg); }
+    100% { transform: rotateX(375deg) rotateY(360deg); }
+  }
+  .cube-face {
+    position: absolute;
+    width: 56px; height: 56px;
+    border: 1px solid rgba(0,255,136,0.2);
+    background: rgba(8,11,15,0.88);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 7px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+    color: rgba(0,255,136,0.8);
+  }
+  .ai-cube[data-state="profit"] .cube-face { color: var(--accent); border-color: rgba(0,255,136,0.4); box-shadow: inset 0 0 12px rgba(0,255,136,0.15); }
+  .ai-cube[data-state="loss"]   .cube-face { color: var(--danger); border-color: rgba(255,68,102,0.4); box-shadow: inset 0 0 12px rgba(255,68,102,0.15); }
+  .ai-cube[data-state="neutral"].cube-face { color: var(--warn);   border-color: rgba(255,170,0,0.4);  box-shadow: inset 0 0 12px rgba(255,170,0,0.12); }
+  .cube-face.cube-front  { transform: translateZ(28px); }
+  .cube-face.cube-back   { transform: rotateY(180deg)  translateZ(28px); }
+  .cube-face.cube-right  { transform: rotateY(90deg)   translateZ(28px); }
+  .cube-face.cube-left   { transform: rotateY(-90deg)  translateZ(28px); }
+  .cube-face.cube-top    { transform: rotateX(90deg)   translateZ(28px); }
+  .cube-face.cube-bottom { transform: rotateX(-90deg)  translateZ(28px); }
+  .ai-decision { display:flex; align-items:center; gap:5px; font-size:10px; font-weight:700; letter-spacing:1px; color:var(--text); text-align:center; }
+  .ai-status-dot { width:5px; height:5px; border-radius:50%; background:var(--accent); animation:pulse 1.5s ease-in-out infinite; flex-shrink:0; }
+  .ai-think-label { font-size:7px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
 </style>
 </head>
 <body>
@@ -759,6 +879,60 @@
     <div class="err-dot"></div>
     <span id="apiErrorMsg">Railway API non raggiungibile — dati non aggiornati</span>
     <span class="err-dismiss" onclick="document.getElementById('apiErrorBanner').classList.remove('visible')" title="Dismiss">✕</span>
+  </div>
+
+  <!-- ⬡ LIVE POSITION WIDGET -->
+  <div id="livePositionWidget" style="display:none;margin-bottom:16px">
+    <div class="live-pos-card">
+      <!-- LEFT: position info -->
+      <div class="lp-left">
+        <div class="lp-header">
+          <div class="lp-dot"></div>
+          <span class="lp-label">Live Position</span>
+        </div>
+        <div class="lp-id" id="lpBetId">#—</div>
+        <div class="lp-dir" id="lpDirection">—</div>
+        <div class="lp-conf" id="lpConfidence">—</div>
+        <div class="lp-time" id="lpOpenTime">—</div>
+        <div class="lp-pnl" id="lpPnl">—</div>
+        <div class="lp-size" id="lpSize">—</div>
+      </div>
+      <!-- CENTER: price gauge SL → TP -->
+      <div class="lp-center">
+        <div class="lp-gauge-header">
+          <span class="lp-gauge-sl" id="lpSlLabel">SL —</span>
+          <span class="lp-gauge-entry" id="lpEntryLabel">ENTRY —</span>
+          <span class="lp-gauge-tp" id="lpTpLabel">TP —</span>
+        </div>
+        <div class="lp-gauge-track">
+          <div class="lp-gauge-marker entry" id="lpEntryMarker" style="left:40%"></div>
+          <div class="lp-gauge-marker live"  id="lpLiveMarker"  style="left:50%"></div>
+        </div>
+        <div class="lp-gauge-footer">
+          <span style="color:var(--danger);font-size:9px">◀ SL</span>
+          <div class="lp-current-price" id="lpCurrentPrice">$—</div>
+          <span style="color:var(--accent);font-size:9px">TP ▶</span>
+        </div>
+      </div>
+      <!-- RIGHT: AI cube + decision -->
+      <div class="lp-right">
+        <div class="ai-cube-scene">
+          <div class="ai-cube" id="aiCube" data-state="neutral">
+            <div class="cube-face cube-front">AI</div>
+            <div class="cube-face cube-back">XGB</div>
+            <div class="cube-face cube-right">HOLD</div>
+            <div class="cube-face cube-left">EXIT</div>
+            <div class="cube-face cube-top" id="cubeFaceConf">—%</div>
+            <div class="cube-face cube-bottom">BOT</div>
+          </div>
+        </div>
+        <div class="ai-decision">
+          <span class="ai-status-dot"></span>
+          <span id="aiDecisionText">Monitoring</span>
+        </div>
+        <div class="ai-think-label">AI Exit Manager</div>
+      </div>
+    </div>
   </div>
 
   <!-- 9 KPI tiles -->
@@ -1480,6 +1654,70 @@ async function refreshAccountSummary() {
   if (data) renderAccountSummary(data);
 }
 
+// ── LIVE POSITION WIDGET ──────────────────────────────────────────────────────
+
+let _liveOpenBet = null;
+
+function renderLivePosition() {
+  if (!allData || !allData.length) return;
+  const openBet = allData.find(d => d.bet_taken === true && d.correct === null);
+  const widget  = document.getElementById('livePositionWidget');
+  if (!openBet) { widget.style.display = 'none'; _liveOpenBet = null; return; }
+  _liveOpenBet = openBet;
+  widget.style.display = 'block';
+
+  const entry   = parseFloat(openBet.entry_fill_price || openBet.btc_price_entry || 0);
+  const sl      = parseFloat(openBet.sl_price || 0);
+  const tp      = parseFloat(openBet.tp_price || 0);
+  const conf    = parseFloat(openBet.confidence || 0);
+  const dir     = openBet.direction || '—';
+  const size    = parseFloat(openBet.bet_size || 0);
+  const cur     = lastBtcPrice || entry;
+
+  const pnlUsd  = cur && entry ? (dir === 'UP' ? (cur - entry) * size : (entry - cur) * size) : 0;
+  const pnlPct  = entry ? ((cur - entry) / entry * 100 * (dir === 'UP' ? 1 : -1)).toFixed(2) : '0.00';
+
+  const range     = (sl > 0 && tp > 0) ? tp - sl : 0;
+  const entryPct  = range > 0 ? Math.max(1, Math.min(99, ((entry - sl) / range) * 100)) : 40;
+  const livePct   = range > 0 ? Math.max(1, Math.min(99, ((cur   - sl) / range) * 100)) : 50;
+
+  // DOM updates
+  document.getElementById('lpBetId').textContent       = '#' + openBet.id;
+  const dirEl = document.getElementById('lpDirection');
+  dirEl.textContent  = dir === 'UP' ? '↑ LONG UP' : '↓ SHORT DOWN';
+  dirEl.style.color  = dir === 'UP' ? 'var(--accent)' : 'var(--danger)';
+  document.getElementById('lpConfidence').textContent  = Math.round(conf * 100) + '% confidence';
+  document.getElementById('lpSize').textContent        = size.toFixed(4) + ' BTC · 0.00240 req';
+
+  try {
+    const created  = new Date(openBet.created_at);
+    const minsOpen = Math.round((Date.now() - created.getTime()) / 60000);
+    document.getElementById('lpOpenTime').textContent  = fmtDate(openBet.created_at) + ' · ' + minsOpen + 'min open';
+  } catch(e) {}
+
+  const pnlEl = document.getElementById('lpPnl');
+  const pos   = pnlUsd >= 0;
+  pnlEl.innerHTML = `<span style="color:${pos ? 'var(--accent)' : 'var(--danger)'}">${pos?'+':''}$${pnlUsd.toFixed(3)}</span>&nbsp;<span style="color:var(--muted)">(${pnlPct}%)</span>`;
+
+  if (sl > 0)    document.getElementById('lpSlLabel').textContent    = 'SL $'    + sl.toLocaleString('en-US',{maximumFractionDigits:0});
+  if (entry > 0) document.getElementById('lpEntryLabel').textContent = 'ENTRY $' + entry.toLocaleString('en-US',{maximumFractionDigits:0});
+  if (tp > 0)    document.getElementById('lpTpLabel').textContent    = 'TP $'    + tp.toLocaleString('en-US',{maximumFractionDigits:0});
+
+  document.getElementById('lpEntryMarker').style.left = entryPct + '%';
+  document.getElementById('lpLiveMarker').style.left  = livePct + '%';
+  document.getElementById('lpCurrentPrice').textContent = cur ? '$' + cur.toLocaleString('en-US',{maximumFractionDigits:0}) : '—';
+  document.getElementById('cubeFaceConf').textContent  = Math.round(conf * 100) + '%';
+
+  const cube  = document.getElementById('aiCube');
+  const state = pnlUsd > 0.05 ? 'profit' : pnlUsd < -0.05 ? 'loss' : 'neutral';
+  cube.dataset.state = state;
+
+  const aiText = document.getElementById('aiDecisionText');
+  if (Math.abs(pnlUsd) < 0.02) aiText.textContent = 'Flat — watching';
+  else if (pos) aiText.textContent = 'In profit — HOLD?';
+  else          aiText.textContent = 'In loss — evaluating';
+}
+
 // ── SIGNALS ──────────────────────────────────────────────────────────────────
 
 async function fetchData() {
@@ -1617,6 +1855,7 @@ async function fetchLiveBtcPrice() {
     }
     priceEl.textContent = '$' + price.toLocaleString('it-IT', { maximumFractionDigits: 0 });
     lastBtcPrice = price;
+    renderLivePosition(); // aggiorna gauge live ogni volta che arriva un nuovo prezzo
   } catch(e) {
     const priceEl = document.getElementById('btcLivePrice');
     if (priceEl.textContent === '—' && allData.length) {
@@ -1633,6 +1872,7 @@ function renderAll(data) {
     ? 'Signal Log'
     : `Signal Log · ${filtered.length} signals (${currentPeriod})`;
   render(filtered);
+  renderLivePosition(); // mostra widget se c'è posizione aperta
 }
 
 function render(data) {
