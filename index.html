@@ -1266,7 +1266,10 @@
     <div class="panel" style="margin-bottom:14px">
       <div class="panel-header">
         <div class="panel-title">Scheduled Tasks</div>
-        <div class="panel-tag tag-muted">LOCAL · macOS launchd</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div class="panel-tag tag-muted">LOCAL · macOS launchd</div>
+          <div id="launchdClock" style="font-size:9px;color:var(--muted);font-family:monospace;letter-spacing:1px"></div>
+        </div>
       </div>
       <div class="table-wrap">
         <table class="launchd-table">
@@ -1275,46 +1278,13 @@
               <th>AGENT</th>
               <th>LABEL</th>
               <th>SCHEDULE</th>
+              <th>NEXT RUN</th>
               <th>LOG</th>
               <th>STATUS</th>
             </tr>
           </thead>
-          <tbody>
-            <tr>
-              <td>Health Monitor</td>
-              <td><code>com.btcbot.health</code></td>
-              <td>Every 1h</td>
-              <td style="color:var(--muted);font-size:10px">/tmp/btcbot_health.log</td>
-              <td><span class="badge badge-correct">ACTIVE</span></td>
-            </tr>
-            <tr>
-              <td>Daily Report</td>
-              <td><code>com.btcbot.daily</code></td>
-              <td>Daily 07:00</td>
-              <td style="color:var(--muted);font-size:10px">/tmp/btcbot_daily.log</td>
-              <td><span class="badge badge-correct">ACTIVE</span></td>
-            </tr>
-            <tr>
-              <td>Weekly Analysis</td>
-              <td><code>com.btcbot.weekly</code></td>
-              <td>Sun 08:00</td>
-              <td style="color:var(--muted);font-size:10px">/tmp/btcbot_weekly.log</td>
-              <td><span class="badge badge-correct">ACTIVE</span></td>
-            </tr>
-            <tr>
-              <td>Bet Monitor</td>
-              <td><code>com.btcbot.monitor_bets</code></td>
-              <td>Every 5min</td>
-              <td style="color:var(--muted);font-size:10px">/tmp/btcbot_monitor.log</td>
-              <td><span class="badge badge-correct">ACTIVE</span></td>
-            </tr>
-            <tr>
-              <td>XGBoost Retrain</td>
-              <td><code>com.btcbot.xgb_retrain</code></td>
-              <td>Sun 03:00</td>
-              <td style="color:var(--muted);font-size:10px">/tmp/btcbot_xgb_retrain.log</td>
-              <td><span class="badge badge-correct">ACTIVE</span></td>
-            </tr>
+          <tbody id="launchdBody">
+            <!-- filled by renderLaunchdTasks() -->
           </tbody>
         </table>
       </div>
@@ -2400,9 +2370,75 @@ function switchTab(btn) {
 
 // ── AGENTS TAB ────────────────────────────────────────────────────────────────
 
+// ── launchd tasks config ───────────────────────────────────────────────────
+const LAUNCHD_TASKS = [
+  { icon:'💓', name:'Health Monitor',  label:'com.btcbot.health',       schedule:'every_1h',   log:'/tmp/btcbot_health.log' },
+  { icon:'📊', name:'Daily Report',    label:'com.btcbot.daily',         schedule:'daily_0700', log:'/tmp/btcbot_daily.log' },
+  { icon:'📈', name:'Weekly Analysis', label:'com.btcbot.weekly',        schedule:'sun_0800',   log:'/tmp/btcbot_weekly.log' },
+  { icon:'👁', name:'Bet Monitor',     label:'com.btcbot.monitor_bets',  schedule:'every_5m',   log:'/tmp/btcbot_monitor.log' },
+  { icon:'🤖', name:'XGB Retrain',     label:'com.btcbot.xgb_retrain',   schedule:'sun_0300',   log:'/tmp/btcbot_xgb_retrain.log' },
+];
+
+function _launchdScheduleLabel(s) {
+  return { every_5m:'Every 5min', every_1h:'Every 1h', daily_0700:'Daily 07:00 UTC+1', sun_0800:'Sun 08:00 UTC+1', sun_0300:'Sun 03:00 UTC+1' }[s] || s;
+}
+
+function _launchdNextRun(schedule) {
+  const now = new Date();
+  let next  = new Date(now);
+  if (schedule === 'every_5m') {
+    const ms = (5 - (now.getMinutes() % 5)) * 60000 - now.getSeconds() * 1000 - now.getMilliseconds();
+    next = new Date(now.getTime() + ms);
+  } else if (schedule === 'every_1h') {
+    next.setMinutes(0, 0, 0);
+    next = new Date(next.getTime() + 3600000);
+  } else if (schedule === 'daily_0700') {
+    next.setHours(7, 0, 0, 0);
+    if (next <= now) next.setDate(next.getDate() + 1);
+  } else if (schedule === 'sun_0800') {
+    const d = (7 - now.getDay()) % 7 || 7;
+    next.setDate(next.getDate() + d); next.setHours(8, 0, 0, 0);
+  } else if (schedule === 'sun_0300') {
+    const d = (7 - now.getDay()) % 7 || 7;
+    next.setDate(next.getDate() + d); next.setHours(3, 0, 0, 0);
+  }
+  const diff = next - now;
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+  if (h > 47) return 'in ' + Math.ceil(h / 24) + 'd';
+  if (h > 0)  return 'in ' + h + 'h ' + m + 'm';
+  if (m > 0)  return 'in ' + m + 'm ' + s + 's';
+  return 'in ' + s + 's';
+}
+
+function renderLaunchdTasks() {
+  const tbody = document.getElementById('launchdBody');
+  if (!tbody) return;
+  tbody.innerHTML = LAUNCHD_TASKS.map(t => `
+    <tr>
+      <td><span style="margin-right:6px">${t.icon}</span>${t.name}</td>
+      <td><code style="font-size:9px;color:var(--blue)">${t.label}</code></td>
+      <td style="color:var(--muted);font-size:10px">${_launchdScheduleLabel(t.schedule)}</td>
+      <td style="font-family:monospace;font-size:10px;color:var(--accent)" class="launchd-next" data-schedule="${t.schedule}">${_launchdNextRun(t.schedule)}</td>
+      <td style="color:var(--muted);font-size:10px">${t.log}</td>
+      <td><span class="badge badge-correct">ACTIVE</span></td>
+    </tr>`).join('');
+}
+
+// Live countdown + clock for launchd
+setInterval(() => {
+  document.querySelectorAll('.launchd-next').forEach(el => {
+    el.textContent = _launchdNextRun(el.dataset.schedule);
+  });
+  const clk = document.getElementById('launchdClock');
+  if (clk) clk.textContent = new Date().toLocaleTimeString('it-IT');
+}, 1000);
+
 async function refreshAgentsTab() {
   const grid = document.getElementById('n8nWorkflowsGrid');
   grid.innerHTML = '<div style="grid-column:1/-1;padding:20px;color:var(--muted);font-size:11px;letter-spacing:1px">Loading n8n workflows<span class="loading">...</span></div>';
+  renderLaunchdTasks();
   try {
     const res = await fetch(CONFIG.RAILWAY_URL + '/n8n-status', { signal: AbortSignal.timeout(15000) });
     const data = res.ok ? await res.json() : null;
@@ -2410,6 +2446,18 @@ async function refreshAgentsTab() {
   } catch(e) {
     renderAgents(null, e.message);
   }
+}
+
+function _agentRelTime(iso) {
+  if (!iso) return '—';
+  const diff = Date.now() - new Date(iso).getTime();
+  const s = Math.floor(diff / 1000);
+  if (s < 60)  return s + 's ago';
+  const m = Math.floor(s / 60);
+  if (m < 60)  return m + 'm ago';
+  const h = Math.floor(m / 60);
+  if (h < 24)  return h + 'h ago';
+  return Math.floor(h / 24) + 'd ago';
 }
 
 function renderAgents(data, errorMsg) {
@@ -2428,26 +2476,66 @@ function renderAgents(data, errorMsg) {
     return;
   }
   grid.innerHTML = wfs.map(wf => {
-    const isActive = wf.active;
-    const lastEx   = wf.last_execution;
-    let lastExHtml = '<div class="wf-card-meta" style="color:var(--muted)">No executions</div>';
-    if (lastEx) {
-      const when = lastEx.started_at ? new Date(lastEx.started_at).toLocaleString('it-IT') : '—';
-      const statusTag = lastEx.status === 'success'
-        ? `<span class="panel-tag tag-green" style="font-size:8px">SUCCESS</span>`
-        : lastEx.status === 'error'
-          ? `<span class="panel-tag tag-red" style="font-size:8px">ERROR</span>`
-          : `<span class="panel-tag tag-yellow" style="font-size:8px">${(lastEx.status||'?').toUpperCase()}</span>`;
-      lastExHtml = `<div class="wf-card-meta">${statusTag}<span>${when}</span></div>`;
+    const isActive     = wf.active;
+    const lastEx       = wf.last_execution;
+    const status       = lastEx?.status || null;
+    const execHistory  = wf.exec_history || [];
+    const successRate  = wf.success_rate;
+
+    // Health color: green=active+success, red=crashed/error, yellow=active+unknown, gray=inactive
+    let borderCol, dotCol, dotGlow;
+    if (!isActive) {
+      borderCol = '#2a2a2a'; dotCol = '#444'; dotGlow = '';
+    } else if (status === 'success') {
+      borderCol = 'var(--green)'; dotCol = 'var(--green)'; dotGlow = '0 0 6px var(--green)';
+    } else if (status === 'crashed' || status === 'error') {
+      borderCol = 'var(--danger)'; dotCol = 'var(--danger)'; dotGlow = '0 0 6px var(--danger)';
+    } else {
+      borderCol = 'var(--warn)'; dotCol = 'var(--warn)'; dotGlow = '0 0 4px var(--warn)';
     }
+
+    // Status badge
+    let statusBadge = '<span style="font-size:9px;color:var(--muted)">—</span>';
+    if (status === 'success')
+      statusBadge = `<span class="panel-tag tag-green" style="font-size:8px;padding:2px 6px">✓ SUCCESS</span>`;
+    else if (status === 'crashed')
+      statusBadge = `<span class="panel-tag tag-red" style="font-size:8px;padding:2px 6px">⚡ CRASHED</span>`;
+    else if (status === 'error')
+      statusBadge = `<span class="panel-tag tag-red" style="font-size:8px;padding:2px 6px">✗ ERROR</span>`;
+    else if (status)
+      statusBadge = `<span class="panel-tag tag-yellow" style="font-size:8px;padding:2px 6px">${status.toUpperCase()}</span>`;
+
+    // Sparkline — last 5 executions as colored squares
+    let sparkline = '';
+    if (execHistory.length) {
+      const dots = execHistory.map(s => {
+        const col = s === 'success' ? 'var(--green)' : (s === 'crashed' || s === 'error') ? 'var(--danger)' : '#3a3a3a';
+        return `<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${col}" title="${s}"></span>`;
+      }).join('');
+      const srLabel = successRate != null
+        ? `<span style="font-size:9px;color:${successRate>=80?'var(--green)':successRate>=50?'var(--warn)':'var(--danger)'};">${successRate}%</span>`
+        : '';
+      sparkline = `<div style="display:flex;gap:3px;align-items:center;margin-top:8px">${dots}${srLabel ? '<span style="margin-left:5px">'+srLabel+'</span>' : ''}</div>`;
+    }
+
+    const relT = lastEx?.started_at ? _agentRelTime(lastEx.started_at) : 'No executions';
+    const absT = lastEx?.started_at ? new Date(lastEx.started_at).toLocaleString('it-IT') : '';
+
     return `
-    <div class="wf-card">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
-        <div class="wf-card-name">${wf.name || '—'}</div>
+    <div class="wf-card" style="border-left:3px solid ${borderCol};padding-left:12px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <div style="display:flex;align-items:center;gap:7px;min-width:0">
+          <span style="width:7px;height:7px;border-radius:50%;background:${dotCol};box-shadow:${dotGlow};flex-shrink:0"></span>
+          <div class="wf-card-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${wf.name || '—'}</div>
+        </div>
         <span class="panel-tag ${isActive ? 'tag-green' : 'tag-muted'}" style="flex-shrink:0;font-size:8px">${isActive ? 'ACTIVE' : 'INACTIVE'}</span>
       </div>
-      <div class="wf-card-id">${wf.id}</div>
-      ${lastExHtml}
+      <div class="wf-card-id" style="margin-top:3px">${wf.id}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+        ${statusBadge}
+        <span style="font-size:10px;color:var(--muted);cursor:default" title="${absT}">${relT}</span>
+      </div>
+      ${sparkline}
     </div>`;
   }).join('');
 }
