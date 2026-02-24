@@ -718,7 +718,7 @@ def get_signals():
 @app.route("/bet-sizing", methods=["GET"])
 def bet_sizing():
     base_size = float(request.args.get("base_size", 0.002))
-    confidence = float(request.args.get("confidence", 0.60))
+    confidence = float(request.args.get("confidence", 0.62))
 
     try:
         supabase_url = os.environ.get("SUPABASE_URL", "")
