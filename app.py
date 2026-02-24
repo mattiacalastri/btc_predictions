@@ -54,6 +54,95 @@ def get_calibrated_wr(conf):
             return wr
     return 0.50
 
+# ── Auto-calibration: ore morte (aggiornato da /reload-calibration) ───────────
+DEAD_HOURS_UTC: set = {18, 19, 20}
+
+def refresh_calibration():
+    """Aggiorna CONF_CALIBRATION da WR reale Supabase per bucket di confidence."""
+    global CONF_CALIBRATION
+    sb_url = os.environ.get("SUPABASE_URL", "")
+    sb_key = os.environ.get("SUPABASE_KEY", "")
+    if not sb_url or not sb_key:
+        return {"ok": False, "error": "no_supabase_env"}
+    try:
+        r = requests.get(
+            f"{sb_url}/rest/v1/btc_predictions"
+            "?select=confidence,correct&bet_taken=eq.true&correct=not.is.null",
+            headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
+            timeout=8,
+        )
+        rows = r.json() if r.ok else []
+        if len(rows) < 20:
+            return {"ok": False, "error": "insufficient_data", "count": len(rows)}
+        buckets = {(0.50,0.55):[],(0.55,0.60):[],(0.60,0.62):[],(0.62,0.65):[],(0.65,0.70):[],(0.70,1.00):[]}
+        for row in rows:
+            conf = float(row.get("confidence") or 0)
+            c = row.get("correct")
+            if c is None:
+                continue
+            for (lo, hi) in buckets:
+                if lo <= conf < hi:
+                    buckets[(lo, hi)].append(1 if c else 0)
+                    break
+        new_cal, stats = {}, {}
+        for (lo, hi), vals in buckets.items():
+            key = f"{lo:.2f}-{hi:.2f}"
+            if len(vals) >= 5:
+                wr = sum(vals) / len(vals)
+                new_cal[(lo, hi)] = round(wr, 3)
+                stats[key] = {"wr": round(wr, 3), "n": len(vals)}
+            else:
+                new_cal[(lo, hi)] = CONF_CALIBRATION.get((lo, hi), 0.50)
+                stats[key] = {"wr": new_cal[(lo, hi)], "n": len(vals), "fallback": True}
+        CONF_CALIBRATION = new_cal
+        print(f"[CAL] Calibration updated: {stats}")
+        return {"ok": True, "stats": stats, "total_rows": len(rows)}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+def refresh_dead_hours():
+    """Aggiorna DEAD_HOURS_UTC: ore con WR < 45% e almeno 5 bet da Supabase."""
+    global DEAD_HOURS_UTC
+    sb_url = os.environ.get("SUPABASE_URL", "")
+    sb_key = os.environ.get("SUPABASE_KEY", "")
+    if not sb_url or not sb_key:
+        return {"ok": False, "error": "no_supabase_env"}
+    try:
+        r = requests.get(
+            f"{sb_url}/rest/v1/btc_predictions"
+            "?select=hour_utc,correct&bet_taken=eq.true&correct=not.is.null",
+            headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
+            timeout=8,
+        )
+        rows = r.json() if r.ok else []
+        if len(rows) < 20:
+            return {"ok": False, "error": "insufficient_data"}
+        from collections import defaultdict
+        hour_data: dict = defaultdict(list)
+        for row in rows:
+            h = row.get("hour_utc")
+            c = row.get("correct")
+            if h is not None and c is not None:
+                hour_data[int(h)].append(1 if c else 0)
+        dead, hour_stats = set(), {}
+        for h, vals in sorted(hour_data.items()):
+            wr = sum(vals) / len(vals) if vals else 0.5
+            hour_stats[h] = {"wr": round(wr, 3), "n": len(vals)}
+            if len(vals) >= 5 and wr < 0.45:
+                dead.add(h)
+        DEAD_HOURS_UTC = dead if dead else {18, 19, 20}
+        print(f"[CAL] Dead hours updated: {sorted(DEAD_HOURS_UTC)}")
+        return {"ok": True, "dead_hours": sorted(DEAD_HOURS_UTC), "hour_stats": hour_stats}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+# Refresh calibration all'avvio (non-blocking)
+try:
+    refresh_calibration()
+    refresh_dead_hours()
+except Exception:
+    pass
+
 API_KEY = os.environ.get("KRAKEN_FUTURES_API_KEY", "")
 API_SECRET = os.environ.get("KRAKEN_FUTURES_API_SECRET", "")
 DEFAULT_SYMBOL = os.environ.get("KRAKEN_DEFAULT_SYMBOL", "PF_XBTUSD")
@@ -376,8 +465,7 @@ def place_bet():
     if direction not in ("UP", "DOWN"):
         return jsonify({"status": "failed", "error": "invalid_direction"}), 400
 
-    # P0.2 — filtro ore morte (WR storico < 45% UTC): 18h, 19h, 20h
-    DEAD_HOURS_UTC = {18, 19, 20}
+    # P0.2 — filtro ore morte (WR storico < 45% UTC, aggiornato da /reload-calibration)
     current_hour_utc = time.gmtime().tm_hour
     if current_hour_utc in DEAD_HOURS_UTC:
         return jsonify({
@@ -1245,6 +1333,22 @@ def rescue_orphaned():
         "rescued": rescued,
         "skipped": skipped,
         "active_wf02_execs": len(active_execs),
+    })
+
+
+@app.route("/reload-calibration", methods=["POST"])
+def reload_calibration():
+    """
+    Aggiorna CONF_CALIBRATION e DEAD_HOURS_UTC da dati Supabase live.
+    Chiamato da launchd dopo ogni retrain XGBoost (POST su Railway URL).
+    """
+    cal_result  = refresh_calibration()
+    dead_result = refresh_dead_hours()
+    return jsonify({
+        "calibration":      cal_result,
+        "dead_hours":       dead_result,
+        "conf_calibration": {f"{k[0]:.2f}-{k[1]:.2f}": v for k, v in CONF_CALIBRATION.items()},
+        "dead_hours_utc":   sorted(DEAD_HOURS_UTC),
     })
 
 
