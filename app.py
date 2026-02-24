@@ -157,6 +157,18 @@ DRY_RUN = os.environ.get("DRY_RUN", "false").lower() in ("true", "1", "yes")
 _costs_cache = {"data": None, "ts": 0.0}
 
 
+def _check_api_key():
+    """Verifica X-API-Key header se BOT_API_KEY env var è impostata.
+    Retrocompatibile: se BOT_API_KEY non configurata, passa tutto.
+    """
+    bot_key = os.environ.get("BOT_API_KEY")
+    if not bot_key:
+        return None
+    if request.headers.get("X-API-Key") != bot_key:
+        return jsonify({"error": "Unauthorized"}), 401
+    return None
+
+
 # ── SDK clients ──────────────────────────────────────────────────────────────
 
 def get_trade_client():
@@ -1280,6 +1292,9 @@ def rescue_orphaned():
     Controlla bet orfane (bet_taken=true, correct=null) e ri-triggera wf02 per ognuna.
     Chiamare periodicamente da launchd ogni 5 minuti.
     """
+    err = _check_api_key()
+    if err:
+        return err
     n8n_key = os.environ.get("N8N_API_KEY", "")
     n8n_url = os.environ.get("N8N_URL", "https://mattiacalastri.app.n8n.cloud")
     supabase_url = os.environ.get("SUPABASE_URL", "")
@@ -1378,6 +1393,9 @@ def reload_calibration():
     Aggiorna CONF_CALIBRATION e DEAD_HOURS_UTC da dati Supabase live.
     Chiamato da launchd dopo ogni retrain XGBoost (POST su Railway URL).
     """
+    err = _check_api_key()
+    if err:
+        return err
     cal_result  = refresh_calibration()
     dead_result = refresh_dead_hours()
     return jsonify({
@@ -1907,6 +1925,25 @@ def n8n_status():
     except Exception as e:
         return jsonify({"status": "error", "error": str(e)[:120]}), 200
 
+
+
+
+# ── BACKTEST REPORT ──────────────────────────────────────────────────────────
+
+@app.route("/backtest-report", methods=["GET"])
+def backtest_report():
+    """Return last walk-forward backtest report."""
+    import os as _os
+    report_path = _os.path.join(_os.path.dirname(__file__), "datasets", "backtest_report.txt")
+    if not _os.path.exists(report_path):
+        return jsonify({"error": "No backtest report found. Run backtest.py first."}), 404
+    try:
+        with open(report_path, "r") as f:
+            content = f.read()
+        lines = content.strip().split("\n")
+        return jsonify({"report": content, "lines": len(lines), "ok": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # ── DASHBOARD ────────────────────────────────────────────────────────────────
 

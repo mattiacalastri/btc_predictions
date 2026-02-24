@@ -1319,6 +1319,12 @@
       </div>
     </div>
 
+
+  <!-- Backtest Report Panel -->
+  <div class="panel" style="margin-top:16px">
+    <div class="panel-title">Walk-Forward Backtest <span id="backtestBadge" style="font-size:11px;font-weight:400;opacity:0.6">loading...</span></div>
+    <pre id="backtestReportPre" style="font-size:11px;line-height:1.5;white-space:pre-wrap;overflow-x:auto;max-height:320px;overflow-y:auto;background:#111;padding:12px;border-radius:6px;color:#ccc">Loading...</pre>
+  </div>
   </div><!-- /#tab-agents -->
 
   <!-- COSTS TAB -->
@@ -2312,6 +2318,7 @@ async function refreshAgentsTab() {
     const res = await fetch(CONFIG.RAILWAY_URL + '/n8n-status', { signal: AbortSignal.timeout(15000) });
     const data = res.ok ? await res.json() : null;
     renderAgents(data);
+    fetchBacktestReport();
   } catch(e) {
     renderAgents(null, e.message);
   }
@@ -2355,6 +2362,19 @@ function renderAgents(data, errorMsg) {
       ${lastExHtml}
     </div>`;
   }).join('');
+}
+
+
+async function fetchBacktestReport() {
+  try {
+    const res = await fetch(CONFIG.RAILWAY_URL + '/backtest-report', { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) { document.getElementById('backtestReportPre').textContent = 'Report non disponibile.'; return; }
+    const d = await res.json();
+    document.getElementById('backtestReportPre').textContent = d.report || 'Vuoto.';
+    document.getElementById('backtestBadge').textContent = d.lines + ' righe';
+  } catch(e) {
+    document.getElementById('backtestReportPre').textContent = 'Errore: ' + e.message;
+  }
 }
 
 // Start everything
