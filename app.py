@@ -32,6 +32,7 @@ API_SECRET = os.environ.get("KRAKEN_FUTURES_API_SECRET", "")
 DEFAULT_SYMBOL = os.environ.get("KRAKEN_DEFAULT_SYMBOL", "PF_XBTUSD")
 KRAKEN_BASE = "https://futures.kraken.com"
 DRY_RUN = os.environ.get("DRY_RUN", "false").lower() in ("true", "1", "yes")
+_costs_cache = {"data": None, "ts": 0.0}
 
 
 # ── SDK clients ──────────────────────────────────────────────────────────────
@@ -1151,6 +1152,119 @@ def rescue_orphaned():
         "rescued": rescued,
         "skipped": skipped,
         "active_wf02_execs": len(active_execs),
+    })
+
+
+@app.route("/costs", methods=["GET"])
+def costs():
+    """
+    Breakdown costi reali + stimati delle piattaforme usate dal bot.
+    Cache 10 minuti sulla parte n8n executions.
+    """
+    global _costs_cache
+    sb_url = os.environ.get("SUPABASE_URL", "")
+    sb_key = os.environ.get("SUPABASE_KEY", "")
+    sb_headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
+
+    # ── 1. Kraken fees (reali da Supabase) ───────────────────────────────────
+    kraken_fees_total = 0.0
+    trade_count = 0
+    try:
+        url = (f"{sb_url}/rest/v1/btc_predictions"
+               f"?select=fees_total&bet_taken=eq.true&correct=not.is.null")
+        res = requests.get(url, headers=sb_headers, timeout=5)
+        rows = res.json() if res.ok else []
+        fees_list = [float(r["fees_total"]) for r in rows if r.get("fees_total") is not None]
+        kraken_fees_total = round(sum(fees_list), 4)
+        trade_count = len(rows)
+    except Exception:
+        pass
+
+    avg_per_trade = round(kraken_fees_total / trade_count, 6) if trade_count > 0 else 0.0
+
+    # ── 2. Supabase row count (reale) ─────────────────────────────────────────
+    row_count = 0
+    try:
+        url = f"{sb_url}/rest/v1/btc_predictions?select=id"
+        res = requests.get(url, headers={**sb_headers, "Prefer": "count=exact"}, timeout=5)
+        cr = res.headers.get("Content-Range", "")
+        if "/" in cr:
+            row_count = int(cr.split("/")[1])
+    except Exception:
+        pass
+
+    # ── 3. n8n executions (cached 10min) ─────────────────────────────────────
+    now = time.time()
+    use_cache = _costs_cache["data"] is not None and (now - _costs_cache["ts"]) < 600
+    n8n_exec_est = 0
+    cached = False
+    if use_cache:
+        n8n_exec_est = _costs_cache["data"].get("n8n_exec_est", 0)
+        cached = True
+    else:
+        try:
+            n8n_key = os.environ.get("N8N_API_KEY", "")
+            n8n_url_base = os.environ.get("N8N_URL", "https://mattiacalastri.app.n8n.cloud")
+            if n8n_key:
+                r = requests.get(
+                    f"{n8n_url_base}/api/v1/executions?workflowId=kaevyOIbHpm8vJmF&limit=100",
+                    headers={"X-N8N-API-KEY": n8n_key},
+                    timeout=8,
+                )
+                if r.ok:
+                    count_wf01 = len(r.json().get("data", []))
+                    n8n_exec_est = count_wf01 * 6  # stima ×6 workflow attivi
+        except Exception:
+            pass
+        _costs_cache["data"] = {"n8n_exec_est": n8n_exec_est}
+        _costs_cache["ts"] = now
+
+    n8n_limit = int(os.environ.get("N8N_EXECUTION_LIMIT", 2500))
+    n8n_pct = round(n8n_exec_est / n8n_limit * 100, 1) if n8n_limit > 0 else 0.0
+    n8n_cost = 20.0  # piano Starter
+
+    # ── 4. LLM stima ─────────────────────────────────────────────────────────
+    claude_model = os.environ.get("CLAUDE_MODEL", "claude-haiku-4-5")
+    # wf01 ogni 6min → ~240 call/giorno; usiamo n8n_exec_est/6 come proxy mensile
+    calls_est = max(1, n8n_exec_est // 6) if n8n_exec_est > 0 else 240
+    # Haiku: $0.80/1M input, $4/1M output — ~3000 token in + 500 out per call
+    cost_per_call = (3000 * 0.80 / 1_000_000) + (500 * 4.0 / 1_000_000)
+    llm_cost = round(calls_est * cost_per_call, 4)
+
+    # ── 5. Railway (statico) ──────────────────────────────────────────────────
+    railway_plan = os.environ.get("RAILWAY_PLAN", "free").lower()
+    railway_cost = 5.0 if railway_plan == "hobby" else 0.0
+
+    total = round(kraken_fees_total + 0.0 + n8n_cost + llm_cost + railway_cost, 4)
+
+    return jsonify({
+        "kraken_fees": {
+            "total_usd": kraken_fees_total,
+            "trade_count": trade_count,
+            "avg_per_trade": avg_per_trade,
+        },
+        "supabase": {
+            "row_count": row_count,
+            "plan": "free",
+            "cost_usd": 0.0,
+        },
+        "n8n": {
+            "executions_est": n8n_exec_est,
+            "limit": n8n_limit,
+            "pct_used": n8n_pct,
+            "cost_usd": n8n_cost,
+        },
+        "llm": {
+            "model": claude_model,
+            "calls_est": calls_est,
+            "cost_usd": llm_cost,
+        },
+        "railway": {
+            "plan": railway_plan,
+            "cost_usd": railway_cost,
+        },
+        "total_usd": total,
+        "cached": cached,
     })
 
 
