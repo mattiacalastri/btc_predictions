@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-02-24 22:13:06",
-  "total_bets": 193,
-  "overall_wr": 0.5337,
+  "generated_at": "2026-02-24 23:01:56",
+  "total_bets": 194,
+  "overall_wr": 0.5361,
   "worst_patterns": [
     {
       "type": "hour",
@@ -64,10 +64,10 @@
     {
       "type": "direction",
       "label": "Direzione UP",
-      "n": 73,
-      "wr": 0.479,
-      "wr_pct": 47.9,
-      "pnl": 0.0369,
+      "n": 74,
+      "wr": 0.486,
+      "wr_pct": 48.6,
+      "pnl": 0.2387,
       "severity": "neutral"
     },
     {
@@ -80,5 +80,5 @@
       "severity": "neutral"
     }
   ],
-  "prompt_snippet": "📊 CALIBRAZIONE LIVE (193 bet chiuse, WR globale 53%):\n⚠️ Pattern negativi — EVITARE:\n  • Ora 22h UTC: WR 37.5% su 8 bet, PnL -0.13$\n  • Ora 12h UTC: WR 38.5% su 13 bet, PnL -0.21$\n✅ Pattern positivi — FAVORIRE:\n  • Ora 06h UTC: WR 75.0% su 8 bet, PnL +0.39$"
+  "prompt_snippet": "📊 CALIBRAZIONE LIVE (194 bet chiuse, WR globale 54%):\n⚠️ Pattern negativi — EVITARE:\n  • Ora 22h UTC: WR 37.5% su 8 bet, PnL -0.13$\n  • Ora 12h UTC: WR 38.5% su 13 bet, PnL -0.21$\n✅ Pattern positivi — FAVORIRE:\n  • Ora 06h UTC: WR 75.0% su 8 bet, PnL +0.39$"
 }

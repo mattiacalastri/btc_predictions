@@ -1,42 +1,42 @@
 ╔══════════════════════════════════════════════════════╗
-  BTC Prediction Bot — Walk-Forward Backtest  2026-02-24 21:29:59
+  BTC Prediction Bot — Walk-Forward Backtest  2026-02-25 00:01:40
 ╚══════════════════════════════════════════════════════╝
 
 [1/5] Fetching bet da Supabase...
-  Bet totali con pnl_usd: 143
+  Bet totali con pnl_usd: 145
   Periodo: 2026-02-22 → 2026-02-24
 
 [2/5] Walk-forward split (train 70% / test 30%)
-  TRAIN: 100 bet  (2026-02-22 → 2026-02-23)
-  TEST:  43  bet  (2026-02-23  → 2026-02-24)
-  WR train: 53.0%  |  WR test: 51.2%
+  TRAIN: 101 bet  (2026-02-22 → 2026-02-23)
+  TEST:  44  bet  (2026-02-23  → 2026-02-24)
+  WR train: 52.5%  |  WR test: 52.3%
 
 [3/5] Calcolo parametri da TRAIN set...
   Dead hours (WR < 45% su train): [5, 12, 13, 15, 18, 19, 22]
-  XGB direction: CV acc 92.0%
+  XGB direction: CV acc 92.1%
 
-[4/5] Simulazione strategie su TEST set (43 bet)...
+[4/5] Simulazione strategie su TEST set (44 bet)...
 
-[5/5] Risultati walk-forward (test set: 43 bet)
+[5/5] Risultati walk-forward (test set: 44 bet)
 
   Strategia             N      WR         PnL     $/bet     MaxDD     PF  Sortino   Sharpe
   ────────────────────────────────────────────────────────────────────────────────────────
-  A_BASELINE            43   51.2%    +$0.2477  +$0.0058  -$2.2223   1.05     0.18     0.11
-  B_CONF_062            35   57.1%    +$1.3488  +$0.0385  -$1.2033   1.40     0.97     0.65
-  C_CONF_065            30   60.0%    +$1.4116  +$0.0471  -$1.1405   1.46     1.06     0.69
-  D_DEAD_HOURS          31   54.8%    +$0.5414  +$0.0175  -$1.2033   1.17     0.40     0.28
-  E_XGB_GATE            30   56.7%    +$0.3677  +$0.0123  -$1.4216   1.13     0.29     0.23
-  F_FULL_STACK          26   53.8%    -$0.4397  -$0.0169  -$1.4216   0.83    -0.36    -0.31 ◀ CURRENT
+  A_BASELINE            44   52.3%    +$0.2721  +$0.0062  -$1.7772   1.06     0.18     0.12
+  B_CONF_062            36   58.3%    +$1.3732  +$0.0381  -$0.8033   1.39     0.92     0.65
+  C_CONF_065            31   61.3%    +$1.4360  +$0.0463  -$0.8033   1.44     1.00     0.68
+  D_DEAD_HOURS          32   56.2%    +$0.5658  +$0.0177  -$0.9000   1.17     0.39     0.28
+  E_XGB_GATE            29   58.6%    +$0.8128  +$0.0280  -$0.9765   1.34     0.65     0.54
+  F_FULL_STACK          25   56.0%    +$0.0054  +$0.0002  -$0.9765   1.00     0.00     0.00 ◀ CURRENT
 
   PnL comparativo:
-  BASELINE       +│███                 │ +$0.2477
-  CONF_062       +│███████████████████ │ +$1.3488
-  CONF_065       +│████████████████████│ +$1.4116
-  DEAD_HOURS     +│███████             │ +$0.5414
-  XGB_GATE       +│█████               │ +$0.3677
-  FULL_STACK     -│░░░░░░              │ -$0.4397
+  BASELINE       +│███                 │ +$0.2721
+  CONF_062       +│███████████████████ │ +$1.3732
+  CONF_065       +│████████████████████│ +$1.4360
+  DEAD_HOURS     +│███████             │ +$0.5658
+  XGB_GATE       +│███████████         │ +$0.8128
+  FULL_STACK     +│                    │ +$0.0054
 
-  🏆 Miglior strategia sul test set: C_CONF_065 (PnL +$1.4116)
+  🏆 Miglior strategia sul test set: C_CONF_065 (PnL +$1.4360)
 
   Confidence bucket su TEST set (con calibration check):
   Bucket           N    ExpWR    ActWR    Delta         PnL     $/bet
@@ -44,7 +44,7 @@
   [0.60,0.62)     8    60.0%    25.0%   -35.0%    -$1.1011  -$0.1376
   [0.62,0.65)     5    62.2%    40.0%   -22.2%    -$0.0628  -$0.0126
   [0.65,0.70)    11    66.4%    63.6%    -2.7%    -$0.1696  -$0.0154
-  [0.70,1.01)    19    72.1%    57.9%   -14.2%    +$1.5812  +$0.0832
+  [0.70,1.01)    20    72.5%    60.0%   -12.5%    +$1.6056  +$0.0803
 
   WR per ora UTC su TEST set (tutte le 24h):
    Ora     N      WR        PnL  Note
@@ -69,16 +69,16 @@
     17h     —      —%        —
     18h     —      —%        —
     19h     —      —%        —
-    20h     3    0.0%   -$1.0755  
-    21h     6   33.3%   +$0.1016  
+    20h     2    0.0%   -$0.6304  * few
+    21h     8   37.5%   -$0.3192  
     22h     —      —%        —
     23h     4   50.0%   +$0.0004  
 
   Streak analysis (BASELINE, cronologico):
-  Max win streak: 9  |  Max loss streak: 5
+  Max win streak: 9  |  Max loss streak: 4
 
   Note:
-  • Train: 100 bet, Test: 43 bet (split 70%/30% cronologico)
+  • Train: 101 bet, Test: 44 bet (split 70%/30% cronologico)
   • pnl_usd da Supabase include entry+exit fee per bet recenti
   • XGB addestrato SOLO su train set (no data leakage)
   • Dead hours calcolate SOLO da train set
@@ -86,7 +86,7 @@
   • Soglia confidence: 0.62
   • PF = Profit Factor (gross_profit / gross_loss). PF > 1.5 = buono
   • Sortino penalizza solo downside volatility (vs Sharpe che penalizza tutto)
-  • XGB CV accuracy su train: 92.0%
+  • XGB CV accuracy su train: 92.1%
 
 
-  Generated: 2026-02-24 21:29:59
+  Generated: 2026-02-25 00:01:40
