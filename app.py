@@ -27,6 +27,33 @@ def _load_xgb_model():
 
 _load_xgb_model()
 
+# ── XGBoost correctness model (caricato una volta all'avvio) ─────────────────
+_xgb_correctness = None
+try:
+    _corr_path = os.path.join(os.path.dirname(__file__), "models", "xgb_correctness.pkl")
+    with open(_corr_path, "rb") as f:
+        _xgb_correctness = pickle.load(f)
+    print("[XGB] Correctness model loaded")
+except Exception as _e:
+    print(f"[XGB] Correctness model NOT loaded: {_e}")
+
+# ── Confidence calibration table (storico WR per bucket) ─────────────────────
+CONF_CALIBRATION = {
+    # (min_conf, max_conf): win_rate_storico
+    (0.50, 0.55): 0.442,
+    (0.55, 0.60): 0.450,
+    (0.60, 0.62): 0.571,
+    (0.62, 0.65): 0.514,
+    (0.65, 0.70): 0.455,
+    (0.70, 1.00): 0.500,
+}
+
+def get_calibrated_wr(conf):
+    for (lo, hi), wr in CONF_CALIBRATION.items():
+        if lo <= conf < hi:
+            return wr
+    return 0.50
+
 API_KEY = os.environ.get("KRAKEN_FUTURES_API_KEY", "")
 API_SECRET = os.environ.get("KRAKEN_FUTURES_API_SECRET", "")
 DEFAULT_SYMBOL = os.environ.get("KRAKEN_DEFAULT_SYMBOL", "PF_XBTUSD")
@@ -982,6 +1009,25 @@ def bet_sizing():
     base_size = float(request.args.get("base_size", 0.002))
     confidence = float(request.args.get("confidence", 0.62))
 
+    # Parametri aggiuntivi per XGBoost correctness model (opzionali, con default neutri)
+    fear_greed  = float(request.args.get("fear_greed_value", 50))
+    rsi14       = float(request.args.get("rsi14", 50))
+    tech_score  = float(request.args.get("technical_score", 0))
+    hour_utc    = int(request.args.get("hour_utc", time.gmtime().tm_hour))
+    ema_trend   = request.args.get("ema_trend", "").lower()
+    tech_bias   = request.args.get("technical_bias", "").lower()
+    sig_tech    = request.args.get("signal_technical", "").lower()
+    sig_sent    = request.args.get("signal_sentiment", "").lower()
+    sig_fg      = request.args.get("signal_fear_greed", "").lower()
+    sig_vol     = request.args.get("signal_volume", "").lower()
+
+    ema_trend_up       = 1 if ("bullish" in ema_trend or "bull" in ema_trend or ema_trend == "up") else 0
+    tech_bias_bullish  = 1 if "bull" in tech_bias else 0
+    sig_tech_buy       = 1 if sig_tech in ("buy", "bullish") else 0
+    sig_sent_pos       = 1 if sig_sent in ("positive", "pos", "buy", "bullish") else 0
+    sig_fg_fear        = 1 if sig_fg == "fear" else 0
+    sig_vol_high       = 1 if "high" in sig_vol else 0
+
     try:
         supabase_url = os.environ.get("SUPABASE_URL", "")
         supabase_key = os.environ.get("SUPABASE_KEY", "")
@@ -1050,6 +1096,38 @@ def bet_sizing():
         final_size = round(base_size * multiplier * conf_mult, 6)
         final_size = max(0.001, min(0.005, final_size))
 
+        # P1.1 — XGBoost correctness penalty
+        corr_prob = None
+        corr_multiplier = 1.0
+        if _xgb_correctness is not None:
+            try:
+                feat_row = [[
+                    confidence, fear_greed,
+                    rsi14, tech_score, hour_utc,
+                    ema_trend_up,
+                    tech_bias_bullish,
+                    sig_tech_buy,
+                    sig_sent_pos,
+                    sig_fg_fear,
+                    sig_vol_high,
+                ]]
+                corr_prob = float(_xgb_correctness.predict_proba(feat_row)[0][1])  # P(CORRECT)
+                # Se P(CORRECT) < 0.45: size -20%, se > 0.55: size +10%, altrimenti invariata
+                if corr_prob < 0.45:
+                    corr_multiplier = 0.80
+                elif corr_prob > 0.55:
+                    corr_multiplier = 1.10
+                else:
+                    corr_multiplier = 1.0
+            except Exception:
+                corr_multiplier = 1.0
+
+        final_size = round(final_size * corr_multiplier, 6)
+        final_size = max(0.001, min(0.005, final_size))
+
+        # P1.2 — Confidence calibration
+        calibrated_wr = get_calibrated_wr(confidence)
+
         return jsonify({
             "size": final_size,
             "multiplier": multiplier,
@@ -1060,6 +1138,10 @@ def bet_sizing():
             "recent_pnl_5": round(recent_pnl, 6),
             "confidence_used": confidence,
             "profit_factor": profit_factor,
+            "xgb_correctness_prob": round(corr_prob, 4) if corr_prob is not None else None,
+            "xgb_multiplier": corr_multiplier,
+            "calibrated_wr_estimate": calibrated_wr,
+            "calibration_note": "historical WR for this confidence bucket",
         })
 
     except Exception as e:
