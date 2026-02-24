@@ -121,7 +121,8 @@
   .kpi-sub { font-size: 10px; color: var(--muted); margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   /* STATS ROW */
-  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); margin-bottom: 16px; }
+  .stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: var(--border); margin-bottom: 16px; }
+  @media (max-width: 900px) { .stats-row { grid-template-columns: repeat(3, 1fr); } }
   .stat-cell { background: var(--card); padding: 14px 18px; text-align: center; }
   .stat-cell-label { font-size: 9px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
   .stat-cell-val { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; }
@@ -572,6 +573,10 @@
       <div class="stat-cell-label">Avg Entry Slippage</div>
       <div class="stat-cell-val" id="statSlippage" style="color:var(--warn)">—</div>
     </div>
+    <div class="stat-cell">
+      <div class="stat-cell-label">Avg RR Ratio</div>
+      <div class="stat-cell-val" id="statRR" style="color:var(--accent)">—</div>
+    </div>
   </div>
 
   <!-- ═══════════════════════════════════════════
@@ -690,6 +695,7 @@
               <th>RESULT</th>
               <th>PNL $ / THR%</th>
               <th>FEE $</th>
+              <th>SL/TP</th>
             </tr>
           </thead>
           <tbody id="signalTable"></tbody>
@@ -1318,6 +1324,13 @@ function render(data) {
   const slipEl = document.getElementById('statSlippage');
   slipEl.textContent = avgSlip !== null ? (avgSlip >= 0 ? '+' : '') + '$' + avgSlip.toFixed(2) : '—';
   slipEl.style.color = avgSlip === null ? 'var(--muted)' : Math.abs(avgSlip) > 20 ? 'var(--danger)' : Math.abs(avgSlip) > 5 ? 'var(--warn)' : 'var(--accent)';
+  const betsWithRR = bets.filter(d => d.rr_ratio !== null && d.rr_ratio !== undefined);
+  const avgRR = betsWithRR.length
+    ? betsWithRR.reduce((s, d) => s + parseFloat(d.rr_ratio || 0), 0) / betsWithRR.length
+    : null;
+  const rrEl = document.getElementById('statRR');
+  rrEl.textContent = avgRR !== null ? avgRR.toFixed(2) + '×' : '—';
+  rrEl.style.color = avgRR === null ? 'var(--muted)' : avgRR >= 2 ? 'var(--accent)' : avgRR >= 1.5 ? 'var(--warn)' : 'var(--danger)';
 
   renderTable(data);
 
@@ -1349,7 +1362,7 @@ function renderTable(data) {
   });
   const tbody = document.getElementById('signalTable');
   if (!filtered.length) {
-    tbody.innerHTML = '<tr class="no-data-row"><td colspan="14">NO DATA</td></tr>';
+    tbody.innerHTML = '<tr class="no-data-row"><td colspan="15">NO DATA</td></tr>';
     return;
   }
   tbody.innerHTML = filtered.map(d => {
@@ -1426,6 +1439,7 @@ function renderTable(data) {
       <td>${resultBadge}</td>
       <td>${pnlCell}</td>
       <td>${feeCell}</td>
+      <td>${d.sl_price || d.tp_price || d.rr_ratio ? `<span style="font-size:9px;color:var(--danger)">SL ${d.sl_price ? fmtPrice(d.sl_price) : '—'}</span><br><span style="font-size:9px;color:var(--accent)">TP ${d.tp_price ? fmtPrice(d.tp_price) : '—'}</span><br><span style="font-size:9px;color:var(--muted)">RR ${d.rr_ratio ? parseFloat(d.rr_ratio).toFixed(2) + '×' : '—'}</span>` : '<span style="color:var(--muted)">—</span>'}</td>
     </tr>`;
   }).join('');
 }
