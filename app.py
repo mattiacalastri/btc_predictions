@@ -362,20 +362,28 @@ def place_bet():
         confirmed_pos = wait_for_position(symbol, want_open=True, retries=15, sleep_s=0.35) if ok else None
         position_confirmed = confirmed_pos is not None
 
-        # ── Piazza Stop-Loss reale su Kraken ─────────────────────────────────
+        # ── Piazza Stop-Loss reale su Kraken + calcola TP/RR ─────────────────
         sl_order_id = None
-        sl_price = None
+        sl_price    = None
+        tp_price    = None
+        rr_ratio    = None
         if ok and confirmed_pos:
             try:
                 sl_pct = float(data.get("sl_pct", 1.2))
+                tp_pct = float(data.get("tp_pct", sl_pct * 2))  # default 2× SL
                 entry_price = float(confirmed_pos.get("price") or 0) or _get_mark_price(symbol)
                 if entry_price > 0:
                     if direction == "UP":
                         sl_price = round(entry_price * (1 - sl_pct / 100), 1)
-                        sl_side = "sell"
+                        tp_price = round(entry_price * (1 + tp_pct / 100), 1)
+                        sl_side  = "sell"
                     else:
                         sl_price = round(entry_price * (1 + sl_pct / 100), 1)
-                        sl_side = "buy"
+                        tp_price = round(entry_price * (1 - tp_pct / 100), 1)
+                        sl_side  = "buy"
+                    sl_dist  = abs(entry_price - sl_price)
+                    tp_dist  = abs(entry_price - tp_price)
+                    rr_ratio = round(tp_dist / sl_dist, 2) if sl_dist > 0 else None
                     sl_result = trade.create_order(
                         orderType="stp",
                         symbol=symbol,
@@ -403,7 +411,9 @@ def place_bet():
             "position": confirmed_pos,
             "previous_position_existed": pos is not None,
             "sl_order_id": sl_order_id,
-            "sl_price": sl_price,
+            "sl_price":    sl_price,
+            "tp_price":    tp_price,
+            "rr_ratio":    rr_ratio,
             "raw": result,
         }), (200 if ok else 400)
 
