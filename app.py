@@ -101,29 +101,35 @@ def refresh_calibration():
         return {"ok": False, "error": str(e)}
 
 def refresh_dead_hours():
-    """Aggiorna DEAD_HOURS_UTC: ore con WR < 45% e almeno 5 bet da Supabase."""
+    """Aggiorna DEAD_HOURS_UTC: ore con WR < 45% e almeno 5 bet. Ora estratta da created_at."""
     global DEAD_HOURS_UTC
     sb_url = os.environ.get("SUPABASE_URL", "")
     sb_key = os.environ.get("SUPABASE_KEY", "")
     if not sb_url or not sb_key:
         return {"ok": False, "error": "no_supabase_env"}
     try:
+        import datetime
         r = requests.get(
             f"{sb_url}/rest/v1/btc_predictions"
-            "?select=hour_utc,correct&bet_taken=eq.true&correct=not.is.null",
+            "?select=created_at,correct&bet_taken=eq.true&correct=not.is.null",
             headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
             timeout=8,
         )
         rows = r.json() if r.ok else []
         if len(rows) < 20:
-            return {"ok": False, "error": "insufficient_data"}
+            return {"ok": False, "error": "insufficient_data", "count": len(rows)}
         from collections import defaultdict
         hour_data: dict = defaultdict(list)
         for row in rows:
-            h = row.get("hour_utc")
             c = row.get("correct")
-            if h is not None and c is not None:
-                hour_data[int(h)].append(1 if c else 0)
+            ts = row.get("created_at")
+            if c is None or not ts:
+                continue
+            try:
+                h = datetime.datetime.fromisoformat(ts.replace("Z", "+00:00")).hour
+                hour_data[h].append(1 if c else 0)
+            except Exception:
+                continue
         dead, hour_stats = set(), {}
         for h, vals in sorted(hour_data.items()):
             wr = sum(vals) / len(vals) if vals else 0.5
