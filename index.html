@@ -656,6 +656,138 @@
   opacity: 0.6;
 }
 
+/* KPI MODAL */
+#kpiModalOverlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  z-index: 1999;
+}
+#kpiModal {
+  display: none;
+  position: fixed;
+  z-index: 2000;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(520px, 90vw);
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 20px 24px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.7);
+  font-family: 'JetBrains Mono', monospace;
+  border-radius: 4px;
+}
+#kpiModal .km-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+#kpiModal .km-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--text);
+}
+#kpiModal .km-close {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+#kpiModal .km-close:hover { color: var(--text); }
+#kpiModal .km-body {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+#kpiModal .km-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(30,45,61,0.5);
+}
+#kpiModal .km-row:last-child { border-bottom: none; }
+#kpiModal .km-label { color: var(--muted); font-size: 10px; letter-spacing: 0.5px; }
+#kpiModal .km-val   { color: var(--text);  font-size: 12px; font-weight: 700; }
+#kpiModal .km-val.green  { color: var(--accent); }
+#kpiModal .km-val.red    { color: var(--danger); }
+#kpiModal .km-val.blue   { color: var(--blue); }
+#kpiModal .km-val.yellow { color: var(--warn); }
+#kpiModal .km-val.purple { color: #aa66ff; }
+#kpiModal .km-section {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 12px 0 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+#kpiModal .km-fg-bar {
+  display: flex;
+  gap: 2px;
+  margin: 10px 0 4px;
+  height: 20px;
+  border-radius: 3px;
+  overflow: hidden;
+}
+#kpiModal .km-fg-seg {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: rgba(0,0,0,0.8);
+}
+#kpiModal .km-fg-labels {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+#kpiModal .km-fg-labels span {
+  flex: 1;
+  font-size: 7px;
+  text-align: center;
+  color: var(--muted);
+  letter-spacing: 0.3px;
+}
+#kpiModal .km-conf-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+}
+#kpiModal .km-conf-bar-bg {
+  flex: 1;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+#kpiModal .km-conf-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--blue);
+  transition: width 0.3s;
+}
+
 /* ═══════════════════════════════════════
    LIVE POSITION WIDGET
 ═══════════════════════════════════════ */
@@ -743,21 +875,35 @@
     justify-content: center;
     gap: 8px;
   }
-  .penrose-scene { width: 64px; height: 64px; display:flex; align-items:center; justify-content:center; }
-  .penrose-svg { overflow: visible; animation: penroseRotate 12s linear infinite; transition: filter 0.5s; }
-  @keyframes penroseRotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-  .penrose-svg[data-state="profit"] { filter: drop-shadow(0 0 7px rgba(0,255,136,0.7)); }
-  .penrose-svg[data-state="loss"]   { filter: drop-shadow(0 0 7px rgba(255,68,102,0.7)); }
-  .penrose-svg[data-state="neutral"]{ filter: drop-shadow(0 0 5px rgba(255,170,0,0.5)); }
-  .penrose-svg[data-state="profit"] .pa1 { fill: #00ff88; }
-  .penrose-svg[data-state="profit"] .pa2 { fill: #00cc66; }
-  .penrose-svg[data-state="profit"] .pa3 { fill: #004422; }
-  .penrose-svg[data-state="loss"] .pa1 { fill: #ff4466; }
-  .penrose-svg[data-state="loss"] .pa2 { fill: #cc2244; }
-  .penrose-svg[data-state="loss"] .pa3 { fill: #660011; }
-  .penrose-svg[data-state="neutral"] .pa1 { fill: #ffbb00; }
-  .penrose-svg[data-state="neutral"] .pa2 { fill: #cc8800; }
-  .penrose-svg[data-state="neutral"] .pa3 { fill: #553300; }
+  .ai-cube-scene { width: 56px; height: 56px; perspective: 160px; }
+  .ai-cube {
+    width: 100%; height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    animation: cubeRotate 9s linear infinite;
+  }
+  @keyframes cubeRotate {
+    0%   { transform: rotateX(15deg) rotateY(0deg); }
+    100% { transform: rotateX(375deg) rotateY(360deg); }
+  }
+  .cube-face {
+    position: absolute;
+    width: 56px; height: 56px;
+    border: 1px solid rgba(0,255,136,0.2);
+    background: rgba(8,11,15,0.88);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 7px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+    color: rgba(0,255,136,0.8);
+  }
+  .ai-cube[data-state="profit"] .cube-face { color: var(--accent); border-color: rgba(0,255,136,0.4); box-shadow: inset 0 0 12px rgba(0,255,136,0.15); }
+  .ai-cube[data-state="loss"]   .cube-face { color: var(--danger); border-color: rgba(255,68,102,0.4); box-shadow: inset 0 0 12px rgba(255,68,102,0.15); }
+  .ai-cube[data-state="neutral"].cube-face  { color: var(--warn);   border-color: rgba(255,170,0,0.4);  box-shadow: inset 0 0 12px rgba(255,170,0,0.12); }
+  .cube-face.cube-front  { transform: translateZ(28px); }
+  .cube-face.cube-back   { transform: rotateY(180deg)  translateZ(28px); }
+  .cube-face.cube-right  { transform: rotateY(90deg)   translateZ(28px); }
+  .cube-face.cube-left   { transform: rotateY(-90deg)  translateZ(28px); }
+  .cube-face.cube-top    { transform: rotateX(90deg)   translateZ(28px); }
+  .cube-face.cube-bottom { transform: rotateX(-90deg)  translateZ(28px); }
   .ai-decision { display:flex; align-items:center; gap:5px; font-size:10px; font-weight:700; letter-spacing:1px; color:var(--text); text-align:center; }
   .ai-status-dot { width:5px; height:5px; border-radius:50%; background:var(--accent); animation:pulse 1.5s ease-in-out infinite; flex-shrink:0; }
   .ai-think-label { font-size:7px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
@@ -781,9 +927,8 @@
     .sources-list {
       display: flex;
       gap: 6px;
-      overflow: hidden;
-      white-space: nowrap;
       flex-wrap: nowrap;
+      width: max-content;
     }
     .src-chip { flex-shrink: 0; }
   }
@@ -1160,17 +1305,15 @@
       </div>
       <!-- RIGHT: AI cube + decision -->
       <div class="lp-right">
-        <div class="penrose-scene">
-          <!-- Penrose impossible triangle — 3 arms + 3 corner caps -->
-          <svg id="penroseSvg" class="penrose-svg" data-state="neutral"
-               width="60" height="60" viewBox="14 6 72 72">
-            <polygon class="pa1" points="50,8 85,68 70,77 35,17"/>
-            <polygon class="pa2" points="85,68 15,68 15,51 85,51"/>
-            <polygon class="pa3" points="15,68 50,8 65,17 30,77"/>
-            <polygon class="pa3" points="50,8 35,17 65,17"/>
-            <polygon class="pa1" points="85,68 85,51 70,77"/>
-            <polygon class="pa2" points="15,68 15,51 30,77"/>
-          </svg>
+        <div class="ai-cube-scene">
+          <div class="ai-cube" id="aiCube" data-state="neutral">
+            <div class="cube-face cube-front">AI</div>
+            <div class="cube-face cube-back">XGB</div>
+            <div class="cube-face cube-right">HOLD</div>
+            <div class="cube-face cube-left">EXIT</div>
+            <div class="cube-face cube-top" id="cubeFaceConf">—%</div>
+            <div class="cube-face cube-bottom">BOT</div>
+          </div>
         </div>
         <div class="ai-decision">
           <span class="ai-status-dot"></span>
@@ -1315,6 +1458,48 @@
     <div class="stat-cell">
       <div class="stat-cell-label">Avg RR Ratio</div>
       <div class="stat-cell-val" id="statRR" style="color:var(--accent)">—</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       TRADING STATS — Expectancy & Direction
+  ═══════════════════════════════════════════ -->
+  <div class="panel" style="margin-bottom:14px;" id="tradingStatsPanel">
+    <div class="panel-header">
+      <div class="panel-title">Trading Stats &mdash; Expectancy</div>
+      <div class="panel-tag tag-muted" id="tsVerdictBadge">LOADING</div>
+    </div>
+    <div style="padding:14px 18px 16px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px 20px;">
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Expectancy</div>
+        <div style="font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace;" id="tsExpectancy">&#8212;</div>
+        <div style="font-size:9px;color:var(--muted);">per bet (all time)</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Expectancy L20</div>
+        <div style="font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace;" id="tsExpectancyL20">&#8212;</div>
+        <div style="font-size:9px;color:var(--muted);">last 20 bets</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Avg Win / Avg Loss</div>
+        <div style="font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--warn);" id="tsWinLossRatio">&#8212;</div>
+        <div style="font-size:9px;color:var(--muted);">reward/risk ratio</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">UP Bets WR</div>
+        <div style="font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--accent);" id="tsUpWr">&#8212;</div>
+        <div style="font-size:9px;color:var(--muted);" id="tsUpPnl">PnL: &#8212;</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">DOWN Bets WR</div>
+        <div style="font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--danger);" id="tsDownWr">&#8212;</div>
+        <div style="font-size:9px;color:var(--muted);" id="tsDownPnl">PnL: &#8212;</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Avg PnL / Bet</div>
+        <div style="font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace;" id="tsAvgPnl">&#8212;</div>
+        <div style="font-size:9px;color:var(--muted);" id="tsAvgPnlSub">wins: &#8212; / losses: &#8212;</div>
+      </div>
     </div>
   </div>
 
@@ -3168,6 +3353,97 @@ async function fetchEquityHistory() {
     }
   } catch(e) { /* fallback silenzioso */ }
 }
+
+// ── TRADING STATS ─────────────────────────────────────────────────────────────
+
+async function fetchTradingStats() {
+  const badge = document.getElementById('tsVerdictBadge');
+  try {
+    const res = await fetch(CONFIG.RAILWAY_URL + '/trading-stats', { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) { if (badge) badge.textContent = 'ERR'; return; }
+    const d = await res.json();
+    if (!d || !d.data) { if (badge) badge.textContent = 'N/A'; return; }
+    const s = d.data;
+
+    const fmtUsd = (v) => {
+      if (v == null) return '—';
+      const n = parseFloat(v);
+      return (n >= 0 ? '+$' : '-$') + Math.abs(n).toFixed(3);
+    };
+    const fmtPct = (v) => v != null ? parseFloat(v).toFixed(1) + '%' : '—';
+    const colorSign = (v) => v != null && parseFloat(v) >= 0 ? 'var(--accent)' : 'var(--danger)';
+
+    // Expectancy
+    const expEl = document.getElementById('tsExpectancy');
+    if (expEl) {
+      expEl.textContent = fmtUsd(s.expectancy_usd);
+      expEl.style.color = colorSign(s.expectancy_usd);
+    }
+
+    // Expectancy last 20
+    const expL20El = document.getElementById('tsExpectancyL20');
+    if (expL20El) {
+      expL20El.textContent = fmtUsd(s.expectancy_last20_usd);
+      expL20El.style.color = colorSign(s.expectancy_last20_usd);
+    }
+
+    // Avg Win / Avg Loss ratio
+    const ratioEl = document.getElementById('tsWinLossRatio');
+    if (ratioEl) {
+      const aw = parseFloat(s.avg_win_usd ?? 0);
+      const al = Math.abs(parseFloat(s.avg_loss_usd ?? 1));
+      const ratio = al > 0 ? (aw / al).toFixed(2) + 'x' : '—';
+      ratioEl.textContent = ratio;
+    }
+
+    // UP bets
+    const upWrEl = document.getElementById('tsUpWr');
+    const upPnlEl = document.getElementById('tsUpPnl');
+    if (upWrEl) { upWrEl.textContent = fmtPct(s.up_win_rate); }
+    if (upPnlEl) {
+      const upPnl = parseFloat(s.up_pnl_usd ?? 0);
+      upPnlEl.textContent = 'PnL: ' + fmtUsd(s.up_pnl_usd);
+      upPnlEl.style.color = upPnl >= 0 ? 'var(--accent)' : 'var(--danger)';
+    }
+
+    // DOWN bets
+    const dnWrEl = document.getElementById('tsDownWr');
+    const dnPnlEl = document.getElementById('tsDownPnl');
+    if (dnWrEl) { dnWrEl.textContent = fmtPct(s.down_win_rate); }
+    if (dnPnlEl) {
+      const dnPnl = parseFloat(s.down_pnl_usd ?? 0);
+      dnPnlEl.textContent = 'PnL: ' + fmtUsd(s.down_pnl_usd);
+      dnPnlEl.style.color = dnPnl >= 0 ? 'var(--accent)' : 'var(--danger)';
+    }
+
+    // Avg PnL per bet
+    const avgPnlEl = document.getElementById('tsAvgPnl');
+    const avgPnlSubEl = document.getElementById('tsAvgPnlSub');
+    if (avgPnlEl) {
+      avgPnlEl.textContent = fmtUsd(s.avg_pnl_per_bet);
+      avgPnlEl.style.color = colorSign(s.avg_pnl_per_bet);
+    }
+    if (avgPnlSubEl) {
+      avgPnlSubEl.textContent = 'wins: ' + fmtUsd(s.avg_win_usd) + ' / losses: ' + fmtUsd(s.avg_loss_usd);
+    }
+
+    // Verdict badge
+    if (badge) {
+      const verdict = (s.expectancy_verdict || '').toUpperCase();
+      badge.textContent = verdict || 'N/A';
+      if (verdict.includes('POSITIVO') || verdict.includes('POSITIVE')) {
+        badge.className = 'panel-tag tag-green';
+      } else if (verdict.includes('NEGATIVO') || verdict.includes('NEGATIVE')) {
+        badge.className = 'panel-tag tag-red';
+      } else {
+        badge.className = 'panel-tag tag-yellow';
+      }
+    }
+  } catch(e) {
+    if (badge) badge.textContent = 'ERR';
+  }
+}
+
 // Start everything
 refresh();
 setInterval(refresh, CONFIG.REFRESH_INTERVAL);
@@ -3179,6 +3455,7 @@ refreshAccountSummary();
 setInterval(refreshAccountSummary, CONFIG.ACCT_REFRESH);
 
 fetchEquityHistory();
+fetchTradingStats();
 
 // ── COSTS TAB ─────────────────────────────────────────────────────────────────
 
@@ -3542,6 +3819,15 @@ function renderMobileBetList(data) {
   <div class="im-bar"></div>
   <div class="im-cat" id="imCat"></div>
   <div class="im-body" id="imBody"></div>
+</div>
+<!-- KPI MODAL -->
+<div id="kpiModalOverlay" onclick="closeKpiModal()"></div>
+<div id="kpiModal">
+  <div class="km-header">
+    <div class="km-title" id="kpiModalTitle">Detail</div>
+    <button class="km-close" onclick="closeKpiModal()" title="Close">&#x2715;</button>
+  </div>
+  <div class="km-body" id="kpiModalBody"></div>
 </div>
 </body>
 </html>
