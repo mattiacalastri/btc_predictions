@@ -957,6 +957,66 @@
     .stat-cell-label { font-size: 7px; }
     .stat-cell-val { font-size: 14px; }
   }
+
+  /* TASK 9 — Live Position widget layout su mobile */
+  @media (max-width: 600px) {
+    /* Stack tutto in colonna: info+pnl row | gauge barra sotto */
+    .live-pos-card {
+      display: flex;
+      flex-direction: column;
+      grid-template-columns: unset;
+    }
+
+    /* Prima riga: info a sinistra + PnL a destra */
+    .lp-left {
+      flex: 1;
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+      padding: 12px 14px 10px;
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      gap: 4px 10px;
+      order: 1;
+    }
+
+    /* Dentro lp-left: header su riga intera, poi info compatte */
+    .lp-left .lp-header   { flex: 0 0 100%; margin-bottom: 0; }
+    .lp-left .lp-id       { font-size: 16px; flex: 0 0 auto; }
+    .lp-left .lp-dir      { font-size: 11px; flex: 0 0 auto; }
+    .lp-left .lp-conf     { font-size: 10px; flex: 0 0 auto; }
+    .lp-left .lp-time     { font-size: 8px; flex: 0 0 100%; }
+    .lp-left .lp-size     { font-size: 8px; flex: 0 0 100%; }
+
+    /* PnL: spostato a destra nella stessa prima riga tramite margin-left:auto */
+    .lp-left .lp-pnl {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      line-height: 1;
+      margin-top: 0;
+      margin-left: auto;
+      text-align: right;
+      align-self: center;
+      flex: 0 0 auto;
+    }
+
+    /* AI cube (lp-right): nascosto su mobile per risparmiare spazio */
+    .lp-right {
+      display: none;
+    }
+
+    /* Gauge SL/TP: seconda riga, full width, in fondo */
+    .lp-center {
+      order: 3;
+      padding: 10px 14px 12px;
+      border-left: none;
+      border-top: 1px solid var(--border);
+      width: 100%;
+      box-sizing: border-box;
+    }
+  }
 </style>
 </head>
 <body>
