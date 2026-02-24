@@ -225,6 +225,20 @@ def close_position():
         size = pos["size"]
 
         trade = get_trade_client()
+
+        # Cancella stop-loss reale se presente (evita doppia chiusura)
+        sl_order_id = data.get("sl_order_id")
+        if sl_order_id:
+            try:
+                trade.request(
+                    method="POST",
+                    uri="/derivatives/api/v3/cancelorder",
+                    post_params={"order_id": sl_order_id},
+                    auth=True,
+                )
+            except Exception:
+                pass  # se già triggerato, non bloccare
+
         result = trade.create_order(
             orderType="mkt",
             symbol=symbol,
@@ -347,6 +361,34 @@ def place_bet():
         confirmed_pos = wait_for_position(symbol, want_open=True, retries=15, sleep_s=0.35) if ok else None
         position_confirmed = confirmed_pos is not None
 
+        # ── Piazza Stop-Loss reale su Kraken ─────────────────────────────────
+        sl_order_id = None
+        sl_price = None
+        if ok and confirmed_pos:
+            try:
+                sl_pct = float(data.get("sl_pct", 1.2))
+                entry_price = float(confirmed_pos.get("price") or 0) or _get_mark_price(symbol)
+                if entry_price > 0:
+                    if direction == "UP":
+                        sl_price = round(entry_price * (1 - sl_pct / 100), 1)
+                        sl_side = "sell"
+                    else:
+                        sl_price = round(entry_price * (1 + sl_pct / 100), 1)
+                        sl_side = "buy"
+                    sl_result = trade.create_order(
+                        orderType="stp",
+                        symbol=symbol,
+                        side=sl_side,
+                        size=size,
+                        stopPrice=sl_price,
+                        reduceOnly=True,
+                    )
+                    sl_status = sl_result.get("sendStatus", {}) or {}
+                    if sl_status.get("status") not in FAILED_SEND_STATUSES:
+                        sl_order_id = sl_status.get("order_id")
+            except Exception:
+                pass  # non bloccare il flusso principale
+
         return jsonify({
             "status": "placed" if ok else "failed",
             "direction": direction,
@@ -359,6 +401,8 @@ def place_bet():
             "position_confirmed": position_confirmed,
             "position": confirmed_pos,
             "previous_position_existed": pos is not None,
+            "sl_order_id": sl_order_id,
+            "sl_price": sl_price,
             "raw": result,
         }), (200 if ok else 400)
 
