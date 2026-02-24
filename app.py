@@ -481,6 +481,36 @@ def place_bet():
             "message": f"Hour {current_hour_utc}h UTC has historically low WR (<45%). Skipping bet."
         }), 200
 
+    # Dual-gate: bet solo se XGB direction == LLM direction
+    if _XGB_MODEL is not None:
+        try:
+            feat_row = [[
+                confidence,
+                float(data.get("fear_greed", data.get("fear_greed_value", 50))),
+                float(data.get("rsi14", 50)),
+                float(data.get("technical_score", 0)),
+                float(current_hour_utc),
+                float(data.get("ema_trend_up", 0)),
+                float(data.get("technical_bias_bullish", data.get("technical_bias", 0))),
+                float(data.get("signal_technical_buy", data.get("signal_technical", 0))),
+                float(data.get("signal_sentiment_pos", data.get("signal_sentiment", 0))),
+                float(data.get("signal_fg_fear", data.get("signal_fg", 0))),
+                float(data.get("signal_volume_high", data.get("signal_volume", 0))),
+            ]]
+            prob = _XGB_MODEL.predict_proba(feat_row)[0]  # [P(DOWN), P(UP)]
+            xgb_direction = "UP" if prob[1] > 0.5 else "DOWN"
+            if xgb_direction != direction:
+                return jsonify({
+                    "status": "skipped",
+                    "reason": "xgb_disagree",
+                    "llm_direction": direction,
+                    "xgb_direction": xgb_direction,
+                    "xgb_prob_up": round(float(prob[1]), 3),
+                    "message": f"XGB predicts {xgb_direction}, LLM predicts {direction}. Skipping for safety.",
+                }), 200
+        except Exception:
+            pass  # XGB check failed → procedi senza gate
+
     desired_side = "long" if direction == "UP" else "short"
 
     if DRY_RUN:
