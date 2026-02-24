@@ -150,6 +150,7 @@
   .cost-bar-wrap { width: 120px; height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; display: inline-block; vertical-align: middle; }
   .cost-bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
   .cost-type-badge { font-size: 8px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 2px 6px; border-radius: 2px; display: inline-block; }
+  .svc-logo { width:24px; height:24px; border-radius:3px; display:inline-flex; align-items:center; justify-content:center; font-size:6px; font-weight:800; letter-spacing:0px; border:1px solid; flex-shrink:0; font-family:'JetBrains Mono',monospace; }
 
   /* TABLE */
   .table-wrap { overflow-x: auto; max-height: 500px; overflow-y: auto; }
@@ -1102,7 +1103,7 @@
         <div class="penrose-scene">
           <!-- Penrose impossible triangle — 3 arms + 3 corner caps -->
           <svg id="penroseSvg" class="penrose-svg" data-state="neutral"
-               width="60" height="56" viewBox="13 6 74 73">
+               width="60" height="60" viewBox="14 6 72 72">
             <polygon class="pa1" points="50,8 85,68 70,77 35,17"/>
             <polygon class="pa2" points="85,68 15,68 15,51 85,51"/>
             <polygon class="pa3" points="15,68 50,8 65,17 30,77"/>
@@ -1667,10 +1668,44 @@
       </div>
     </div>
 
+    <!-- Railway Budget Widget -->
+    <div style="margin-bottom:16px;padding:14px 16px;background:var(--card);border:1px solid var(--border);border-left:3px solid #8866ff">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#8866ff">RAILWAY BUDGET — Hobby Plan</span>
+        <span style="font-size:8px;color:var(--muted)">aggiorna manualmente</span>
+      </div>
+      <div style="display:flex;gap:28px;align-items:baseline;flex-wrap:wrap">
+        <div>
+          <div style="font-size:24px;font-weight:800;font-family:'Syne',sans-serif;color:#8866ff" id="rlyCredits">$4.87</div>
+          <div style="font-size:8px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px">CREDITS LEFT</div>
+        </div>
+        <div>
+          <div style="font-size:24px;font-weight:800;font-family:'Syne',sans-serif;color:var(--text)" id="rlyDays">27</div>
+          <div style="font-size:8px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px">DAYS LEFT</div>
+        </div>
+        <div>
+          <div style="font-size:24px;font-weight:800;font-family:'Syne',sans-serif;color:#00ff88" id="rlyBurn">$0.04</div>
+          <div style="font-size:8px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px">BURN/DAY</div>
+        </div>
+        <div>
+          <div style="font-size:24px;font-weight:800;font-family:'Syne',sans-serif;color:var(--warn)" id="rlyProj">$1.30</div>
+          <div style="font-size:8px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px">PROJ/MONTH</div>
+        </div>
+      </div>
+      <!-- Burn progress: (plan_total - credits_left) / plan_total -->
+      <div style="margin-top:12px;height:3px;background:rgba(255,255,255,0.05);border-radius:2px;overflow:hidden">
+        <div style="height:100%;width:2.6%;background:linear-gradient(90deg,#8866ff,#00ff88);border-radius:2px"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:4px">
+        <span style="font-size:8px;color:var(--muted)">$0.13 used (2.6%)</span>
+        <span style="font-size:8px;color:var(--muted)">$5.00 credit/mese</span>
+      </div>
+    </div>
+
     <!-- Breakdown -->
     <div class="panel">
       <div class="panel-header">
-        <div class="panel-title">💸 Cost Breakdown</div>
+        <div class="panel-title">Cost Breakdown</div>
         <button class="agents-refresh-btn" onclick="refreshCostsTab()">↻ Refresh</button>
       </div>
       <div id="costBreakdownBody" style="padding:16px">Loading...</div>
@@ -2709,6 +2744,18 @@ function _agentRelTime(iso) {
   return Math.floor(h / 24) + 'd ago';
 }
 
+// Agent personality map — keyed on 2-digit workflow prefix
+const _WF_META = {
+  '01': { code: 'SIG', role: 'Signal Generator',  accent: '#00ff88' },
+  '02': { code: 'TRD', role: 'Position Monitor',   accent: '#00aaff' },
+  '03': { code: 'BAL', role: 'Balance Guardian',   accent: '#ffaa00' },
+  '04': { code: 'LLM', role: 'LLM Analyst',        accent: '#aa66ff' },
+  '05': { code: 'VRF', role: 'Result Auditor',     accent: '#00ff88' },
+  '06': { code: 'MNT', role: 'System Janitor',     accent: '#4a6070' },
+  '07': { code: 'CMD', role: 'Command Center',     accent: '#00ccff' },
+  '08': { code: 'MON', role: 'Position Watchdog',  accent: '#ffaa00' },
+};
+
 function renderAgents(data, errorMsg) {
   const grid = document.getElementById('n8nWorkflowsGrid');
   if (!data || data.status !== 'ok') {
@@ -2731,12 +2778,16 @@ function renderAgents(data, errorMsg) {
     const execHistory  = wf.exec_history || [];
     const successRate  = wf.success_rate;
 
-    // Health color: green=active+success, red=crashed/error, yellow=active+unknown, gray=inactive
+    // Agent personality
+    const prefix = (wf.name || '').substring(0, 2);
+    const meta   = _WF_META[prefix] || { code: 'BOT', role: 'Automation Agent', accent: '#4a6070' };
+
+    // Health color — use var(--accent) for success (var(--green) doesn't exist)
     let borderCol, dotCol, dotGlow;
     if (!isActive) {
       borderCol = '#2a2a2a'; dotCol = '#444'; dotGlow = '';
     } else if (status === 'success') {
-      borderCol = 'var(--green)'; dotCol = 'var(--green)'; dotGlow = '0 0 6px var(--green)';
+      borderCol = meta.accent; dotCol = meta.accent; dotGlow = `0 0 6px ${meta.accent}88`;
     } else if (status === 'crashed' || status === 'error') {
       borderCol = 'var(--danger)'; dotCol = 'var(--danger)'; dotGlow = '0 0 6px var(--danger)';
     } else {
@@ -2754,15 +2805,15 @@ function renderAgents(data, errorMsg) {
     else if (status)
       statusBadge = `<span class="panel-tag tag-yellow" style="font-size:8px;padding:2px 6px">${status.toUpperCase()}</span>`;
 
-    // Sparkline — last 5 executions as colored squares
+    // Sparkline — last 5 executions as colored squares (fixed: use #00ff88 not var(--green))
     let sparkline = '';
     if (execHistory.length) {
       const dots = execHistory.map(s => {
-        const col = s === 'success' ? 'var(--green)' : (s === 'crashed' || s === 'error') ? 'var(--danger)' : '#3a3a3a';
-        return `<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${col}" title="${s}"></span>`;
+        const col = s === 'success' ? '#00ff88' : (s === 'crashed' || s === 'error') ? 'var(--danger)' : '#2a3a4a';
+        return `<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${col};box-shadow:${s==='success'?'0 0 4px rgba(0,255,136,0.4)':'none'}" title="${s}"></span>`;
       }).join('');
       const srLabel = successRate != null
-        ? `<span style="font-size:9px;color:${successRate>=80?'var(--green)':successRate>=50?'var(--warn)':'var(--danger)'};">${successRate}%</span>`
+        ? `<span style="font-size:9px;color:${successRate>=80?'#00ff88':successRate>=50?'var(--warn)':'var(--danger)'};">${successRate}%</span>`
         : '';
       sparkline = `<div style="display:flex;gap:3px;align-items:center;margin-top:8px">${dots}${srLabel ? '<span style="margin-left:5px">'+srLabel+'</span>' : ''}</div>`;
     }
@@ -2779,7 +2830,11 @@ function renderAgents(data, errorMsg) {
         </div>
         <span class="panel-tag ${isActive ? 'tag-green' : 'tag-muted'}" style="flex-shrink:0;font-size:8px">${isActive ? 'ACTIVE' : 'INACTIVE'}</span>
       </div>
-      <div class="wf-card-id" style="margin-top:3px">${wf.id}</div>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:5px">
+        <span style="font-size:6px;font-weight:800;letter-spacing:1px;color:${meta.accent};background:${meta.accent}18;border:1px solid ${meta.accent}35;padding:2px 5px;border-radius:2px">${meta.code}</span>
+        <span style="font-size:8px;color:var(--muted);letter-spacing:0.5px">${meta.role}</span>
+      </div>
+      <div class="wf-card-id" style="margin-top:4px">${wf.id}</div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
         ${statusBadge}
         <span style="font-size:10px;color:var(--muted);cursor:default" title="${absT}">${relT}</span>
@@ -3069,18 +3124,18 @@ function renderCosts(d) {
   // Breakdown table
   const total = d.total_usd || 1;
   const rows = [
-    { name: 'Kraken Fees',    sub: `${d.kraken_fees?.trade_count ?? 0} trade, avg ${fmtUsd(d.kraken_fees?.avg_per_trade)} ciascuno`,
-      usd: d.kraken_fees?.total_usd ?? 0, type: 'REALE', color: 'var(--warn)' },
-    { name: 'n8n Plan',       sub: `${d.n8n?.executions_est ?? 0} exec stimate · piano Starter`,
-      usd: d.n8n?.cost_usd ?? 0,          type: 'PIANO', color: 'var(--blue)' },
-    { name: 'Claude API',     sub: `${ca.monthly_calls ?? 0} call · ${(ca.avg_input_tokens ?? 0)/1000}k in + ${ca.avg_output_tokens ?? 0} out token`,
+    { name: 'Kraken Fees',    logo: 'KRK', sub: `${d.kraken_fees?.trade_count ?? 0} trade, avg ${fmtUsd(d.kraken_fees?.avg_per_trade)} ciascuno`,
+      usd: d.kraken_fees?.total_usd ?? 0, type: 'REALE', color: '#ffaa00' },
+    { name: 'n8n Plan',       logo: 'n8n', sub: `${d.n8n?.executions_est ?? 0} exec stimate · piano Starter`,
+      usd: d.n8n?.cost_usd ?? 0,          type: 'PIANO', color: '#ff6b35' },
+    { name: 'Claude API',     logo: 'CLA', sub: `${ca.monthly_calls ?? 0} call · ${(ca.avg_input_tokens ?? 0)/1000}k in + ${ca.avg_output_tokens ?? 0} out token`,
       usd: ca.cost_usd ?? 0,              type: 'REALE', color: '#aa66ff' },
-    { name: 'Claude Code',    sub: cc.cost_usd > 0 ? 'spese sviluppo (sessioni CLI)' : 'aggiungi env CLAUDE_CODE_MONTHLY_USD',
+    { name: 'Claude Code',    logo: 'CLI', sub: cc.cost_usd > 0 ? 'spese sviluppo (sessioni CLI)' : 'aggiungi env CLAUDE_CODE_MONTHLY_USD',
       usd: cc.cost_usd ?? 0,              type: cc.cost_usd > 0 ? 'REALE' : 'ND',    color: '#e5251b' },
-    { name: 'Railway',        sub: `piano ${d.railway?.plan ?? '—'}`,
-      usd: d.railway?.cost_usd ?? 0,      type: 'PIANO', color: 'var(--muted)' },
-    { name: 'Supabase',       sub: `${d.supabase?.row_count ?? 0} righe · piano free`,
-      usd: d.supabase?.cost_usd ?? 0,     type: 'PIANO', color: 'var(--muted)' },
+    { name: 'Railway',        logo: 'RLY', sub: `piano ${d.railway?.plan ?? '—'}`,
+      usd: d.railway?.cost_usd ?? 0,      type: 'PIANO', color: '#8866ff' },
+    { name: 'Supabase',       logo: 'SB',  sub: `${d.supabase?.row_count ?? 0} righe · piano free`,
+      usd: d.supabase?.cost_usd ?? 0,     type: 'PIANO', color: '#3ecf8e' },
   ];
   const typeColor = { REALE: 'tag-yellow', PIANO: 'tag-blue', STIMA: 'tag-muted', ND: 'tag-muted' };
 
@@ -3089,8 +3144,13 @@ function renderCosts(d) {
     return `
     <tr>
       <td>
-        <span style="color:var(--text);font-weight:700">${r.name}</span>
-        <span style="display:block;font-size:9px;color:var(--muted);margin-top:2px">${r.sub}</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="svc-logo" style="color:${r.color};background:${r.color}12;border-color:${r.color}30">${r.logo}</span>
+          <div>
+            <span style="color:var(--text);font-weight:700">${r.name}</span>
+            <span style="display:block;font-size:9px;color:var(--muted);margin-top:2px">${r.sub}</span>
+          </div>
+        </div>
       </td>
       <td style="font-family:'Syne',sans-serif;font-weight:700;color:${r.color};font-size:14px">${fmtUsd(r.usd)}</td>
       <td><span class="cost-type-badge panel-tag ${typeColor[r.type]}">${r.type}</span></td>
