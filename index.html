@@ -139,6 +139,7 @@
   .tag-red    { background: rgba(255,68,102,0.08); color: var(--danger); border: 1px solid rgba(255,68,102,0.2); }
   .tag-yellow { background: rgba(255,170,0,0.08);  color: var(--warn);   border: 1px solid rgba(255,170,0,0.2); }
   .tag-blue   { background: rgba(0,170,255,0.08);  color: var(--blue);   border: 1px solid rgba(0,170,255,0.2); }
+  .tag-muted  { background: rgba(74,96,112,0.1);   color: var(--muted);  border: 1px solid rgba(74,96,112,0.2); }
 
   /* TABLE */
   .table-wrap { overflow-x: auto; max-height: 500px; overflow-y: auto; }
@@ -455,6 +456,12 @@
   .config-hint { font-size: 9px; color: var(--muted); background: rgba(255,255,255,0.02); border: 1px solid var(--border); padding: 5px 12px; border-radius: 2px; letter-spacing: 1px; }
   .config-hint code { color: var(--accent); }
 
+  /* CHARTS GRID */
+  .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  @media (max-width: 900px) { .charts-grid { grid-template-columns: 1fr; } }
+
+  .pnl-bars-large { display: flex; align-items: flex-end; gap: 3px; height: 130px; }
+
   ::-webkit-scrollbar { width: 3px; }
   ::-webkit-scrollbar-thumb { background: var(--border); }
 </style>
@@ -579,6 +586,76 @@
       <svg id="equitySvg" class="equity-svg" height="110" viewBox="0 0 1000 110" preserveAspectRatio="none"></svg>
     </div>
   </div>
+
+  <!-- ═══════════════════════════════════════════
+       CHARTS GRID — 4 temporal charts
+  ═══════════════════════════════════════════ -->
+  <div class="charts-grid">
+
+    <!-- Chart 1: Confidence Over Time -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Confidence Over Time</div>
+        <div class="panel-tag tag-blue" id="confTag">ALL</div>
+      </div>
+      <div style="padding:12px 16px 8px;">
+        <svg id="confSvg" width="100%" height="110" viewBox="0 0 600 110" preserveAspectRatio="none"></svg>
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:2px;">
+          <span>oldest</span><span>newest</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart 2: Rolling Win Rate -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Rolling Win Rate (BETs)</div>
+        <div style="display:flex;gap:8px;font-size:9px;color:var(--muted);">
+          <span style="color:var(--accent);">— WR-10</span>
+          <span style="color:var(--blue);">— WR-20</span>
+          <span style="color:var(--muted);">— 50%</span>
+        </div>
+      </div>
+      <div style="padding:12px 16px 8px;">
+        <svg id="wrSvg" width="100%" height="110" viewBox="0 0 600 110" preserveAspectRatio="none"></svg>
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:2px;">
+          <span>oldest bet</span><span>newest bet</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart 3: PnL Per Bet Bar Chart (large) -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">PnL per Bet ($)</div>
+        <div class="panel-tag tag-muted" id="pnlBarsTag">REAL BETS</div>
+      </div>
+      <div style="padding:12px 16px 8px;">
+        <div class="pnl-bars-large" id="pnlBarsLarge"></div>
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:4px;">
+          <span>oldest</span><span>newest</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart 4: BTC Price + Predictions Overlay -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">BTC Price vs Predictions</div>
+        <div style="display:flex;gap:8px;font-size:9px;">
+          <span style="color:var(--accent);">▲ correct</span>
+          <span style="color:var(--danger);">▼ wrong</span>
+        </div>
+      </div>
+      <div style="padding:12px 16px 8px;">
+        <svg id="btcOverlaySvg" width="100%" height="110" viewBox="0 0 600 110" preserveAspectRatio="none"></svg>
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:2px;">
+          <span>oldest</span><span>newest</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /.charts-grid -->
 
   <div class="main-grid">
 
@@ -1249,6 +1326,13 @@ function render(data) {
   renderConfDist(data);
   renderEquityCurve(chronoBets, totalPnl);
 
+  // Charts Grid (4 temporal charts)
+  const chronoAll = [...data].reverse();
+  renderConfidenceOverTime(chronoAll);
+  renderRollingWinRate(chronoBets);
+  renderPnlBarsLarge(chronoBets);
+  renderBtcPredictionsOverlay(chronoAll);
+
   const tag = document.getElementById('totalPnlTag');
   tag.textContent = 'TOTAL: ' + (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toFixed(4);
   tag.className   = 'panel-tag ' + (totalPnl >= 0 ? 'tag-green' : 'tag-red');
@@ -1439,6 +1523,118 @@ function renderEquityCurve(chronoBets, totalPnl) {
     <circle cx="${toX(points.length-1).toFixed(1)}" cy="${toY(points[points.length-1].cum).toFixed(1)}" r="3.5" fill="${color}"/>`;
   document.getElementById('equityTag').textContent = (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toFixed(4);
   document.getElementById('equityTag').className   = 'panel-tag ' + (totalPnl >= 0 ? 'tag-green' : 'tag-red');
+}
+
+// ── CHARTS GRID FUNCTIONS ────────────────────────────────────────────────────
+
+function renderConfidenceOverTime(chronoAll) {
+  const svg = document.getElementById('confSvg');
+  if (!chronoAll.length) { svg.innerHTML = ''; return; }
+  const W = 600, H = 100;
+  const minConf = 0.50, maxConf = 1.0;
+  const toY = c => H - ((c - minConf) / (maxConf - minConf)) * (H - 10) - 5;
+  const pts = chronoAll.map((d, i) => {
+    const x = (i / Math.max(chronoAll.length - 1, 1)) * W;
+    return `${x.toFixed(1)},${toY(parseFloat(d.confidence || 0.5)).toFixed(1)}`;
+  }).join(' ');
+  const threshY = toY(0.60);
+  const avgConf = chronoAll.reduce((s, d) => s + parseFloat(d.confidence || 0.5), 0) / chronoAll.length;
+  const lastX = ((chronoAll.length - 1) / Math.max(chronoAll.length - 1, 1)) * W;
+  const lastY = toY(parseFloat(chronoAll[chronoAll.length - 1].confidence || 0.5));
+  svg.innerHTML = `
+    <defs>
+      <linearGradient id="confG" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="var(--blue)" stop-opacity="0.25"/>
+        <stop offset="100%" stop-color="var(--blue)" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <polygon points="${pts} ${W},${H} 0,${H}" fill="url(#confG)"/>
+    <line x1="0" y1="${threshY.toFixed(1)}" x2="${W}" y2="${threshY.toFixed(1)}" stroke="var(--muted)" stroke-width="0.8" stroke-dasharray="4,3"/>
+    <text x="4" y="${(threshY - 3).toFixed(1)}" fill="var(--muted)" font-size="8" font-family="JetBrains Mono,monospace">60%</text>
+    <polyline points="${pts}" fill="none" stroke="var(--blue)" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="3" fill="var(--blue)"/>`;
+  document.getElementById('confTag').textContent = 'AVG ' + (avgConf * 100).toFixed(1) + '%';
+}
+
+function renderRollingWinRate(chronoBets) {
+  const svg = document.getElementById('wrSvg');
+  const closed = chronoBets.filter(d => d.correct !== null);
+  if (closed.length < 3) {
+    svg.innerHTML = '<text x="10" y="55" fill="var(--muted)" font-size="10" font-family="JetBrains Mono,monospace">Not enough data (need 3+ bets)</text>';
+    return;
+  }
+  const W = 600, H = 100;
+  const toX = i => (i / Math.max(closed.length - 1, 1)) * W;
+  const toY = pct => H - (pct / 100) * (H - 10) - 5;
+  const wr10pts = [], wr20pts = [];
+  closed.forEach((d, i) => {
+    const s10 = closed.slice(Math.max(0, i - 9), i + 1);
+    const s20 = closed.slice(Math.max(0, i - 19), i + 1);
+    wr10pts.push(`${toX(i).toFixed(1)},${toY(s10.filter(x => x.correct).length / s10.length * 100).toFixed(1)}`);
+    wr20pts.push(`${toX(i).toFixed(1)},${toY(s20.filter(x => x.correct).length / s20.length * 100).toFixed(1)}`);
+  });
+  const line50Y = toY(50);
+  svg.innerHTML = `
+    <line x1="0" y1="${line50Y.toFixed(1)}" x2="${W}" y2="${line50Y.toFixed(1)}" stroke="var(--muted)" stroke-width="0.8" stroke-dasharray="4,3"/>
+    <text x="4" y="${(line50Y - 3).toFixed(1)}" fill="var(--muted)" font-size="8" font-family="JetBrains Mono,monospace">50%</text>
+    <polyline points="${wr20pts.join(' ')}" fill="none" stroke="var(--blue)" stroke-width="1.2" stroke-linejoin="round" opacity="0.6"/>
+    <polyline points="${wr10pts.join(' ')}" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linejoin="round"/>
+    <circle cx="${toX(closed.length-1).toFixed(1)}" cy="${wr10pts[wr10pts.length-1].split(',')[1]}" r="3" fill="var(--accent)"/>`;
+}
+
+function renderPnlBarsLarge(chronoBets) {
+  const container = document.getElementById('pnlBarsLarge');
+  if (!chronoBets.length) {
+    container.innerHTML = '<span style="color:var(--muted);font-size:10px">No data</span>';
+    document.getElementById('pnlBarsTag').textContent = 'REAL BETS';
+    return;
+  }
+  const maxAbs = Math.max(...chronoBets.map(d => Math.abs(parseFloat(d.pnl_usd || 0))), 0.0001);
+  const maxH = 120;
+  container.innerHTML = chronoBets.map(d => {
+    const v = parseFloat(d.pnl_usd || 0);
+    const h = Math.max(2, Math.abs(v) / maxAbs * maxH);
+    const cls = v > 0 ? 'pos' : v < 0 ? 'neg' : 'zero';
+    const label = (v >= 0 ? '+' : '') + '$' + v.toFixed(4);
+    return `<div class="bar ${cls}" style="height:${h}px;flex:1;min-width:2px;max-width:14px;" title="${label}"><div class="tooltip">${label}</div></div>`;
+  }).join('');
+  document.getElementById('pnlBarsTag').textContent = chronoBets.length + ' BETS';
+}
+
+function renderBtcPredictionsOverlay(chronoAll) {
+  const svg = document.getElementById('btcOverlaySvg');
+  const pts = chronoAll.filter(d => d.btc_price_entry && parseFloat(d.btc_price_entry) > 0);
+  if (pts.length < 2) {
+    svg.innerHTML = '<text x="10" y="55" fill="var(--muted)" font-size="10" font-family="JetBrains Mono,monospace">Not enough data</text>';
+    return;
+  }
+  const W = 600, H = 100;
+  const prices = pts.map(d => parseFloat(d.btc_price_entry));
+  const minP = Math.min(...prices), maxP = Math.max(...prices);
+  const range = maxP - minP || 1;
+  const toX = i => (i / Math.max(pts.length - 1, 1)) * W;
+  const toY = p => H - ((p - minP) / range) * (H - 14) - 7;
+  const pricePts = pts.map((d, i) => `${toX(i).toFixed(1)},${toY(parseFloat(d.btc_price_entry)).toFixed(1)}`).join(' ');
+  const markers = pts.map((d, i) => {
+    if (d.correct === null || d.classification !== 'BET') return '';
+    const x = toX(i), y = toY(parseFloat(d.btc_price_entry));
+    const color = d.correct ? 'var(--accent)' : 'var(--danger)';
+    const isUp = d.direction === 'UP';
+    const tri = isUp
+      ? `${x.toFixed(1)},${(y-9).toFixed(1)} ${(x-4).toFixed(1)},${(y-1).toFixed(1)} ${(x+4).toFixed(1)},${(y-1).toFixed(1)}`
+      : `${x.toFixed(1)},${(y+9).toFixed(1)} ${(x-4).toFixed(1)},${(y+1).toFixed(1)} ${(x+4).toFixed(1)},${(y+1).toFixed(1)}`;
+    return `<polygon points="${tri}" fill="${color}" opacity="0.9"/>`;
+  }).join('');
+  svg.innerHTML = `
+    <defs>
+      <linearGradient id="btcG" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="var(--muted)" stop-opacity="0.15"/>
+        <stop offset="100%" stop-color="var(--muted)" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <polygon points="${pricePts} ${W},${H} 0,${H}" fill="url(#btcG)"/>
+    <polyline points="${pricePts}" fill="none" stroke="var(--muted)" stroke-width="1.2" stroke-linejoin="round" opacity="0.6"/>
+    ${markers}`;
 }
 
 // ── INIT ─────────────────────────────────────────────────────────────────────
