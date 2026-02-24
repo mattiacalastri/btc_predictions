@@ -496,6 +496,7 @@ def place_bet():
         }), 200
 
     # Dual-gate: bet solo se XGB direction == LLM direction
+    xgb_prob_up = 0.5  # default, aggiornato dal blocco XGB sotto
     if _XGB_MODEL is not None:
         try:
             feat_row = [[
@@ -512,6 +513,7 @@ def place_bet():
                 float(data.get("signal_volume_high", data.get("signal_volume", 0))),
             ]]
             prob = _XGB_MODEL.predict_proba(feat_row)[0]  # [P(DOWN), P(UP)]
+            xgb_prob_up = float(prob[1])  # salva in scope per pyramid check
             xgb_direction = "UP" if prob[1] > 0.5 else "DOWN"
             if xgb_direction != direction:
                 return jsonify({
@@ -548,19 +550,19 @@ def place_bet():
     try:
         pos = get_open_position(symbol)
 
-        # NO stacking: se stessa direzione => skip (evita che aumenti la size)
+        # NO stacking: se stessa direzione => valuta pyramid o skip
         if pos and pos["side"] == desired_side:
-            # Cerca la bet aperta su Supabase per mostrare quando è stata aperta
             existing_bet_info = {}
-            # Kraken entry price always available (top-level, no nesting issues in n8n)
             kraken_entry_price = float(pos.get("price", 0) or 0)
+            # default conservativo: non pyramisare se non riusciamo a leggere Supabase
+            pyramid_count_existing = 1
             try:
                 sb_url = os.environ.get("SUPABASE_URL", "")
                 sb_key = os.environ.get("SUPABASE_KEY", "")
                 if sb_url and sb_key:
                     r = requests.get(
                         f"{sb_url}/rest/v1/btc_predictions"
-                        "?select=id,created_at,direction,entry_fill_price"
+                        "?select=id,created_at,direction,entry_fill_price,pyramid_count"
                         "&bet_taken=eq.true&correct=is.null&order=id.desc&limit=1",
                         headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
                         timeout=5,
@@ -572,12 +574,97 @@ def place_bet():
                             "existing_bet_created_at": row.get("created_at"),
                             "existing_bet_entry": row.get("entry_fill_price"),
                         }
+                        pyramid_count_existing = int(row.get("pyramid_count") or 0)
             except Exception:
                 pass
-            # existing_entry_price: Supabase entry fill price OR Kraken mark price as fallback
-            existing_entry_price = (
-                existing_bet_info.get("existing_bet_entry") or kraken_entry_price
-            )
+
+            existing_entry_price = existing_bet_info.get("existing_bet_entry") or kraken_entry_price
+
+            # --- Pyramid evaluation ---
+            pyramid_size = max(0.001, float(os.environ.get("BASE_SIZE", "0.002")) * 0.5)
+            current_pos_size = float(pos.get("size", 0))
+            mark_price = _get_mark_price(symbol) or float(existing_entry_price or 0)
+
+            # PnL% posizione corrente
+            current_pnl_pct = 0.0
+            if existing_entry_price and float(existing_entry_price) > 0:
+                _sign = 1 if pos["side"] == "long" else -1
+                current_pnl_pct = (mark_price - float(existing_entry_price)) / float(existing_entry_price) * _sign
+
+            # Età posizione in minuti
+            position_age_min = 0
+            bet_created_at = existing_bet_info.get("existing_bet_created_at")
+            if bet_created_at:
+                try:
+                    from datetime import datetime, timezone
+                    _created_dt = datetime.fromisoformat(bet_created_at.replace("Z", "+00:00"))
+                    position_age_min = (datetime.now(timezone.utc) - _created_dt).total_seconds() / 60
+                except Exception:
+                    pass
+
+            can_pyramid = False
+            pyramid_reason = None
+            if pyramid_count_existing == 0 and (current_pos_size + pyramid_size) <= 0.005:
+                # Condizione B — Strong signal: XGB prob > 0.70 AND conf > 0.72 (bypassa PnL)
+                _strong_xgb = xgb_prob_up if direction == "UP" else (1.0 - xgb_prob_up)
+                if _strong_xgb > 0.70 and confidence > 0.72:
+                    can_pyramid = True
+                    pyramid_reason = "B"
+                # Condizione A — Standard: posizione matura, in profitto, conf alta
+                if not can_pyramid and position_age_min > 15 and current_pnl_pct > 0.003 and confidence > 0.70:
+                    can_pyramid = True
+                    pyramid_reason = "A"
+
+            if can_pyramid:
+                try:
+                    trade = get_trade_client()
+                    _order_side = "buy" if direction == "UP" else "sell"
+                    pyramid_result = trade.create_order(
+                        orderType="mkt",
+                        symbol=symbol,
+                        side=_order_side,
+                        size=pyramid_size,
+                    )
+                    # UPDATE Supabase: pyramid_count=1, bet_size aggiornata
+                    bet_id = existing_bet_info.get("existing_bet_id")
+                    if bet_id:
+                        _sb_url = os.environ.get("SUPABASE_URL", "")
+                        _sb_key = os.environ.get("SUPABASE_KEY", "")
+                        try:
+                            requests.patch(
+                                f"{_sb_url}/rest/v1/btc_predictions?id=eq.{bet_id}",
+                                json={"pyramid_count": 1, "bet_size": round(current_pos_size + pyramid_size, 4)},
+                                headers={
+                                    "apikey": _sb_key,
+                                    "Authorization": f"Bearer {_sb_key}",
+                                    "Content-Type": "application/json",
+                                    "Prefer": "return=minimal",
+                                },
+                                timeout=5,
+                            )
+                        except Exception:
+                            pass
+                    _pyr_order_id = ""
+                    try:
+                        _pyr_order_id = str(pyramid_result.get("sendStatus", {}).get("order_id", ""))
+                    except Exception:
+                        pass
+                    return jsonify({
+                        "status": "pyramided",
+                        "direction": direction,
+                        "existing_bet_id": existing_bet_info.get("existing_bet_id"),
+                        "pyramid_add_size": pyramid_size,
+                        "total_position_size": round(current_pos_size + pyramid_size, 4),
+                        "current_pnl_pct": round(current_pnl_pct, 4),
+                        "pyramid_reason": pyramid_reason,
+                        "order_id": _pyr_order_id,
+                        "confidence": confidence,
+                        "symbol": symbol,
+                    }), 200
+                except Exception:
+                    pass  # pyramid fallito → skip normale
+
+            # Skip normale (pyramid non possibile o fallito)
             return jsonify({
                 "status": "skipped",
                 "reason": f"Posizione {pos['side']} già aperta nella stessa direzione (no stacking).",
