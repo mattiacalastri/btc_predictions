@@ -912,6 +912,51 @@
      MOBILE RESPONSIVE — max-width: 600px
   ═══════════════════════════════════════════ */
 
+  /* AUTO-TRAINING STATUS panel */
+  .train-panel-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 20px;
+    padding: 14px 18px 16px;
+  }
+  .train-progress-bar {
+    width: 100%; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 8px;
+    overflow: hidden;
+  }
+  .train-progress-fill {
+    height: 100%; border-radius: 2px;
+    background: var(--accent);
+    transition: width 0.9s ease;
+  }
+  .train-status-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 10px; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; padding: 4px 10px; border-radius: 2px;
+  }
+  .train-status-pill.recent      { color: var(--accent); background: rgba(0,255,136,0.08); border: 1px solid rgba(0,255,136,0.25); }
+  .train-status-pill.on_track    { color: var(--blue);   background: rgba(0,170,255,0.08); border: 1px solid rgba(0,170,255,0.25); }
+  .train-status-pill.retrain_ready { color: var(--warn); background: rgba(255,170,0,0.08); border: 1px solid rgba(255,170,0,0.25); animation: pulse 2s ease-in-out infinite; }
+
+  /* Mobile-only KPI boxes */
+  .kpi.mobile-only    { display: none; }
+  .stat-cell.mobile-only { display: none; }
+  @media (max-width: 600px) {
+    .kpi.mobile-only    { display: block; }
+    .stat-cell.mobile-only { display: block; }
+  }
+
+  /* Bot alert banner */
+  #botAlertBanner {
+    display: none; align-items: center; gap: 10px;
+    background: rgba(255,170,0,0.08); border: 1px solid rgba(255,170,0,0.3);
+    border-radius: 2px; padding: 8px 14px; margin-bottom: 14px;
+    font-size: 11px; color: var(--warn); font-weight: 600; letter-spacing: 1px;
+  }
+  #botAlertBanner.visible { display: flex; }
+
   /* TASK 1 — AI FEEDS strip: auto-scroll carousel su mobile */
   @keyframes feedScroll {
     0%   { transform: translateX(0); }
@@ -1270,6 +1315,13 @@
     <span class="err-dismiss" onclick="document.getElementById('apiErrorBanner').classList.remove('visible')" title="Dismiss">✕</span>
   </div>
 
+  <!-- Bot alert banner (wf02/orphaned bets) -->
+  <div id="botAlertBanner">
+    <span style="font-size:14px">⚠️</span>
+    <span id="botAlertMsg">—</span>
+    <span style="margin-left:auto;cursor:pointer;opacity:0.6;" onclick="document.getElementById('botAlertBanner').classList.remove('visible')">✕</span>
+  </div>
+
   <!-- ⬡ LIVE POSITION WIDGET -->
   <div id="livePositionWidget" style="display:none;margin-bottom:16px">
     <div class="live-pos-card">
@@ -1436,6 +1488,17 @@
       <div class="kpi-value red" id="kpiDrawdown">—</div>
       <div class="kpi-sub">Single trade</div>
     </div>
+    <!-- Mobile-only: 2 extra KPI slots fill the last row on 3-col mobile grid -->
+    <div class="kpi mobile-only green">
+      <div class="kpi-label">Expectancy</div>
+      <div class="kpi-value white" id="kpiExpectancyVal">—</div>
+      <div class="kpi-sub">avg $/bet</div>
+    </div>
+    <div class="kpi mobile-only purple">
+      <div class="kpi-label">Profit Factor</div>
+      <div class="kpi-value purple" id="kpiProfitFactorVal">—</div>
+      <div class="kpi-sub">wins/losses</div>
+    </div>
   </div>
 
   <div class="stats-row">
@@ -1458,6 +1521,11 @@
     <div class="stat-cell">
       <div class="stat-cell-label">Avg RR Ratio</div>
       <div class="stat-cell-val" id="statRR" style="color:var(--accent)">—</div>
+    </div>
+    <!-- Mobile-only: fills empty slot in 3-col row 2 -->
+    <div class="stat-cell mobile-only">
+      <div class="stat-cell-label">Best Streak</div>
+      <div class="stat-cell-val" id="statBestStreak" style="color:var(--accent)">—</div>
     </div>
   </div>
 
@@ -1499,6 +1567,53 @@
         <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Avg PnL / Bet</div>
         <div style="font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace;" id="tsAvgPnl">&#8212;</div>
         <div style="font-size:9px;color:var(--muted);" id="tsAvgPnlSub">wins: &#8212; / losses: &#8212;</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       AUTO-TRAINING STATUS
+  ═══════════════════════════════════════════ -->
+  <div class="panel" style="margin-bottom:14px;" id="trainingStatusPanel">
+    <div class="panel-header">
+      <div class="panel-title">Auto-Training &mdash; XGBoost Engine</div>
+      <div id="trainStatusPill" class="train-status-pill recent">
+        <span id="trainStatusDot" style="width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0;animation:pulse 2s infinite;"></span>
+        <span id="trainStatusText">LOADING</span>
+      </div>
+    </div>
+    <div class="train-panel-grid">
+      <!-- New bets since retrain + progress bar -->
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">New Bets Since Retrain</div>
+        <div style="display:flex;align-items:baseline;gap:8px;">
+          <div style="font-size:28px;font-weight:700;font-family:'Syne',sans-serif;" id="trainBetsSince">—</div>
+          <div style="font-size:11px;color:var(--muted);" id="trainBetsThreshold">/ 30 target</div>
+        </div>
+        <div class="train-progress-bar">
+          <div class="train-progress-fill" id="trainProgressFill" style="width:0%"></div>
+        </div>
+        <div style="font-size:9px;color:var(--muted);margin-top:2px;" id="trainProgressLabel">0% toward next meaningful retrain</div>
+      </div>
+      <!-- Model accuracy -->
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Direction Accuracy</div>
+          <div style="font-size:26px;font-weight:700;font-family:'Syne',sans-serif;color:var(--accent);" id="trainDirAcc">—</div>
+          <div style="font-size:9px;color:var(--muted);" id="trainTrainN">— signals in dataset</div>
+        </div>
+      </div>
+      <!-- Last retrain -->
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Last Retrain</div>
+        <div style="font-size:12px;font-weight:600;color:var(--text);" id="trainLastDate">—</div>
+        <div style="font-size:9px;color:var(--muted);" id="trainDaysAgo">—</div>
+      </div>
+      <!-- Next scheduled retrain -->
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Next Scheduled</div>
+        <div style="font-size:12px;font-weight:600;color:var(--blue);" id="trainNextDate">—</div>
+        <div style="font-size:9px;color:var(--muted);">Sunday 3:00 UTC · auto</div>
       </div>
     </div>
   </div>
@@ -2549,6 +2664,33 @@ function render(data) {
   rrEl.textContent = avgRR !== null ? avgRR.toFixed(2) + '×' : '—';
   rrEl.style.color = avgRR === null ? 'var(--muted)' : avgRR >= 2 ? 'var(--accent)' : avgRR >= 1.5 ? 'var(--warn)' : 'var(--danger)';
 
+  // Mobile-only: Expectancy, Profit Factor, Best Streak
+  const grossWins  = closedBets.filter(d => d.pnl_usd > 0).reduce((s, d) => s + parseFloat(d.pnl_usd || 0), 0);
+  const grossLoss  = Math.abs(closedBets.filter(d => d.pnl_usd < 0).reduce((s, d) => s + parseFloat(d.pnl_usd || 0), 0));
+  const expectancy = closedBets.length ? totalPnl / closedBets.length : null;
+  const profitFactor = grossLoss > 0 ? grossWins / grossLoss : null;
+  const expEl = document.getElementById('kpiExpectancyVal');
+  if (expEl) {
+    expEl.textContent = expectancy !== null ? (expectancy >= 0 ? '+' : '') + '$' + expectancy.toFixed(3) : '—';
+    expEl.className = 'kpi-value ' + (expectancy === null ? 'white' : expectancy >= 0 ? 'green' : 'red');
+  }
+  const pfEl = document.getElementById('kpiProfitFactorVal');
+  if (pfEl) {
+    pfEl.textContent = profitFactor !== null ? profitFactor.toFixed(2) : '—';
+    pfEl.className = 'kpi-value ' + (profitFactor === null ? 'purple' : profitFactor >= 1.5 ? 'green' : profitFactor < 1 ? 'red' : 'yellow');
+  }
+  // Best streak
+  let bestStreakW = 0, bestStreakL = 0, curW = 0, curL = 0;
+  for (const b of closedBetsDesc) {
+    if (b.correct) { curW++; curL = 0; bestStreakW = Math.max(bestStreakW, curW); }
+    else           { curL++; curW = 0; bestStreakL = Math.max(bestStreakL, curL); }
+  }
+  const bsEl = document.getElementById('statBestStreak');
+  if (bsEl) {
+    bsEl.textContent = bestStreakW > 0 ? 'W×' + bestStreakW : '—';
+    bsEl.style.color = 'var(--accent)';
+  }
+
   renderTable(data);
 
   const chronoBets = [...realBets].reverse();
@@ -3456,6 +3598,86 @@ setInterval(refreshAccountSummary, CONFIG.ACCT_REFRESH);
 
 fetchEquityHistory();
 fetchTradingStats();
+fetchTrainingStatus();
+fetchBotAlerts();
+
+// ── TRAINING STATUS ────────────────────────────────────────────────────────────
+
+async function fetchTrainingStatus() {
+  try {
+    const res = await fetch(`${CONFIG.RAILWAY_URL}/training-status`, { signal: AbortSignal.timeout(10000) });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const d = await res.json();
+
+    // Status pill
+    const pill = document.getElementById('trainStatusPill');
+    const txt  = document.getElementById('trainStatusText');
+    if (pill && txt) {
+      const s = (d.status || '').toLowerCase();
+      pill.className = 'train-status-pill ' + s;
+      txt.textContent = s === 'recent' ? 'FRESH' : s === 'on_track' ? 'ON TRACK' : 'RETRAIN READY';
+    }
+
+    // Bets since + progress bar
+    const bets  = d.bets_since_retrain ?? 0;
+    const thr   = d.retrain_threshold  ?? 30;
+    const pct   = Math.min(100, Math.round(bets / thr * 100));
+    const el = document.getElementById('trainBetsSince');
+    if (el) el.textContent = bets !== null ? bets : '—';
+    const thrEl = document.getElementById('trainBetsThreshold');
+    if (thrEl) thrEl.textContent = '/ ' + thr + ' target';
+    const fill = document.getElementById('trainProgressFill');
+    if (fill) fill.style.width = pct + '%';
+    if (pct >= 100) fill.style.background = 'var(--warn)';
+    const lbl = document.getElementById('trainProgressLabel');
+    if (lbl) lbl.textContent = pct + '% toward next meaningful retrain';
+
+    // Direction accuracy
+    const accEl = document.getElementById('trainDirAcc');
+    if (accEl) accEl.textContent = d.direction_acc ? d.direction_acc.toFixed(1) + '%' : '—';
+    const nEl = document.getElementById('trainTrainN');
+    if (nEl) nEl.textContent = d.train_n ? d.train_n + ' signals in dataset' : '—';
+
+    // Dates
+    const lastEl = document.getElementById('trainLastDate');
+    if (lastEl) lastEl.textContent = d.last_retrain_iso || '—';
+    const agoEl = document.getElementById('trainDaysAgo');
+    if (agoEl) agoEl.textContent = d.days_since_retrain !== null ? d.days_since_retrain + ' days ago' : '';
+    const nextEl = document.getElementById('trainNextDate');
+    if (nextEl) nextEl.textContent = d.next_retrain_iso || '—';
+  } catch(e) {
+    console.warn('fetchTrainingStatus error:', e);
+  }
+}
+
+// ── BOT ALERTS ────────────────────────────────────────────────────────────────
+
+async function fetchBotAlerts() {
+  try {
+    const res = await fetch(`${CONFIG.RAILWAY_URL}/check-status`, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) return;
+    const d = await res.json();
+    const banner = document.getElementById('botAlertBanner');
+    const msg    = document.getElementById('botAlertMsg');
+    if (!banner || !msg) return;
+    if (d.alert) {
+      const openBets  = d.open_bets_supabase || 0;
+      const wf02Active = d.wf02_active;
+      let detail = d.alert;
+      if (!wf02Active && openBets > 0) {
+        detail = openBets + ' bet' + (openBets > 1 ? 's' : '') + ' aperta/e senza monitoraggio wf02 — rescue consigliato';
+      }
+      msg.textContent = detail;
+      banner.classList.add('visible');
+    } else {
+      banner.classList.remove('visible');
+    }
+  } catch(e) { /* silent */ }
+}
+
+// Refresh training status every 5 minutes
+setInterval(fetchTrainingStatus, 5 * 60 * 1000);
+setInterval(fetchBotAlerts, 3 * 60 * 1000);
 
 // ── COSTS TAB ─────────────────────────────────────────────────────────────────
 
