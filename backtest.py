@@ -496,9 +496,21 @@ def main():
         "streaks":       streaks,
     }
 
+    class _NpEncoder(json.JSONEncoder):
+        def default(self, obj):
+            if isinstance(obj, (np.integer,)):
+                return int(obj)
+            if isinstance(obj, (np.floating,)):
+                return float(obj)
+            if isinstance(obj, (np.bool_,)):
+                return bool(obj)
+            if isinstance(obj, np.ndarray):
+                return obj.tolist()
+            return super().default(obj)
+
     json_path = os.path.join(args.output_dir, "backtest_data.json")
     with open(json_path, "w", encoding="utf-8") as f:
-        json.dump(data_json, f, indent=2)
+        json.dump(data_json, f, indent=2, cls=_NpEncoder)
     print(f"  Report JSON salvato: {json_path}")
 
 
