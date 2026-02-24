@@ -355,7 +355,7 @@ def health():
         "serverTime": get_kraken_servertime(),
         "symbol": DEFAULT_SYMBOL,
         "api_key_set": bool(API_KEY),
-        "version": "2.4.1",
+        "version": "2.5.0",
         "dry_run": DRY_RUN,
         "capital": capital,
         "wallet_equity": wallet_equity,
