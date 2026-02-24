@@ -1272,36 +1272,41 @@ def costs():
 def n8n_status():
     """
     Proxy verso n8n API — richiede N8N_API_KEY env var su Railway.
-    Filtra per tag 'btc-bot' (assegnato manualmente in n8n).
+    Fetch per ID diretto (non per tag, che vengono azzerati dall'API n8n ad ogni update).
     """
     n8n_key = os.environ.get("N8N_API_KEY", "")
     n8n_url = os.environ.get("N8N_URL", "https://mattiacalastri.app.n8n.cloud")
     if not n8n_key:
         return jsonify({"status": "error", "error": "N8N_API_KEY not configured on Railway"}), 200
 
+    # IDs fissi — più robusti dei tag che l'API n8n azzera ad ogni updateNode
+    BTC_WORKFLOW_IDS = [
+        "kaevyOIbHpm8vJmF",  # 01_BTC_Prediction_Bot
+        "vallzU6ceD5gPwSP",  # 02_BTC_Trade_Checker
+        "KITZHsfVSMtVTpfx",  # 03_BTC_Wallet_Checker
+        "eLmZ6d8t9slAx5pj",  # 04_BTC_Talker
+        "xCwf53UGBq1SyP0c",  # 05_BTC_Prediction_Verifier
+        "O2ilssVhSFs9jsMF",  # 06_Nightly_Maintenance
+    ]
+
     headers = {"X-N8N-API-KEY": n8n_key}
     result = []
     try:
-        # Carica workflow filtrati per tag btc-bot (una sola chiamata)
-        r = requests.get(
-            f"{n8n_url}/api/v1/workflows?tags=btc-bot&limit=20",
-            headers=headers, timeout=8
-        )
-        if not r.ok:
-            return jsonify({"status": "error", "error": f"n8n API {r.status_code}"}), 200
-
-        workflows = r.json().get("data", [])
-        workflows.sort(key=lambda w: w.get("name", ""))
-
-        for wf in workflows:
-            wf_id = wf.get("id")
-            wf_data = {
-                "id":     wf_id,
-                "name":   wf.get("name", wf_id),
-                "active": wf.get("active", False),
-            }
-            # Ultima execution per questo workflow
+        for wf_id in BTC_WORKFLOW_IDS:
             try:
+                wf_r = requests.get(
+                    f"{n8n_url}/api/v1/workflows/{wf_id}",
+                    headers=headers, timeout=5
+                )
+                if not wf_r.ok:
+                    continue
+                wf = wf_r.json()
+                wf_data = {
+                    "id":     wf_id,
+                    "name":   wf.get("name", wf_id),
+                    "active": wf.get("active", False),
+                }
+                # Ultima execution per questo workflow
                 ex_r = requests.get(
                     f"{n8n_url}/api/v1/executions?workflowId={wf_id}&limit=1",
                     headers=headers, timeout=4
@@ -1316,9 +1321,9 @@ def n8n_status():
                             "started_at": last.get("startedAt"),
                             "stopped_at": last.get("stoppedAt"),
                         }
+                result.append(wf_data)
             except Exception:
                 pass
-            result.append(wf_data)
 
         return jsonify({"status": "ok", "workflows": result, "ts": int(time.time())})
 
