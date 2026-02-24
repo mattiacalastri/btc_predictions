@@ -1678,7 +1678,7 @@
         ▸ Walk-Forward Report (testo grezzo)
         <span id="backtestBadge" style="font-size:10px;font-weight:400;opacity:0.5;margin-left:8px"></span>
       </summary>
-      <pre id="backtestReportPre" style="font-size:11px;line-height:1.5;white-space:pre-wrap;overflow-x:auto;max-height:400px;overflow-y:auto;background:#111;padding:12px;border-radius:6px;color:#ccc;margin-top:8px">Loading...</pre>
+      <pre id="backtestReportPre" style="font-size:11px;line-height:1.6;white-space:pre-wrap;overflow-x:auto;max-height:400px;overflow-y:auto;background:#111;padding:12px;border-radius:6px;color:#ccc;margin-top:8px">Loading...</pre>
     </details>
 
     <details>
@@ -1686,7 +1686,7 @@
         ▸ XGBoost Model Report
         <span id="xgbBadge" style="font-size:10px;font-weight:400;opacity:0.5;margin-left:8px"></span>
       </summary>
-      <pre id="xgbReportPre" style="font-size:11px;line-height:1.5;white-space:pre-wrap;overflow-x:auto;max-height:500px;overflow-y:auto;background:#111;padding:12px;border-radius:6px;color:#ccc;margin-top:8px">Loading...</pre>
+      <pre id="xgbReportPre" style="font-size:11px;line-height:1.6;white-space:pre-wrap;overflow-x:auto;max-height:500px;overflow-y:auto;background:#111;padding:12px;border-radius:6px;color:#ccc;margin-top:8px">Loading...</pre>
     </details>
 
   </div><!-- /#tab-backtest -->
@@ -2906,6 +2906,41 @@ function renderAgents(data, errorMsg) {
 }
 
 
+// ── Backtest report syntax highlighting ──────────────────────────────────────
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function syntaxHighlight(text) {
+  return text.split('\n').map(line => {
+    // Decorator lines (ASCII box-drawing) — near-invisible border color
+    if (/[═─╔╚╗╝║╠╣╦╩╬]/.test(line)) {
+      return `<span style="color:#1e2d3d">${line}</span>`;
+    }
+    // Trophy / star / "Miglior" lines — gold bold
+    if (/[🏆★]|Miglior/.test(line)) {
+      return `<span style="color:#ffbb00;font-weight:700">${line}</span>`;
+    }
+    // Section headers like [1/5] [2/5] etc.
+    if (/\[\d+\/\d+\]/.test(line)) {
+      return `<span style="color:#00aaff">${line}</span>`;
+    }
+    // Win / positive lines
+    if (/\+|\bWIN\b|▲|%\]/.test(line)) {
+      return `<span style="color:#00ff88">${line}</span>`;
+    }
+    // Loss / error / negative lines
+    if (/-\$|\bLOSS\b|\bERROR\b|⚠/.test(line)) {
+      return `<span style="color:#ff4466">${line}</span>`;
+    }
+    // Lines containing percentage numbers — yellow
+    if (/\d+(\.\d+)?%/.test(line)) {
+      return `<span style="color:#ffaa00">${line}</span>`;
+    }
+    return line;
+  }).join('\n');
+}
+
 async function fetchBacktestReport() {
   // ── Text reports (raw) ──────────────────────────────────────────────────
   const preBT   = document.getElementById('backtestReportPre');
@@ -2918,9 +2953,9 @@ async function fetchBacktestReport() {
     fetch(CONFIG.RAILWAY_URL + '/xgb-report',      { signal: AbortSignal.timeout(8000) }).then(r => r.ok ? r.json() : null).catch(() => null),
     fetch(CONFIG.RAILWAY_URL + '/backtest-data',   { signal: AbortSignal.timeout(8000) }).then(r => r.ok ? r.json() : null).catch(() => null),
   ]).then(([btTxt, xgbTxt, btData]) => {
-    if (btTxt)  { preBT.textContent = btTxt.report || 'Vuoto.'; badgeBT.textContent = btTxt.lines + ' righe'; }
+    if (btTxt)  { preBT.innerHTML = syntaxHighlight(escapeHtml(btTxt.report || 'Vuoto.')); badgeBT.textContent = btTxt.lines + ' righe'; }
     else          preBT.textContent = 'Report non disponibile.';
-    if (xgbTxt) { preXGB.textContent = xgbTxt.report || 'Vuoto.'; badgeXGB.textContent = xgbTxt.lines + ' righe'; }
+    if (xgbTxt) { preXGB.innerHTML = syntaxHighlight(escapeHtml(xgbTxt.report || 'Vuoto.')); badgeXGB.textContent = xgbTxt.lines + ' righe'; }
     else          preXGB.textContent = 'Report non disponibile.';
 
     if (btData) renderBacktestDashboard(btData);
