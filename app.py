@@ -156,6 +156,7 @@ API_SECRET = os.environ.get("KRAKEN_FUTURES_API_SECRET", "")
 DEFAULT_SYMBOL = os.environ.get("KRAKEN_DEFAULT_SYMBOL", "PF_XBTUSD")
 KRAKEN_BASE = "https://futures.kraken.com"
 DRY_RUN = os.environ.get("DRY_RUN", "false").lower() in ("true", "1", "yes")
+_BOT_PAUSED = False  # runtime pause via /pause — non persiste al restart
 _costs_cache = {"data": None, "ts": 0.0}
 
 
@@ -355,8 +356,9 @@ def health():
         "serverTime": get_kraken_servertime(),
         "symbol": DEFAULT_SYMBOL,
         "api_key_set": bool(API_KEY),
-        "version": "2.5.0",
+        "version": "2.5.1",
         "dry_run": DRY_RUN,
+        "paused": _BOT_PAUSED,
         "capital": capital,
         "wallet_equity": wallet_equity,
         "base_size": base_size,
@@ -466,6 +468,22 @@ def close_position():
         return jsonify({"status": "error", "error": str(e), "symbol": symbol}), 500
 
 
+# ── BOT PAUSE / RESUME ───────────────────────────────────────────────────────
+
+@app.route("/pause", methods=["POST"])
+def pause_bot():
+    global _BOT_PAUSED
+    _BOT_PAUSED = True
+    return jsonify({"paused": True, "message": "Bot in pausa — nessun nuovo trade"}), 200
+
+
+@app.route("/resume", methods=["POST"])
+def resume_bot():
+    global _BOT_PAUSED
+    _BOT_PAUSED = False
+    return jsonify({"paused": False, "message": "Bot riattivato — trading ripreso"}), 200
+
+
 # ── PLACE BET ────────────────────────────────────────────────────────────────
 
 @app.route("/place-bet", methods=["POST"])
@@ -528,6 +546,14 @@ def place_bet():
             pass  # XGB check failed → procedi senza gate
 
     desired_side = "long" if direction == "UP" else "short"
+
+    if _BOT_PAUSED:
+        return jsonify({
+            "status": "paused",
+            "message": "Bot in pausa — nessun nuovo trade aperto",
+            "direction": direction,
+            "confidence": confidence,
+        }), 200
 
     if DRY_RUN:
         fake_id = f"DRY_{int(time.time())}"
