@@ -2068,6 +2068,21 @@ def backtest_report():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/backtest-data", methods=["GET"])
+def backtest_data():
+    """Return structured backtest JSON for dashboard charts."""
+    import os as _os
+    data_path = _os.path.join(_os.path.dirname(__file__), "datasets", "backtest_data.json")
+    if not _os.path.exists(data_path):
+        return jsonify({"error": "No backtest data found. Run backtest.py first."}), 404
+    try:
+        with open(data_path, "r") as f:
+            content = json.load(f)
+        return jsonify(content)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/xgb-report", methods=["GET"])
 def xgb_report():
     """Return last XGBoost training report."""

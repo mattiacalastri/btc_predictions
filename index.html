@@ -1326,15 +1326,92 @@
   <!-- BACKTEST TAB -->
   <div id="tab-backtest" class="tab-content">
 
-    <div class="panel" style="margin-bottom:16px">
-      <div class="panel-title">Walk-Forward Backtest <span id="backtestBadge" style="font-size:11px;font-weight:400;opacity:0.6">loading...</span></div>
-      <pre id="backtestReportPre" style="font-size:11px;line-height:1.5;white-space:pre-wrap;overflow-x:auto;max-height:400px;overflow-y:auto;background:#111;padding:12px;border-radius:6px;color:#ccc">Loading...</pre>
+    <!-- KPI row -->
+    <div class="kpi-grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:16px" id="btKpiGrid">
+      <div class="kpi"><div class="kpi-label">Best Strategy</div><div class="kpi-value" id="btKpiBest">—</div><div class="kpi-sub" id="btKpiBestPnl">—</div></div>
+      <div class="kpi"><div class="kpi-label">Current (FULL_STACK)</div><div class="kpi-value" id="btKpiCurrent">—</div><div class="kpi-sub" id="btKpiCurrentPnl">—</div></div>
+      <div class="kpi"><div class="kpi-label">Test WR</div><div class="kpi-value" id="btKpiWR">—</div><div class="kpi-sub" id="btKpiWRSub">—</div></div>
+      <div class="kpi"><div class="kpi-label">Profit Factor</div><div class="kpi-value" id="btKpiPF">—</div><div class="kpi-sub">Best strategy</div></div>
+      <div class="kpi"><div class="kpi-label">XGB CV Acc</div><div class="kpi-value" id="btKpiXgb">—</div><div class="kpi-sub" id="btKpiXgbSub">train set</div></div>
     </div>
 
-    <div class="panel">
-      <div class="panel-title">XGBoost Model Report <span id="xgbBadge" style="font-size:11px;font-weight:400;opacity:0.6">loading...</span></div>
-      <pre id="xgbReportPre" style="font-size:11px;line-height:1.5;white-space:pre-wrap;overflow-x:auto;max-height:500px;overflow-y:auto;background:#111;padding:12px;border-radius:6px;color:#ccc">Loading...</pre>
+    <!-- Equity curves chart -->
+    <div class="panel" style="margin-bottom:16px">
+      <div class="panel-title">Equity Curves — Test Set
+        <span style="font-size:10px;font-weight:400;opacity:0.5;margin-left:8px">per strategia, partendo da $0</span>
+      </div>
+      <div id="btEquityLegend" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px;font-size:10px"></div>
+      <svg id="btEquitySvg" width="100%" height="200" style="display:block;background:#111;border-radius:6px;overflow:visible"></svg>
     </div>
+
+    <!-- Strategy table -->
+    <div class="panel" style="margin-bottom:16px">
+      <div class="panel-title">Confronto Strategie</div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:11px" id="btStratTable">
+          <thead>
+            <tr style="color:var(--muted);text-transform:uppercase;font-size:9px;letter-spacing:1px">
+              <th style="text-align:left;padding:6px 8px">Strategia</th>
+              <th style="text-align:right;padding:6px 8px">N</th>
+              <th style="text-align:right;padding:6px 8px">WR%</th>
+              <th style="text-align:right;padding:6px 8px">PnL</th>
+              <th style="text-align:right;padding:6px 8px">$/bet</th>
+              <th style="text-align:right;padding:6px 8px">MaxDD</th>
+              <th style="text-align:right;padding:6px 8px">PF</th>
+              <th style="text-align:right;padding:6px 8px">Sortino</th>
+              <th style="text-align:right;padding:6px 8px">Sharpe</th>
+            </tr>
+          </thead>
+          <tbody id="btStratBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Confidence calibration + Hourly heatmap side by side -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+
+      <div class="panel">
+        <div class="panel-title">Confidence Calibration</div>
+        <table style="width:100%;border-collapse:collapse;font-size:11px">
+          <thead>
+            <tr style="color:var(--muted);text-transform:uppercase;font-size:9px;letter-spacing:1px">
+              <th style="text-align:left;padding:4px 6px">Bucket</th>
+              <th style="text-align:right;padding:4px 6px">N</th>
+              <th style="text-align:right;padding:4px 6px">ExpWR</th>
+              <th style="text-align:right;padding:4px 6px">ActWR</th>
+              <th style="text-align:right;padding:4px 6px">Δ</th>
+            </tr>
+          </thead>
+          <tbody id="btCalibBody"></tbody>
+        </table>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">24h Heatmap — Win Rate</div>
+        <div id="btHeatmap" style="display:grid;grid-template-columns:repeat(6,1fr);gap:3px"></div>
+        <div style="display:flex;gap:8px;margin-top:8px;font-size:9px;color:var(--muted)">
+          <span>🟩 HOT ≥60%</span><span>🟥 DEAD &lt;45%</span><span>⬜ no data</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Raw text reports (collapsible) -->
+    <details style="margin-bottom:12px">
+      <summary style="cursor:pointer;font-size:11px;color:var(--muted);padding:6px 0;letter-spacing:1px;text-transform:uppercase">
+        ▸ Walk-Forward Report (testo grezzo)
+        <span id="backtestBadge" style="font-size:10px;font-weight:400;opacity:0.5;margin-left:8px"></span>
+      </summary>
+      <pre id="backtestReportPre" style="font-size:11px;line-height:1.5;white-space:pre-wrap;overflow-x:auto;max-height:400px;overflow-y:auto;background:#111;padding:12px;border-radius:6px;color:#ccc;margin-top:8px">Loading...</pre>
+    </details>
+
+    <details>
+      <summary style="cursor:pointer;font-size:11px;color:var(--muted);padding:6px 0;letter-spacing:1px;text-transform:uppercase">
+        ▸ XGBoost Model Report
+        <span id="xgbBadge" style="font-size:10px;font-weight:400;opacity:0.5;margin-left:8px"></span>
+      </summary>
+      <pre id="xgbReportPre" style="font-size:11px;line-height:1.5;white-space:pre-wrap;overflow-x:auto;max-height:500px;overflow-y:auto;background:#111;padding:12px;border-radius:6px;color:#ccc;margin-top:8px">Loading...</pre>
+    </details>
 
   </div><!-- /#tab-backtest -->
 
@@ -2377,36 +2454,190 @@ function renderAgents(data, errorMsg) {
 
 
 async function fetchBacktestReport() {
-  const preBT  = document.getElementById('backtestReportPre');
+  // ── Text reports (raw) ──────────────────────────────────────────────────
+  const preBT   = document.getElementById('backtestReportPre');
   const badgeBT = document.getElementById('backtestBadge');
   const preXGB  = document.getElementById('xgbReportPre');
   const badgeXGB = document.getElementById('xgbBadge');
 
-  // Walk-forward backtest
-  try {
-    const res = await fetch(CONFIG.RAILWAY_URL + '/backtest-report', { signal: AbortSignal.timeout(8000) });
-    if (!res.ok) { preBT.textContent = 'Report non disponibile.'; }
-    else {
-      const d = await res.json();
-      preBT.textContent  = d.report || 'Vuoto.';
-      badgeBT.textContent = d.lines + ' righe';
-    }
-  } catch(e) {
-    preBT.textContent = 'Errore: ' + e.message;
+  Promise.all([
+    fetch(CONFIG.RAILWAY_URL + '/backtest-report', { signal: AbortSignal.timeout(8000) }).then(r => r.ok ? r.json() : null).catch(() => null),
+    fetch(CONFIG.RAILWAY_URL + '/xgb-report',      { signal: AbortSignal.timeout(8000) }).then(r => r.ok ? r.json() : null).catch(() => null),
+    fetch(CONFIG.RAILWAY_URL + '/backtest-data',   { signal: AbortSignal.timeout(8000) }).then(r => r.ok ? r.json() : null).catch(() => null),
+  ]).then(([btTxt, xgbTxt, btData]) => {
+    if (btTxt)  { preBT.textContent = btTxt.report || 'Vuoto.'; badgeBT.textContent = btTxt.lines + ' righe'; }
+    else          preBT.textContent = 'Report non disponibile.';
+    if (xgbTxt) { preXGB.textContent = xgbTxt.report || 'Vuoto.'; badgeXGB.textContent = xgbTxt.lines + ' righe'; }
+    else          preXGB.textContent = 'Report non disponibile.';
+
+    if (btData) renderBacktestDashboard(btData);
+  });
+}
+
+// ── Backtest dashboard rendering ─────────────────────────────────────────────
+
+const BT_COLORS = {
+  A_BASELINE:  '#555',
+  B_CONF_062:  '#4a90d9',
+  C_CONF_065:  '#7ec8a4',
+  D_DEAD_HOURS:'#e6b86a',
+  E_XGB_GATE:  '#c97cd9',
+  F_FULL_STACK:'#e06b6b',
+};
+
+function renderBacktestDashboard(d) {
+  const strats = d.strategies || {};
+  const best   = d.best_strategy;
+  const curr   = 'F_FULL_STACK';
+  const bestR  = strats[best]  || {};
+  const currR  = strats[curr]  || {};
+
+  // ── KPIs ───────────────────────────────────────────────────────────────
+  const pnlCol = v => v >= 0 ? 'var(--green)' : 'var(--danger)';
+  const fmtPnl = v => (v >= 0 ? '+' : '') + '$' + Number(v).toFixed(4);
+
+  _bt('btKpiBest',    best?.replace(/^[A-Z]_/, '') || '—');
+  _bt('btKpiBestPnl', fmtPnl(bestR.pnl || 0), pnlCol(bestR.pnl || 0));
+  _bt('btKpiCurrent', currR.wr != null ? currR.wr + '% WR' : '—');
+  _bt('btKpiCurrentPnl', fmtPnl(currR.pnl || 0), pnlCol(currR.pnl || 0));
+  _bt('btKpiWR',      d.test_wr != null ? d.test_wr + '%' : '—');
+  _bt('btKpiWRSub',   `${d.test_n} bet test`);
+  _bt('btKpiPF',      bestR.profit_factor != null ? bestR.profit_factor.toFixed(2) : '—');
+  _bt('btKpiXgb',     d.xgb_cv_acc ? (d.xgb_cv_acc * 100).toFixed(1) + '%' : '—');
+  _bt('btKpiXgbSub',  `${d.train_n} bet train`);
+
+  // ── Strategy table ─────────────────────────────────────────────────────
+  const tbody = document.getElementById('btStratBody');
+  if (tbody) {
+    tbody.innerHTML = Object.entries(strats).map(([name, r]) => {
+      const isCurr = name === curr;
+      const isBest = name === best;
+      const bg = isCurr ? 'background:rgba(224,107,107,0.07)' : (isBest ? 'background:rgba(126,200,164,0.07)' : '');
+      const pnlC = pnlCol(r.pnl);
+      const badge = isCurr ? '<span class="badge badge-wrong" style="font-size:8px;margin-left:4px">LIVE</span>'
+                            : (isBest ? '<span class="badge badge-correct" style="font-size:8px;margin-left:4px">BEST</span>' : '');
+      const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${BT_COLORS[name]||'#555'};margin-right:6px"></span>`;
+      return `<tr style="${bg}">
+        <td style="padding:6px 8px;font-size:11px">${dot}${name.replace(/^[A-Z]_/,'')}${badge}</td>
+        <td style="text-align:right;padding:6px 8px">${r.n}</td>
+        <td style="text-align:right;padding:6px 8px">${r.wr}%</td>
+        <td style="text-align:right;padding:6px 8px;color:${pnlC}">${fmtPnl(r.pnl)}</td>
+        <td style="text-align:right;padding:6px 8px;color:${pnlCol(r.pnl_per_bet)}">${fmtPnl(r.pnl_per_bet)}</td>
+        <td style="text-align:right;padding:6px 8px;color:var(--danger)">-$${r.max_dd?.toFixed(4)||'—'}</td>
+        <td style="text-align:right;padding:6px 8px;color:${r.profit_factor>=1.5?'var(--green)':r.profit_factor<1?'var(--danger)':'inherit'}">${r.profit_factor?.toFixed(2)||'—'}</td>
+        <td style="text-align:right;padding:6px 8px">${r.sortino?.toFixed(2)||'—'}</td>
+        <td style="text-align:right;padding:6px 8px">${r.sharpe?.toFixed(2)||'—'}</td>
+      </tr>`;
+    }).join('');
   }
 
-  // XGBoost model report
-  try {
-    const res2 = await fetch(CONFIG.RAILWAY_URL + '/xgb-report', { signal: AbortSignal.timeout(8000) });
-    if (!res2.ok) { preXGB.textContent = 'Report non disponibile.'; }
-    else {
-      const d2 = await res2.json();
-      preXGB.textContent  = d2.report || 'Vuoto.';
-      badgeXGB.textContent = d2.lines + ' righe';
+  // ── Equity curves SVG ──────────────────────────────────────────────────
+  const curves   = d.equity_curves || {};
+  const allVals  = Object.values(curves).flat();
+  if (allVals.length) {
+    const minV = Math.min(0, ...allVals);
+    const maxV = Math.max(0, ...allVals);
+    const range = maxV - minV || 1;
+    const svg = document.getElementById('btEquitySvg');
+    const legend = document.getElementById('btEquityLegend');
+    if (svg) {
+      const W = svg.parentElement?.clientWidth || 600;
+      const H = 200;
+      svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+      let svgHtml = '';
+
+      // zero line
+      const zy = H - ((0 - minV) / range * (H - 20)) - 10;
+      svgHtml += `<line x1="0" y1="${zy.toFixed(1)}" x2="${W}" y2="${zy.toFixed(1)}" stroke="#333" stroke-width="1" stroke-dasharray="3,3"/>`;
+
+      Object.entries(curves).forEach(([name, pts]) => {
+        if (!pts || pts.length < 2) return;
+        const col = BT_COLORS[name] || '#555';
+        const n   = pts.length - 1;
+        const coords = pts.map((v, i) => {
+          const x = (i / n * (W - 20) + 10).toFixed(1);
+          const y = (H - ((v - minV) / range * (H - 20)) - 10).toFixed(1);
+          return `${x},${y}`;
+        });
+        const isCurr = name === curr;
+        const isBest = name === best;
+        const sw = isCurr || isBest ? '2' : '1';
+        const op = isCurr || isBest ? '1' : '0.4';
+        svgHtml += `<polyline points="${coords.join(' ')}" fill="none" stroke="${col}" stroke-width="${sw}" opacity="${op}" stroke-linejoin="round"/>`;
+        // end dot
+        const lastX = (W - 10).toFixed(1);
+        const lastY = (H - ((pts[pts.length-1] - minV) / range * (H-20)) - 10).toFixed(1);
+        svgHtml += `<circle cx="${lastX}" cy="${lastY}" r="3" fill="${col}" opacity="${op}"/>`;
+      });
+
+      // Y axis labels
+      [minV, 0, maxV].forEach(v => {
+        const y = (H - ((v - minV) / range * (H - 20)) - 10).toFixed(1);
+        svgHtml += `<text x="4" y="${(parseFloat(y)+3).toFixed(1)}" fill="#555" font-size="9">${v >= 0 ? '+' : ''}$${v.toFixed(2)}</text>`;
+      });
+
+      svg.innerHTML = svgHtml;
     }
-  } catch(e) {
-    preXGB.textContent = 'Errore: ' + e.message;
+    if (legend) {
+      legend.innerHTML = Object.entries(BT_COLORS).map(([name, col]) => {
+        const r = strats[name];
+        if (!r) return '';
+        const pnl = r.pnl >= 0 ? `+$${r.pnl.toFixed(2)}` : `-$${Math.abs(r.pnl).toFixed(2)}`;
+        return `<span style="display:flex;align-items:center;gap:4px">
+          <span style="width:20px;height:2px;background:${col};display:inline-block"></span>
+          <span style="color:#aaa">${name.replace(/^[A-Z]_/,'')} <span style="color:${pnlCol(r.pnl)}">${pnl}</span></span>
+        </span>`;
+      }).join('');
+    }
   }
+
+  // ── Confidence calibration ─────────────────────────────────────────────
+  const calibBody = document.getElementById('btCalibBody');
+  if (calibBody && d.confidence_buckets) {
+    calibBody.innerHTML = d.confidence_buckets.map(b => {
+      const deltaCol = b.delta >= 5 ? 'var(--green)' : b.delta <= -5 ? 'var(--danger)' : 'var(--muted)';
+      const deltaStr = (b.delta >= 0 ? '+' : '') + b.delta.toFixed(1) + '%';
+      return `<tr>
+        <td style="padding:4px 6px;font-size:11px;font-family:monospace">${b.bucket}</td>
+        <td style="text-align:right;padding:4px 6px">${b.n}</td>
+        <td style="text-align:right;padding:4px 6px;color:var(--muted)">${b.exp_wr?.toFixed(1)}%</td>
+        <td style="text-align:right;padding:4px 6px">${b.act_wr?.toFixed(1)}%</td>
+        <td style="text-align:right;padding:4px 6px;color:${deltaCol}">${deltaStr}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // ── 24h heatmap ────────────────────────────────────────────────────────
+  const heatmap = document.getElementById('btHeatmap');
+  if (heatmap && d.hourly) {
+    heatmap.innerHTML = d.hourly.map(h => {
+      let bg, label, title;
+      if (h.n === 0) {
+        bg = '#1a1a1a'; label = `${h.hour}h`; title = 'no data';
+      } else if (h.is_dead) {
+        bg = 'rgba(224,107,107,0.35)'; label = `${h.hour}h\n${h.wr}%`; title = `${h.hour}h — DEAD (${h.wr}% WR, n=${h.n})`;
+      } else if (h.is_hot) {
+        bg = 'rgba(126,200,164,0.35)'; label = `${h.hour}h\n${h.wr}%`; title = `${h.hour}h — HOT (${h.wr}% WR, n=${h.n})`;
+      } else {
+        const wr = h.wr || 50;
+        const intensity = Math.max(0, Math.min(1, (wr - 40) / 30));
+        bg = `rgba(74,144,217,${(intensity * 0.4).toFixed(2)})`; label = `${h.hour}h\n${h.wr}%`; title = `${h.hour}h — ${h.wr}% WR (n=${h.n})`;
+      }
+      const lowMark = h.low_sample ? '*' : '';
+      const lines = label.split('\n');
+      return `<div title="${title}" style="background:${bg};border-radius:4px;padding:5px 3px;text-align:center;font-size:9px;line-height:1.3;cursor:default">
+        <div style="color:#aaa">${lines[0]}${lowMark}</div>
+        ${lines[1] ? `<div style="color:#eee;font-weight:600">${lines[1]}</div>` : ''}
+      </div>`;
+    }).join('');
+  }
+}
+
+function _bt(id, text, color) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = text;
+  if (color) el.style.color = color;
 }
 
 
