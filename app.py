@@ -273,7 +273,7 @@ def _close_prev_bet_on_reverse(old_side: str, exit_price: float, closed_size: fl
             pnl_gross = (entry_price - exit_price) * bet_size
             correct = exit_price <= entry_price
 
-        fee = bet_size * exit_price * 0.00005
+        fee = bet_size * (entry_price + exit_price) * 0.00005  # entry + exit taker fee
         pnl_net = round(pnl_gross - fee, 6)
 
         patch_url = f"{supabase_url}/rest/v1/btc_predictions?id=eq.{bet_id}"
@@ -1800,11 +1800,13 @@ def backfill_bet(bet_id):
     actual_direction = "UP" if exit_price > entry_price else "DOWN"
 
     if direction == "UP":
-        pnl_usd = (exit_price - entry_price) * bet_size
+        pnl_gross = (exit_price - entry_price) * bet_size
     else:
-        pnl_usd = (entry_price - exit_price) * bet_size
+        pnl_gross = (entry_price - exit_price) * bet_size
 
-    pnl_pct = round(pnl_usd / (entry_price * bet_size) * 100, 4) if entry_price * bet_size != 0 else 0.0
+    fee_est = bet_size * (entry_price + exit_price) * 0.00005  # entry + exit taker fee
+    pnl_usd = pnl_gross - fee_est
+    pnl_pct = round(pnl_gross / (entry_price * bet_size) * 100, 4) if entry_price * bet_size != 0 else 0.0
 
     correct = body.get("correct")
     if correct is None:
@@ -1818,6 +1820,7 @@ def backfill_bet(bet_id):
         "actual_direction": actual_direction,
         "pnl_usd": round(pnl_usd, 4),
         "pnl_pct": pnl_pct,
+        "fees_total": round(fee_est, 6),
         "correct": correct,
         "close_reason": "manual_backfill",
     }
