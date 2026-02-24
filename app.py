@@ -329,6 +329,28 @@ def place_bet():
 
         # NO stacking: se stessa direzione => skip (evita che aumenti la size)
         if pos and pos["side"] == desired_side:
+            # Cerca la bet aperta su Supabase per mostrare quando è stata aperta
+            existing_bet_info = {}
+            try:
+                sb_url = os.environ.get("SUPABASE_URL", "")
+                sb_key = os.environ.get("SUPABASE_KEY", "")
+                if sb_url and sb_key:
+                    r = requests.get(
+                        f"{sb_url}/rest/v1/btc_predictions"
+                        "?select=id,created_at,direction,entry_fill_price"
+                        "&bet_taken=eq.true&correct=is.null&order=id.desc&limit=1",
+                        headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
+                        timeout=3,
+                    )
+                    if r.status_code == 200 and r.json():
+                        row = r.json()[0]
+                        existing_bet_info = {
+                            "existing_bet_id": row.get("id"),
+                            "existing_bet_created_at": row.get("created_at"),
+                            "existing_bet_entry": row.get("entry_fill_price"),
+                        }
+            except Exception:
+                pass
             return jsonify({
                 "status": "skipped",
                 "reason": f"Posizione {pos['side']} già aperta nella stessa direzione (no stacking).",
@@ -337,6 +359,7 @@ def place_bet():
                 "confidence": confidence,
                 "direction": direction,
                 "no_stack": True,
+                **existing_bet_info,
             }), 200
 
         trade = get_trade_client()
