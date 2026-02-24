@@ -171,6 +171,47 @@ def _close_prev_bet_on_reverse(old_side: str, exit_price: float, closed_size: fl
 
 @app.route("/health", methods=["GET"])
 def health():
+    capital = float(os.environ.get("CAPITAL_USD", 100))
+
+    # wallet equity — fast, non-blocking
+    wallet_equity = None
+    try:
+        user = get_user_client()
+        flex = user.get_wallets().get("accounts", {}).get("flex", {})
+        wallet_equity = float(flex.get("marginEquity") or 0) or None
+    except Exception:
+        pass
+
+    # base_size — from bet-sizing logic (last 10 trades, default conf 0.62)
+    base_size = 0.002
+    try:
+        sb_url = os.environ.get("SUPABASE_URL", "")
+        sb_key = os.environ.get("SUPABASE_KEY", "")
+        if sb_url and sb_key:
+            r = requests.get(
+                f"{sb_url}/rest/v1/btc_predictions"
+                "?select=correct,pnl_usd&bet_taken=eq.true&correct=not.is.null&order=id.desc&limit=10",
+                headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
+                timeout=3,
+            )
+            trades = r.json() if r.status_code == 200 else []
+            if trades and len(trades) >= 3:
+                results = [t.get("correct") for t in trades if t.get("correct") is not None]
+                pnls = [float(t.get("pnl_usd") or 0) for t in trades]
+                recent_pnl = sum(pnls[:5])
+                streak, streak_type = 0, None
+                for res in results:
+                    if streak_type is None: streak_type = res; streak = 1
+                    elif res == streak_type: streak += 1
+                    else: break
+                multiplier = 1.0
+                if recent_pnl < -0.15: multiplier = 0.25
+                elif streak_type == False and streak >= 2: multiplier = 0.5
+                elif streak_type == True and streak >= 3: multiplier = 1.5 if 0.62 >= 0.65 else 1.2
+                base_size = round(max(0.001, min(0.005, 0.002 * multiplier)), 6)
+    except Exception:
+        pass
+
     return jsonify({
         "status": "ok",
         "ts": int(time.time()),
@@ -179,6 +220,9 @@ def health():
         "api_key_set": bool(API_KEY),
         "version": "2.4.1",
         "dry_run": DRY_RUN,
+        "capital": capital,
+        "wallet_equity": wallet_equity,
+        "base_size": base_size,
     })
 
 
