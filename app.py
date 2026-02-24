@@ -1380,7 +1380,7 @@ def bet_sizing():
             except Exception:
                 corr_multiplier = 1.0
 
-        final_size = round(final_size * corr_multiplier, 6)
+        final_size = round(final_size * corr_multiplier, 4)  # Kraken PF_XBTUSD: max 4 decimali
         final_size = max(0.001, min(0.005, final_size))
 
         # P1.2 — Confidence calibration
