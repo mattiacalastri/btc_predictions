@@ -1,3 +1,5 @@
 flask
 gunicorn
 python-kraken-sdk
+xgboost
+scikit-learn

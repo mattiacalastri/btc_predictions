@@ -1,10 +1,31 @@
 import os
 import time
+import pickle
 import requests
 from flask import Flask, request, jsonify
 from kraken.futures import Trade, User
 
 app = Flask(__name__)
+
+# ── XGBoost direction model (caricato una volta all'avvio) ────────────────────
+_XGB_MODEL = None
+_XGB_FEATURE_COLS = [
+    "confidence", "fear_greed_value", "rsi14", "technical_score", "hour_utc",
+    "ema_trend_up", "technical_bias_bullish", "signal_technical_buy",
+    "signal_sentiment_pos", "signal_fg_fear", "signal_volume_high",
+]
+
+def _load_xgb_model():
+    global _XGB_MODEL
+    model_path = os.path.join(os.path.dirname(__file__), "models", "xgb_direction.pkl")
+    if os.path.exists(model_path):
+        with open(model_path, "rb") as f:
+            _XGB_MODEL = pickle.load(f)
+        print(f"[XGB] Model loaded from {model_path}")
+    else:
+        print(f"[XGB] Model not found at {model_path} — /predict-xgb will return agree=True")
+
+_load_xgb_model()
 
 API_KEY = os.environ.get("KRAKEN_FUTURES_API_KEY", "")
 API_SECRET = os.environ.get("KRAKEN_FUTURES_API_SECRET", "")
@@ -712,6 +733,61 @@ def get_signals():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+# ── XGB PREDICT ──────────────────────────────────────────────────────────────
+
+@app.route("/predict-xgb", methods=["GET"])
+def predict_xgb():
+    """
+    Predice la direzione BTC con XGBoost e confronta con Claude.
+    Params: claude_direction, confidence, fear_greed_value, rsi14,
+            technical_score, hour_utc, ema_trend, technical_bias,
+            signal_technical, signal_sentiment, signal_fear_greed, signal_volume
+    Returns: { xgb_direction, xgb_prob_up, xgb_prob_down, claude_direction, agree }
+    """
+    claude_dir = request.args.get("claude_direction", "")
+
+    # Fail-open: se modello non disponibile, non bloccare il trade
+    if _XGB_MODEL is None:
+        return jsonify({"xgb_direction": None, "agree": True, "reason": "model_not_loaded"})
+
+    try:
+        ema_trend    = request.args.get("ema_trend", "").lower()
+        tech_bias    = request.args.get("technical_bias", "").lower()
+        sig_tech     = request.args.get("signal_technical", "").lower()
+        sig_sent     = request.args.get("signal_sentiment", "").lower()
+        sig_fg       = request.args.get("signal_fear_greed", "").lower()
+        sig_vol      = request.args.get("signal_volume", "").lower()
+
+        features = [[
+            float(request.args.get("confidence", 0.62)),
+            float(request.args.get("fear_greed_value", 50)),
+            float(request.args.get("rsi14", 50)),
+            float(request.args.get("technical_score", 0)),
+            int(request.args.get("hour_utc", 12)),
+            1 if "bullish" in ema_trend or "bull" in ema_trend else 0,
+            1 if "bull" in tech_bias else 0,
+            1 if sig_tech in ("buy", "bullish") else 0,
+            1 if sig_sent in ("positive", "pos", "buy", "bullish") else 0,
+            1 if sig_fg == "fear" else 0,
+            1 if "high" in sig_vol else 0,
+        ]]
+
+        prob = _XGB_MODEL.predict_proba(features)[0]  # [P(DOWN), P(UP)]
+        xgb_dir = "UP" if prob[1] > prob[0] else "DOWN"
+        agree = (xgb_dir == claude_dir) or (claude_dir in ("NO_BET", ""))
+
+        return jsonify({
+            "xgb_direction": xgb_dir,
+            "xgb_prob_up":   round(float(prob[1]), 3),
+            "xgb_prob_down": round(float(prob[0]), 3),
+            "claude_direction": claude_dir,
+            "agree": agree,
+        })
+
+    except Exception as e:
+        return jsonify({"xgb_direction": None, "agree": True, "reason": str(e)})
+
 
 # ── BET SIZING ───────────────────────────────────────────────────────────────
 
