@@ -742,35 +742,21 @@
     justify-content: center;
     gap: 8px;
   }
-  .ai-cube-scene { width: 56px; height: 56px; perspective: 160px; }
-  .ai-cube {
-    width: 100%; height: 100%;
-    position: relative;
-    transform-style: preserve-3d;
-    animation: cubeRotate 9s linear infinite;
-  }
-  @keyframes cubeRotate {
-    0%   { transform: rotateX(15deg) rotateY(0deg); }
-    100% { transform: rotateX(375deg) rotateY(360deg); }
-  }
-  .cube-face {
-    position: absolute;
-    width: 56px; height: 56px;
-    border: 1px solid rgba(0,255,136,0.2);
-    background: rgba(8,11,15,0.88);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 7px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
-    color: rgba(0,255,136,0.8);
-  }
-  .ai-cube[data-state="profit"] .cube-face { color: var(--accent); border-color: rgba(0,255,136,0.4); box-shadow: inset 0 0 12px rgba(0,255,136,0.15); }
-  .ai-cube[data-state="loss"]   .cube-face { color: var(--danger); border-color: rgba(255,68,102,0.4); box-shadow: inset 0 0 12px rgba(255,68,102,0.15); }
-  .ai-cube[data-state="neutral"].cube-face { color: var(--warn);   border-color: rgba(255,170,0,0.4);  box-shadow: inset 0 0 12px rgba(255,170,0,0.12); }
-  .cube-face.cube-front  { transform: translateZ(28px); }
-  .cube-face.cube-back   { transform: rotateY(180deg)  translateZ(28px); }
-  .cube-face.cube-right  { transform: rotateY(90deg)   translateZ(28px); }
-  .cube-face.cube-left   { transform: rotateY(-90deg)  translateZ(28px); }
-  .cube-face.cube-top    { transform: rotateX(90deg)   translateZ(28px); }
-  .cube-face.cube-bottom { transform: rotateX(-90deg)  translateZ(28px); }
+  .penrose-scene { width: 64px; height: 64px; display:flex; align-items:center; justify-content:center; }
+  .penrose-svg { overflow: visible; animation: penroseRotate 12s linear infinite; transition: filter 0.5s; }
+  @keyframes penroseRotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .penrose-svg[data-state="profit"] { filter: drop-shadow(0 0 7px rgba(0,255,136,0.7)); }
+  .penrose-svg[data-state="loss"]   { filter: drop-shadow(0 0 7px rgba(255,68,102,0.7)); }
+  .penrose-svg[data-state="neutral"]{ filter: drop-shadow(0 0 5px rgba(255,170,0,0.5)); }
+  .penrose-svg[data-state="profit"] .pa1 { fill: #00ff88; }
+  .penrose-svg[data-state="profit"] .pa2 { fill: #00cc66; }
+  .penrose-svg[data-state="profit"] .pa3 { fill: #004422; }
+  .penrose-svg[data-state="loss"] .pa1 { fill: #ff4466; }
+  .penrose-svg[data-state="loss"] .pa2 { fill: #cc2244; }
+  .penrose-svg[data-state="loss"] .pa3 { fill: #660011; }
+  .penrose-svg[data-state="neutral"] .pa1 { fill: #ffbb00; }
+  .penrose-svg[data-state="neutral"] .pa2 { fill: #cc8800; }
+  .penrose-svg[data-state="neutral"] .pa3 { fill: #553300; }
   .ai-decision { display:flex; align-items:center; gap:5px; font-size:10px; font-weight:700; letter-spacing:1px; color:var(--text); text-align:center; }
   .ai-status-dot { width:5px; height:5px; border-radius:50%; background:var(--accent); animation:pulse 1.5s ease-in-out infinite; flex-shrink:0; }
   .ai-think-label { font-size:7px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
@@ -798,6 +784,7 @@
       white-space: nowrap;
       flex-wrap: nowrap;
     }
+    .src-chip { flex-shrink: 0; }
   }
 
   /* TASK 2 — Story Highlights */
@@ -1110,15 +1097,17 @@
       </div>
       <!-- RIGHT: AI cube + decision -->
       <div class="lp-right">
-        <div class="ai-cube-scene">
-          <div class="ai-cube" id="aiCube" data-state="neutral">
-            <div class="cube-face cube-front">AI</div>
-            <div class="cube-face cube-back">XGB</div>
-            <div class="cube-face cube-right">HOLD</div>
-            <div class="cube-face cube-left">EXIT</div>
-            <div class="cube-face cube-top" id="cubeFaceConf">—%</div>
-            <div class="cube-face cube-bottom">BOT</div>
-          </div>
+        <div class="penrose-scene">
+          <!-- Penrose impossible triangle — 3 arms + 3 corner caps -->
+          <svg id="penroseSvg" class="penrose-svg" data-state="neutral"
+               width="60" height="56" viewBox="13 6 74 73">
+            <polygon class="pa1" points="50,8 85,68 70,77 35,17"/>
+            <polygon class="pa2" points="85,68 15,68 15,51 85,51"/>
+            <polygon class="pa3" points="15,68 50,8 65,17 30,77"/>
+            <polygon class="pa3" points="50,8 35,17 65,17"/>
+            <polygon class="pa1" points="85,68 85,51 70,77"/>
+            <polygon class="pa2" points="15,68 15,51 30,77"/>
+          </svg>
         </div>
         <div class="ai-decision">
           <span class="ai-status-dot"></span>
@@ -2024,11 +2013,9 @@ function renderLivePosition() {
   document.getElementById('lpEntryMarker').style.left = entryPct + '%';
   document.getElementById('lpLiveMarker').style.left  = livePct + '%';
   document.getElementById('lpCurrentPrice').textContent = cur ? '$' + cur.toLocaleString('en-US',{maximumFractionDigits:0}) : '—';
-  document.getElementById('cubeFaceConf').textContent  = Math.round(conf * 100) + '%';
-
-  const cube  = document.getElementById('aiCube');
-  const state = pnlUsd > 0.05 ? 'profit' : pnlUsd < -0.05 ? 'loss' : 'neutral';
-  cube.dataset.state = state;
+  const penrose = document.getElementById('penroseSvg');
+  const state   = pnlUsd > 0.05 ? 'profit' : pnlUsd < -0.05 ? 'loss' : 'neutral';
+  penrose.setAttribute('data-state', state);
 
   const aiText = document.getElementById('aiDecisionText');
   if (Math.abs(pnlUsd) < 0.02) aiText.textContent = 'Flat — watching';
@@ -3216,8 +3203,9 @@ fetch(CONFIG.RAILWAY_URL + '/health')
   document.addEventListener('scroll', hideModal, { passive: true });
 })();
 
-// ── TASK 1: AI FEEDS carousel su mobile ───────────────────────────────────────
+// ── TASK 1: AI FEEDS carousel — mobile only ───────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
+  if (!window.matchMedia('(max-width: 600px)').matches) return;
   const list = document.querySelector('.sources-list');
   if (!list) return;
   // Duplicate chips for seamless loop
