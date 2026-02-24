@@ -54,8 +54,9 @@ def get_calibrated_wr(conf):
             return wr
     return 0.50
 
-# ── Auto-calibration: ore morte (aggiornato da /reload-calibration) ───────────
-DEAD_HOURS_UTC: set = {18, 19, 20}
+# ── Auto-calibration: ore morti (aggiornato da /reload-calibration) ───────────
+# Default conservativo: solo ore con n>=8 e WR<45% confermato da dati storici
+DEAD_HOURS_UTC: set = {12, 22}
 
 def refresh_calibration():
     """Aggiorna CONF_CALIBRATION da WR reale Supabase per bucket di confidence."""
@@ -101,7 +102,7 @@ def refresh_calibration():
         return {"ok": False, "error": str(e)}
 
 def refresh_dead_hours():
-    """Aggiorna DEAD_HOURS_UTC: ore con WR < 45% e almeno 5 bet. Ora estratta da created_at."""
+    """Aggiorna DEAD_HOURS_UTC: ore con WR < 45% e almeno 8 bet. Ora estratta da created_at."""
     global DEAD_HOURS_UTC
     sb_url = os.environ.get("SUPABASE_URL", "")
     sb_key = os.environ.get("SUPABASE_KEY", "")
@@ -134,9 +135,10 @@ def refresh_dead_hours():
         for h, vals in sorted(hour_data.items()):
             wr = sum(vals) / len(vals) if vals else 0.5
             hour_stats[h] = {"wr": round(wr, 3), "n": len(vals)}
-            if len(vals) >= 5 and wr < 0.45:
+            if len(vals) >= 8 and wr < 0.45:
                 dead.add(h)
-        DEAD_HOURS_UTC = dead if dead else {18, 19, 20}
+        # fallback: se non ci sono ore con n>=8 e WR<45%, usa le due ore più stabili storicamente
+        DEAD_HOURS_UTC = dead if dead else {12, 22}
         print(f"[CAL] Dead hours updated: {sorted(DEAD_HOURS_UTC)}")
         return {"ok": True, "dead_hours": sorted(DEAD_HOURS_UTC), "hour_stats": hour_stats}
     except Exception as e:
