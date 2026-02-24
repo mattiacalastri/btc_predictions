@@ -731,7 +731,7 @@ def bet_sizing():
         conf_mult = round(max(0.8, min(1.2, conf_mult)), 2)
 
         final_size = round(base_size * multiplier * conf_mult, 6)
-        final_size = max(0.0005, min(0.002, final_size))
+        final_size = max(0.001, min(0.002, final_size))
 
         return jsonify({
             "size": final_size,
