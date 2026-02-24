@@ -1234,19 +1234,46 @@ def costs():
     n8n_pct = round(n8n_exec_est / n8n_limit * 100, 1) if n8n_limit > 0 else 0.0
     n8n_cost = 20.0  # piano Starter
 
-    # ── 4. LLM stima ─────────────────────────────────────────────────────────
-    claude_model = os.environ.get("CLAUDE_MODEL", "claude-haiku-4-5")
-    # wf01 ogni 6min → ~240 call/giorno; usiamo n8n_exec_est/6 come proxy mensile
-    calls_est = max(1, n8n_exec_est // 6) if n8n_exec_est > 0 else 240
-    # Haiku: $0.80/1M input, $4/1M output — ~3000 token in + 500 out per call
-    cost_per_call = (3000 * 0.80 / 1_000_000) + (500 * 4.0 / 1_000_000)
-    llm_cost = round(calls_est * cost_per_call, 4)
+    # ── 4. Claude API (reale: conta predizioni questo mese da Supabase) ─────────
+    import datetime as _dt
+    claude_model = os.environ.get("CLAUDE_MODEL", "claude-haiku-4-5-20251001")
+    _MODEL_PRICING = {
+        "claude-haiku-4-5":           {"input": 0.80,  "output": 4.00},
+        "claude-haiku-4-5-20251001":  {"input": 0.80,  "output": 4.00},
+        "claude-sonnet-4-6":          {"input": 3.00,  "output": 15.00},
+        "claude-sonnet-4-6-20251001": {"input": 3.00,  "output": 15.00},
+        "claude-opus-4-6":            {"input": 15.00, "output": 75.00},
+    }
+    pricing = _MODEL_PRICING.get(claude_model, {"input": 3.00, "output": 15.00})
+    avg_in  = int(os.environ.get("CLAUDE_AVG_INPUT_TOKENS",  "4000"))
+    avg_out = int(os.environ.get("CLAUDE_AVG_OUTPUT_TOKENS", "800"))
 
-    # ── 5. Railway (statico) ──────────────────────────────────────────────────
+    monthly_calls = 0
+    month_start = _dt.date.today().replace(day=1).isoformat()
+    try:
+        url = (f"{sb_url}/rest/v1/btc_predictions"
+               f"?select=id&created_at=gte.{month_start}T00:00:00")
+        res = requests.get(url, headers={**sb_headers, "Prefer": "count=exact"}, timeout=5)
+        cr = res.headers.get("Content-Range", "")
+        if "/" in cr:
+            monthly_calls = int(cr.split("/")[1])
+    except Exception:
+        monthly_calls = 0
+
+    cost_per_call = (avg_in * pricing["input"] + avg_out * pricing["output"]) / 1_000_000
+    claude_api_cost = round(monthly_calls * cost_per_call, 4)
+
+    # ── 5. Claude Code (manuale: CLAUDE_CODE_MONTHLY_USD env var) ─────────────
+    claude_code_cost = float(os.environ.get("CLAUDE_CODE_MONTHLY_USD", "0"))
+
+    # ── 6. Railway (statico) ──────────────────────────────────────────────────
     railway_plan = os.environ.get("RAILWAY_PLAN", "free").lower()
     railway_cost = 5.0 if railway_plan == "hobby" else 0.0
 
-    total = round(kraken_fees_total + 0.0 + n8n_cost + llm_cost + railway_cost, 4)
+    total = round(
+        kraken_fees_total + 0.0 + n8n_cost + claude_api_cost + claude_code_cost + railway_cost,
+        4
+    )
 
     return jsonify({
         "kraken_fees": {
@@ -1265,10 +1292,17 @@ def costs():
             "pct_used": n8n_pct,
             "cost_usd": n8n_cost,
         },
-        "llm": {
+        "claude_api": {
             "model": claude_model,
-            "calls_est": calls_est,
-            "cost_usd": llm_cost,
+            "monthly_calls": monthly_calls,
+            "avg_input_tokens": avg_in,
+            "avg_output_tokens": avg_out,
+            "cost_usd": claude_api_cost,
+            "pricing": pricing,
+        },
+        "claude_code": {
+            "cost_usd": claude_code_cost,
+            "source": "manual" if claude_code_cost > 0 else "set CLAUDE_CODE_MONTHLY_USD",
         },
         "railway": {
             "plan": railway_plan,
