@@ -142,6 +142,15 @@
   .tag-blue   { background: rgba(0,170,255,0.08);  color: var(--blue);   border: 1px solid rgba(0,170,255,0.2); }
   .tag-muted  { background: rgba(74,96,112,0.1);   color: var(--muted);  border: 1px solid rgba(74,96,112,0.2); }
 
+  /* COSTS TAB */
+  .cost-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .cost-table th { font-size: 9px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+  .cost-table td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle; }
+  .cost-table tr:last-child td { border-bottom: none; font-weight: 700; color: var(--text); }
+  .cost-bar-wrap { width: 120px; height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; display: inline-block; vertical-align: middle; }
+  .cost-bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+  .cost-type-badge { font-size: 8px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 2px 6px; border-radius: 2px; display: inline-block; }
+
   /* TABLE */
   .table-wrap { overflow-x: auto; max-height: 500px; overflow-y: auto; }
   .table-wrap::-webkit-scrollbar { width: 3px; height: 3px; }
@@ -551,6 +560,7 @@
     <div class="tab-buttons">
       <button class="tab-btn active" data-tab="dashboard" onclick="switchTab(this)">📊 Dashboard</button>
       <button class="tab-btn"        data-tab="agents"    onclick="switchTab(this)">🤖 Agents</button>
+      <button class="tab-btn"        data-tab="costs"     onclick="switchTab(this)">💰 Costs</button>
     </div>
     <div style="display:flex;align-items:center;gap:6px;">
       <span style="font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-right:4px">PERIOD</span>
@@ -956,6 +966,44 @@
     </div>
 
   </div><!-- /#tab-agents -->
+
+  <!-- COSTS TAB -->
+  <div id="tab-costs" class="tab-content">
+
+    <!-- 4 KPI -->
+    <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
+      <div class="kpi red" id="costKpiTotal">
+        <div class="kpi-label">Total Cost MTD</div>
+        <div class="kpi-value red" id="costKpiTotalVal">—</div>
+        <div class="kpi-sub" id="costKpiTotalSub">loading...</div>
+      </div>
+      <div class="kpi yellow" id="costKpiKraken">
+        <div class="kpi-label">Kraken Fees (real)</div>
+        <div class="kpi-value yellow" id="costKpiKrakenVal">—</div>
+        <div class="kpi-sub" id="costKpiKrakenSub">loading...</div>
+      </div>
+      <div class="kpi blue" id="costKpiN8n">
+        <div class="kpi-label">n8n Executions</div>
+        <div class="kpi-value blue" id="costKpiN8nVal">—</div>
+        <div class="kpi-sub" id="costKpiN8nSub">loading...</div>
+      </div>
+      <div class="kpi purple" id="costKpiLlm">
+        <div class="kpi-label">LLM API (est.)</div>
+        <div class="kpi-value purple" id="costKpiLlmVal">—</div>
+        <div class="kpi-sub" id="costKpiLlmSub">loading...</div>
+      </div>
+    </div>
+
+    <!-- Breakdown -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">💸 Cost Breakdown</div>
+        <button class="agents-refresh-btn" onclick="refreshCostsTab()">↻ Refresh</button>
+      </div>
+      <div id="costBreakdownBody" style="padding:16px">Loading...</div>
+    </div>
+
+  </div><!-- /#tab-costs -->
 
 </div><!-- /.container -->
 <script>
@@ -1822,6 +1870,7 @@ function switchTab(btn) {
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   document.getElementById('tab-' + targetTab).classList.add('active');
   if (targetTab === 'agents') refreshAgentsTab();
+  if (targetTab === 'costs')  refreshCostsTab();
 }
 
 // ── AGENTS TAB ────────────────────────────────────────────────────────────────
@@ -1887,6 +1936,83 @@ setInterval(fetchLiveBtcPrice, CONFIG.BTC_REFRESH);
 
 refreshAccountSummary();
 setInterval(refreshAccountSummary, CONFIG.ACCT_REFRESH);
+
+// ── COSTS TAB ─────────────────────────────────────────────────────────────────
+
+async function refreshCostsTab() {
+  const body = document.getElementById('costBreakdownBody');
+  body.innerHTML = 'Loading<span class="loading">...</span>';
+  ['costKpiTotalVal','costKpiKrakenVal','costKpiN8nVal','costKpiLlmVal'].forEach(id => {
+    document.getElementById(id).textContent = '—';
+  });
+  try {
+    const res = await fetch(CONFIG.RAILWAY_URL + '/costs', { signal: AbortSignal.timeout(10000) });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    renderCosts(data);
+  } catch(e) {
+    body.innerHTML = `<span style="color:var(--danger);font-size:11px">⚠️ Errore: ${e.message}</span>`;
+  }
+}
+
+function renderCosts(d) {
+  // KPI
+  const fmtUsd = v => '$' + (v ?? 0).toFixed(2);
+  document.getElementById('costKpiTotalVal').textContent  = fmtUsd(d.total_usd);
+  document.getElementById('costKpiTotalSub').textContent  = d.cached ? 'parzialmente cached' : 'live';
+  document.getElementById('costKpiKrakenVal').textContent = fmtUsd(d.kraken_fees?.total_usd);
+  document.getElementById('costKpiKrakenSub').textContent = `${d.kraken_fees?.trade_count ?? 0} trade chiusi`;
+  document.getElementById('costKpiN8nVal').textContent    = (d.n8n?.pct_used ?? 0).toFixed(1) + '%';
+  document.getElementById('costKpiN8nSub').textContent    = `${d.n8n?.executions_est ?? 0} / ${d.n8n?.limit ?? 2500} exec`;
+  document.getElementById('costKpiLlmVal').textContent    = fmtUsd(d.llm?.cost_usd);
+  document.getElementById('costKpiLlmSub').textContent    = `~${d.llm?.calls_est ?? 0} call · ${d.llm?.model ?? '—'}`;
+
+  // Breakdown table
+  const total = d.total_usd || 1;
+  const rows = [
+    { name: 'Kraken Fees',  usd: d.kraken_fees?.total_usd ?? 0, type: 'REALE',  color: 'var(--warn)' },
+    { name: 'n8n Plan',     usd: d.n8n?.cost_usd ?? 0,          type: 'PIANO',  color: 'var(--blue)' },
+    { name: 'LLM API',      usd: d.llm?.cost_usd ?? 0,          type: 'STIMA',  color: '#aa66ff' },
+    { name: 'Railway',      usd: d.railway?.cost_usd ?? 0,       type: 'PIANO',  color: 'var(--muted)' },
+    { name: 'Supabase',     usd: d.supabase?.cost_usd ?? 0,      type: 'PIANO',  color: 'var(--muted)' },
+  ];
+  const typeColor = { REALE: 'tag-yellow', PIANO: 'tag-blue', STIMA: 'tag-muted' };
+
+  const rowHtml = rows.map(r => {
+    const pct = Math.min(100, (r.usd / total) * 100);
+    return `
+    <tr>
+      <td style="color:var(--text)">${r.name}</td>
+      <td style="font-family:'Syne',sans-serif;font-weight:700;color:${r.color}">${fmtUsd(r.usd)}</td>
+      <td><span class="cost-type-badge panel-tag ${typeColor[r.type]}">${r.type}</span></td>
+      <td>
+        <div class="cost-bar-wrap">
+          <div class="cost-bar-fill" style="width:${pct.toFixed(1)}%;background:${r.color}"></div>
+        </div>
+        <span style="font-size:10px;color:var(--muted);margin-left:6px">${pct.toFixed(0)}%</span>
+      </td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('costBreakdownBody').innerHTML = `
+    <div class="table-wrap">
+      <table class="cost-table">
+        <thead><tr><th>Voce</th><th>Costo USD</th><th>Tipo</th><th>Peso</th></tr></thead>
+        <tbody>
+          ${rowHtml}
+          <tr>
+            <td>TOTALE</td>
+            <td style="font-family:'Syne',sans-serif;font-weight:700;color:var(--danger)">${fmtUsd(d.total_usd)}</td>
+            <td></td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="font-size:10px;color:var(--muted);margin-top:12px;padding:0 4px">
+      Supabase: ${d.supabase?.row_count ?? 0} righe · n8n: ${d.n8n?.executions_est ?? 0} exec stimate (wf01 ×6) · Railway: piano ${d.railway?.plan ?? '—'}
+    </div>`;
+}
 
 // Dry-run banner + health check
 fetch(CONFIG.RAILWAY_URL + '/health')
