@@ -1268,6 +1268,132 @@ def costs():
     })
 
 
+@app.route("/orphaned-bets", methods=["GET"])
+def orphaned_bets():
+    import datetime
+    sb_url = os.environ.get("SUPABASE_URL", "")
+    sb_key = os.environ.get("SUPABASE_KEY", "")
+    sb_headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
+
+    try:
+        r = requests.get(
+            f"{sb_url}/rest/v1/btc_predictions"
+            "?select=id,created_at,direction,btc_price_entry,bet_size"
+            "&bet_taken=eq.true&correct=is.null&order=id.desc&limit=20",
+            headers=sb_headers,
+            timeout=6,
+        )
+        rows = r.json() if r.ok else []
+    except Exception as e:
+        return jsonify({"error": f"Supabase: {e}"}), 500
+
+    now = datetime.datetime.utcnow()
+    result = []
+    for row in rows:
+        minutes_open = 0
+        try:
+            created = datetime.datetime.fromisoformat(row["created_at"].replace("Z", ""))
+            minutes_open = int((now - created).total_seconds() / 60)
+        except Exception:
+            pass
+        result.append({
+            "id": row.get("id"),
+            "created_at": row.get("created_at"),
+            "direction": row.get("direction"),
+            "btc_price_entry": row.get("btc_price_entry"),
+            "bet_size": row.get("bet_size"),
+            "minutes_open": minutes_open,
+        })
+
+    return jsonify({"orphaned": result, "count": len(result)})
+
+
+@app.route("/backfill-bet/<int:bet_id>", methods=["POST"])
+def backfill_bet(bet_id):
+    sb_url = os.environ.get("SUPABASE_URL", "")
+    sb_key = os.environ.get("SUPABASE_KEY", "")
+    sb_headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
+
+    body = request.get_json(silent=True) or {}
+    exit_price = body.get("exit_price")
+    if exit_price is None:
+        return jsonify({"error": "exit_price is required"}), 400
+
+    try:
+        exit_price = float(exit_price)
+    except (TypeError, ValueError):
+        return jsonify({"error": "exit_price must be a number"}), 400
+
+    # 1. Fetch bet from Supabase
+    try:
+        r = requests.get(
+            f"{sb_url}/rest/v1/btc_predictions"
+            f"?id=eq.{bet_id}&select=id,direction,btc_price_entry,bet_size,correct",
+            headers=sb_headers,
+            timeout=6,
+        )
+        rows = r.json() if r.ok else []
+    except Exception as e:
+        return jsonify({"error": f"Supabase: {e}"}), 500
+
+    if not rows:
+        return jsonify({"error": "bet not found"}), 404
+
+    bet = rows[0]
+
+    if bet.get("correct") is not None:
+        return jsonify({"error": "bet already closed"}), 400
+
+    entry_price = float(bet["btc_price_entry"])
+    bet_size = float(bet["bet_size"])
+    direction = bet["direction"]
+
+    # 2. Calculate fields
+    actual_direction = "UP" if exit_price > entry_price else "DOWN"
+
+    if direction == "UP":
+        pnl_usd = (exit_price - entry_price) * bet_size
+    else:
+        pnl_usd = (entry_price - exit_price) * bet_size
+
+    pnl_pct = round(pnl_usd / (entry_price * bet_size) * 100, 4) if entry_price * bet_size != 0 else 0.0
+
+    correct = body.get("correct")
+    if correct is None:
+        correct = direction == actual_direction
+    else:
+        correct = bool(correct)
+
+    # 3. PATCH Supabase
+    patch_data = {
+        "btc_price_exit": exit_price,
+        "actual_direction": actual_direction,
+        "pnl_usd": round(pnl_usd, 4),
+        "pnl_pct": pnl_pct,
+        "correct": correct,
+        "close_reason": "manual_backfill",
+    }
+    try:
+        pr = requests.patch(
+            f"{sb_url}/rest/v1/btc_predictions?id=eq.{bet_id}",
+            headers={**sb_headers, "Content-Type": "application/json", "Prefer": "return=minimal"},
+            json=patch_data,
+            timeout=6,
+        )
+        if not pr.ok:
+            return jsonify({"error": f"Supabase PATCH failed: {pr.status_code} {pr.text}"}), 500
+    except Exception as e:
+        return jsonify({"error": f"Supabase: {e}"}), 500
+
+    return jsonify({
+        "ok": True,
+        "bet_id": bet_id,
+        "pnl_usd": round(pnl_usd, 4),
+        "pnl_pct": pnl_pct,
+        "correct": correct,
+    })
+
+
 @app.route("/n8n-status", methods=["GET"])
 def n8n_status():
     """
