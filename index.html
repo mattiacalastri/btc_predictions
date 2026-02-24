@@ -159,6 +159,24 @@
   .badge-correct { background: rgba(0,255,136,0.1);  color: var(--accent); }
   .badge-wrong   { background: rgba(255,68,102,0.1); color: var(--danger); }
 
+  #apiErrorBanner {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,68,102,0.08);
+    border: 1px solid rgba(255,68,102,0.3);
+    border-radius: 4px;
+    padding: 8px 16px;
+    margin-bottom: 14px;
+    font-size: 11px;
+    color: var(--danger);
+    letter-spacing: 0.5px;
+  }
+  #apiErrorBanner.visible { display: flex; }
+  #apiErrorBanner .err-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--danger); flex-shrink: 0; animation: pulse 1.5s ease-in-out infinite; }
+  #apiErrorBanner .err-dismiss { margin-left: auto; cursor: pointer; opacity: 0.6; font-size: 14px; line-height: 1; }
+  #apiErrorBanner .err-dismiss:hover { opacity: 1; }
+
   .pnl-pos  { color: var(--accent); }
   .pnl-neg  { color: var(--danger); }
   .pnl-null { color: var(--muted); }
@@ -466,6 +484,13 @@
     </div>
   </header>
 
+  <!-- API error banner -->
+  <div id="apiErrorBanner">
+    <div class="err-dot"></div>
+    <span id="apiErrorMsg">Railway API non raggiungibile — dati non aggiornati</span>
+    <span class="err-dismiss" onclick="document.getElementById('apiErrorBanner').classList.remove('visible')" title="Dismiss">✕</span>
+  </div>
+
   <!-- 9 KPI tiles -->
   <div class="kpi-grid">
     <div class="kpi blue">
@@ -709,6 +734,17 @@ let lastTotalPnl = 0;          // aggiornato da renderAll(), usato per ricalcola
 
 const SAMPLE_DATA = [];
 
+function showApiError(msg) {
+  const banner = document.getElementById('apiErrorBanner');
+  if (!banner) return;
+  document.getElementById('apiErrorMsg').textContent = msg || 'Railway API non raggiungibile — dati non aggiornati';
+  banner.classList.add('visible');
+}
+function hideApiError() {
+  const banner = document.getElementById('apiErrorBanner');
+  if (banner) banner.classList.remove('visible');
+}
+
 // ── ACCOUNT SUMMARY ──────────────────────────────────────────────────────────
 
 async function fetchAccountSummary() {
@@ -716,10 +752,11 @@ async function fetchAccountSummary() {
     const res = await fetch(`${CONFIG.RAILWAY_URL}/account-summary`, {
       signal: AbortSignal.timeout(8000)
     });
-    if (!res.ok) throw new Error('account-summary fetch failed: ' + res.status);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     return await res.json();
   } catch(e) {
     console.warn('Account summary fetch error:', e);
+    showApiError(`Railway /account-summary non raggiungibile (${e.message})`);
     return null;
   }
 }
@@ -967,11 +1004,16 @@ async function refreshAccountSummary() {
 
 async function fetchData() {
   try {
-    const res = await fetch(`${CONFIG.RAILWAY_URL}/signals?limit=${CONFIG.LIMIT}`);
-    if (!res.ok) throw new Error('Railway fetch failed');
-    return await res.json();
+    const res = await fetch(`${CONFIG.RAILWAY_URL}/signals?limit=${CONFIG.LIMIT}`, {
+      signal: AbortSignal.timeout(10000)
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    hideApiError();
+    return data;
   } catch(e) {
     console.warn('Fetch failed:', e);
+    showApiError(`Railway /signals non raggiungibile (${e.message}) — mostro dati precedenti`);
     return SAMPLE_DATA;
   }
 }
