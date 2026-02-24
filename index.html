@@ -101,7 +101,7 @@
   @media (max-width: 1300px) { .kpi-grid { grid-template-columns: repeat(5, 1fr); } }
   @media (max-width: 700px)  { .kpi-grid { grid-template-columns: repeat(3, 1fr); } }
 
-  .kpi { background: var(--card); border: 1px solid var(--border); padding: 14px 16px; position: relative; overflow: hidden; transition: border-color 0.2s; min-width: 0; }
+  .kpi { background: var(--card); border: 1px solid var(--border); padding: 14px 16px; position: relative; overflow: hidden; transition: border-color 0.2s; min-width: 0; cursor: pointer; }
   .kpi:hover { border-color: rgba(255,255,255,0.12); }
   .kpi::after { content: ''; position: absolute; top: 0; left: 0; width: 2px; height: 100%; }
   .kpi.green::after  { background: var(--accent); }
@@ -565,7 +565,7 @@
     padding: 5px 10px 5px 9px;
     background: rgba(255,255,255,0.02);
     border: 1px solid var(--border);
-    cursor: default;
+    cursor: pointer;
     transition: border-color 0.15s, background 0.15s;
     position: relative;
     overflow: hidden;
@@ -610,6 +610,50 @@
     line-height: 1;
   }
   @media (max-width: 900px) { .sources-label { border-right: none; padding-right: 0; } }
+
+/* INFO MODAL */
+#infoModal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  background: #111820;
+  border: 1px solid #1e2d3d;
+  padding: 16px 20px;
+  max-width: 320px;
+  min-width: 220px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+  pointer-events: none;
+}
+#infoModal.visible { display: block; }
+#infoModal .im-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #e8f0fe;
+  margin-bottom: 6px;
+}
+#infoModal .im-cat {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--im-color, #4a6070);
+  margin-bottom: 8px;
+}
+#infoModal .im-body {
+  font-size: 10px;
+  color: #4a6070;
+  line-height: 1.6;
+  letter-spacing: 0.3px;
+}
+#infoModal .im-bar {
+  height: 2px;
+  background: var(--im-color, #4a6070);
+  margin-bottom: 10px;
+  opacity: 0.6;
+}
 </style>
 </head>
 <body>
@@ -642,7 +686,7 @@
 
   <!-- AI SIGNAL SOURCES -->
   <div class="sources-strip">
-    <div class="sources-label">AI FEEDS<br><em>10</em> SOURCES</div>
+    <div class="sources-label">AI FEEDS<br><em>11</em> SOURCES</div>
     <div class="sources-list">
       <div class="src-chip" style="--src-color:#00aaff" title="BTC/USD spot price — Kraken Futures">
         <div class="src-dot"></div>
@@ -683,6 +727,10 @@
       <div class="src-chip" style="--src-color:#ff44aa" title="Historical signal patterns — Supabase Memory">
         <div class="src-dot"></div>
         <div class="src-info"><span class="src-name">PATTERNS</span><span class="src-cat">MEMORY</span></div>
+      </div>
+      <div class="src-chip" style="--src-color:#e5251b" title="US financial &amp; markets news — CNBC Finance">
+        <div class="src-dot"></div>
+        <div class="src-info"><span class="src-name">CNBC</span><span class="src-cat">NEWS</span></div>
       </div>
     </div>
   </div>
@@ -2155,6 +2203,79 @@ fetch(CONFIG.RAILWAY_URL + '/health')
     }
   })
   .catch(() => {});
+
+// ─── INFO MODAL ───────────────────────────────
+(function(){
+  const modal = document.getElementById('infoModal');
+  const SOURCES_INFO = {
+    'KRAKEN':      {cat:'PRICE',       color:'#00aaff', desc:'BTC/USD spot price fetched from Kraken Futures REST API every 6 minutes.'},
+    'BINANCE':     {cat:'KLINES',      color:'#3399ee', desc:'5-minute OHLCV candlesticks (last 20) from Binance. Used for trend, momentum and pattern detection.'},
+    'COINGECKO':   {cat:'MARKET',      color:'#00d4aa', desc:'Global market data: BTC market cap, 24h volume, dominance %, price change from CoinGecko.'},
+    'FUNDING RATE':{cat:'DERIVATIVES', color:'#aa66ff', desc:'Perpetual futures funding rate on Kraken. Positive = longs pay shorts (bearish signal when very high).'},
+    'L/S RATIO':   {cat:'DERIVATIVES', color:'#cc88ff', desc:'Long/Short ratio — ratio of long vs short positions open in the market. Signals crowd positioning.'},
+    'FEAR & GREED':{cat:'SENTIMENT',   color:'#00ff88', desc:'Crypto Fear & Greed Index (0–100). <25 = Extreme Fear, >75 = Extreme Greed. Contrarian signal.'},
+    'CRYPTOCMP':   {cat:'NEWS',        color:'#ff9500', desc:'Latest crypto news from CryptoCompare API. Articles filtered for relevance before passing to AI.'},
+    'COINDESK':    {cat:'NEWS',        color:'#ffcc00', desc:'CoinDesk RSS feed — leading crypto media. Top 3 recent headlines passed to the prediction agent.'},
+    'SOLE24ORE':   {cat:'NEWS',        color:'#ff6b35', desc:'Sole24Ore Italian financial news RSS. Captures European macro & regulatory sentiment on crypto.'},
+    'PATTERNS':    {cat:'MEMORY',      color:'#ff44aa', desc:'Historical signal patterns from Supabase DB. Similar past setups and their outcomes inform the AI.'},
+    'CNBC':        {cat:'NEWS',        color:'#e5251b', desc:'CNBC Finance RSS — US financial & markets headlines. Macro context from Wall Street perspective.'},
+  };
+  const KPI_INFO = {
+    'BTC Price':      {cat:'LIVE DATA',  color:'#00aaff', desc:'Current BTC/USD price, refreshed every 30s from Kraken Futures mark price.'},
+    'Win Rate':       {cat:'STATISTICS', color:'#00ff88', desc:'Percentage of resolved bets that ended as wins. Target: >55% for profitability.'},
+    'Total PnL':      {cat:'P&L',        color:'#00ff88', desc:'Cumulative profit/loss in USD across all closed bets. Excludes open positions.'},
+    'Total Bets':     {cat:'STATISTICS', color:'#00aaff', desc:'Total number of bets taken (bet_taken = true) including open positions.'},
+    'Open Bets':      {cat:'LIVE',       color:'#ffaa00', desc:'Currently open positions being monitored by wf02. Each has active SL/TP watching.'},
+    'Avg PnL':        {cat:'P&L',        color:'#aa66ff', desc:'Average PnL per closed trade in USD. Positive target for system profitability.'},
+    'Avg Confidence': {cat:'MODEL',      color:'#cc88ff', desc:'Average AI confidence score on bets taken. Higher confidence should correlate with better WR.'},
+    'Streak':         {cat:'STATISTICS', color:'#ffaa00', desc:'Current consecutive win/loss streak. Useful for detecting model drift.'},
+    'Signals':        {cat:'STATISTICS', color:'#00d4aa', desc:'Total signals generated (including skipped). Shows how often the model fires.'},
+    'Capital':        {cat:'ACCOUNT',    color:'#00ff88', desc:'Current account equity in USDC on Kraken Futures. Base capital used for bet sizing.'},
+  };
+
+  function showModal(e, title, info) {
+    if (!info) return;
+    document.getElementById('imTitle').textContent = title;
+    document.getElementById('imCat').textContent = info.cat;
+    document.getElementById('imBody').innerHTML = info.desc;
+    modal.style.setProperty('--im-color', info.color);
+    const pad = 12;
+    let x = e.clientX + pad, y = e.clientY + pad;
+    if (x + 340 > window.innerWidth) x = e.clientX - 340;
+    if (y + 160 > window.innerHeight) y = e.clientY - 140;
+    modal.style.left = x + 'px';
+    modal.style.top  = y + 'px';
+    modal.classList.add('visible');
+  }
+
+  function hideModal() { modal.classList.remove('visible'); }
+
+  document.addEventListener('click', function(e) {
+    const chip = e.target.closest('.src-chip');
+    if (chip) {
+      const name = chip.querySelector('.src-name').textContent.trim();
+      showModal(e, name, SOURCES_INFO[name]);
+      e.stopPropagation();
+      return;
+    }
+    const kpi = e.target.closest('.kpi');
+    if (kpi) {
+      const label = kpi.querySelector('.kpi-label');
+      if (label) {
+        const key = Object.keys(KPI_INFO).find(k => label.textContent.includes(k));
+        if (key) { showModal(e, key, KPI_INFO[key]); e.stopPropagation(); return; }
+      }
+    }
+    hideModal();
+  });
+  document.addEventListener('scroll', hideModal, { passive: true });
+})();
 </script>
+<div id="infoModal">
+  <div class="im-title" id="imTitle"></div>
+  <div class="im-bar"></div>
+  <div class="im-cat" id="imCat"></div>
+  <div class="im-body" id="imBody"></div>
+</div>
 </body>
 </html>
