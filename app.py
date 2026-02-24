@@ -550,6 +550,8 @@ def place_bet():
         if pos and pos["side"] == desired_side:
             # Cerca la bet aperta su Supabase per mostrare quando è stata aperta
             existing_bet_info = {}
+            # Kraken entry price always available (top-level, no nesting issues in n8n)
+            kraken_entry_price = float(pos.get("price", 0) or 0)
             try:
                 sb_url = os.environ.get("SUPABASE_URL", "")
                 sb_key = os.environ.get("SUPABASE_KEY", "")
@@ -559,7 +561,7 @@ def place_bet():
                         "?select=id,created_at,direction,entry_fill_price"
                         "&bet_taken=eq.true&correct=is.null&order=id.desc&limit=1",
                         headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
-                        timeout=3,
+                        timeout=5,
                     )
                     if r.status_code == 200 and r.json():
                         row = r.json()[0]
@@ -570,11 +572,16 @@ def place_bet():
                         }
             except Exception:
                 pass
+            # existing_entry_price: Supabase entry fill price OR Kraken mark price as fallback
+            existing_entry_price = (
+                existing_bet_info.get("existing_bet_entry") or kraken_entry_price
+            )
             return jsonify({
                 "status": "skipped",
                 "reason": f"Posizione {pos['side']} già aperta nella stessa direzione (no stacking).",
                 "symbol": symbol,
                 "existing_position": pos,
+                "existing_entry_price": existing_entry_price,
                 "confidence": confidence,
                 "direction": direction,
                 "no_stack": True,
