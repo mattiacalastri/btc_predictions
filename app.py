@@ -2041,6 +2041,22 @@ def backtest_report():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
+@app.route("/xgb-report", methods=["GET"])
+def xgb_report():
+    """Return last XGBoost training report."""
+    import os as _os
+    report_path = _os.path.join(_os.path.dirname(__file__), "datasets", "xgb_report.txt")
+    if not _os.path.exists(report_path):
+        return jsonify({"error": "No XGBoost report found. Run train_xgb.py first."}), 404
+    try:
+        with open(report_path, "r") as f:
+            content = f.read()
+        lines = content.strip().split("\n")
+        return jsonify({"report": content, "lines": len(lines), "ok": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 # ── DASHBOARD ────────────────────────────────────────────────────────────────
 
 @app.route("/dashboard", methods=["GET"])

@@ -861,6 +861,7 @@
       <button class="tab-btn active" data-tab="dashboard" onclick="switchTab(this)">📊 Dashboard</button>
       <button class="tab-btn"        data-tab="agents"    onclick="switchTab(this)">🤖 Agents</button>
       <button class="tab-btn"        data-tab="costs"     onclick="switchTab(this)">💰 Costs</button>
+      <button class="tab-btn"        data-tab="backtest"  onclick="switchTab(this)">📈 Backtest</button>
     </div>
     <div style="display:flex;align-items:center;gap:6px;">
       <span style="font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-right:4px">PERIOD</span>
@@ -1320,12 +1321,22 @@
     </div>
 
 
-  <!-- Backtest Report Panel -->
-  <div class="panel" style="margin-top:16px">
-    <div class="panel-title">Walk-Forward Backtest <span id="backtestBadge" style="font-size:11px;font-weight:400;opacity:0.6">loading...</span></div>
-    <pre id="backtestReportPre" style="font-size:11px;line-height:1.5;white-space:pre-wrap;overflow-x:auto;max-height:320px;overflow-y:auto;background:#111;padding:12px;border-radius:6px;color:#ccc">Loading...</pre>
-  </div>
   </div><!-- /#tab-agents -->
+
+  <!-- BACKTEST TAB -->
+  <div id="tab-backtest" class="tab-content">
+
+    <div class="panel" style="margin-bottom:16px">
+      <div class="panel-title">Walk-Forward Backtest <span id="backtestBadge" style="font-size:11px;font-weight:400;opacity:0.6">loading...</span></div>
+      <pre id="backtestReportPre" style="font-size:11px;line-height:1.5;white-space:pre-wrap;overflow-x:auto;max-height:400px;overflow-y:auto;background:#111;padding:12px;border-radius:6px;color:#ccc">Loading...</pre>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">XGBoost Model Report <span id="xgbBadge" style="font-size:11px;font-weight:400;opacity:0.6">loading...</span></div>
+      <pre id="xgbReportPre" style="font-size:11px;line-height:1.5;white-space:pre-wrap;overflow-x:auto;max-height:500px;overflow-y:auto;background:#111;padding:12px;border-radius:6px;color:#ccc">Loading...</pre>
+    </div>
+
+  </div><!-- /#tab-backtest -->
 
   <!-- COSTS TAB -->
   <div id="tab-costs" class="tab-content">
@@ -2305,8 +2316,9 @@ function switchTab(btn) {
   const targetTab = btn.dataset.tab;
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   document.getElementById('tab-' + targetTab).classList.add('active');
-  if (targetTab === 'agents') refreshAgentsTab();
-  if (targetTab === 'costs')  refreshCostsTab();
+  if (targetTab === 'agents')   refreshAgentsTab();
+  if (targetTab === 'costs')    refreshCostsTab();
+  if (targetTab === 'backtest') fetchBacktestReport();
 }
 
 // ── AGENTS TAB ────────────────────────────────────────────────────────────────
@@ -2318,7 +2330,6 @@ async function refreshAgentsTab() {
     const res = await fetch(CONFIG.RAILWAY_URL + '/n8n-status', { signal: AbortSignal.timeout(15000) });
     const data = res.ok ? await res.json() : null;
     renderAgents(data);
-    fetchBacktestReport();
   } catch(e) {
     renderAgents(null, e.message);
   }
@@ -2366,14 +2377,35 @@ function renderAgents(data, errorMsg) {
 
 
 async function fetchBacktestReport() {
+  const preBT  = document.getElementById('backtestReportPre');
+  const badgeBT = document.getElementById('backtestBadge');
+  const preXGB  = document.getElementById('xgbReportPre');
+  const badgeXGB = document.getElementById('xgbBadge');
+
+  // Walk-forward backtest
   try {
     const res = await fetch(CONFIG.RAILWAY_URL + '/backtest-report', { signal: AbortSignal.timeout(8000) });
-    if (!res.ok) { document.getElementById('backtestReportPre').textContent = 'Report non disponibile.'; return; }
-    const d = await res.json();
-    document.getElementById('backtestReportPre').textContent = d.report || 'Vuoto.';
-    document.getElementById('backtestBadge').textContent = d.lines + ' righe';
+    if (!res.ok) { preBT.textContent = 'Report non disponibile.'; }
+    else {
+      const d = await res.json();
+      preBT.textContent  = d.report || 'Vuoto.';
+      badgeBT.textContent = d.lines + ' righe';
+    }
   } catch(e) {
-    document.getElementById('backtestReportPre').textContent = 'Errore: ' + e.message;
+    preBT.textContent = 'Errore: ' + e.message;
+  }
+
+  // XGBoost model report
+  try {
+    const res2 = await fetch(CONFIG.RAILWAY_URL + '/xgb-report', { signal: AbortSignal.timeout(8000) });
+    if (!res2.ok) { preXGB.textContent = 'Report non disponibile.'; }
+    else {
+      const d2 = await res2.json();
+      preXGB.textContent  = d2.report || 'Vuoto.';
+      badgeXGB.textContent = d2.lines + ' righe';
+    }
+  } catch(e) {
+    preXGB.textContent = 'Errore: ' + e.message;
   }
 }
 
