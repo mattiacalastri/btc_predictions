@@ -1065,8 +1065,8 @@ def rescue_orphaned():
     """
     n8n_key = os.environ.get("N8N_API_KEY", "")
     n8n_url = os.environ.get("N8N_URL", "https://mattiacalastri.app.n8n.cloud")
-    supabase_url = os.environ.get("SUPABASE_URL", CONFIG["SUPABASE_URL"])
-    supabase_key = os.environ.get("SUPABASE_ANON_KEY", CONFIG["SUPABASE_ANON_KEY"])
+    supabase_url = os.environ.get("SUPABASE_URL", "")
+    supabase_key = os.environ.get("SUPABASE_KEY", "")
 
     if not n8n_key:
         return jsonify({"status": "error", "error": "N8N_API_KEY not configured"}), 200
