@@ -349,6 +349,17 @@ def place_bet():
     if direction not in ("UP", "DOWN"):
         return jsonify({"status": "failed", "error": "invalid_direction"}), 400
 
+    # P0.2 — filtro ore morte (WR storico < 45% UTC): 18h, 19h, 20h
+    DEAD_HOURS_UTC = {18, 19, 20}
+    current_hour_utc = time.gmtime().tm_hour
+    if current_hour_utc in DEAD_HOURS_UTC:
+        return jsonify({
+            "status": "skipped",
+            "reason": "dead_hour",
+            "hour_utc": current_hour_utc,
+            "message": f"Hour {current_hour_utc}h UTC has historically low WR (<45%). Skipping bet."
+        }), 200
+
     desired_side = "long" if direction == "UP" else "short"
 
     if DRY_RUN:
