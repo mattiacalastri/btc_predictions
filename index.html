@@ -525,9 +525,9 @@
       <div class="kpi-sub">USD (real bets)</div>
     </div>
     <div class="kpi purple">
-      <div class="kpi-label">Capital ROI</div>
+      <div class="kpi-label">Session ROI</div>
       <div class="kpi-value purple" id="kpiRoi">—</div>
-      <div class="kpi-sub" id="kpiRoiSub">on $20 USDC</div>
+      <div class="kpi-sub" id="kpiRoiSub">since 2026-02-24</div>
     </div>
     <div class="kpi yellow">
       <div class="kpi-label">Win Rate</div>
@@ -823,11 +823,13 @@ const CONFIG = {
   LIMIT: 500,
   REFRESH_INTERVAL: 60000,
   ACCT_REFRESH: 30000,
-  CAPITAL: 100
+  CAPITAL: 100,
+  SESSION_START: '2026-02-24'  // top-up $100 — ROI calcolato da questa data
 };
 
 let liveWalletEquity = null;   // aggiornato da renderAccountSummary()
 let lastTotalPnl = 0;          // aggiornato da renderAll(), usato per ricalcolare ROI live
+let lastSessionPnl = 0;        // PnL solo dal SESSION_START — per Session ROI live
 
 const SAMPLE_DATA = [];
 
@@ -893,14 +895,15 @@ function renderAccountSummary(data) {
   const equity = parseFloat(w.margin_equity || 0);
   if (equity > 0) {
     liveWalletEquity = equity;
-    const roiPct = (lastTotalPnl / equity) * 100;
+    const roiPct = (lastSessionPnl / equity) * 100;
     const roiEl = document.getElementById('kpiRoi');
     if (roiEl) {
       roiEl.textContent = (roiPct >= 0 ? '+' : '') + roiPct.toFixed(2) + '%';
       roiEl.className   = 'kpi-value ' + (roiPct >= 0 ? 'purple' : 'red');
     }
     const roiSubEl = document.getElementById('kpiRoiSub');
-    if (roiSubEl) roiSubEl.textContent = 'on ' + fmtUsd(equity) + ' equity';
+    if (roiSubEl) roiSubEl.textContent =
+      (lastSessionPnl >= 0 ? '+' : '') + fmtUsd(lastSessionPnl) + ' · ' + fmtUsd(equity) + ' eq.';
     const footerCapEl = document.getElementById('footerCapital');
     if (footerCapEl) footerCapEl.textContent = fmtUsd(equity) + ' equity';
   }
@@ -1267,7 +1270,12 @@ function render(data) {
   const totalPnl   = realBets.reduce((s, d) => s + parseFloat(d.pnl_usd || 0), 0);
   lastTotalPnl = totalPnl;
   const capitalBase = liveWalletEquity || CONFIG.CAPITAL;
-  const roiPct     = (totalPnl / capitalBase) * 100;
+
+  // Session ROI: solo bets dal top-up $100 (2026-02-24)
+  const sessionBets = realBets.filter(d => d.created_at && d.created_at.slice(0, 10) >= CONFIG.SESSION_START);
+  const sessionPnl  = sessionBets.reduce((s, d) => s + parseFloat(d.pnl_usd || 0), 0);
+  lastSessionPnl = sessionPnl;
+  const roiPct      = (sessionPnl / capitalBase) * 100;
   const avgConf  = data.length ? data.reduce((s, d) => s + parseFloat(d.confidence || 0), 0) / data.length : 0;
   const pnlVals  = realBets.map(d => parseFloat(d.pnl_usd || 0));
   const bestPnl  = pnlVals.length ? Math.max(...pnlVals) : 0;
@@ -1289,7 +1297,8 @@ function render(data) {
   const roiEl = document.getElementById('kpiRoi');
   roiEl.textContent = (roiPct >= 0 ? '+' : '') + roiPct.toFixed(2) + '%';
   roiEl.className   = 'kpi-value ' + (roiPct >= 0 ? 'purple' : 'red');
-  document.getElementById('kpiRoiSub').textContent = 'on ' + fmtUsd(capitalBase) + ' equity';
+  document.getElementById('kpiRoiSub').textContent =
+    (sessionPnl >= 0 ? '+' : '') + fmtUsd(sessionPnl) + ' · ' + fmtUsd(capitalBase) + ' eq.';
   document.getElementById('footerCapital').textContent = fmtUsd(capitalBase) + ' equity';
 
   document.getElementById('kpiWinRate').textContent = closedBets.length ? Math.round(correctBets.length / closedBets.length * 100) + '%' : '—';
