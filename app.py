@@ -10,6 +10,7 @@ API_KEY = os.environ.get("KRAKEN_FUTURES_API_KEY", "")
 API_SECRET = os.environ.get("KRAKEN_FUTURES_API_SECRET", "")
 DEFAULT_SYMBOL = os.environ.get("KRAKEN_DEFAULT_SYMBOL", "PF_XBTUSD")
 KRAKEN_BASE = "https://futures.kraken.com"
+DRY_RUN = os.environ.get("DRY_RUN", "false").lower() in ("true", "1", "yes")
 
 
 # ── SDK clients ──────────────────────────────────────────────────────────────
@@ -156,6 +157,7 @@ def health():
         "symbol": DEFAULT_SYMBOL,
         "api_key_set": bool(API_KEY),
         "version": "2.4.1",
+        "dry_run": DRY_RUN,
     })
 
 
@@ -201,6 +203,14 @@ def position():
 def close_position():
     data = request.get_json(force=True) or {}
     symbol = data.get("symbol", DEFAULT_SYMBOL)
+
+    if DRY_RUN:
+        return jsonify({
+            "status": "closed",
+            "symbol": symbol,
+            "dry_run": True,
+            "message": "DRY_RUN active — no real order sent to Kraken",
+        }), 200
 
     try:
         pos = get_open_position(symbol)
@@ -260,6 +270,24 @@ def place_bet():
         return jsonify({"status": "failed", "error": "invalid_direction"}), 400
 
     desired_side = "long" if direction == "UP" else "short"
+
+    if DRY_RUN:
+        fake_id = f"DRY_{int(time.time())}"
+        return jsonify({
+            "status": "placed",
+            "direction": direction,
+            "confidence": confidence,
+            "symbol": symbol,
+            "side": "buy" if direction == "UP" else "sell",
+            "size": size,
+            "order_id": fake_id,
+            "send_status_type": "placed",
+            "position_confirmed": True,
+            "position": {"side": desired_side, "size": size, "price": 0},
+            "previous_position_existed": False,
+            "raw": {"result": "success", "dry_run": True},
+            "dry_run": True,
+        }), 200
 
     try:
         pos = get_open_position(symbol)

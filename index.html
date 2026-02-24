@@ -121,7 +121,7 @@
   .kpi-sub { font-size: 10px; color: var(--muted); margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   /* STATS ROW */
-  .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); margin-bottom: 16px; }
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); margin-bottom: 16px; }
   .stat-cell { background: var(--card); padding: 14px 18px; text-align: center; }
   .stat-cell-label { font-size: 9px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
   .stat-cell-val { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; }
@@ -560,6 +560,10 @@
     <div class="stat-cell">
       <div class="stat-cell-label">Worst Trade PnL</div>
       <div class="stat-cell-val" id="statWorst" style="color:var(--danger)">—</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-cell-label">Avg Entry Slippage</div>
+      <div class="stat-cell-val" id="statSlippage" style="color:var(--warn)">—</div>
     </div>
   </div>
 
@@ -1050,6 +1054,18 @@ function emaLabel(e) {
   return e.includes('bullish') ? '🟢 BULL' : '🔴 BEAR';
 }
 
+function renderEntryCell(d) {
+  if (!d.bet_taken || !d.entry_fill_price) return fmtPrice(d.btc_price_entry);
+  const slip = (d.entry_slippage !== null && d.entry_slippage !== undefined) ? parseFloat(d.entry_slippage) : null;
+  let slipStr = '';
+  if (slip !== null && !isNaN(slip) && slip !== 0) {
+    const slipColor = Math.abs(slip) > 20 ? 'var(--danger)' : Math.abs(slip) > 5 ? 'var(--warn)' : 'var(--muted)';
+    const slipSign = slip >= 0 ? '+' : '';
+    slipStr = `<span style="display:block;font-size:9px;color:${slipColor};margin-top:1px">${slipSign}$${slip.toFixed(1)} slip</span>`;
+  }
+  return `<span style="display:block">${fmtPrice(d.entry_fill_price)}</span>${slipStr}`;
+}
+
 function renderSizeCell(d) {
   if (!d.bet_size) return '<span style="color:var(--muted)">—</span>';
   const size = parseFloat(d.bet_size);
@@ -1206,6 +1222,13 @@ function render(data) {
   document.getElementById('statConf').textContent  = (avgConf * 100).toFixed(1) + '%';
   document.getElementById('statBest').textContent  = bestPnl  ? '+$' + bestPnl.toFixed(4)  : '—';
   document.getElementById('statWorst').textContent = worstPnl ? '$'  + worstPnl.toFixed(4) : '—';
+  const betsWithSlip = realBets.filter(d => d.entry_slippage !== null && d.entry_slippage !== undefined);
+  const avgSlip = betsWithSlip.length
+    ? betsWithSlip.reduce((s, d) => s + parseFloat(d.entry_slippage || 0), 0) / betsWithSlip.length
+    : null;
+  const slipEl = document.getElementById('statSlippage');
+  slipEl.textContent = avgSlip !== null ? (avgSlip >= 0 ? '+' : '') + '$' + avgSlip.toFixed(2) : '—';
+  slipEl.style.color = avgSlip === null ? 'var(--muted)' : Math.abs(avgSlip) > 20 ? 'var(--danger)' : Math.abs(avgSlip) > 5 ? 'var(--warn)' : 'var(--accent)';
 
   renderTable(data);
 
@@ -1297,7 +1320,7 @@ function renderTable(data) {
       <td style="color:var(--muted)">${fmtDate(d.created_at)}</td>
       <td class="${dirCls}">${dirIcon} ${d.direction}</td>
       <td>${fmtConf(d.confidence)}</td>
-      <td>${fmtPrice(d.btc_price_entry)}</td>
+      <td>${renderEntryCell(d)}</td>
       <td>${fmtPrice(exitPrice)}</td>
       <td>${d.rsi14 ? parseFloat(d.rsi14).toFixed(1) : '—'}</td>
       <td>${emaLabel(d.ema_trend)}</td>
