@@ -1060,8 +1060,8 @@ function renderEntryCell(d) {
   let slipStr = '';
   if (slip !== null && !isNaN(slip) && slip !== 0) {
     const slipColor = Math.abs(slip) > 20 ? 'var(--danger)' : Math.abs(slip) > 5 ? 'var(--warn)' : 'var(--muted)';
-    const slipSign = slip >= 0 ? '+' : '';
-    slipStr = `<span style="display:block;font-size:9px;color:${slipColor};margin-top:1px">${slipSign}$${slip.toFixed(1)} slip</span>`;
+    const slipStr2 = (slip >= 0 ? '+' : '-') + '$' + Math.abs(slip).toFixed(1) + ' slip';
+    slipStr = `<span style="display:block;font-size:9px;color:${slipColor};margin-top:1px">${slipStr2}</span>`;
   }
   return `<span style="display:block">${fmtPrice(d.entry_fill_price)}</span>${slipStr}`;
 }
