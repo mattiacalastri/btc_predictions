@@ -333,6 +333,7 @@ def place_bet():
             wait_for_position(symbol, want_open=False, retries=15, sleep_s=0.35)
             exit_price_at_close = _get_mark_price(symbol) or float(pos.get("price") or 0)
             _close_prev_bet_on_reverse(pos["side"], exit_price_at_close, pos["size"])
+            time.sleep(2)  # buffer Kraken: attendi che il conto si assesti prima di aprire nuova posizione
 
         # apri nuova posizione
         order_side = "buy" if direction == "UP" else "sell"
