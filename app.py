@@ -1053,9 +1053,9 @@ def performance_stats():
             w = sum(1 for r in b if r.get("correct") is True)
             return f"{round(w/len(b)*100)}%({len(b)})"
         conf_stats = (
-            f"[<0.62]→{_bucket_wr(0.50,0.62)} "
-            f"[0.62-0.65]→{_bucket_wr(0.62,0.65)} "
-            f"[≥0.65]→{_bucket_wr(0.65,1.01)}"
+            f"[<0.65]→{_bucket_wr(0.50,0.65)} "
+            f"[0.65-0.70]→{_bucket_wr(0.65,0.70)} "
+            f"[≥0.70]→{_bucket_wr(0.70,1.01)}"
         )
 
         stats_text = (
@@ -1131,7 +1131,7 @@ def predict_xgb():
 @app.route("/bet-sizing", methods=["GET"])
 def bet_sizing():
     base_size = float(request.args.get("base_size", 0.002))
-    confidence = float(request.args.get("confidence", 0.62))
+    confidence = float(request.args.get("confidence", 0.65))
 
     # Parametri aggiuntivi per XGBoost correctness model (opzionali, con default neutri)
     fear_greed  = float(request.args.get("fear_greed_value", 50))
@@ -1213,8 +1213,8 @@ def bet_sizing():
             multiplier *= 0.75
             reason = "asymmetry_penalty"
 
-        # confidence scaling: 0.55→0.80x | 0.60→1.00x | 0.70→1.20x
-        conf_mult = 0.8 + (confidence - 0.55) * (0.4 / 0.15)
+        # confidence scaling: 0.65→1.00x | 0.75→1.20x (pivot alzato con nuova soglia)
+        conf_mult = 1.0 + (confidence - 0.65) * (0.2 / 0.10)
         conf_mult = round(max(0.8, min(1.2, conf_mult)), 2)
 
         final_size = round(base_size * multiplier * conf_mult, 6)
