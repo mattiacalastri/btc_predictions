@@ -525,6 +525,91 @@
   }
   .agents-refresh-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
   .launchd-table td code { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--blue); }
+
+  /* ═══════════════════════════════════════
+     AI SIGNAL SOURCES STRIP
+  ═══════════════════════════════════════ */
+  .sources-strip {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 9px 16px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .sources-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+    padding-right: 14px;
+    border-right: 1px solid var(--border);
+    line-height: 1.5;
+  }
+  .sources-label em { font-style: normal; color: var(--accent); }
+  .sources-list {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+    flex: 1;
+  }
+  .src-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 10px 5px 9px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    cursor: default;
+    transition: border-color 0.15s, background 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .src-chip:hover {
+    background: rgba(255,255,255,0.04);
+    border-color: var(--src-color, var(--muted));
+  }
+  .src-chip::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 2px;
+    background: var(--src-color, var(--muted));
+  }
+  .src-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--src-color, var(--muted));
+    flex-shrink: 0;
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+  .src-info { display: flex; flex-direction: column; gap: 1px; }
+  .src-name {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text);
+    white-space: nowrap;
+    line-height: 1.2;
+  }
+  .src-cat {
+    font-size: 7px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--src-color, var(--muted));
+    opacity: 0.75;
+    white-space: nowrap;
+    line-height: 1;
+  }
+  @media (max-width: 900px) { .sources-label { border-right: none; padding-right: 0; } }
 </style>
 </head>
 <body>
@@ -554,6 +639,53 @@
       </div>
     </div>
   </header>
+
+  <!-- AI SIGNAL SOURCES -->
+  <div class="sources-strip">
+    <div class="sources-label">AI FEEDS<br><em>10</em> SOURCES</div>
+    <div class="sources-list">
+      <div class="src-chip" style="--src-color:#00aaff" title="BTC/USD spot price — Kraken Futures">
+        <div class="src-dot"></div>
+        <div class="src-info"><span class="src-name">KRAKEN</span><span class="src-cat">PRICE</span></div>
+      </div>
+      <div class="src-chip" style="--src-color:#3399ee" title="BTC OHLCV candlesticks 5m — Binance">
+        <div class="src-dot"></div>
+        <div class="src-info"><span class="src-name">BINANCE</span><span class="src-cat">KLINES</span></div>
+      </div>
+      <div class="src-chip" style="--src-color:#00d4aa" title="Market cap, volume, dominance — CoinGecko">
+        <div class="src-dot"></div>
+        <div class="src-info"><span class="src-name">COINGECKO</span><span class="src-cat">MARKET</span></div>
+      </div>
+      <div class="src-chip" style="--src-color:#aa66ff" title="Perpetual funding rate — Kraken Futures">
+        <div class="src-dot"></div>
+        <div class="src-info"><span class="src-name">FUNDING RATE</span><span class="src-cat">DERIVATIVES</span></div>
+      </div>
+      <div class="src-chip" style="--src-color:#cc88ff" title="Long/Short ratio — market positioning">
+        <div class="src-dot"></div>
+        <div class="src-info"><span class="src-name">L/S RATIO</span><span class="src-cat">DERIVATIVES</span></div>
+      </div>
+      <div class="src-chip" style="--src-color:#00ff88" title="Crypto Fear &amp; Greed Index (0–100)">
+        <div class="src-dot"></div>
+        <div class="src-info"><span class="src-name">FEAR &amp; GREED</span><span class="src-cat">SENTIMENT</span></div>
+      </div>
+      <div class="src-chip" style="--src-color:#ff9500" title="Latest crypto news feed — CryptoCompare">
+        <div class="src-dot"></div>
+        <div class="src-info"><span class="src-name">CRYPTOCMP</span><span class="src-cat">NEWS</span></div>
+      </div>
+      <div class="src-chip" style="--src-color:#ffcc00" title="Latest articles RSS — CoinDesk">
+        <div class="src-dot"></div>
+        <div class="src-info"><span class="src-name">COINDESK</span><span class="src-cat">NEWS</span></div>
+      </div>
+      <div class="src-chip" style="--src-color:#ff6b35" title="Italian financial news RSS — Sole24Ore">
+        <div class="src-dot"></div>
+        <div class="src-info"><span class="src-name">SOLE24ORE</span><span class="src-cat">NEWS</span></div>
+      </div>
+      <div class="src-chip" style="--src-color:#ff44aa" title="Historical signal patterns — Supabase Memory">
+        <div class="src-dot"></div>
+        <div class="src-info"><span class="src-name">PATTERNS</span><span class="src-cat">MEMORY</span></div>
+      </div>
+    </div>
+  </div>
 
   <!-- TAB NAVIGATION + GLOBAL TIME FILTER -->
   <div class="tab-nav">
