@@ -1268,6 +1268,187 @@ def costs():
     })
 
 
+@app.route("/equity-history", methods=["GET"])
+def equity_history():
+    sb_url = os.environ.get("SUPABASE_URL", "")
+    sb_key = os.environ.get("SUPABASE_KEY", "")
+    sb_headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
+    capital_base = float(os.environ.get("CAPITAL", "100"))
+
+    try:
+        r = requests.get(
+            f"{sb_url}/rest/v1/btc_predictions"
+            "?select=id,created_at,pnl_usd"
+            "&bet_taken=eq.true&correct=not.is.null&pnl_usd=not.is.null"
+            "&order=id.asc",
+            headers=sb_headers,
+            timeout=6,
+        )
+        rows = r.json() if r.ok else []
+    except Exception as e:
+        return jsonify({"error": f"Supabase: {e}"}), 500
+
+    history = []
+    cumulative_pnl = 0.0
+    for row in rows:
+        pnl = float(row.get("pnl_usd") or 0)
+        cumulative_pnl += pnl
+        equity = round(capital_base + cumulative_pnl, 6)
+        history.append({
+            "id": row.get("id"),
+            "created_at": row.get("created_at"),
+            "pnl_usd": pnl,
+            "equity": equity,
+        })
+
+    final_equity = round(capital_base + cumulative_pnl, 6) if history else capital_base
+    return jsonify({
+        "capital_base": capital_base,
+        "history": history,
+        "count": len(history),
+        "final_equity": final_equity,
+    })
+
+
+@app.route("/risk-metrics", methods=["GET"])
+def risk_metrics():
+    sb_url = os.environ.get("SUPABASE_URL", "")
+    sb_key = os.environ.get("SUPABASE_KEY", "")
+    sb_headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
+
+    try:
+        r = requests.get(
+            f"{sb_url}/rest/v1/btc_predictions"
+            "?select=id,correct,pnl_usd,direction,created_at"
+            "&bet_taken=eq.true&correct=not.is.null"
+            "&order=id.asc",
+            headers=sb_headers,
+            timeout=6,
+        )
+        rows = r.json() if r.ok else []
+    except Exception as e:
+        return jsonify({"error": f"Supabase: {e}"}), 500
+
+    total_trades = len(rows)
+    wins = [r for r in rows if r.get("correct") is True]
+    losses = [r for r in rows if r.get("correct") is False]
+    win_rate = round(len(wins) / total_trades * 100, 1) if total_trades > 0 else 0.0
+
+    pnl_wins = [float(r.get("pnl_usd") or 0) for r in wins]
+    pnl_losses = [float(r.get("pnl_usd") or 0) for r in losses]
+    total_pnl = round(sum(pnl_wins) + sum(pnl_losses), 6)
+    avg_win = round(sum(pnl_wins) / len(pnl_wins), 6) if pnl_wins else 0.0
+    avg_loss = round(sum(pnl_losses) / len(pnl_losses), 6) if pnl_losses else 0.0
+
+    sum_wins = sum(pnl_wins)
+    sum_losses = sum(pnl_losses)
+    profit_factor = round(abs(sum_wins) / abs(sum_losses), 3) if sum_losses != 0 else None
+
+    current_streak = {"result": None, "count": 0}
+    if rows:
+        last_result = rows[-1].get("correct")
+        streak_label = "WIN" if last_result else "LOSS"
+        count = 0
+        for row in reversed(rows):
+            if row.get("correct") == last_result:
+                count += 1
+            else:
+                break
+        current_streak = {"result": streak_label, "count": count}
+
+    capital_base = float(os.environ.get("CAPITAL", "100"))
+    max_drawdown_usd = 0.0
+    if rows:
+        peak = capital_base
+        equity = capital_base
+        for row in rows:
+            equity += float(row.get("pnl_usd") or 0)
+            if equity > peak:
+                peak = equity
+            dd = equity - peak
+            if dd < max_drawdown_usd:
+                max_drawdown_usd = dd
+    max_drawdown_usd = round(max_drawdown_usd, 6)
+
+    last_10 = rows[-10:] if len(rows) >= 10 else rows
+    last_10_wins = sum(1 for r in last_10 if r.get("correct") is True)
+    last_10_wr = int(last_10_wins / len(last_10) * 100) if last_10 else 0
+    last_10_pnl = round(sum(float(r.get("pnl_usd") or 0) for r in last_10), 6)
+
+    return jsonify({
+        "total_trades": total_trades,
+        "wins": len(wins),
+        "losses": len(losses),
+        "win_rate": win_rate,
+        "total_pnl": total_pnl,
+        "avg_win": avg_win,
+        "avg_loss": avg_loss,
+        "profit_factor": profit_factor,
+        "current_streak": current_streak,
+        "max_drawdown_usd": max_drawdown_usd,
+        "last_10_wr": last_10_wr,
+        "last_10_pnl": last_10_pnl,
+    })
+
+
+@app.route("/wf-status", methods=["GET"])
+def wf_status():
+    sb_url = os.environ.get("SUPABASE_URL", "")
+    sb_key = os.environ.get("SUPABASE_KEY", "")
+    sb_headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
+    n8n_key = os.environ.get("N8N_API_KEY", "")
+    n8n_url_base = os.environ.get("N8N_URL", "https://mattiacalastri.app.n8n.cloud")
+
+    wf02_active = False
+    wf02_last_execution = None
+    if n8n_key:
+        try:
+            r = requests.get(
+                f"{n8n_url_base}/api/v1/executions?workflowId=vallzU6ceD5gPwSP&limit=5",
+                headers={"X-N8N-API-KEY": n8n_key},
+                timeout=8,
+            )
+            if r.ok:
+                executions = r.json().get("data", [])
+                if executions:
+                    last = executions[0]
+                    wf02_last_execution = {
+                        "id": str(last.get("id", "")),
+                        "status": last.get("status"),
+                        "started_at": last.get("startedAt"),
+                    }
+                    wf02_active = any(
+                        e.get("status") in ("running", "waiting") for e in executions
+                    )
+        except Exception:
+            pass
+
+    open_bets_supabase = 0
+    try:
+        r = requests.get(
+            f"{sb_url}/rest/v1/btc_predictions"
+            "?select=id&bet_taken=eq.true&correct=is.null",
+            headers={**sb_headers, "Prefer": "count=exact"},
+            timeout=5,
+        )
+        cr = r.headers.get("Content-Range", "")
+        if "/" in cr:
+            open_bets_supabase = int(cr.split("/")[1])
+    except Exception:
+        pass
+
+    alert = None
+    if open_bets_supabase > 0 and not wf02_active:
+        alert = "bet open but wf02 not monitoring"
+
+    return jsonify({
+        "wf02_active": wf02_active,
+        "wf02_last_execution": wf02_last_execution,
+        "open_bets_supabase": open_bets_supabase,
+        "alert": alert,
+    })
+
+
 @app.route("/orphaned-bets", methods=["GET"])
 def orphaned_bets():
     import datetime
