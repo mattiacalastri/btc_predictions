@@ -662,7 +662,7 @@ def get_signals():
 
 @app.route("/bet-sizing", methods=["GET"])
 def bet_sizing():
-    base_size = float(request.args.get("base_size", 0.001))
+    base_size = float(request.args.get("base_size", 0.002))
     confidence = float(request.args.get("confidence", 0.60))
 
     try:
@@ -731,7 +731,7 @@ def bet_sizing():
         conf_mult = round(max(0.8, min(1.2, conf_mult)), 2)
 
         final_size = round(base_size * multiplier * conf_mult, 6)
-        final_size = max(0.001, min(0.002, final_size))
+        final_size = max(0.001, min(0.005, final_size))
 
         return jsonify({
             "size": final_size,
