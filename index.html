@@ -94,7 +94,7 @@
   /* KPI GRID */
   .kpi-grid {
     display: grid;
-    grid-template-columns: repeat(9, 1fr);
+    grid-template-columns: repeat(10, 1fr);
     gap: 10px;
     margin-bottom: 16px;
   }
@@ -156,8 +156,11 @@
   .badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px; border-radius: 2px; font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
   .badge-bet     { background: rgba(0,170,255,0.1);  color: var(--blue); }
   .badge-nobet   { background: rgba(74,96,112,0.15); color: var(--muted); }
-  .badge-correct { background: rgba(0,255,136,0.1);  color: var(--accent); }
-  .badge-wrong   { background: rgba(255,68,102,0.1); color: var(--danger); }
+  .badge-correct  { background: rgba(0,255,136,0.1);  color: var(--accent); }
+  .badge-wrong    { background: rgba(255,68,102,0.1); color: var(--danger); }
+  .badge-skip     { background: rgba(74,96,112,0.2);   color: #8ca0b0; border: 1px solid rgba(74,96,112,0.3); }
+  .badge-alert    { background: rgba(255,170,0,0.1);   color: var(--warn); border: 1px solid rgba(255,170,0,0.3); }
+  .badge-pending  { background: rgba(170,102,255,0.1); color: #aa66ff; border: 1px solid rgba(170,102,255,0.3); }
 
   #apiErrorBanner {
     display: none;
@@ -523,6 +526,11 @@
       <div class="kpi-value yellow" id="kpiWinRate">—</div>
       <div class="kpi-sub">Executed trades</div>
     </div>
+    <div class="kpi yellow">
+      <div class="kpi-label">WR NoBet</div>
+      <div class="kpi-value yellow" id="kpiWrNoBet">—</div>
+      <div class="kpi-sub">Theoretical pred.</div>
+    </div>
     <div class="kpi blue">
       <div class="kpi-label">Fear &amp; Greed</div>
       <div class="kpi-value blue" id="kpiFG">—</div>
@@ -599,6 +607,7 @@
               <th>TYPE</th>
               <th>RESULT</th>
               <th>PNL $ / THR%</th>
+              <th>FEE $</th>
             </tr>
           </thead>
           <tbody id="signalTable"></tbody>
@@ -1184,6 +1193,10 @@ function render(data) {
   document.getElementById('footerCapital').textContent = fmtUsd(capitalBase) + ' equity';
 
   document.getElementById('kpiWinRate').textContent = closedBets.length ? Math.round(correctBets.length / closedBets.length * 100) + '%' : '—';
+  const noBets        = data.filter(d => d.classification === 'NO_BET');
+  const noBetsClosed  = noBets.filter(d => d.correct !== null);
+  const noBetsCorrect = noBetsClosed.filter(d => d.correct === true);
+  document.getElementById('kpiWrNoBet').textContent = noBetsClosed.length ? Math.round(noBetsCorrect.length / noBetsClosed.length * 100) + '%' : '—';
   document.getElementById('kpiFG').textContent      = lastFG !== null ? lastFG : '—';
   document.getElementById('kpiFGLabel').textContent = lastFG !== null
     ? (lastFG < 20 ? 'EXTREME FEAR' : lastFG < 40 ? 'FEAR' : lastFG < 60 ? 'NEUTRAL' : lastFG < 80 ? 'GREED' : 'EXTREME GREED') : '';
@@ -1217,15 +1230,18 @@ function renderTable(data) {
   });
   const tbody = document.getElementById('signalTable');
   if (!filtered.length) {
-    tbody.innerHTML = '<tr class="no-data-row"><td colspan="13">NO DATA</td></tr>';
+    tbody.innerHTML = '<tr class="no-data-row"><td colspan="14">NO DATA</td></tr>';
     return;
   }
   tbody.innerHTML = filtered.map(d => {
     const dirCls  = d.direction === 'UP' ? 'dir-up' : 'dir-down';
     const dirIcon = d.direction === 'UP' ? '↑' : '↓';
-    const betBadge = d.classification === 'BET'
-      ? '<span class="badge badge-bet">BET</span>'
-      : '<span class="badge badge-nobet">NO BET</span>';
+    let betBadge;
+    if      (d.classification === 'BET')     betBadge = '<span class="badge badge-bet">BET</span>';
+    else if (d.classification === 'SKIP')    betBadge = '<span class="badge badge-skip">SKIP</span>';
+    else if (d.classification === 'ALERT')   betBadge = '<span class="badge badge-alert">ALERT</span>';
+    else if (d.classification === 'PENDING') betBadge = '<span class="badge badge-pending">PEND</span>';
+    else                                     betBadge = '<span class="badge badge-nobet">NO BET</span>';
     const isDry = (d.entry_order_id || '').startsWith('DRY_');
     let resultBadge;
     const isBet = d.classification === 'BET' && d.bet_taken;
@@ -1263,6 +1279,19 @@ function renderTable(data) {
     } else {
       pnlCell = `<span class="pnl-null">—</span>`;
     }
+    const TAKER_RATE = 0.00005;
+    let feeCell = '<span style="color:var(--muted)">—</span>';
+    if (d.classification === 'BET' && d.bet_taken) {
+      const feeVal = (d.fees_total !== null && d.fees_total !== undefined)
+        ? parseFloat(d.fees_total)
+        : (() => {
+            const sz = parseFloat(d.bet_size || 0);
+            const ep = parseFloat(d.entry_fill_price || 0);
+            const xp = parseFloat(d.exit_fill_price || d.btc_price_exit || 0);
+            return sz * (ep + xp) * TAKER_RATE;
+          })();
+      if (feeVal > 0) feeCell = `<span style="color:var(--warn);font-size:10px">-$${feeVal.toFixed(5)}</span>`;
+    }
     return `<tr>
       <td style="color:var(--muted)">${d.id}</td>
       <td style="color:var(--muted)">${fmtDate(d.created_at)}</td>
@@ -1277,6 +1306,7 @@ function renderTable(data) {
       <td>${betBadge}</td>
       <td>${resultBadge}</td>
       <td>${pnlCell}</td>
+      <td>${feeCell}</td>
     </tr>`;
   }).join('');
 }
