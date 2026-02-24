@@ -1056,20 +1056,109 @@ def bet_sizing():
 # ── N8N STATUS (proxy) ───────────────────────────────────────────────────────
 
 # ID fissi dei workflow BTC — evita paginazione su 100+ workflow nell'account
-_BTC_WORKFLOW_IDS = [
-    ("kaevyOIbHpm8vJmF", "01_BTC_Prediction_Bot"),
-    ("vallzU6ceD5gPwSP",  "02_BTC_Trade_Checker"),
-    ("KITZHsfVSMtVTpfx",  "03_BTC_Wallet_Checker"),
-    ("eLmZ6d8t9slAx5pj",  "04_BTC_Talker"),
-    ("xCwf53UGBq1SyP0c",  "05_BTC_Prediction_Verifier"),
-    ("O2ilssVhSFs9jsMF",  "06_Nightly_Maintenance"),
-]
+@app.route("/rescue-orphaned", methods=["POST"])
+def rescue_orphaned():
+    """
+    Controlla bet orfane (bet_taken=true, correct=null) e ri-triggera wf02 per ognuna.
+    Chiamare periodicamente da launchd ogni 5 minuti.
+    """
+    n8n_key = os.environ.get("N8N_API_KEY", "")
+    n8n_url = os.environ.get("N8N_URL", "https://mattiacalastri.app.n8n.cloud")
+    supabase_url = os.environ.get("SUPABASE_URL", CONFIG["SUPABASE_URL"])
+    supabase_key = os.environ.get("SUPABASE_ANON_KEY", CONFIG["SUPABASE_ANON_KEY"])
+
+    if not n8n_key:
+        return jsonify({"status": "error", "error": "N8N_API_KEY not configured"}), 200
+
+    # 1. Cerca bet orfane in Supabase
+    try:
+        r = requests.get(
+            f"{supabase_url}/rest/v1/btc_predictions"
+            "?select=id,direction,created_at,entry_fill_price"
+            "&bet_taken=eq.true&correct=is.null&order=id.desc",
+            headers={
+                "apikey": supabase_key,
+                "Authorization": f"Bearer {supabase_key}",
+            },
+            timeout=6,
+        )
+        orphaned = r.json() if r.ok else []
+    except Exception as e:
+        return jsonify({"status": "error", "error": f"Supabase: {e}"}), 200
+
+    if not orphaned:
+        return jsonify({"status": "ok", "rescued": 0, "message": "No orphaned bets"})
+
+    # 2. Per ogni bet orfana, controlla se wf02 è già attivo per quella bet
+    #    (esecuzioni in waiting nelle ultime 40 minuti)
+    WF02_ID = "vallzU6ceD5gPwSP"
+    rescued = []
+    skipped = []
+
+    try:
+        active_r = requests.get(
+            f"{n8n_url}/api/v1/executions?workflowId={WF02_ID}&status=waiting&limit=20",
+            headers={"X-N8N-API-KEY": n8n_key},
+            timeout=5,
+        )
+        active_execs = active_r.json().get("data", []) if active_r.ok else []
+        # IDs delle bet già monitorate (da workflowData.pinData se disponibile)
+        active_ids = set()
+        for ex in active_execs:
+            # startedAt entro 40 minuti
+            started = ex.get("startedAt", "")
+            if started:
+                try:
+                    import datetime
+                    age_min = (datetime.datetime.utcnow() -
+                               datetime.datetime.fromisoformat(started.replace("Z",""))).total_seconds() / 60
+                    if age_min < 40:
+                        active_ids.add(ex.get("id"))  # execution id, non bet id
+                except Exception:
+                    pass
+    except Exception:
+        active_execs = []
+        active_ids = set()
+
+    # 3. Triggera wf02 via rescue webhook per bet orfane
+    #    (wf02 ha ora un Webhook Rescue Trigger su /webhook/rescue-wf02)
+    max_concurrent = 2  # evita flood: al massimo 2 rescue simultanei
+    triggered_count = 0
+    RESCUE_WEBHOOK_URL = f"{n8n_url}/webhook/rescue-wf02"
+    for bet in orphaned:
+        bet_id = bet.get("id")
+        if len(active_execs) + triggered_count >= max_concurrent:
+            skipped.append(bet_id)
+            continue
+        try:
+            trig_r = requests.post(
+                RESCUE_WEBHOOK_URL,
+                json={"id": bet_id},
+                timeout=6,
+            )
+            if trig_r.status_code < 400:
+                rescued.append(bet_id)
+                triggered_count += 1
+            else:
+                skipped.append(bet_id)
+        except Exception:
+            skipped.append(bet_id)
+
+    app.logger.info(f"[rescue_orphaned] orphaned={len(orphaned)} rescued={rescued} skipped={skipped}")
+    return jsonify({
+        "status": "ok",
+        "orphaned": len(orphaned),
+        "rescued": rescued,
+        "skipped": skipped,
+        "active_wf02_execs": len(active_execs),
+    })
+
 
 @app.route("/n8n-status", methods=["GET"])
 def n8n_status():
     """
     Proxy verso n8n API — richiede N8N_API_KEY env var su Railway.
-    Carica direttamente i 6 workflow BTC per ID (evita paginazione su 100+ wf).
+    Filtra per tag 'btc-bot' (assegnato manualmente in n8n).
     """
     n8n_key = os.environ.get("N8N_API_KEY", "")
     n8n_url = os.environ.get("N8N_URL", "https://mattiacalastri.app.n8n.cloud")
@@ -1079,19 +1168,25 @@ def n8n_status():
     headers = {"X-N8N-API-KEY": n8n_key}
     result = []
     try:
-        for wf_id, wf_label in _BTC_WORKFLOW_IDS:
-            wf_data = {"id": wf_id, "name": wf_label, "active": False}
-            # Carica dettagli workflow (active/inactive)
-            try:
-                r = requests.get(f"{n8n_url}/api/v1/workflows/{wf_id}",
-                                 headers=headers, timeout=5)
-                if r.ok:
-                    wf = r.json()
-                    wf_data["name"]   = wf.get("name", wf_label)
-                    wf_data["active"] = wf.get("active", False)
-            except Exception:
-                pass
-            # Ultima execution
+        # Carica workflow filtrati per tag btc-bot (una sola chiamata)
+        r = requests.get(
+            f"{n8n_url}/api/v1/workflows?tags=btc-bot&limit=20",
+            headers=headers, timeout=8
+        )
+        if not r.ok:
+            return jsonify({"status": "error", "error": f"n8n API {r.status_code}"}), 200
+
+        workflows = r.json().get("data", [])
+        workflows.sort(key=lambda w: w.get("name", ""))
+
+        for wf in workflows:
+            wf_id = wf.get("id")
+            wf_data = {
+                "id":     wf_id,
+                "name":   wf.get("name", wf_id),
+                "active": wf.get("active", False),
+            }
+            # Ultima execution per questo workflow
             try:
                 ex_r = requests.get(
                     f"{n8n_url}/api/v1/executions?workflowId={wf_id}&limit=1",
