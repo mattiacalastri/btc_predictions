@@ -838,7 +838,7 @@ def performance_stats():
         return jsonify({"perf_stats_text": stats_text})
 
     except Exception as e:
-        return jsonify({"perf_stats_text": f"n/a ({str(e)[:60)})"})
+        return jsonify({"perf_stats_text": f"n/a ({str(e)[:60]})"})
 
 
 # ── XGB PREDICT ──────────────────────────────────────────────────────────────
