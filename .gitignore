@@ -4,6 +4,7 @@ __pycache__/
 .env
 .env.*
 datasets/
+!datasets/*.txt
 *.jsonl
 
 # Credenziali e config locali — non committare
