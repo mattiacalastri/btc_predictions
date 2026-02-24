@@ -2135,6 +2135,137 @@ def xgb_report():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# ── TRAINING STATUS ───────────────────────────────────────────────────────────
+
+@app.route("/training-status", methods=["GET"])
+def training_status():
+    """
+    Returns auto-training system status: last retrain date, model accuracy,
+    bets since retrain, next scheduled retrain (Sunday 3AM).
+    """
+    import datetime as _dt
+    import re as _re
+
+    base = os.path.dirname(__file__)
+    model_path = os.path.join(base, "models", "xgb_direction.pkl")
+    report_path = os.path.join(base, "datasets", "xgb_report.txt")
+
+    # Last retrain timestamp from model file mtime
+    last_retrain_ts = None
+    last_retrain_iso = None
+    if os.path.exists(model_path):
+        mtime = os.path.getmtime(model_path)
+        last_retrain_ts = _dt.datetime.utcfromtimestamp(mtime)
+        last_retrain_iso = last_retrain_ts.strftime("%Y-%m-%d %H:%M UTC")
+
+    # Parse accuracy from xgb_report.txt
+    direction_acc = None
+    train_n = None
+    if os.path.exists(report_path):
+        try:
+            txt = open(report_path).read()
+            m = _re.search(r"Direction model accuracy\s+([\d.]+)%", txt)
+            if m:
+                direction_acc = float(m.group(1))
+            m2 = _re.search(r"Totale righe:\s+(\d+)", txt)
+            if m2:
+                train_n = int(m2.group(1))
+        except Exception:
+            pass
+
+    # Bets since last retrain (from Supabase)
+    bets_since = None
+    sb_url = os.environ.get("SUPABASE_URL", "")
+    sb_key = os.environ.get("SUPABASE_KEY", "")
+    if sb_url and sb_key and last_retrain_ts:
+        try:
+            cutoff = last_retrain_ts.strftime("%Y-%m-%dT%H:%M:%S")
+            r = requests.get(
+                f"{sb_url}/rest/v1/btc_predictions"
+                f"?select=id&bet_taken=eq.true&correct=not.is.null"
+                f"&created_at=gt.{cutoff}",
+                headers={
+                    "apikey": sb_key,
+                    "Authorization": f"Bearer {sb_key}",
+                    "Prefer": "count=exact",
+                },
+                timeout=5,
+            )
+            cr = r.headers.get("Content-Range", "")
+            if "/" in cr:
+                bets_since = int(cr.split("/")[1])
+        except Exception:
+            pass
+
+    # Next scheduled retrain: next Sunday at 3AM UTC
+    now_utc = _dt.datetime.utcnow()
+    days_until_sunday = (6 - now_utc.weekday()) % 7
+    if days_until_sunday == 0 and now_utc.hour >= 3:
+        days_until_sunday = 7
+    next_retrain_dt = (now_utc + _dt.timedelta(days=days_until_sunday)).replace(
+        hour=3, minute=0, second=0, microsecond=0
+    )
+    next_retrain_iso = next_retrain_dt.strftime("%Y-%m-%d %H:%M UTC")
+
+    # Status pill logic
+    days_since = None
+    if last_retrain_ts:
+        days_since = (now_utc - last_retrain_ts).days
+    retrain_threshold = 30  # bets needed for meaningful retrain
+    if bets_since is not None and bets_since >= retrain_threshold:
+        status = "RETRAIN_READY"
+    elif days_since is not None and days_since <= 3:
+        status = "RECENT"
+    else:
+        status = "ON_TRACK"
+
+    return jsonify({
+        "last_retrain_iso": last_retrain_iso,
+        "last_retrain_ts": last_retrain_ts.isoformat() if last_retrain_ts else None,
+        "direction_acc": direction_acc,
+        "train_n": train_n,
+        "bets_since_retrain": bets_since,
+        "next_retrain_iso": next_retrain_iso,
+        "next_retrain_ts": next_retrain_dt.isoformat(),
+        "retrain_threshold": retrain_threshold,
+        "days_since_retrain": days_since,
+        "status": status,
+    })
+
+
+# ── TRADING STATS ─────────────────────────────────────────────────────────────
+
+@app.route("/trading-stats", methods=["GET"])
+def trading_stats():
+    """
+    Legge la riga più recente dalla tabella trading_stats su Supabase
+    e restituisce i dati in JSON.
+    """
+    try:
+        supabase_url = os.environ.get("SUPABASE_URL", "")
+        supabase_key = os.environ.get("SUPABASE_KEY", "")
+
+        if not supabase_url or not supabase_key:
+            return jsonify({"error": "Supabase credentials not configured"}), 500
+
+        url = f"{supabase_url}/rest/v1/trading_stats?select=*&limit=1"
+        res = requests.get(url, headers={
+            "apikey": supabase_key,
+            "Authorization": f"Bearer {supabase_key}"
+        }, timeout=8)
+
+        if not res.ok:
+            return jsonify({"error": f"Supabase HTTP {res.status_code}"}), 502
+
+        rows = res.json()
+        if not rows:
+            return jsonify({"status": "ok", "data": None})
+
+        return jsonify({"status": "ok", "data": rows[0]})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 # ── DASHBOARD ────────────────────────────────────────────────────────────────
 
 @app.route("/dashboard", methods=["GET"])
