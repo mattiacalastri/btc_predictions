@@ -774,6 +774,199 @@
   .ai-decision { display:flex; align-items:center; gap:5px; font-size:10px; font-weight:700; letter-spacing:1px; color:var(--text); text-align:center; }
   .ai-status-dot { width:5px; height:5px; border-radius:50%; background:var(--accent); animation:pulse 1.5s ease-in-out infinite; flex-shrink:0; }
   .ai-think-label { font-size:7px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
+
+  /* ═══════════════════════════════════════════
+     MOBILE RESPONSIVE — max-width: 600px
+  ═══════════════════════════════════════════ */
+
+  /* TASK 1 — AI FEEDS strip: auto-scroll carousel su mobile */
+  @keyframes feedScroll {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  @media (max-width: 600px) {
+    .sources-strip {
+      flex-wrap: nowrap;
+      overflow: hidden;
+      padding: 6px 10px;
+    }
+    .sources-label { display: none; }
+    .sources-list {
+      display: flex;
+      gap: 6px;
+      overflow: hidden;
+      white-space: nowrap;
+      flex-wrap: nowrap;
+    }
+  }
+
+  /* TASK 2 — Story Highlights */
+  .story-highlights { display: none; }
+  @media (max-width: 600px) {
+    .story-highlights {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding: 8px 4px 12px;
+      margin-bottom: 8px;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    .story-highlights::-webkit-scrollbar { display: none; }
+    .story-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+    .story-ring {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      border: 2px solid;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      background: rgba(255,255,255,0.03);
+      transition: transform 0.15s;
+    }
+    .story-item:active .story-ring { transform: scale(0.92); }
+    .story-ring-yellow { border-color: var(--warn); box-shadow: 0 0 8px rgba(255,170,0,0.3); }
+    .story-ring-purple { border-color: #aa66ff; box-shadow: 0 0 8px rgba(170,102,255,0.3); }
+    .story-ring-blue   { border-color: var(--blue); box-shadow: 0 0 8px rgba(0,170,255,0.3); }
+    .story-ring-green  { border-color: var(--accent); box-shadow: 0 0 8px rgba(0,255,136,0.3); }
+    .story-ring-red    { border-color: var(--danger); box-shadow: 0 0 8px rgba(255,68,102,0.3); }
+    .story-ring-orange { border-color: #ff8800; box-shadow: 0 0 8px rgba(255,136,0,0.3); }
+    .story-label {
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .story-val {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+    }
+  }
+
+  /* TASK 3 — Mobile Primary Grid */
+  .mobile-primary-grid { display: none; }
+  @media (max-width: 600px) {
+    .mobile-primary-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto auto;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .mp-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 10px 12px;
+      position: relative;
+      overflow: hidden;
+    }
+    .mp-box::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 2px;
+    }
+    .mp-primary::after { background: var(--accent); }
+    .mp-secondary { grid-column: 1 / -1; }
+    .mp-secondary::after { background: var(--blue); }
+    .mp-label {
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+    .mp-value {
+      font-family: 'Syne', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--accent);
+    }
+    .mp-sub {
+      font-size: 9px;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+    .mp-last-signal {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+  }
+
+  /* TASK 4 — KPI grid compatta su mobile */
+  @media (max-width: 600px) {
+    .kpi-grid { gap: 6px; }
+    .kpi { padding: 10px 10px; }
+    .kpi-value { font-size: 14px; }
+    .kpi-label { font-size: 8px; }
+    .kpi-sub { font-size: 8px; margin-top: 3px; }
+  }
+
+  /* TASK 5 — Bet list card layout su mobile */
+  @media (max-width: 600px) {
+    .table-wrap { overflow-x: hidden; }
+    .table-wrap table { display: none; }
+    .mobile-bet-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 420px;
+      overflow-y: auto;
+      padding: 4px 2px;
+    }
+    .mbet-card {
+      display: grid;
+      grid-template-columns: 28px 1fr 1fr 1fr;
+      grid-template-rows: auto auto;
+      gap: 2px 8px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--muted);
+      padding: 8px 10px;
+      font-size: 10px;
+    }
+    .mbet-card.win  { border-left-color: var(--accent); }
+    .mbet-card.loss { border-left-color: var(--danger); }
+    .mbet-card.nobet { border-left-color: var(--muted); opacity: 0.6; }
+    .mbet-id   { grid-row: 1; color: var(--muted); font-size: 9px; }
+    .mbet-dir  { grid-row: 1; font-weight: 900; font-size: 12px; }
+    .mbet-dir.up   { color: var(--accent); }
+    .mbet-dir.down { color: var(--danger); }
+    .mbet-conf { grid-row: 1; color: var(--blue); font-size: 10px; }
+    .mbet-result { grid-row: 1; font-weight: 700; font-size: 11px; text-align: right; }
+    .mbet-result.win  { color: var(--accent); }
+    .mbet-result.loss { color: var(--danger); }
+    .mbet-result.skip { color: var(--muted); }
+    .mbet-time { grid-column: 1/3; grid-row: 2; color: var(--muted); font-size: 8px; }
+    .mbet-pnl  { grid-column: 3/5; grid-row: 2; text-align: right; font-size: 10px; font-weight: 700; }
+    .mbet-pnl.pos { color: var(--accent); }
+    .mbet-pnl.neg { color: var(--danger); }
+  }
+
+  /* TASK 6 — Stats row compatta su mobile */
+  @media (max-width: 600px) {
+    .stats-row { grid-template-columns: repeat(3, 1fr); }
+    .stat-cell { padding: 8px 10px; }
+    .stat-cell-label { font-size: 7px; }
+    .stat-cell-val { font-size: 14px; }
+  }
 </style>
 </head>
 <body>
@@ -932,6 +1125,66 @@
           <span id="aiDecisionText">Monitoring</span>
         </div>
         <div class="ai-think-label">AI Exit Manager</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TASK 2: Story Highlights (mobile only) -->
+  <div class="story-highlights" id="storyHighlights">
+    <div class="story-item" data-source="kpiWinRate">
+      <div class="story-ring story-ring-yellow"><span class="story-emoji">📊</span></div>
+      <div class="story-label">WR</div>
+      <div class="story-val" id="storyWR">—</div>
+    </div>
+    <div class="story-item" data-source="kpiRoi">
+      <div class="story-ring story-ring-purple"><span class="story-emoji">📈</span></div>
+      <div class="story-label">ROI</div>
+      <div class="story-val" id="storyROI">—</div>
+    </div>
+    <div class="story-item" data-source="kpiFG">
+      <div class="story-ring story-ring-blue"><span class="story-emoji">😱</span></div>
+      <div class="story-label">F&amp;G</div>
+      <div class="story-val" id="storyFG">—</div>
+    </div>
+    <div class="story-item" data-source="kpiBets">
+      <div class="story-ring story-ring-green"><span class="story-emoji">🎯</span></div>
+      <div class="story-label">BETS</div>
+      <div class="story-val" id="storyBets">—</div>
+    </div>
+    <div class="story-item" data-source="kpiDrawdown">
+      <div class="story-ring story-ring-red"><span class="story-emoji">📉</span></div>
+      <div class="story-label">DD</div>
+      <div class="story-val" id="storyDD">—</div>
+    </div>
+    <div class="story-item" data-source="statStreak">
+      <div class="story-ring story-ring-orange"><span class="story-emoji">🔥</span></div>
+      <div class="story-label">STREAK</div>
+      <div class="story-val" id="storyStreak">—</div>
+    </div>
+  </div>
+
+  <!-- TASK 3: Mobile Primary Grid (mobile only) -->
+  <div class="mobile-primary-grid" id="mobilePrimaryGrid">
+    <!-- Box 1: Bot Status -->
+    <div class="mp-box mp-primary">
+      <div class="mp-label">BOT</div>
+      <div class="mp-value" id="mpBotStatus">—</div>
+      <div class="mp-sub" id="mpBotSub">checking...</div>
+    </div>
+    <!-- Box 2: Today Equity -->
+    <div class="mp-box mp-primary">
+      <div class="mp-label">TODAY PnL</div>
+      <div class="mp-value" id="mpTodayPnl">—</div>
+      <div class="mp-sub" id="mpTodaySub">bets today</div>
+    </div>
+    <!-- Box 3: Last Signal (medium) -->
+    <div class="mp-box mp-secondary">
+      <div class="mp-label">LAST SIGNAL</div>
+      <div class="mp-last-signal">
+        <span id="mpLastDir" style="font-size:18px;font-weight:900;">—</span>
+        <span id="mpLastConf" style="font-size:11px;color:var(--muted);">conf —</span>
+        <span id="mpLastResult" style="font-size:10px;font-weight:700;">—</span>
+        <span id="mpLastTime" style="font-size:9px;color:var(--muted);">—</span>
       </div>
     </div>
   </div>
@@ -1130,6 +1383,7 @@
           </thead>
           <tbody id="signalTable"></tbody>
         </table>
+        <div class="mobile-bet-list" id="mobileBetList"></div>
       </div>
     </div>
 
@@ -2043,6 +2297,11 @@ function render(data) {
   const tag = document.getElementById('totalPnlTag');
   tag.textContent = 'TOTAL: ' + (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toFixed(4);
   tag.className   = 'panel-tag ' + (totalPnl >= 0 ? 'tag-green' : 'tag-red');
+
+  // Mobile sync
+  syncStoryHighlights();
+  syncMobilePrimary();
+  renderMobileBetList(data);
 }
 
 function renderTable(data) {
@@ -2135,6 +2394,7 @@ function renderTable(data) {
       <td>${d.sl_price || d.tp_price || d.rr_ratio ? `<span style="font-size:9px;color:var(--danger)">SL ${d.sl_price ? fmtPrice(d.sl_price) : '—'}</span><br><span style="font-size:9px;color:var(--accent)">TP ${d.tp_price ? fmtPrice(d.tp_price) : '—'}</span><br><span style="font-size:9px;color:var(--muted)">RR ${d.rr_ratio ? parseFloat(d.rr_ratio).toFixed(2) + '×' : '—'}</span>` : '<span style="color:var(--muted)">—</span>'}</td>
     </tr>`;
   }).join('');
+  renderMobileBetList(data);
 }
 
 function renderPnlChart(chronoBets) {
@@ -2955,6 +3215,181 @@ fetch(CONFIG.RAILWAY_URL + '/health')
   });
   document.addEventListener('scroll', hideModal, { passive: true });
 })();
+
+// ── TASK 1: AI FEEDS carousel su mobile ───────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+  const list = document.querySelector('.sources-list');
+  if (!list) return;
+  // Duplicate chips for seamless loop
+  list.innerHTML += list.innerHTML;
+  list.style.animation = 'feedScroll 30s linear infinite';
+
+  // Pause on hover/touch
+  list.addEventListener('mouseenter', function() {
+    list.style.animationPlayState = 'paused';
+  });
+  list.addEventListener('mouseleave', function() {
+    list.style.animationPlayState = 'running';
+  });
+  list.addEventListener('touchstart', function() {
+    list.style.animationPlayState = 'paused';
+  }, { passive: true });
+  list.addEventListener('touchend', function() {
+    list.style.animationPlayState = 'running';
+  }, { passive: true });
+});
+
+// ── TASK 2: Story Highlights sync ─────────────────────────────────────────────
+function syncStoryHighlights() {
+  const map = [
+    { src: 'kpiWinRate',  dst: 'storyWR' },
+    { src: 'kpiRoi',      dst: 'storyROI' },
+    { src: 'kpiFG',       dst: 'storyFG' },
+    { src: 'kpiBets',     dst: 'storyBets' },
+    { src: 'kpiDrawdown', dst: 'storyDD' },
+    { src: 'statStreak',  dst: 'storyStreak' },
+  ];
+  map.forEach(function(item) {
+    const srcEl = document.getElementById(item.src);
+    const dstEl = document.getElementById(item.dst);
+    if (srcEl && dstEl) {
+      const val = srcEl.textContent.trim();
+      dstEl.textContent = val || '—';
+    }
+  });
+}
+setInterval(syncStoryHighlights, 3000);
+
+// ── TASK 3: Mobile Primary Grid sync ──────────────────────────────────────────
+function syncMobilePrimary() {
+  // 1. Bot Status
+  const botTextEl  = document.getElementById('botStatusText');
+  const botSubEl   = document.getElementById('botStatusDetail');
+  const mpBotStatus = document.getElementById('mpBotStatus');
+  const mpBotSub    = document.getElementById('mpBotSub');
+  if (botTextEl && mpBotStatus) {
+    const txt = botTextEl.textContent || '';
+    mpBotStatus.textContent = txt.includes('ALIVE') ? '✅' : '⚠️';
+    if (botSubEl && mpBotSub) {
+      mpBotSub.textContent = botSubEl.textContent || '';
+    }
+  }
+
+  // 2. Today PnL
+  const mpTodayPnl = document.getElementById('mpTodayPnl');
+  const mpTodaySub = document.getElementById('mpTodaySub');
+  if (mpTodayPnl && allData && allData.length) {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayBets = allData.filter(function(d) {
+      return d.bet_taken === true && d.pnl_usd !== null && d.created_at && d.created_at.slice(0, 10) === todayStr;
+    });
+    const todayPnl = todayBets.reduce(function(s, d) { return s + parseFloat(d.pnl_usd || 0); }, 0);
+    const sign = todayPnl >= 0 ? '+' : '';
+    mpTodayPnl.textContent = sign + '$' + todayPnl.toFixed(2);
+    mpTodayPnl.style.color = todayPnl >= 0 ? 'var(--accent)' : 'var(--danger)';
+    if (mpTodaySub) mpTodaySub.textContent = todayBets.length + ' bet' + (todayBets.length !== 1 ? 's' : '') + ' today';
+  }
+
+  // 3. Last Signal from signalTable first row
+  const mpLastDir    = document.getElementById('mpLastDir');
+  const mpLastConf   = document.getElementById('mpLastConf');
+  const mpLastResult = document.getElementById('mpLastResult');
+  const mpLastTime   = document.getElementById('mpLastTime');
+  if (mpLastDir && allData && allData.length) {
+    const first = allData[0];
+    if (first) {
+      const dir = first.direction || '—';
+      mpLastDir.textContent = dir === 'UP' ? '▲ UP' : dir === 'DOWN' ? '▼ DOWN' : '—';
+      mpLastDir.style.color = dir === 'UP' ? 'var(--accent)' : dir === 'DOWN' ? 'var(--danger)' : 'var(--muted)';
+      if (mpLastConf) mpLastConf.textContent = 'conf ' + (first.confidence ? Math.round(parseFloat(first.confidence) * 100) + '%' : '—');
+      if (mpLastResult) {
+        if (first.correct === true) {
+          mpLastResult.textContent = 'WIN';
+          mpLastResult.style.color = 'var(--accent)';
+        } else if (first.correct === false) {
+          mpLastResult.textContent = 'LOSS';
+          mpLastResult.style.color = 'var(--danger)';
+        } else if (first.bet_taken) {
+          mpLastResult.textContent = 'OPEN';
+          mpLastResult.style.color = 'var(--warn)';
+        } else {
+          mpLastResult.textContent = first.classification || '—';
+          mpLastResult.style.color = 'var(--muted)';
+        }
+      }
+      if (mpLastTime && first.created_at) {
+        const d = new Date(first.created_at);
+        mpLastTime.textContent = d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' }) + ' ' + d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+      }
+    }
+  }
+}
+setInterval(syncMobilePrimary, 5000);
+
+// ── TASK 5: Mobile Bet List rendering ─────────────────────────────────────────
+function renderMobileBetList(data) {
+  const container = document.getElementById('mobileBetList');
+  if (!container) return;
+  const dirFilter   = document.getElementById('filterDir').value;
+  const classFilter = document.getElementById('filterClass').value;
+  const filtered = data.filter(function(d) {
+    if (dirFilter   !== 'ALL' && d.direction      !== dirFilter)   return false;
+    if (classFilter !== 'ALL' && d.classification !== classFilter) return false;
+    return true;
+  }).slice(0, 80);
+
+  if (!filtered.length) {
+    container.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:11px;letter-spacing:1px">NO DATA</div>';
+    return;
+  }
+
+  container.innerHTML = filtered.map(function(d) {
+    const dir = d.direction || '—';
+    const dirClass = dir === 'UP' ? 'up' : 'down';
+    const dirText  = dir === 'UP' ? '▲ UP' : dir === 'DOWN' ? '▼ DOWN' : '—';
+    const conf = d.confidence ? Math.round(parseFloat(d.confidence) * 100) + '%' : '—';
+
+    let resultText = '—', resultClass = '';
+    const isBet = d.classification === 'BET' && d.bet_taken;
+    if (d.correct === true) {
+      resultText  = isBet ? 'WIN' : 'RIGHT';
+      resultClass = 'win';
+    } else if (d.correct === false) {
+      resultText  = isBet ? 'LOSS' : 'WRONG';
+      resultClass = 'loss';
+    } else if (isBet) {
+      resultText  = 'OPEN';
+      resultClass = '';
+    } else {
+      resultText  = d.classification || '—';
+      resultClass = 'skip';
+    }
+
+    let cardClass = 'mbet-card';
+    if (d.correct === true && isBet) cardClass += ' win';
+    else if (d.correct === false && isBet) cardClass += ' loss';
+    else if (!isBet) cardClass += ' nobet';
+
+    const pnl = d.pnl_usd !== null && d.pnl_usd !== undefined ? parseFloat(d.pnl_usd) : null;
+    const pnlText  = pnl !== null ? (pnl >= 0 ? '+' : '') + '$' + pnl.toFixed(2) : '—';
+    const pnlClass = pnl !== null ? (pnl >= 0 ? 'pos' : 'neg') : '';
+
+    let timeStr = '—';
+    if (d.created_at) {
+      const dt = new Date(d.created_at);
+      timeStr = dt.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' }) + ' ' + dt.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    return '<div class="' + cardClass + '">'
+      + '<span class="mbet-id">#' + d.id + '</span>'
+      + '<span class="mbet-dir ' + dirClass + '">' + dirText + '</span>'
+      + '<span class="mbet-conf">' + conf + '</span>'
+      + '<span class="mbet-result ' + resultClass + '">' + resultText + '</span>'
+      + '<span class="mbet-time">' + timeStr + '</span>'
+      + '<span class="mbet-pnl ' + pnlClass + '">' + pnlText + '</span>'
+      + '</div>';
+  }).join('');
+}
 </script>
 <div id="infoModal">
   <div class="im-title" id="imTitle"></div>
