@@ -11,7 +11,8 @@ app = Flask(__name__)
 # ── XGBoost direction model (caricato una volta all'avvio) ────────────────────
 _XGB_MODEL = None
 _XGB_FEATURE_COLS = [
-    "confidence", "fear_greed_value", "rsi14", "technical_score", "hour_utc",
+    "confidence", "fear_greed_value", "rsi14", "technical_score",
+    "hour_sin", "hour_cos",  # encoding ciclico — allineato a train_xgboost.py
     "ema_trend_up", "technical_bias_bullish", "signal_technical_buy",
     "signal_sentiment_pos", "signal_fg_fear", "signal_volume_high",
 ]
@@ -553,12 +554,15 @@ def place_bet():
     xgb_prob_up = 0.5  # default, aggiornato dal blocco XGB sotto
     if _XGB_MODEL is not None:
         try:
+            import math as _math
+            _h = current_hour_utc
             feat_row = [[
                 confidence,
                 float(data.get("fear_greed", data.get("fear_greed_value", 50))),
                 float(data.get("rsi14", 50)),
                 float(data.get("technical_score", 0)),
-                float(current_hour_utc),
+                _math.sin(2 * _math.pi * _h / 24),  # hour_sin
+                _math.cos(2 * _math.pi * _h / 24),  # hour_cos
                 float(data.get("ema_trend_up", 0)),
                 float(data.get("technical_bias_bullish", data.get("technical_bias", 0))),
                 float(data.get("signal_technical_buy", data.get("signal_technical", 0))),
@@ -1285,12 +1289,15 @@ def predict_xgb():
         sig_fg       = request.args.get("signal_fear_greed", "").lower()
         sig_vol      = request.args.get("signal_volume", "").lower()
 
+        import math as _math2
+        _h2 = int(request.args.get("hour_utc", 12))
         features = [[
             float(request.args.get("confidence", 0.62)),
             float(request.args.get("fear_greed_value", 50)),
             float(request.args.get("rsi14", 50)),
             float(request.args.get("technical_score", 0)),
-            int(request.args.get("hour_utc", 12)),
+            _math2.sin(2 * _math2.pi * _h2 / 24),  # hour_sin
+            _math2.cos(2 * _math2.pi * _h2 / 24),  # hour_cos
             1 if "bullish" in ema_trend or "bull" in ema_trend else 0,
             1 if "bull" in tech_bias else 0,
             1 if sig_tech in ("buy", "bullish") else 0,
@@ -1414,9 +1421,12 @@ def bet_sizing():
         corr_multiplier = 1.0
         if _xgb_correctness is not None:
             try:
+                import math as _math3
                 feat_row = [[
                     confidence, fear_greed,
-                    rsi14, tech_score, hour_utc,
+                    rsi14, tech_score,
+                    _math3.sin(2 * _math3.pi * hour_utc / 24),  # hour_sin
+                    _math3.cos(2 * _math3.pi * hour_utc / 24),  # hour_cos
                     ema_trend_up,
                     tech_bias_bullish,
                     sig_tech_buy,
