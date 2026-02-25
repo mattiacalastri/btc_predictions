@@ -15,9 +15,10 @@ backfill_*.py
 check_orphaned_bets.py
 prepare_finetune.py
 
-# Modelli ML — file binari grandi, non committare
-models/
+# Modelli ML — committiamo solo quelli in models/ per Railway
 *.pkl
+!models/xgb_direction.pkl
+!models/xgb_correctness.pkl
 
 # Dati sensibili
 datasets/features.csv
