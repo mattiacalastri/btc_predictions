@@ -4103,7 +4103,7 @@ function _showTooltip(anchor, label, val, desc) {
   var descEl  = desc  ? '<div class="kt-desc">'  + desc  + '</div>' : '';
   tip.innerHTML = labelEl + valEl + descEl;
   _positionTooltip(tip, anchor);
-  requestAnimationFrame(function() { tip.classList.add('kt-visible'); });
+  requestAnimationFrame(function() { requestAnimationFrame(function() { tip.classList.add('kt-visible'); }); });
   _kpiTipOpen = true;
 }
 
