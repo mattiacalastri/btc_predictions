@@ -399,6 +399,26 @@ def position():
     try:
         pos = get_open_position(symbol)
         if pos:
+            # Enrich with Supabase entry_fill_price when Kraken returns price=0
+            if not pos.get("price") or float(pos.get("price") or 0) == 0:
+                try:
+                    sb_url = os.environ.get("SUPABASE_URL", "")
+                    sb_key = os.environ.get("SUPABASE_ANON_KEY", "")
+                    r = requests.get(
+                        f"{sb_url}/rest/v1/btc_predictions"
+                        f"?bet_taken=eq.true&correct=is.null"
+                        f"&select=id,entry_fill_price,btc_price_entry,direction,bet_size,pyramid_count"
+                        f"&order=id.desc&limit=1",
+                        headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
+                        timeout=3
+                    )
+                    if r.ok and r.json():
+                        row = r.json()[0]
+                        pos["price"] = float(row.get("entry_fill_price") or row.get("btc_price_entry") or 0)
+                        pos["entry_fill_price"] = pos["price"]
+                        pos["pyramid_count"] = row.get("pyramid_count", 0)
+                except Exception:
+                    pass
             return jsonify({"status": "open", "symbol": symbol, **pos})
         return jsonify({"status": "flat", "symbol": symbol})
     except Exception as e:
