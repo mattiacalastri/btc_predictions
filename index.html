@@ -536,7 +536,26 @@
       flex-shrink: 0;
     }
     .tab-controls-sep,
-    .period-label { display: none; }
+    .period-label,
+    .desktop-period-pill { display: none; }
+
+    /* Barra periodo mobile — sticky sotto il tab nav */
+    .mobile-period-bar {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      position: sticky;
+      top: 41px; /* altezza tab-nav mobile */
+      z-index: 99;
+      background: var(--bg);
+      padding: 6px 0 8px;
+      margin-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    body.war-room .mobile-period-bar {
+      background: #000;
+      border-color: #111;
+    }
   }
 
   /* ── AGENTS TAB ──────────────────────────────────────────── */
@@ -1563,11 +1582,19 @@
       <button class="war-room-btn" id="warRoomToggle" onclick="toggleWarRoom(this)">&#9876;&#65039; War Room</button>
       <div class="tab-controls-sep" style="width:1px;height:20px;background:var(--border);"></div>
       <span class="period-label" style="font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-right:4px">PERIOD</span>
-      <button class="time-pill active" data-period="ALL"   onclick="setTimePeriod(this)">ALL</button>
-      <button class="time-pill"        data-period="7D"    onclick="setTimePeriod(this)">7D</button>
-      <button class="time-pill"        data-period="24H"   onclick="setTimePeriod(this)">24H</button>
-      <button class="time-pill"        data-period="TODAY" onclick="setTimePeriod(this)">TODAY</button>
+      <button class="time-pill desktop-period-pill active" data-period="ALL"   onclick="setTimePeriod(this)">ALL</button>
+      <button class="time-pill desktop-period-pill"        data-period="7D"    onclick="setTimePeriod(this)">7D</button>
+      <button class="time-pill desktop-period-pill"        data-period="24H"   onclick="setTimePeriod(this)">24H</button>
+      <button class="time-pill desktop-period-pill"        data-period="TODAY" onclick="setTimePeriod(this)">TODAY</button>
     </div>
+  </div>
+
+  <!-- MOBILE PERIOD BAR — visible only on mobile, sticky below tab nav -->
+  <div class="mobile-period-bar" id="mobilePeriodBar">
+    <button class="time-pill active" data-period="ALL"   onclick="setTimePeriod(this)">ALL</button>
+    <button class="time-pill"        data-period="7D"    onclick="setTimePeriod(this)">7D</button>
+    <button class="time-pill"        data-period="24H"   onclick="setTimePeriod(this)">24H</button>
+    <button class="time-pill"        data-period="TODAY" onclick="setTimePeriod(this)">TODAY</button>
   </div>
 
   <!-- DASHBOARD TAB -->
@@ -3094,9 +3121,12 @@ let currentPeriod = 'ALL';
 let allData = [];
 
 function setTimePeriod(btn) {
-  document.querySelectorAll('.time-pill').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  currentPeriod = btn.dataset.period;
+  const period = btn.dataset.period;
+  // Sincronizza active su tutte le pill (desktop tab-nav + mobile bar)
+  document.querySelectorAll('.time-pill').forEach(b => {
+    b.classList.toggle('active', b.dataset.period === period);
+  });
+  currentPeriod = period;
   renderAll(allData);
 }
 
