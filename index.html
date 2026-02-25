@@ -1187,8 +1187,28 @@
       flex: 0 0 auto;
     }
 
-    /* AI cube (lp-right): nascosto su mobile per risparmiare spazio */
+    /* AI cube su mobile: angolo top-right assoluto, sborda di 12px per effetto profondità */
+    .live-pos-card {
+      overflow: visible;
+    }
     .lp-right {
+      display: block;
+      position: absolute;
+      top: -12px;
+      right: -12px;
+      z-index: 10;
+      padding: 0;
+      border-left: none;
+      background: none;
+    }
+    .lp-right .ai-cube-scene {
+      width: 44px;
+      height: 44px;
+      perspective: 130px;
+      filter: drop-shadow(0 6px 14px rgba(0,255,136,0.35));
+    }
+    .lp-right .ai-decision,
+    .lp-right .ai-think-label {
       display: none;
     }
 
