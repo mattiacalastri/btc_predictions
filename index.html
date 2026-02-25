@@ -859,6 +859,14 @@
   .cube-face.cube-left   { transform: rotateY(-90deg)  translateZ(28px); }
   .cube-face.cube-top    { transform: rotateX(90deg)   translateZ(28px); }
   .cube-face.cube-bottom { transform: rotateX(-90deg)  translateZ(28px); }
+  /* ── Merkaba (stella tetraedrica — profit state) ─────────────────────────── */
+  .merkaba-scene { width: 56px; height: 56px; position: relative; perspective: 160px; }
+  .merkaba-tri { position: absolute; top: 0; left: 0; width: 56px; height: 56px; }
+  .merkaba-tri svg { width: 56px; height: 56px; display: block; }
+  .merkaba-tri-up   { animation: merkabaCW  6s linear infinite; }
+  .merkaba-tri-down { animation: merkabaCCW 6s linear infinite; }
+  @keyframes merkabaCW  { 0% { transform: rotateY(0deg) rotateX(20deg); } 100% { transform: rotateY(360deg) rotateX(20deg); } }
+  @keyframes merkabaCCW { 0% { transform: rotateY(0deg) rotateX(-20deg); } 100% { transform: rotateY(-360deg) rotateX(-20deg); } }
   .ai-decision { display:flex; align-items:center; gap:5px; font-size:10px; font-weight:700; letter-spacing:1px; color:var(--text); text-align:center; }
   .ai-status-dot { width:5px; height:5px; border-radius:50%; background:var(--accent); animation:pulse 1.5s ease-in-out infinite; flex-shrink:0; }
   .ai-think-label { font-size:7px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
@@ -1201,11 +1209,12 @@
       border-left: none;
       background: none;
     }
-    .lp-right .ai-cube-scene {
+    .lp-right .ai-cube-scene,
+    .lp-right .merkaba-scene {
       width: 44px;
       height: 44px;
       perspective: 130px;
-      filter: drop-shadow(0 6px 14px rgba(0,255,136,0.35));
+      /* NO filter: drop-shadow — crea stacking context che rompe preserve-3d */
     }
     .lp-right .ai-decision,
     .lp-right .ai-think-label {
@@ -1375,7 +1384,7 @@
       </div>
       <!-- RIGHT: AI cube + decision -->
       <div class="lp-right">
-        <div class="ai-cube-scene">
+        <div class="ai-cube-scene" id="cubeScene">
           <div class="ai-cube" id="aiCube" data-state="neutral">
             <div class="cube-face cube-front">AI</div>
             <div class="cube-face cube-back">XGB</div>
@@ -1383,6 +1392,19 @@
             <div class="cube-face cube-left">EXIT</div>
             <div class="cube-face cube-top" id="cubeFaceConf">—%</div>
             <div class="cube-face cube-bottom">BOT</div>
+          </div>
+        </div>
+        <!-- Merkaba — due tetraedri controrifinanti, appare solo in stato profit -->
+        <div class="merkaba-scene" id="merkabaScene" style="display:none">
+          <div class="merkaba-tri merkaba-tri-up">
+            <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <polygon points="28,3 52,48 4,48" fill="rgba(0,255,136,0.08)" stroke="rgba(0,255,136,0.9)" stroke-width="1.5" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="merkaba-tri merkaba-tri-down">
+            <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <polygon points="28,53 4,8 52,8" fill="rgba(0,255,136,0.04)" stroke="rgba(0,255,136,0.6)" stroke-width="1.5" stroke-linejoin="round"/>
+            </svg>
           </div>
         </div>
         <div class="ai-decision">
@@ -2702,6 +2724,16 @@ function renderLivePosition() {
   const cube  = document.getElementById('aiCube');
   const state = pnlUsd > 0.05 ? 'profit' : pnlUsd < -0.05 ? 'loss' : 'neutral';
   cube.dataset.state = state;
+  // Merkaba (stella tetraedrica) appare solo in stato profit
+  const cubeScene = document.getElementById('cubeScene');
+  const merkabaEl = document.getElementById('merkabaScene');
+  if (state === 'profit') {
+    if (cubeScene) cubeScene.style.display = 'none';
+    if (merkabaEl) merkabaEl.style.display = 'block';
+  } else {
+    if (cubeScene) cubeScene.style.display = '';
+    if (merkabaEl) merkabaEl.style.display = 'none';
+  }
 
   const aiText = document.getElementById('aiDecisionText');
   if (Math.abs(pnlUsd) < 0.02) aiText.textContent = 'Flat — watching';
