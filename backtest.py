@@ -49,9 +49,11 @@ TAKER_RATE  = 0.00005  # Kraken Futures taker fee 0.005% per lato
 BASE_SIZE   = 0.002    # BTC fisso per confronto equo tra strategie
 
 FEATURE_COLS = [
-    "confidence", "fear_greed_value", "rsi14", "technical_score", "hour_utc",
-    "ema_trend_up", "technical_bias_bullish", "signal_technical_buy",
-    "signal_sentiment_pos", "signal_fg_fear", "signal_volume_high",
+    "confidence", "fear_greed_value", "rsi14", "technical_score",
+    "hour_sin", "hour_cos",
+    "technical_bias_bullish", "signal_fg_fear",
+    # RIMOSSI: ema_trend_up, signal_technical_buy, signal_sentiment_pos,
+    # signal_volume_high — 0% importance → costanti/skewed nel dataset
 ]
 
 

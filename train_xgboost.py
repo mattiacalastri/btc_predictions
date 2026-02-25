@@ -49,12 +49,10 @@ FEATURE_COLS = [
     # Encoding ciclico dell'ora UTC (sostituisce hour_utc intero)
     "hour_sin",   # sin(2π * hour_utc / 24)
     "hour_cos",   # cos(2π * hour_utc / 24)
-    "ema_trend_up",
     "technical_bias_bullish",
-    "signal_technical_buy",
-    "signal_sentiment_pos",
     "signal_fg_fear",
-    "signal_volume_high",
+    # RIMOSSI: ema_trend_up, signal_technical_buy, signal_sentiment_pos,
+    # signal_volume_high — 0% importance su 422 segnali → costanti/skewed
 ]
 
 # Feature opzionali: aggiunte dinamicamente in main() se disponibili nel CSV
