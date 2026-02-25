@@ -2342,6 +2342,99 @@ def trading_stats():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# ── MACRO GUARD ──────────────────────────────────────────────────────────────
+
+# Cache in memoria: {"data": [...], "ts": float}
+_macro_cache: dict = {"data": None, "ts": 0.0}
+_MACRO_CACHE_TTL = 3600  # 1 ora
+_MACRO_CALENDAR_URL = "https://nfs.faireconomy.media/ff_calendar_thisweek.json"
+
+
+def _fetch_macro_calendar() -> list:
+    """Fetcha il calendario ForexFactory con cache 1h. Ritorna lista eventi o []."""
+    global _macro_cache
+    now_ts = time.time()
+    if _macro_cache["data"] is not None and (now_ts - _macro_cache["ts"]) < _MACRO_CACHE_TTL:
+        return _macro_cache["data"]
+    try:
+        r = requests.get(_MACRO_CALENDAR_URL, timeout=5)
+        if r.ok:
+            data = r.json()
+            _macro_cache = {"data": data, "ts": now_ts}
+            return data
+    except Exception:
+        pass
+    # Ritorna cache scaduta se disponibile (meglio che niente)
+    return _macro_cache["data"] or []
+
+
+@app.route("/macro-guard", methods=["GET"])
+def macro_guard():
+    """Controlla se nelle prossime 2h ci sono eventi macro USD ad alto impatto.
+
+    Risposta:
+      {"blocked": true,  "reason": "NFP in 47min", "event": {...}}
+      {"blocked": false}
+      {"blocked": false, "error": "calendar_unavailable"}
+    """
+    err = _check_api_key()
+    if err:
+        return err
+
+    import datetime
+
+    try:
+        events = _fetch_macro_calendar()
+    except Exception:
+        return jsonify({"blocked": False, "error": "calendar_unavailable"})
+
+    if not events:
+        return jsonify({"blocked": False, "error": "calendar_unavailable"})
+
+    now_utc = datetime.datetime.now(datetime.timezone.utc)
+    window_end = now_utc + datetime.timedelta(hours=2)
+
+    for event in events:
+        # Filtra solo USD ad alto impatto
+        if event.get("country") != "USD":
+            continue
+        if event.get("impact") not in ("High", "red"):
+            continue
+
+        raw_date = event.get("date", "")
+        if not raw_date:
+            continue
+
+        try:
+            # La data è ISO 8601 con offset, es. "2026-02-26T08:30:00-05:00"
+            event_dt = datetime.datetime.fromisoformat(raw_date)
+            # Normalizza a UTC
+            event_dt_utc = event_dt.astimezone(datetime.timezone.utc)
+        except Exception:
+            continue
+
+        # Evento nella finestra [now, now+2h]
+        if now_utc <= event_dt_utc <= window_end:
+            delta_min = int((event_dt_utc - now_utc).total_seconds() / 60)
+            title = event.get("title", "Unknown event")
+            reason = f"{title} in {delta_min}min"
+            return jsonify({
+                "blocked": True,
+                "reason": reason,
+                "event": {
+                    "title": title,
+                    "country": event.get("country"),
+                    "date_utc": event_dt_utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    "impact": event.get("impact"),
+                    "forecast": event.get("forecast"),
+                    "previous": event.get("previous"),
+                    "minutes_away": delta_min,
+                },
+            })
+
+    return jsonify({"blocked": False})
+
+
 # ── DASHBOARD ────────────────────────────────────────────────────────────────
 
 @app.route("/dashboard", methods=["GET"])
