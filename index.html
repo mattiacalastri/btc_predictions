@@ -74,6 +74,9 @@
   .btc-price-change.neg { color: var(--danger); }
 
   .live-badge { display: flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); border: 1px solid rgba(0,255,136,0.3); padding: 5px 12px; border-radius: 2px; background: rgba(0,255,136,0.05); }
+  .onchain-badge { display: flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #a855f7; border: 1px solid rgba(168,85,247,0.35); padding: 5px 12px; border-radius: 2px; background: rgba(168,85,247,0.07); text-decoration: none; transition: background 0.2s, border-color 0.2s; }
+  .onchain-badge:hover { background: rgba(168,85,247,0.14); border-color: rgba(168,85,247,0.6); }
+  .onchain-dot { width: 6px; height: 6px; border-radius: 50%; background: #a855f7; animation: pulse 2s infinite; flex-shrink: 0; }
   .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse 1.5s infinite; }
   .last-update { font-size: 10px; color: var(--muted); letter-spacing: 1px; }
 
@@ -1513,6 +1516,7 @@
         <div class="btc-price-meta">BTC/USD · LIVE <span class="btc-price-change" id="btcPriceChange"></span></div>
       </div>
       <span class="last-update" id="lastUpdate">LAST UPDATE: <span class="loading">—</span></span>
+      <a href="https://polygonscan.com/address/0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55" target="_blank" class="onchain-badge"><div class="onchain-dot"></div>ON-CHAIN · POLYGON ✓</a>
       <div class="live-badge"><div class="live-dot"></div>LIVE DATA</div>
       <div id="botStatus" class="bot-status alive">
         <div class="bot-status-dot"></div>
@@ -2700,7 +2704,7 @@
   </div>
   <div class="config-hint">Table: <code>btc_predictions</code> · Capital: <code id="footerCapital">$20 USDC</code> · Refresh <code>60s</code></div>
   <div class="footer-text" style="font-size:11px">
-    ✉ <a href="mailto:signal@btcpredictor.io" style="color:var(--accent);text-decoration:none;letter-spacing:1px">signal@btcpredictor.io</a>
+    <span style="font-size:16px">✉</span> <a href="mailto:signal@btcpredictor.io" style="color:var(--accent);text-decoration:none;letter-spacing:1px">signal@btcpredictor.io</a>
   </div>
 </footer>
 
