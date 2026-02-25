@@ -1,0 +1,45 @@
+# ============================================================
+# BTC Prediction Bot — Docker Compose (LOCAL DEVELOPMENT)
+# ============================================================
+#
+# ARCHITECTURE:
+#   LOCAL  (this file) : Flask app only
+#   CLOUD              : Supabase (database), n8n (workflows)
+#                        Railway (production hosting),
+#                        Kraken Futures (exchange API),
+#                        Anthropic (LLM API)
+#
+# Do NOT add Supabase or n8n services here — they run in the cloud.
+#
+# USAGE:
+#   cp .env.example .env       # fill in your credentials
+#   docker-compose up --build  # start the Flask app locally
+#   curl http://localhost:5000/health
+# ============================================================
+
+version: "3.9"
+
+services:
+
+  # ----------------------------------------------------------
+  # app — Flask prediction bot
+  # ----------------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    volumes:
+      # Mount source code for live reloading during development.
+      # Remove this volume in production (Railway builds a clean image).
+      - ./:/app
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
