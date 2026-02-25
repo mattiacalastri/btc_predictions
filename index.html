@@ -998,9 +998,9 @@
   @media (max-width: 600px) {
     .story-highlights {
       display: flex;
-      gap: 10px;
+      gap: 8px;
       overflow-x: auto;
-      padding: 8px 4px 12px;
+      padding: 4px 4px 12px;
       margin-bottom: 8px;
       scrollbar-width: none;
       -webkit-overflow-scrolling: touch;
@@ -1009,44 +1009,67 @@
     .story-item {
       display: flex;
       flex-direction: column;
-      align-items: center;
-      gap: 3px;
       flex-shrink: 0;
       cursor: pointer;
+      min-width: 80px;
+      background: var(--card-bg, #1a1a2e);
+      border: 1px solid var(--border, rgba(255,255,255,0.08));
+      border-radius: 12px;
+      padding: 9px 12px 8px;
+      transition: transform 0.15s, box-shadow 0.15s;
+      position: relative;
+      overflow: hidden;
     }
+    .story-item:active { transform: scale(0.96); }
     .story-ring {
-      width: 52px;
-      height: 52px;
-      border-radius: 50%;
-      border: 2px solid;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 10px;
+      font-size: 8px;
       font-weight: 800;
       letter-spacing: 1px;
-      background: rgba(255,255,255,0.03);
-      transition: transform 0.15s;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
-    .story-item:active .story-ring { transform: scale(0.92); }
-    .story-ring-yellow { border-color: var(--warn); box-shadow: 0 0 8px rgba(255,170,0,0.3); }
-    .story-ring-purple { border-color: #aa66ff; box-shadow: 0 0 8px rgba(170,102,255,0.3); }
-    .story-ring-blue   { border-color: var(--blue); box-shadow: 0 0 8px rgba(0,170,255,0.3); }
-    .story-ring-green  { border-color: var(--accent); box-shadow: 0 0 8px rgba(0,255,136,0.3); }
-    .story-ring-red    { border-color: var(--danger); box-shadow: 0 0 8px rgba(255,68,102,0.3); }
-    .story-ring-orange { border-color: #ff8800; box-shadow: 0 0 8px rgba(255,136,0,0.3); }
+    /* accent bar on top-left */
+    .story-item::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 3px; height: 100%;
+      border-radius: 12px 0 0 12px;
+    }
+    .story-ring-yellow { color: var(--warn); }
+    .story-ring-yellow ~ .story-val { color: var(--warn); }
+    .story-item:has(.story-ring-yellow)::before { background: var(--warn); }
+    .story-ring-purple { color: #aa66ff; }
+    .story-ring-purple ~ .story-val { color: #aa66ff; }
+    .story-item:has(.story-ring-purple)::before { background: #aa66ff; }
+    .story-ring-blue   { color: var(--blue); }
+    .story-ring-blue ~ .story-val { color: var(--blue); }
+    .story-item:has(.story-ring-blue)::before { background: var(--blue); }
+    .story-ring-green  { color: var(--accent); }
+    .story-ring-green ~ .story-val { color: var(--accent); }
+    .story-item:has(.story-ring-green)::before { background: var(--accent); }
+    .story-ring-red    { color: var(--danger); }
+    .story-ring-red ~ .story-val { color: var(--danger); }
+    .story-item:has(.story-ring-red)::before { background: var(--danger); }
+    .story-ring-orange { color: #ff8800; }
+    .story-ring-orange ~ .story-val { color: #ff8800; }
+    .story-item:has(.story-ring-orange)::before { background: #ff8800; }
     .story-label {
-      font-size: 8px;
+      font-size: 7.5px;
       font-weight: 700;
-      letter-spacing: 1.5px;
+      letter-spacing: 1.2px;
       text-transform: uppercase;
       color: var(--muted);
+      margin-bottom: 2px;
     }
     .story-val {
-      font-size: 10px;
-      font-weight: 700;
-      color: var(--text);
+      font-size: 15px;
+      font-weight: 800;
       font-family: 'Syne', sans-serif;
+      line-height: 1.1;
     }
   }
 
@@ -1253,30 +1276,30 @@
     .lp-right {
       display: block;
       position: absolute;
-      top: -12px;
-      right: -12px;
+      top: -6px;
+      right: -6px;
       z-index: 10;
       padding: 0;
       border-left: none;
       background: none;
     }
     .lp-right .ai-cube-scene {
-      width: 34px;
-      height: 34px;
-      perspective: 100px;
+      width: 42px;
+      height: 42px;
+      perspective: 120px;
       /* NO filter: drop-shadow — crea stacking context che rompe preserve-3d */
     }
     .lp-right .cube-face {
-      width: 34px;
-      height: 34px;
-      font-size: 6px;
+      width: 42px;
+      height: 42px;
+      font-size: 7px;
     }
-    .lp-right .cube-face.cube-front  { transform: translateZ(17px); }
-    .lp-right .cube-face.cube-back   { transform: rotateY(180deg)  translateZ(17px); }
-    .lp-right .cube-face.cube-right  { transform: rotateY(90deg)   translateZ(17px); }
-    .lp-right .cube-face.cube-left   { transform: rotateY(-90deg)  translateZ(17px); }
-    .lp-right .cube-face.cube-top    { transform: rotateX(90deg)   translateZ(17px); }
-    .lp-right .cube-face.cube-bottom { transform: rotateX(-90deg)  translateZ(17px); }
+    .lp-right .cube-face.cube-front  { transform: translateZ(21px); }
+    .lp-right .cube-face.cube-back   { transform: rotateY(180deg)  translateZ(21px); }
+    .lp-right .cube-face.cube-right  { transform: rotateY(90deg)   translateZ(21px); }
+    .lp-right .cube-face.cube-left   { transform: rotateY(-90deg)  translateZ(21px); }
+    .lp-right .cube-face.cube-top    { transform: rotateX(90deg)   translateZ(21px); }
+    .lp-right .cube-face.cube-bottom { transform: rotateX(-90deg)  translateZ(21px); }
     .lp-right .ai-decision,
     .lp-right .ai-think-label {
       display: none;
