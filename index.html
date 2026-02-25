@@ -910,6 +910,50 @@
   .train-status-pill.on_track    { color: var(--blue);   background: rgba(0,170,255,0.08); border: 1px solid rgba(0,170,255,0.25); }
   .train-status-pill.retrain_ready { color: var(--warn); background: rgba(255,170,0,0.08); border: 1px solid rgba(255,170,0,0.25); animation: pulse 2s ease-in-out infinite; }
 
+  /* TRAINING TAB — enhanced design */
+  .trn-section-sep {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+    margin: 18px 0;
+  }
+  .trn-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+    padding: 3px 10px; border-radius: 2px; border: 1px solid;
+  }
+  .trn-badge.trained  { color: var(--accent); background: rgba(0,255,136,0.08); border-color: rgba(0,255,136,0.35); }
+  .trn-badge.stale    { color: var(--warn);   background: rgba(255,170,0,0.08); border-color: rgba(255,170,0,0.35); }
+  .trn-badge.error    { color: var(--danger); background: rgba(255,68,102,0.08); border-color: rgba(255,68,102,0.35); }
+  .trn-metric-cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 700px) { .trn-metric-cards { grid-template-columns: repeat(2, 1fr); } }
+  .trn-metric-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 4px;
+    padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;
+  }
+  .trn-metric-icon { font-size: 16px; line-height: 1; }
+  .trn-metric-label { font-size: 9px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+  .trn-metric-value { font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700; color: var(--text); line-height: 1; }
+  .trn-metric-sub { font-size: 9px; color: var(--muted); }
+  .trn-acc-bar-wrap { margin: 2px 0 4px; }
+  .trn-acc-bar-track { width: 100%; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .trn-acc-bar-fill  { height: 100%; border-radius: 2px; background: var(--accent); transition: width 1s ease; }
+  .trn-retrain-btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: rgba(0,255,136,0.07); border: 1px solid rgba(0,255,136,0.35);
+    color: var(--accent); font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+    padding: 7px 16px; border-radius: 2px; cursor: pointer; font-family: 'JetBrains Mono', monospace;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .trn-retrain-btn:hover { background: rgba(0,255,136,0.14); border-color: rgba(0,255,136,0.6); }
+  .trn-model-row { display: flex; align-items: center; justify-content: space-between; font-size: 11px; padding: 6px 0; border-bottom: 1px solid rgba(30,45,61,0.5); }
+  .trn-model-row:last-child { border-bottom: none; }
+  .trn-mono { font-family: 'JetBrains Mono', monospace; font-weight: 700; }
+
   /* Mobile-only KPI boxes */
   .kpi.mobile-only    { display: none; }
   .stat-cell.mobile-only { display: none; }
@@ -2446,74 +2490,100 @@
   <!-- TRAINING TAB -->
   <div id="tab-training" class="tab-content">
 
-    <!-- KPI row -->
-    <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
-      <div class="kpi green">
-        <div class="kpi-label">Direction Accuracy</div>
-        <div class="kpi-value green" id="trn-dirAcc">—</div>
-        <div class="kpi-sub" id="trn-trainN">— signals in dataset</div>
-      </div>
-      <div class="kpi blue">
-        <div class="kpi-label">New Bets Since Retrain</div>
-        <div class="kpi-value blue" id="trn-betsSince">—</div>
-        <div class="kpi-sub" id="trn-betsThr">/ 30 target</div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-label">Last Retrain</div>
-        <div class="kpi-value white" id="trn-lastDate">—</div>
-        <div class="kpi-sub" id="trn-daysAgo">—</div>
-      </div>
-      <div class="kpi yellow">
-        <div class="kpi-label">Next Scheduled</div>
-        <div class="kpi-value yellow" id="trn-nextDate">—</div>
-        <div class="kpi-sub">Sunday 3:00 UTC · auto</div>
-      </div>
-    </div>
-
-    <!-- Progress bar -->
+    <!-- ── SECTION 1: Status header ── -->
     <div class="panel" style="margin-bottom:16px">
       <div class="panel-header">
-        <div class="panel-title">Retrain Progress</div>
-        <div id="trn-statusPill" class="train-status-pill recent">
-          <span style="width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0;animation:pulse 2s infinite;display:inline-block;margin-right:6px"></span>
-          <span id="trn-statusText">LOADING</span>
+        <div class="panel-title">Auto-Training &mdash; XGBoost Engine</div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span id="trn-stateBadge" class="trn-badge trained">
+            <span style="width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0;animation:pulse 2s infinite;display:inline-block;"></span>
+            <span id="trn-statusText">LOADING</span>
+          </span>
+          <!-- Force Retrain button -->
+          <button class="trn-retrain-btn" onclick="trnForceRetrain()" title="Triggers /reload-calibration on Railway">
+            &#8635; Force Retrain
+          </button>
         </div>
       </div>
       <div style="padding:14px 18px 16px">
-        <div class="train-progress-bar" style="margin-bottom:8px">
+        <div id="trn-statusPill" class="train-status-pill recent" style="display:none"><span id="trn-statusText2"></span></div>
+        <!-- Retrain progress -->
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:6px">
+          <span>Bets toward next retrain</span>
+          <span id="trn-progressLabel" class="trn-mono" style="font-size:10px">—</span>
+        </div>
+        <div class="train-progress-bar">
           <div class="train-progress-fill" id="trn-progressFill" style="width:0%"></div>
         </div>
-        <div style="font-size:10px;color:var(--muted)" id="trn-progressLabel">0% toward next meaningful retrain (30 new bets)</div>
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:4px">
+          <span id="trn-betsSince" class="trn-mono" style="font-size:9px">—</span>
+          <span id="trn-betsThr" style="font-size:9px">/ 30 new bets</span>
+        </div>
       </div>
     </div>
 
-    <!-- Config + Pipeline side by side -->
+    <div class="trn-section-sep"></div>
+
+    <!-- ── SECTION 2: Key Metric Cards ── -->
+    <div class="trn-metric-cards">
+      <div class="trn-metric-card">
+        <div class="trn-metric-icon">&#127919;</div>
+        <div class="trn-metric-label">CV Accuracy</div>
+        <div class="trn-metric-value green" id="trn-dirAcc">—</div>
+        <div class="trn-acc-bar-wrap">
+          <div class="trn-acc-bar-track">
+            <div class="trn-acc-bar-fill" id="trn-accBarFill" style="width:0%"></div>
+          </div>
+        </div>
+        <div class="trn-metric-sub" id="trn-trainN">— signals</div>
+      </div>
+      <div class="trn-metric-card">
+        <div class="trn-metric-icon">&#128197;</div>
+        <div class="trn-metric-label">Last Retrain</div>
+        <div class="trn-metric-value" id="trn-lastDate" style="font-size:12px">—</div>
+        <div class="trn-metric-sub" id="trn-daysAgo">—</div>
+      </div>
+      <div class="trn-metric-card">
+        <div class="trn-metric-icon">&#9201;</div>
+        <div class="trn-metric-label">Next Scheduled</div>
+        <div class="trn-metric-value yellow" id="trn-nextDate" style="font-size:12px">—</div>
+        <div class="trn-metric-sub">Sunday 3:00 UTC</div>
+      </div>
+      <div class="trn-metric-card">
+        <div class="trn-metric-icon">&#128272;</div>
+        <div class="trn-metric-label">Confidence Thr.</div>
+        <div class="trn-metric-value" id="trn-confThr">—</div>
+        <div class="trn-metric-sub">min to open bet</div>
+      </div>
+    </div>
+
+    <div class="trn-section-sep"></div>
+
+    <!-- ── SECTION 3: Models + Pipeline ── -->
     <div class="two-col-grid">
 
       <div class="panel">
         <div class="panel-header">
-          <div class="panel-title">Bot Configuration</div>
+          <div class="panel-title">Model Status</div>
           <div class="panel-tag tag-muted">LIVE</div>
         </div>
-        <div style="padding:14px 18px;display:flex;flex-direction:column;gap:10px">
-          <div style="display:flex;justify-content:space-between;font-size:11px">
-            <span style="color:var(--muted)">Confidence Threshold</span>
-            <span style="font-weight:700;color:var(--accent)" id="trn-confThr">—</span>
+        <div style="padding:14px 18px;display:flex;flex-direction:column;gap:2px">
+          <div class="trn-model-row">
+            <span style="color:var(--muted)">XGB Direction</span>
+            <span id="trn-xgbStatus" class="trn-mono">—</span>
           </div>
-          <div style="display:flex;justify-content:space-between;font-size:11px">
-            <span style="color:var(--muted)">Base Size</span>
-            <span style="font-weight:700" id="trn-baseSize">—</span>
+          <div class="trn-model-row">
+            <span style="color:var(--muted)">XGB Correctness</span>
+            <span id="trn-corrStatus" class="trn-mono">—</span>
           </div>
-          <div style="display:flex;justify-content:space-between;font-size:11px">
-            <span style="color:var(--muted)">XGB Direction Model</span>
-            <span style="font-weight:700" id="trn-xgbStatus">—</span>
+          <div class="trn-model-row">
+            <span style="color:var(--muted)">Base Position Size</span>
+            <span id="trn-baseSize" class="trn-mono">—</span>
           </div>
-          <div style="display:flex;justify-content:space-between;font-size:11px">
-            <span style="color:var(--muted)">XGB Correctness Model</span>
-            <span style="font-weight:700" id="trn-corrStatus">—</span>
+          <div style="padding-top:10px">
+            <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Dead Hours UTC</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--warn);letter-spacing:1px" id="trn-deadHours">—</div>
           </div>
-          <div style="font-size:10px;color:var(--muted);margin-top:4px">Dead Hours UTC (no bet)</div>
-          <div style="font-size:13px;font-weight:700;color:var(--warn);letter-spacing:1px" id="trn-deadHours">—</div>
         </div>
       </div>
 
@@ -4375,25 +4445,59 @@ function renderTrainingTab(d) {
   const bets = d.bets_since_retrain ?? 0;
   const thr  = d.retrain_threshold ?? 30;
   const pct  = Math.min(100, Math.round(bets / thr * 100));
-  set('trn-dirAcc',  d.direction_acc ? d.direction_acc.toFixed(1) + '%' : '—');
-  set('trn-trainN',  d.train_n ? d.train_n + ' signals in dataset' : '—');
-  set('trn-betsSince', bets !== null ? bets : '—');
-  set('trn-betsThr', '/ ' + thr + ' target');
+
+  // CV Accuracy + bar
+  const acc = d.direction_acc ?? null;
+  set('trn-dirAcc', acc !== null ? acc.toFixed(1) + '%' : '—');
+  const accBar = document.getElementById('trn-accBarFill');
+  if (accBar) {
+    const accPct = acc !== null ? Math.min(100, acc) : 0;
+    accBar.style.width = accPct + '%';
+    accBar.style.background = accPct >= 70 ? 'var(--accent)' : accPct >= 55 ? 'var(--warn)' : 'var(--danger)';
+  }
+  set('trn-trainN',  d.train_n ? d.train_n + ' signals' : '—');
+
+  // Progress bar
+  set('trn-betsSince', bets !== null ? bets + ' / ' + thr : '—');
+  set('trn-betsThr', '/ ' + thr + ' new bets');
+  const fill = document.getElementById('trn-progressFill');
+  if (fill) { fill.style.width = pct + '%'; fill.style.background = pct >= 100 ? 'var(--warn)' : 'var(--accent)'; }
+  set('trn-progressLabel', pct + '% — ' + bets + ' of ' + thr + ' new bets');
+
+  // Dates
   set('trn-lastDate', d.last_retrain_iso || '—');
   set('trn-daysAgo',  d.days_since_retrain !== null ? d.days_since_retrain + ' days ago' : '');
   set('trn-nextDate', d.next_retrain_iso || '—');
-  const fill = document.getElementById('trn-progressFill');
-  if (fill) { fill.style.width = pct + '%'; if (pct >= 100) fill.style.background = 'var(--warn)'; }
-  set('trn-progressLabel', pct + '% toward next meaningful retrain (' + thr + ' new bets)');
-  // Status pill
+
+  // State badge (trn-stateBadge) with color classes: trained / stale / error
+  const badge = document.getElementById('trn-stateBadge');
+  const txt   = document.getElementById('trn-statusText');
+  if (badge && txt) {
+    const s = (d.status || '').toLowerCase();
+    // Map internal statuses → badge class + label
+    let cls, label;
+    if (s === 'recent') {
+      cls = 'trained'; label = 'TRAINED';
+    } else if (s === 'on_track') {
+      cls = 'trained'; label = 'ON TRACK';
+    } else if (s === 'retrain_ready') {
+      cls = 'stale';   label = 'STALE';
+    } else if (s === 'error') {
+      cls = 'error';   label = 'ERROR';
+    } else {
+      cls = 'stale';   label = s.toUpperCase() || 'UNKNOWN';
+    }
+    badge.className = 'trn-badge ' + cls;
+    txt.textContent = label;
+  }
+  // Keep legacy pill hidden but keep its status class for fetchTrainingStatus compatibility
   const pill = document.getElementById('trn-statusPill');
-  const txt  = document.getElementById('trn-statusText');
-  if (pill && txt) {
+  if (pill) {
     const s = (d.status || '').toLowerCase();
     pill.className = 'train-status-pill ' + s;
-    txt.textContent = s === 'recent' ? 'FRESH' : s === 'on_track' ? 'ON TRACK' : 'RETRAIN READY';
   }
-  // Config (requires extended endpoint — graceful fallback)
+
+  // Config
   set('trn-confThr',  d.confidence_threshold != null ? d.confidence_threshold.toFixed(2) : '0.65');
   set('trn-baseSize', d.base_size_btc != null ? d.base_size_btc + ' BTC' : '0.002 BTC');
   const xgbEl = document.getElementById('trn-xgbStatus');
@@ -4402,6 +4506,22 @@ function renderTrainingTab(d) {
   if (corrEl) { corrEl.textContent = d.correctness_loaded != null ? (d.correctness_loaded ? '✅ Loaded' : '❌ Missing') : '—'; corrEl.style.color = d.correctness_loaded ? 'var(--accent)' : 'var(--danger)'; }
   const deadEl = document.getElementById('trn-deadHours');
   if (deadEl) deadEl.textContent = Array.isArray(d.dead_hours) && d.dead_hours.length ? d.dead_hours.map(h => h + 'h').join(' · ') : 'none';
+}
+
+// Force Retrain button handler
+async function trnForceRetrain() {
+  const btn = document.querySelector('.trn-retrain-btn');
+  if (btn) { btn.textContent = '⏳ Reloading...'; btn.disabled = true; }
+  try {
+    const res = await fetch(CONFIG.RAILWAY_URL + '/reload-calibration', { method: 'POST', signal: AbortSignal.timeout(15000) });
+    const msg = res.ok ? '✅ Calibration reloaded!' : '⚠️ Error ' + res.status;
+    alert(msg);
+    if (res.ok) await fetchTrainingTab();
+  } catch(e) {
+    alert('⚠️ Request failed: ' + e.message);
+  } finally {
+    if (btn) { btn.innerHTML = '&#8635; Force Retrain'; btn.disabled = false; }
+  }
 }
 
 async function fetchTrainingTab() {
@@ -5010,9 +5130,12 @@ function applySignalFilters() {
     // Type filter
     var type = _signalFilters.type;
     if (type !== 'all') {
-      if (type === 'bet'   && d.classification !== 'BET')    return false;
-      if (type === 'skip'  && d.classification !== 'SKIP')   return false;
-      if (type === 'nobet' && d.bet_taken)                   return false;
+      // bet  = row was actually executed as a real bet
+      if (type === 'bet'   && d.bet_taken !== true)                                               return false;
+      // skip = explicitly classified SKIP or NO_BET rows where bet was not taken
+      if (type === 'skip'  && !(d.classification === 'SKIP' || (d.classification === 'NO_BET' && !d.bet_taken))) return false;
+      // nobet = any row where no real bet was placed
+      if (type === 'nobet' && d.bet_taken)                                                         return false;
     }
     // Outcome filter
     var outcome = _signalFilters.outcome;
@@ -5024,7 +5147,7 @@ function applySignalFilters() {
     // Direction filter
     var dir = _signalFilters.direction;
     if (dir !== 'all') {
-      var dDir = (d.direction || '').toUpperCase();
+      var dDir = (d.direction || d.prediction || '').toUpperCase();
       if (dir === 'up'   && dDir !== 'UP')   return false;
       if (dir === 'down' && dDir !== 'DOWN') return false;
     }
