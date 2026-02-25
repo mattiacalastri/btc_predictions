@@ -2273,6 +2273,13 @@ def training_status():
         "retrain_threshold": retrain_threshold,
         "days_since_retrain": days_since,
         "status": status,
+        # Bot configuration & model status (for Training Tab in dashboard)
+        "dead_hours": sorted(list(DEAD_HOURS_UTC)),
+        "confidence_threshold": float(os.environ.get("CONF_THRESHOLD", "0.65")),
+        "base_size_btc": float(os.environ.get("BASE_SIZE", "0.002")),
+        "xgb_loaded": _XGB_MODEL is not None,
+        "correctness_loaded": _xgb_correctness is not None,
+        "model_path": model_path if os.path.exists(model_path) else None,
     })
 
 
