@@ -466,7 +466,7 @@
   }
   @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
-  footer { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+  footer { max-width: 1600px; margin: 0 auto; padding: 16px 24px 24px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
   .footer-text { font-size: 9px; color: var(--muted); letter-spacing: 1px; }
   .footer-text span { color: var(--accent); }
   .config-hint { font-size: 9px; color: var(--muted); background: rgba(255,255,255,0.02); border: 1px solid var(--border); padding: 5px 12px; border-radius: 2px; letter-spacing: 1px; }
@@ -2203,15 +2203,6 @@
   </div>
   <!-- END ACCOUNT SUMMARY -->
 
-  <footer>
-    <div class="footer-text">ASTRA DIGITAL MARKETING · <span>BOT ENGINE</span> · AUTO REFRESH 60s</div>
-    <div class="footer-text" style="font-size:9px">
-      ⛓ <span>ON-CHAIN</span> · Polygon PoS ·
-      <a href="https://polygonscan.com/address/0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;letter-spacing:1px" title="BTCBotAudit.sol — immutable prediction audit trail">0xe4661F…833a55 ↗</a>
-    </div>
-    <div class="config-hint">Table: <code>btc_predictions</code> · Capital: <code id="footerCapital">$20 USDC</code> · Refresh <code>60s</code></div>
-  </footer>
-
   </div><!-- /#tab-dashboard -->
 
   <!-- AGENTS TAB -->
@@ -2700,6 +2691,19 @@
   </div><!-- /#tab-training -->
 
 </div><!-- /.container -->
+
+<footer>
+  <div class="footer-text">ASTRA DIGITAL MARKETING · <span>BOT ENGINE</span> · AUTO REFRESH 60s</div>
+  <div class="footer-text" style="font-size:9px">
+    ⛓ <span>ON-CHAIN</span> · Polygon PoS ·
+    <a href="https://polygonscan.com/address/0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;letter-spacing:1px" title="BTCBotAudit.sol — immutable prediction audit trail">0xe4661F…833a55 ↗</a>
+  </div>
+  <div class="config-hint">Table: <code>btc_predictions</code> · Capital: <code id="footerCapital">$20 USDC</code> · Refresh <code>60s</code></div>
+  <div class="footer-text" style="font-size:9px">
+    ✉ <a href="mailto:signal@btcpredictor.io" style="color:var(--accent);text-decoration:none;letter-spacing:1px">signal@btcpredictor.io</a>
+  </div>
+</footer>
+
 <script>
 const CONFIG = {
   RAILWAY_URL: window.RAILWAY_URL || window.location.origin || 'https://web-production-e27d0.up.railway.app',
