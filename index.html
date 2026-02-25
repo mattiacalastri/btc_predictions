@@ -1328,6 +1328,8 @@
       height: 44px;
       perspective: 130px;
       /* NO filter: drop-shadow — crea stacking context che rompe preserve-3d */
+      touch-action: none; /* abilita touchmove senza interferire con lo scroll della pagina */
+      cursor: grab;
     }
     .lp-right .cube-face {
       width: 44px;
@@ -5018,6 +5020,57 @@ document.addEventListener('DOMContentLoaded', function() {
 
   raf = requestAnimationFrame(tick);
 });
+
+// ── AI Cube: touch rotation (mobile only) ─────────────────────────────────────
+(function() {
+  if (!window.matchMedia('(max-width: 600px)').matches) return;
+  const cube  = document.getElementById('aiCube');
+  const scene = document.getElementById('cubeScene');
+  if (!cube || !scene) return;
+
+  let touching = false;
+  let startX = 0, startY = 0;
+  let baseRX = 15, baseRY = 0;
+
+  // Legge rotateX/Y corrente dal computed matrix3d (colonna-major 4x4)
+  function readRotation() {
+    const t = window.getComputedStyle(cube).transform;
+    if (!t || t === 'none') return { rx: 15, ry: 0 };
+    const m = (t.match(/matrix3d\(([^)]+)\)/) || ['', ''])[1].split(',').map(Number);
+    if (m.length === 16) {
+      // rx = atan2(-m[9], m[10]),  ry = asin(clamp(m[8]))
+      const rx = Math.atan2(-m[9], m[10]) * 180 / Math.PI;
+      const ry = Math.asin(Math.max(-1, Math.min(1, m[8]))) * 180 / Math.PI;
+      return { rx, ry };
+    }
+    return { rx: 15, ry: 0 };
+  }
+
+  scene.addEventListener('touchstart', function(e) {
+    touching = true;
+    cube.style.animationPlayState = 'paused';
+    const rot = readRotation();
+    baseRX = rot.rx;
+    baseRY = rot.ry;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+  }, { passive: true });
+
+  scene.addEventListener('touchmove', function(e) {
+    if (!touching) return;
+    const dx = e.touches[0].clientX - startX;
+    const dy = e.touches[0].clientY - startY;
+    const newRX = baseRX - dy * 0.6;
+    const newRY = baseRY + dx * 0.6;
+    cube.style.transform = `rotateX(${newRX}deg) rotateY(${newRY}deg)`;
+  }, { passive: true });
+
+  scene.addEventListener('touchend', function() {
+    touching = false;
+    cube.style.transform = '';          // rimuove override → animazione riprende
+    cube.style.animationPlayState = 'running';
+  }, { passive: true });
+})();
 
 // ── TASK 2: Story Highlights sync ─────────────────────────────────────────────
 function syncStoryHighlights() {
