@@ -2676,14 +2676,15 @@ def _supabase_update(bet_id: int, fields: dict):
 
 @app.route("/dashboard", methods=["GET"])
 def dashboard():
-    railway_url = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "")
-    if railway_url and not railway_url.startswith("http"):
-        railway_url = "https://" + railway_url
+    # Use the actual request host so API calls always go same-origin.
+    # This avoids CORS issues and DNS propagation problems when accessed
+    # via a custom domain (e.g. btcpredictor.io vs railway.app).
+    scheme = request.headers.get("X-Forwarded-Proto", "https")
+    railway_url = f"{scheme}://{request.host}"
     with open("index.html", "r") as f:
         html = f.read()
-    if railway_url:
-        inject = f'<script>window.RAILWAY_URL = "{railway_url}";</script>'
-        html = html.replace("</head>", inject + "\n</head>", 1)
+    inject = f'<script>window.RAILWAY_URL = "{railway_url}";</script>'
+    html = html.replace("</head>", inject + "\n</head>", 1)
     return html, 200, {"Content-Type": "text/html"}
 
 # ── MAIN ─────────────────────────────────────────────────────────────────────
