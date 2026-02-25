@@ -1004,11 +1004,7 @@
   }
   #botAlertBanner.visible { display: flex; }
 
-  /* TASK 1 — AI FEEDS strip: auto-scroll carousel su mobile */
-  @keyframes feedScroll {
-    0%   { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
-  }
+  /* TASK 1 — AI FEEDS strip: scrollLeft-based carousel (JS) */
   @media (max-width: 600px) {
     .sources-strip {
       flex-wrap: nowrap;
@@ -4968,28 +4964,59 @@ fetch(CONFIG.RAILWAY_URL + '/health')
   document.addEventListener('scroll', hideModal, { passive: true });
 })();
 
-// ── TASK 1: AI FEEDS carousel — mobile only ───────────────────────────────────
+// ── TASK 1: AI FEEDS carousel — mobile only (scrollLeft + swipe) ──────────────
 document.addEventListener('DOMContentLoaded', function() {
   if (!window.matchMedia('(max-width: 600px)').matches) return;
-  const list = document.querySelector('.sources-list');
-  if (!list) return;
+  const strip = document.querySelector('.sources-strip');
+  const list  = document.querySelector('.sources-list');
+  if (!strip || !list) return;
+
   // Duplicate chips for seamless loop
   list.innerHTML += list.innerHTML;
-  list.style.animation = 'feedScroll 30s linear infinite';
 
-  // Pause on hover/touch
-  list.addEventListener('mouseenter', function() {
-    list.style.animationPlayState = 'paused';
-  });
-  list.addEventListener('mouseleave', function() {
-    list.style.animationPlayState = 'running';
-  });
-  list.addEventListener('touchstart', function() {
-    list.style.animationPlayState = 'paused';
+  const SPEED = 0.6; // px per frame
+  let paused       = false;
+  let raf          = null;
+  let touchStartX  = 0;
+  let touchScrollX = 0;
+
+  function halfWidth() { return list.scrollWidth / 2; }
+
+  function tick() {
+    if (!paused) {
+      strip.scrollLeft += SPEED;
+      if (strip.scrollLeft >= halfWidth()) strip.scrollLeft -= halfWidth();
+    }
+    raf = requestAnimationFrame(tick);
+  }
+
+  // Touch: swipe manuale in real-time
+  strip.addEventListener('touchstart', function(e) {
+    paused       = true;
+    touchStartX  = e.touches[0].clientX;
+    touchScrollX = strip.scrollLeft;
   }, { passive: true });
-  list.addEventListener('touchend', function() {
-    list.style.animationPlayState = 'running';
+
+  strip.addEventListener('touchmove', function(e) {
+    const dx = touchStartX - e.touches[0].clientX;
+    let next = touchScrollX + dx;
+    const hw = halfWidth();
+    // Mantieni il loop seamless anche durante lo swipe manuale
+    if (next >= hw)  next -= hw;
+    if (next < 0)    next += hw;
+    strip.scrollLeft = next;
   }, { passive: true });
+
+  strip.addEventListener('touchend', function() {
+    touchScrollX = strip.scrollLeft; // riprendi da dove si è fermato
+    paused = false;
+  }, { passive: true });
+
+  // Desktop: pausa su hover
+  strip.addEventListener('mouseenter', function() { paused = true; });
+  strip.addEventListener('mouseleave', function() { paused = false; });
+
+  raf = requestAnimationFrame(tick);
 });
 
 // ── TASK 2: Story Highlights sync ─────────────────────────────────────────────
