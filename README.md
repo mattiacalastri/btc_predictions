@@ -147,7 +147,7 @@ Never commit `.env` to version control. Rotate any accidentally exposed secrets 
 
 Contract: [`BTCBotAudit.sol`](contracts/BTCBotAudit.sol)
 Deployed on: Polygon PoS — `0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55`
-Explorer: `https://polygonscan.com/address/0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55`
+Explorer: [polygonscan.com — verified ✅](https://polygonscan.com/address/0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55#code)
 
 Every prediction is committed as a keccak256 hash of `(bet_id, direction, confidence, timestamp)` at the time of placement. When the position closes, the outcome is resolved on-chain. To verify a specific bet: look up its `on_chain_tx` hash in Supabase, then query Polygonscan for the transaction data.
 
