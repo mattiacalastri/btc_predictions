@@ -3269,7 +3269,7 @@ function render(data) {
   accEl.textContent = closed.length ? Math.round(correct.length / closed.length * 100) + '%' : '—';
 
   const pnlEl = document.getElementById('kpiPnl');
-  pnlEl.textContent = (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toFixed(4);
+  pnlEl.textContent = (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toFixed(2);
   pnlEl.className   = 'kpi-value ' + (totalPnl >= 0 ? 'green' : 'red');
 
   const roiEl = document.getElementById('kpiRoi');
@@ -3362,7 +3362,7 @@ function render(data) {
   renderBtcPredictionsOverlay(chronoAll);
 
   const tag = document.getElementById('totalPnlTag');
-  tag.textContent = 'TOTAL: ' + (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toFixed(4);
+  tag.textContent = 'TOTAL: ' + (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toFixed(2);
   tag.className   = 'panel-tag ' + (totalPnl >= 0 ? 'tag-green' : 'tag-red');
 
   // Mobile sync
@@ -3557,7 +3557,7 @@ function renderEquityCurve(chronoBets, totalPnl) {
     <polygon points="${pts} ${areaClose}" fill="url(#${gradId})"/>
     <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
     <circle cx="${toX(points.length-1).toFixed(1)}" cy="${toY(points[points.length-1].cum).toFixed(1)}" r="3.5" fill="${color}"/>`;
-  document.getElementById('equityTag').textContent = (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toFixed(4);
+  document.getElementById('equityTag').textContent = (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toFixed(2);
   document.getElementById('equityTag').className   = 'panel-tag ' + (totalPnl >= 0 ? 'tag-green' : 'tag-red');
 }
 
