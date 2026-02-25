@@ -1230,7 +1230,7 @@
       <div id="botStatus" class="bot-status alive">
         <div class="bot-status-dot"></div>
         <div class="bot-status-inner">
-          <div id="botStatusText">BOT ALIVE</div>
+          <div id="botStatusText">BOT ALIVE<span id="botPausedIndicator" style="display:none;color:var(--warn);font-size:9px;font-weight:700;margin-left:6px;">⏸ PAUSED</span></div>
           <div class="bot-status-detail" id="botStatusDetail">Checking...</div>
         </div>
       </div>
@@ -3789,6 +3789,24 @@ fetch(CONFIG.RAILWAY_URL + '/health')
   .then(data => {
     if (data.dry_run) {
       document.getElementById('dry-run-banner').style.display = 'block';
+    }
+    // Store operational config globally
+    window._botConfig = {
+      baseSize: data.base_size,
+      confThreshold: data.confidence_threshold,
+      capital: data.capital_usd
+    };
+    // Show PAUSED indicator if bot is paused
+    const pausedEl = document.getElementById('botPausedIndicator');
+    if (pausedEl) {
+      pausedEl.style.display = data.bot_paused ? 'inline' : 'none';
+    }
+    // Update botStatusDetail with size/conf info
+    const detailEl = document.getElementById('botStatusDetail');
+    if (detailEl && data.base_size != null) {
+      const confPct = Math.round((data.confidence_threshold || 0.65) * 100);
+      const currentText = detailEl.textContent || '';
+      detailEl.textContent = currentText + ' · size: ' + data.base_size + ' BTC | conf: ' + confPct + '%';
     }
   })
   .catch(() => {});
