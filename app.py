@@ -409,6 +409,9 @@ def position():
 
 @app.route("/close-position", methods=["POST"])
 def close_position():
+    err = _check_api_key()
+    if err:
+        return err
     data = request.get_json(force=True) or {}
     symbol = data.get("symbol", DEFAULT_SYMBOL)
 
@@ -476,6 +479,9 @@ def close_position():
 
 @app.route("/pause", methods=["POST"])
 def pause_bot():
+    err = _check_api_key()
+    if err:
+        return err
     global _BOT_PAUSED
     _BOT_PAUSED = True
     return jsonify({"paused": True, "message": "Bot in pausa — nessun nuovo trade"}), 200
@@ -483,6 +489,9 @@ def pause_bot():
 
 @app.route("/resume", methods=["POST"])
 def resume_bot():
+    err = _check_api_key()
+    if err:
+        return err
     global _BOT_PAUSED
     _BOT_PAUSED = False
     return jsonify({"paused": False, "message": "Bot riattivato — trading ripreso"}), 200
@@ -492,6 +501,9 @@ def resume_bot():
 
 @app.route("/place-bet", methods=["POST"])
 def place_bet():
+    err = _check_api_key()
+    if err:
+        return err
     data = request.get_json(force=True) or {}
     direction = (data.get("direction") or "").upper()
     confidence = float(data.get("confidence", 0))
@@ -1927,6 +1939,9 @@ def orphaned_bets():
 
 @app.route("/backfill-bet/<int:bet_id>", methods=["POST"])
 def backfill_bet(bet_id):
+    err = _check_api_key()
+    if err:
+        return err
     sb_url = os.environ.get("SUPABASE_URL", "")
     sb_key = os.environ.get("SUPABASE_KEY", "")
     sb_headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
