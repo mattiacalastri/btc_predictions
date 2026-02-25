@@ -1757,7 +1757,7 @@
     <div class="kpi green">
       <div class="kpi-label">Total PnL</div>
       <div class="kpi-value green" id="kpiPnl">—</div>
-      <div class="kpi-sub">USD (real bets)</div>
+      <div class="kpi-sub" id="kpiPnlSub">from 2026-02-24</div>
     </div>
     <div class="kpi purple">
       <div class="kpi-label">Session ROI</div>
@@ -3275,8 +3275,8 @@ function render(data) {
   accEl.textContent = closed.length ? Math.round(correct.length / closed.length * 100) + '%' : '—';
 
   const pnlEl = document.getElementById('kpiPnl');
-  pnlEl.textContent = (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toFixed(2);
-  pnlEl.className   = 'kpi-value ' + (totalPnl >= 0 ? 'green' : 'red');
+  pnlEl.textContent = (sessionPnl >= 0 ? '+' : '') + '$' + sessionPnl.toFixed(2);
+  pnlEl.className   = 'kpi-value ' + (sessionPnl >= 0 ? 'green' : 'red');
 
   const roiEl = document.getElementById('kpiRoi');
   roiEl.textContent = (roiPct >= 0 ? '+' : '') + roiPct.toFixed(2) + '%';
@@ -3294,10 +3294,10 @@ function render(data) {
   document.getElementById('kpiFGLabel').textContent = lastFG !== null
     ? (lastFG < 20 ? 'EXTREME FEAR' : lastFG < 40 ? 'FEAR' : lastFG < 60 ? 'NEUTRAL' : lastFG < 80 ? 'GREED' : 'EXTREME GREED') : '';
   document.getElementById('kpiBets').textContent    = bets.length + '/' + data.length;
-  document.getElementById('kpiDrawdown').textContent= worstPnl ? '$' + worstPnl.toFixed(4) : '—';
+  document.getElementById('kpiDrawdown').textContent= worstPnl ? '$' + worstPnl.toFixed(2) : '—';
 
   document.getElementById('statConf').textContent  = (avgConf * 100).toFixed(1) + '%';
-  document.getElementById('statBest').textContent  = bestPnl  ? '+$' + bestPnl.toFixed(4)  : '—';
+  document.getElementById('statBest').textContent  = bestPnl  ? '+$' + bestPnl.toFixed(2)  : '—';
   const closedBetsDesc = bets.filter(d => d.correct !== null);
   let streak = 0, streakType = null;
   if (closedBetsDesc.length) {
@@ -4278,7 +4278,7 @@ async function fetchEquityHistory() {
       '<polyline points="' + polyPts + '" fill="none" stroke="' + color + '" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>' +
       '<circle cx="' + toX(pts.length-1).toFixed(1) + '" cy="' + toY(pts[pts.length-1].v).toFixed(1) + '" r="3.5" fill="' + color + '"/>';
     if (tag) {
-      tag.textContent = (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toFixed(4) + ' (' + d.count + ' bets)';
+      tag.textContent = (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toFixed(2) + ' (' + d.count + ' bets)';
       tag.className   = 'panel-tag ' + (totalPnl >= 0 ? 'tag-green' : 'tag-red');
     }
   } catch(e) { /* fallback silenzioso */ }

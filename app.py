@@ -1774,6 +1774,7 @@ def equity_history():
             f"{sb_url}/rest/v1/btc_predictions"
             "?select=id,created_at,pnl_usd"
             "&bet_taken=eq.true&correct=not.is.null&pnl_usd=not.is.null"
+            "&created_at=gte.2026-02-24T00:00:00Z"
             "&order=id.asc",
             headers=sb_headers,
             timeout=6,
