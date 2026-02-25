@@ -1698,8 +1698,20 @@ def costs():
         claude_api_cost   = claude_api_estimated
         claude_api_source = "estimated"
 
-    # ── 5. Claude Code (manuale: CLAUDE_CODE_MONTHLY_USD env var) ─────────────
-    claude_code_cost = float(os.environ.get("CLAUDE_CODE_MONTHLY_USD", "0"))
+    # ── 5. Claude Code (IDE sessions) ─────────────────────────────────────────
+    # Priority: CLAUDE_CODE_MONTHLY_USD (manual) > derived from ANTHROPIC_TOTAL_SPEND_USD
+    _anthropic_total = os.environ.get("ANTHROPIC_TOTAL_SPEND_USD", "")
+    _claude_code_manual = os.environ.get("CLAUDE_CODE_MONTHLY_USD", "")
+    if _claude_code_manual:
+        claude_code_cost   = float(_claude_code_manual)
+        claude_code_source = "manual"
+    elif _anthropic_total:
+        # Total Anthropic spend − Claude API bot calls = Claude Code IDE sessions
+        claude_code_cost   = round(max(0.0, float(_anthropic_total) - claude_api_cost), 2)
+        claude_code_source = "derived"
+    else:
+        claude_code_cost   = 0.0
+        claude_code_source = "set ANTHROPIC_TOTAL_SPEND_USD or CLAUDE_CODE_MONTHLY_USD"
 
     # ── 6. Railway (statico) ──────────────────────────────────────────────────
     railway_plan = os.environ.get("RAILWAY_PLAN", "hobby").lower()
@@ -1739,7 +1751,7 @@ def costs():
         },
         "claude_code": {
             "cost_usd": claude_code_cost,
-            "source": "manual" if claude_code_cost > 0 else "set CLAUDE_CODE_MONTHLY_USD",
+            "source": claude_code_source,
         },
         "railway": {
             "plan": railway_plan,
