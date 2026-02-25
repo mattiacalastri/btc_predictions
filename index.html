@@ -779,6 +779,7 @@
   .lp-time { font-size: 9px; color: var(--muted); letter-spacing: 0.5px; line-height: 1.4; }
   .lp-pnl  { font-size: 14px; font-weight: 700; letter-spacing: 0.5px; margin-top: 2px; }
   .lp-size { font-size: 9px; color: var(--muted); letter-spacing: 1px; }
+  .lp-pyramid-badge { display:none; align-items:center; gap:4px; margin-top:4px; padding:2px 8px; border-radius:12px; font-size:9px; font-weight:700; letter-spacing:1px; color:#ff9500; background:rgba(255,149,0,0.15); border:1px solid rgba(255,149,0,0.35); text-transform:uppercase; }
 
   .lp-center {
     padding: 14px 24px;
@@ -1333,6 +1334,7 @@
         <div class="lp-time" id="lpOpenTime">—</div>
         <div class="lp-pnl" id="lpPnl">—</div>
         <div class="lp-size" id="lpSize">—</div>
+        <div class="lp-pyramid-badge" id="lpPyramidBadge" style="display:none">⬆ PYRAMID</div>
       </div>
       <!-- CENTER: price gauge SL → TP -->
       <div class="lp-center">
@@ -2648,6 +2650,17 @@ function renderLivePosition() {
   document.getElementById('lpConfidence').textContent  = Math.round(conf * 100) + '% confidence';
   document.getElementById('lpSize').textContent        = size.toFixed(4) + ' BTC · 0.00240 req';
 
+  const pyrCount = parseInt(openBet.pyramid_count || 0);
+  const pyrEl = document.getElementById('lpPyramidBadge');
+  if (pyrEl) {
+    if (pyrCount > 0) {
+      pyrEl.style.display = 'inline-flex';
+      pyrEl.textContent = '⬆ PYRAMID ×' + pyrCount;
+    } else {
+      pyrEl.style.display = 'none';
+    }
+  }
+
   try {
     const created  = new Date(openBet.created_at);
     const minsOpen = Math.round((Date.now() - created.getTime()) / 60000);
@@ -2813,6 +2826,8 @@ async function fetchLiveBtcPrice() {
     }
     priceEl.textContent = '$' + price.toLocaleString('it-IT', { maximumFractionDigits: 0 });
     lastBtcPrice = price;
+    const kp = price >= 1000 ? '$' + Math.round(price / 1000) + 'k' : '$' + Math.round(price);
+    document.title = '₿ ' + kp + ' · BTC Bot';
     renderLivePosition(); // aggiorna gauge live ogni volta che arriva un nuovo prezzo
   } catch(e) {
     const priceEl = document.getElementById('btcLivePrice');
