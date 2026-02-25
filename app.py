@@ -1474,7 +1474,7 @@ def rescue_orphaned():
     supabase_key = os.environ.get("SUPABASE_KEY", "")
 
     if not n8n_key:
-        return jsonify({"status": "error", "error": "N8N_API_KEY not configured"}), 200
+        return jsonify({"status": "error", "error": "N8N_API_KEY not configured"}), 503
 
     # 1. Cerca bet orfane in Supabase
     try:
@@ -1490,7 +1490,7 @@ def rescue_orphaned():
         )
         orphaned = r.json() if r.ok else []
     except Exception as e:
-        return jsonify({"status": "error", "error": f"Supabase: {e}"}), 200
+        return jsonify({"status": "error", "error": f"Supabase: {e}"}), 503
 
     if not orphaned:
         return jsonify({"status": "ok", "rescued": 0, "message": "No orphaned bets"})
