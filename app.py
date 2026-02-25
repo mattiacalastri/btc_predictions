@@ -2178,12 +2178,27 @@ def training_status():
     model_path = os.path.join(base, "models", "xgb_direction.pkl")
     report_path = os.path.join(base, "datasets", "xgb_report.txt")
 
-    # Last retrain timestamp from model file mtime
+    # Last retrain timestamp — prefer "Generated:" line in xgb_report.txt
+    # (immune to Railway deploys resetting mtime). Fallback: model file mtime.
     last_retrain_ts = None
     last_retrain_iso = None
-    if os.path.exists(model_path):
+    if os.path.exists(report_path):
+        try:
+            txt_ts = open(report_path).read()
+            m_ts = _re.search(
+                r"Generated:\s*(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2})",
+                txt_ts,
+            )
+            if m_ts:
+                last_retrain_ts = _dt.datetime.strptime(
+                    m_ts.group(1).replace("T", " "), "%Y-%m-%d %H:%M:%S"
+                )
+        except Exception:
+            pass
+    if last_retrain_ts is None and os.path.exists(model_path):
         mtime = os.path.getmtime(model_path)
         last_retrain_ts = _dt.datetime.utcfromtimestamp(mtime)
+    if last_retrain_ts is not None:
         last_retrain_iso = last_retrain_ts.strftime("%Y-%m-%d %H:%M UTC")
 
     # Parse accuracy from xgb_report.txt
@@ -2210,7 +2225,7 @@ def training_status():
             cutoff = last_retrain_ts.strftime("%Y-%m-%dT%H:%M:%S")
             r = requests.get(
                 f"{sb_url}/rest/v1/btc_predictions"
-                f"?select=id&bet_taken=eq.true&correct=not.is.null"
+                f"?select=id&bet_taken=eq.true"
                 f"&created_at=gt.{cutoff}",
                 headers={
                     "apikey": sb_key,

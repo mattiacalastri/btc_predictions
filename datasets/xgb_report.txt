@@ -1,3 +1,4 @@
+Generated: 2026-02-24 03:00:00
 [00:01:20] Righe valide dopo dropna: 294/294
   Totale righe:   294
   WIN rate:       51.4%
