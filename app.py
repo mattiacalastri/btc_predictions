@@ -360,9 +360,12 @@ def health():
         "version": "2.5.1",
         "dry_run": DRY_RUN,
         "paused": _BOT_PAUSED,
+        "bot_paused": bool(_BOT_PAUSED),
         "capital": capital,
+        "capital_usd": float(os.environ.get("CAPITAL_USD", "100.0")),
         "wallet_equity": wallet_equity,
         "base_size": base_size,
+        "confidence_threshold": float(os.environ.get("CONF_THRESHOLD", "0.65")),
     })
 
 
@@ -1639,7 +1642,15 @@ def costs():
         monthly_calls = 0
 
     cost_per_call = (avg_in * pricing["input"] + avg_out * pricing["output"]) / 1_000_000
-    claude_api_cost = round(monthly_calls * cost_per_call, 4)
+    claude_api_estimated = round(monthly_calls * cost_per_call, 4)
+    # CLAUDE_API_MONTHLY_USD overrides estimate with real Anthropic invoice value
+    _claude_api_override = os.environ.get("CLAUDE_API_MONTHLY_USD", "")
+    if _claude_api_override:
+        claude_api_cost   = float(_claude_api_override)
+        claude_api_source = "manual"
+    else:
+        claude_api_cost   = claude_api_estimated
+        claude_api_source = "estimated"
 
     # ── 5. Claude Code (manuale: CLAUDE_CODE_MONTHLY_USD env var) ─────────────
     claude_code_cost = float(os.environ.get("CLAUDE_CODE_MONTHLY_USD", "0"))
