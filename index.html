@@ -1081,6 +1081,29 @@
     }
   }
 
+  /* MOBILE DASHBOARD REORDER — signal list before analytics charts */
+  #dashboardMain { display: flex; flex-direction: column; }
+  @media (max-width: 900px) {
+    #equityCurvePanel { order: 1; }
+    .main-grid        { order: 2; }
+    .charts-grid      { order: 3; }
+    #trainingStatusPanel { order: 4; }
+    #tradingStatsPanel   { order: 5; }
+    #hourlyHeatmapPanel  { order: 6; }
+    /* hide duplicate PnL chart (already in charts-grid as pnlBarsLarge) */
+    #pnlChartPanel { display: none; }
+    /* KPI values bigger on mobile */
+    .kpi-value { font-size: 20px !important; }
+    /* Costs KPI: 3 cols on tablet */
+    .costs-kpi-grid { grid-template-columns: repeat(3, 1fr) !important; }
+  }
+  @media (max-width: 600px) {
+    .kpi-value { font-size: 17px !important; }
+    /* Costs KPI: 2 cols on phone */
+    .costs-kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
+    .kpi-sub { white-space: normal; overflow: visible; text-overflow: unset; }
+  }
+
   /* TASK 9 — Live Position widget layout su mobile */
   @media (max-width: 600px) {
     /* Stack tutto in colonna: info+pnl row | gauge barra sotto */
@@ -1228,6 +1251,7 @@
       <button class="tab-btn"        data-tab="agents"    onclick="switchTab(this)">🤖 Agents</button>
       <button class="tab-btn"        data-tab="costs"     onclick="switchTab(this)">💰 Costs</button>
       <button class="tab-btn"        data-tab="backtest"  onclick="switchTab(this)">📈 Backtest</button>
+      <button class="tab-btn"        data-tab="training"  onclick="switchTab(this)">🧠 Training</button>
     </div>
     <div style="display:flex;align-items:center;gap:6px;">
       <span style="font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-right:4px">PERIOD</span>
@@ -1462,10 +1486,12 @@
     </div>
   </div>
 
+  <div id="dashboardMain">
+
   <!-- ═══════════════════════════════════════════
        CUMULATIVE EQUITY CURVE
   ═══════════════════════════════════════════ -->
-  <div class="panel" style="margin-bottom:14px;">
+  <div class="panel" id="equityCurvePanel" style="margin-bottom:14px;">
     <div class="panel-header">
       <div class="panel-title">Cumulative Equity Curve (Real Bets)</div>
       <div class="panel-tag tag-green" id="equityTag" data-tip-title="Equity Curve" data-tip="Curva del capitale nel tempo basata sui PnL reali di ogni bet chiusa. Include fee di trading.">LOADING</div>
@@ -1585,7 +1611,7 @@
 
     <div style="display:flex;flex-direction:column;gap:14px;">
 
-      <div class="panel">
+      <div class="panel" id="pnlChartPanel">
         <div class="panel-header">
           <div class="panel-title">PnL per Trade</div>
           <div class="panel-tag tag-green" id="totalPnlTag">TOTAL: —</div>
@@ -1614,6 +1640,8 @@
 
     </div>
   </div>
+
+  </div><!-- /#dashboardMain -->
 
   <!-- ═══════════════════════════════════════════
        AUTO-TRAINING STATUS
@@ -1860,17 +1888,23 @@
 
     <!-- Equity curves chart -->
     <div class="panel" style="margin-bottom:16px">
-      <div class="panel-title">Equity Curves — Test Set
-        <span style="font-size:10px;font-weight:400;opacity:0.5;margin-left:8px">per strategia, partendo da $0</span>
+      <div class="panel-header">
+        <div class="panel-title">Equity Curves — Test Set</div>
+        <div class="panel-tag tag-muted">per strategia, partendo da $0</div>
       </div>
-      <div id="btEquityLegend" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px;font-size:10px"></div>
-      <svg id="btEquitySvg" width="100%" height="200" style="display:block;background:#111;border-radius:6px;overflow:visible"></svg>
+      <div style="padding:12px 16px 14px">
+        <div id="btEquityLegend" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px;font-size:10px"></div>
+        <svg id="btEquitySvg" width="100%" height="200" style="display:block;background:#111;border-radius:6px;overflow:visible"></svg>
+      </div>
     </div>
 
     <!-- Strategy table -->
     <div class="panel" style="margin-bottom:16px">
-      <div class="panel-title">Confronto Strategie</div>
-      <div style="overflow-x:auto">
+      <div class="panel-header">
+        <div class="panel-title">Confronto Strategie</div>
+        <div class="panel-tag tag-blue">WALK-FORWARD</div>
+      </div>
+      <div style="overflow-x:auto;padding:0 4px">
         <table style="width:100%;border-collapse:collapse;font-size:11px" id="btStratTable">
           <thead>
             <tr style="color:var(--muted);text-transform:uppercase;font-size:9px;letter-spacing:1px">
@@ -1894,8 +1928,8 @@
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
 
       <div class="panel">
-        <div class="panel-title">Confidence Calibration</div>
-        <table style="width:100%;border-collapse:collapse;font-size:11px">
+        <div class="panel-header"><div class="panel-title">Confidence Calibration</div><div class="panel-tag tag-yellow">CALIBRATION</div></div>
+        <div style="padding:0 4px"><table style="width:100%;border-collapse:collapse;font-size:11px">
           <thead>
             <tr style="color:var(--muted);text-transform:uppercase;font-size:9px;letter-spacing:1px">
               <th style="text-align:left;padding:4px 6px">Bucket</th>
@@ -1906,14 +1940,16 @@
             </tr>
           </thead>
           <tbody id="btCalibBody"></tbody>
-        </table>
+        </table></div>
       </div>
 
       <div class="panel">
-        <div class="panel-title">24h Heatmap — Win Rate</div>
-        <div id="btHeatmap" style="display:grid;grid-template-columns:repeat(6,1fr);gap:3px"></div>
-        <div style="display:flex;gap:8px;margin-top:8px;font-size:9px;color:var(--muted)">
-          <span>🟩 HOT ≥60%</span><span>🟥 DEAD &lt;45%</span><span>⬜ no data</span>
+        <div class="panel-header"><div class="panel-title">24h Heatmap — Win Rate</div><div class="panel-tag tag-muted">BACKTEST</div></div>
+        <div style="padding:12px 16px 14px">
+          <div id="btHeatmap" style="display:grid;grid-template-columns:repeat(6,1fr);gap:3px"></div>
+          <div style="display:flex;gap:8px;margin-top:8px;font-size:9px;color:var(--muted)">
+            <span style="color:var(--accent)">■ HOT ≥60%</span><span style="color:var(--danger)">■ DEAD &lt;45%</span><span>■ no data</span>
+          </div>
         </div>
       </div>
 
@@ -1942,7 +1978,7 @@
   <div id="tab-costs" class="tab-content">
 
     <!-- 6 KPI -->
-    <div class="kpi-grid" style="grid-template-columns:repeat(6,1fr);margin-bottom:16px">
+    <div class="kpi-grid costs-kpi-grid" style="grid-template-columns:repeat(6,1fr);margin-bottom:16px">
       <div class="kpi red" id="costKpiTotal">
         <div class="kpi-label">Total Cost MTD</div>
         <div class="kpi-value red" id="costKpiTotalVal">—</div>
@@ -2019,6 +2055,111 @@
     </div>
 
   </div><!-- /#tab-costs -->
+
+  <!-- TRAINING TAB -->
+  <div id="tab-training" class="tab-content">
+
+    <!-- KPI row -->
+    <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
+      <div class="kpi green">
+        <div class="kpi-label">Direction Accuracy</div>
+        <div class="kpi-value green" id="trn-dirAcc">—</div>
+        <div class="kpi-sub" id="trn-trainN">— signals in dataset</div>
+      </div>
+      <div class="kpi blue">
+        <div class="kpi-label">New Bets Since Retrain</div>
+        <div class="kpi-value blue" id="trn-betsSince">—</div>
+        <div class="kpi-sub" id="trn-betsThr">/ 30 target</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Last Retrain</div>
+        <div class="kpi-value white" id="trn-lastDate">—</div>
+        <div class="kpi-sub" id="trn-daysAgo">—</div>
+      </div>
+      <div class="kpi yellow">
+        <div class="kpi-label">Next Scheduled</div>
+        <div class="kpi-value yellow" id="trn-nextDate">—</div>
+        <div class="kpi-sub">Sunday 3:00 UTC · auto</div>
+      </div>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="panel" style="margin-bottom:16px">
+      <div class="panel-header">
+        <div class="panel-title">Retrain Progress</div>
+        <div id="trn-statusPill" class="train-status-pill recent">
+          <span style="width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0;animation:pulse 2s infinite;display:inline-block;margin-right:6px"></span>
+          <span id="trn-statusText">LOADING</span>
+        </div>
+      </div>
+      <div style="padding:14px 18px 16px">
+        <div class="train-progress-bar" style="margin-bottom:8px">
+          <div class="train-progress-fill" id="trn-progressFill" style="width:0%"></div>
+        </div>
+        <div style="font-size:10px;color:var(--muted)" id="trn-progressLabel">0% toward next meaningful retrain (30 new bets)</div>
+      </div>
+    </div>
+
+    <!-- Config + Pipeline side by side -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Bot Configuration</div>
+          <div class="panel-tag tag-muted">LIVE</div>
+        </div>
+        <div style="padding:14px 18px;display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;justify-content:space-between;font-size:11px">
+            <span style="color:var(--muted)">Confidence Threshold</span>
+            <span style="font-weight:700;color:var(--accent)" id="trn-confThr">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11px">
+            <span style="color:var(--muted)">Base Size</span>
+            <span style="font-weight:700" id="trn-baseSize">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11px">
+            <span style="color:var(--muted)">XGB Direction Model</span>
+            <span style="font-weight:700" id="trn-xgbStatus">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11px">
+            <span style="color:var(--muted)">XGB Correctness Model</span>
+            <span style="font-weight:700" id="trn-corrStatus">—</span>
+          </div>
+          <div style="font-size:10px;color:var(--muted);margin-top:4px">Dead Hours UTC (no bet)</div>
+          <div style="font-size:13px;font-weight:700;color:var(--warn);letter-spacing:1px" id="trn-deadHours">—</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Pipeline Automatica</div>
+          <div class="panel-tag tag-blue">LAUNCHD · DOM 3:00 UTC</div>
+        </div>
+        <div style="padding:14px 18px">
+          <div style="font-size:11px;line-height:2;color:var(--text)">
+            <span style="color:var(--muted);display:inline-block;width:16px">1.</span><code style="font-size:10px;color:var(--accent)">build_dataset.py</code> — aggiorna dataset da Supabase<br>
+            <span style="color:var(--muted);display:inline-block;width:16px">2.</span><code style="font-size:10px;color:var(--accent)">train_xgboost.py</code> — ri-addestra XGBoost<br>
+            <span style="color:var(--muted);display:inline-block;width:16px">3.</span><code style="font-size:10px;color:var(--accent)">backtest.py</code> — walk-forward validation<br>
+            <span style="color:var(--muted);display:inline-block;width:16px">4.</span><code style="font-size:10px;color:var(--accent)">analyze_errors.py</code> — pattern errori<br>
+            <span style="color:var(--muted);display:inline-block;width:16px">5.</span><span style="color:var(--blue)">git push → Railway auto-deploy</span><br>
+            <span style="color:var(--muted);display:inline-block;width:16px">6.</span><span style="color:var(--blue)">/reload-calibration → hot reload</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Raw reports -->
+    <details style="margin-bottom:12px">
+      <summary style="cursor:pointer;font-size:11px;color:var(--muted);padding:6px 0;letter-spacing:1px;text-transform:uppercase">▸ XGBoost Model Report</summary>
+      <pre id="trn-xgbReport" style="font-size:11px;line-height:1.6;white-space:pre-wrap;overflow-x:auto;max-height:500px;overflow-y:auto;background:#111;padding:12px;border-radius:6px;color:#ccc;margin-top:8px">Loading...</pre>
+    </details>
+    <details>
+      <summary style="cursor:pointer;font-size:11px;color:var(--muted);padding:6px 0;letter-spacing:1px;text-transform:uppercase">▸ Walk-Forward Backtest Report</summary>
+      <pre id="trn-backtestReport" style="font-size:11px;line-height:1.6;white-space:pre-wrap;overflow-x:auto;max-height:400px;overflow-y:auto;background:#111;padding:12px;border-radius:6px;color:#ccc;margin-top:8px">Loading...</pre>
+    </details>
+
+  </div><!-- /#tab-training -->
 
 </div><!-- /.container -->
 <script>
@@ -2985,6 +3126,7 @@ function switchTab(btn) {
   if (targetTab === 'agents')   refreshAgentsTab();
   if (targetTab === 'costs')    refreshCostsTab();
   if (targetTab === 'backtest') fetchBacktestReport();
+  if (targetTab === 'training') fetchTrainingTab();
 }
 
 // ── AGENTS TAB ────────────────────────────────────────────────────────────────
@@ -3672,6 +3814,62 @@ async function fetchBotAlerts() {
       banner.classList.remove('visible');
     }
   } catch(e) { /* silent */ }
+}
+
+// Populate training tab with same /training-status data
+function renderTrainingTab(d) {
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  const bets = d.bets_since_retrain ?? 0;
+  const thr  = d.retrain_threshold ?? 30;
+  const pct  = Math.min(100, Math.round(bets / thr * 100));
+  set('trn-dirAcc',  d.direction_acc ? d.direction_acc.toFixed(1) + '%' : '—');
+  set('trn-trainN',  d.train_n ? d.train_n + ' signals in dataset' : '—');
+  set('trn-betsSince', bets !== null ? bets : '—');
+  set('trn-betsThr', '/ ' + thr + ' target');
+  set('trn-lastDate', d.last_retrain_iso || '—');
+  set('trn-daysAgo',  d.days_since_retrain !== null ? d.days_since_retrain + ' days ago' : '');
+  set('trn-nextDate', d.next_retrain_iso || '—');
+  const fill = document.getElementById('trn-progressFill');
+  if (fill) { fill.style.width = pct + '%'; if (pct >= 100) fill.style.background = 'var(--warn)'; }
+  set('trn-progressLabel', pct + '% toward next meaningful retrain (' + thr + ' new bets)');
+  // Status pill
+  const pill = document.getElementById('trn-statusPill');
+  const txt  = document.getElementById('trn-statusText');
+  if (pill && txt) {
+    const s = (d.status || '').toLowerCase();
+    pill.className = 'train-status-pill ' + s;
+    txt.textContent = s === 'recent' ? 'FRESH' : s === 'on_track' ? 'ON TRACK' : 'RETRAIN READY';
+  }
+  // Config (requires extended endpoint — graceful fallback)
+  set('trn-confThr',  d.confidence_threshold != null ? d.confidence_threshold.toFixed(2) : '0.65');
+  set('trn-baseSize', d.base_size_btc != null ? d.base_size_btc + ' BTC' : '0.002 BTC');
+  const xgbEl = document.getElementById('trn-xgbStatus');
+  const corrEl = document.getElementById('trn-corrStatus');
+  if (xgbEl)  { xgbEl.textContent = d.xgb_loaded != null ? (d.xgb_loaded ? '✅ Loaded' : '❌ Missing') : '—'; xgbEl.style.color = d.xgb_loaded ? 'var(--accent)' : 'var(--danger)'; }
+  if (corrEl) { corrEl.textContent = d.correctness_loaded != null ? (d.correctness_loaded ? '✅ Loaded' : '❌ Missing') : '—'; corrEl.style.color = d.correctness_loaded ? 'var(--accent)' : 'var(--danger)'; }
+  const deadEl = document.getElementById('trn-deadHours');
+  if (deadEl) deadEl.textContent = Array.isArray(d.dead_hours) && d.dead_hours.length ? d.dead_hours.map(h => h + 'h').join(' · ') : 'none';
+}
+
+async function fetchTrainingTab() {
+  try {
+    const [tsRes, btRes, xgbRes] = await Promise.allSettled([
+      fetch(`${CONFIG.RAILWAY_URL}/training-status`, { signal: AbortSignal.timeout(10000) }),
+      fetch(`${CONFIG.RAILWAY_URL}/backtest-report`, { signal: AbortSignal.timeout(10000) }),
+    ]);
+    if (tsRes.status === 'fulfilled' && tsRes.value.ok) {
+      const d = await tsRes.value.json();
+      renderTrainingTab(d);
+      // XGB report is in backtest-report response
+      if (btRes.status === 'fulfilled' && btRes.value.ok) {
+        const bt = await btRes.value.json();
+        const xpre = document.getElementById('trn-xgbReport');
+        if (xpre && bt.xgb_report) xpre.textContent = bt.xgb_report;
+        const bpre = document.getElementById('trn-backtestReport');
+        if (bpre && bt.backtest_report) bpre.textContent = bt.backtest_report;
+      }
+    }
+  } catch(e) { console.warn('fetchTrainingTab error:', e); }
 }
 
 // Refresh training status every 5 minutes
