@@ -1561,95 +1561,6 @@
   </div>
 
   <!-- ═══════════════════════════════════════════
-       TRADING STATS — Expectancy & Direction
-  ═══════════════════════════════════════════ -->
-  <div class="panel" style="margin-bottom:14px;" id="tradingStatsPanel">
-    <div class="panel-header">
-      <div class="panel-title">Trading Stats &mdash; Expectancy</div>
-      <div class="panel-tag tag-muted" id="tsVerdictBadge">LOADING</div>
-    </div>
-    <div style="padding:14px 18px 16px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px 20px;">
-      <div style="display:flex;flex-direction:column;gap:3px;">
-        <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Expectancy</div>
-        <div style="font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace;" id="tsExpectancy">&#8212;</div>
-        <div style="font-size:9px;color:var(--muted);">per bet (all time)</div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:3px;">
-        <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Expectancy L20</div>
-        <div style="font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace;" id="tsExpectancyL20">&#8212;</div>
-        <div style="font-size:9px;color:var(--muted);">last 20 bets</div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:3px;">
-        <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Avg Win / Avg Loss</div>
-        <div style="font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--warn);" id="tsWinLossRatio">&#8212;</div>
-        <div style="font-size:9px;color:var(--muted);">reward/risk ratio</div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:3px;">
-        <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">UP Bets WR</div>
-        <div style="font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--accent);" id="tsUpWr">&#8212;</div>
-        <div style="font-size:9px;color:var(--muted);" id="tsUpPnl">PnL: &#8212;</div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:3px;">
-        <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">DOWN Bets WR</div>
-        <div style="font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--danger);" id="tsDownWr">&#8212;</div>
-        <div style="font-size:9px;color:var(--muted);" id="tsDownPnl">PnL: &#8212;</div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:3px;">
-        <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Avg PnL / Bet</div>
-        <div style="font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace;" id="tsAvgPnl">&#8212;</div>
-        <div style="font-size:9px;color:var(--muted);" id="tsAvgPnlSub">wins: &#8212; / losses: &#8212;</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ═══════════════════════════════════════════
-       AUTO-TRAINING STATUS
-  ═══════════════════════════════════════════ -->
-  <div class="panel" style="margin-bottom:14px;" id="trainingStatusPanel">
-    <div class="panel-header">
-      <div class="panel-title">Auto-Training &mdash; XGBoost Engine</div>
-      <div id="trainStatusPill" class="train-status-pill recent">
-        <span id="trainStatusDot" style="width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0;animation:pulse 2s infinite;"></span>
-        <span id="trainStatusText">LOADING</span>
-      </div>
-    </div>
-    <div class="train-panel-grid">
-      <!-- New bets since retrain + progress bar -->
-      <div style="display:flex;flex-direction:column;gap:4px;">
-        <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">New Bets Since Retrain</div>
-        <div style="display:flex;align-items:baseline;gap:8px;">
-          <div style="font-size:28px;font-weight:700;font-family:'Syne',sans-serif;" id="trainBetsSince">—</div>
-          <div style="font-size:11px;color:var(--muted);" id="trainBetsThreshold">/ 30 target</div>
-        </div>
-        <div class="train-progress-bar">
-          <div class="train-progress-fill" id="trainProgressFill" style="width:0%"></div>
-        </div>
-        <div style="font-size:9px;color:var(--muted);margin-top:2px;" id="trainProgressLabel">0% toward next meaningful retrain</div>
-      </div>
-      <!-- Model accuracy -->
-      <div style="display:flex;flex-direction:column;gap:10px;">
-        <div style="display:flex;flex-direction:column;gap:2px;">
-          <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Direction Accuracy</div>
-          <div style="font-size:26px;font-weight:700;font-family:'Syne',sans-serif;color:var(--accent);" id="trainDirAcc">—</div>
-          <div style="font-size:9px;color:var(--muted);" id="trainTrainN">— signals in dataset</div>
-        </div>
-      </div>
-      <!-- Last retrain -->
-      <div style="display:flex;flex-direction:column;gap:3px;">
-        <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Last Retrain</div>
-        <div style="font-size:12px;font-weight:600;color:var(--text);" id="trainLastDate">—</div>
-        <div style="font-size:9px;color:var(--muted);" id="trainDaysAgo">—</div>
-      </div>
-      <!-- Next scheduled retrain -->
-      <div style="display:flex;flex-direction:column;gap:3px;">
-        <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Next Scheduled</div>
-        <div style="font-size:12px;font-weight:600;color:var(--blue);" id="trainNextDate">—</div>
-        <div style="font-size:9px;color:var(--muted);">Sunday 3:00 UTC · auto</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ═══════════════════════════════════════════
        CUMULATIVE EQUITY CURVE
   ═══════════════════════════════════════════ -->
   <div class="panel" style="margin-bottom:14px;">
@@ -1799,6 +1710,91 @@
         <div class="conf-bars" id="confDist"></div>
       </div>
 
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       AUTO-TRAINING STATUS
+  ═══════════════════════════════════════════ -->
+  <div class="panel" style="margin-bottom:14px;" id="trainingStatusPanel">
+    <div class="panel-header">
+      <div class="panel-title">Auto-Training &mdash; XGBoost Engine</div>
+      <div id="trainStatusPill" class="train-status-pill recent">
+        <span id="trainStatusDot" style="width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0;animation:pulse 2s infinite;"></span>
+        <span id="trainStatusText">LOADING</span>
+      </div>
+    </div>
+    <div class="train-panel-grid">
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">New Bets Since Retrain</div>
+        <div style="display:flex;align-items:baseline;gap:8px;">
+          <div style="font-size:28px;font-weight:700;font-family:'Syne',sans-serif;" id="trainBetsSince">—</div>
+          <div style="font-size:11px;color:var(--muted);" id="trainBetsThreshold">/ 30 target</div>
+        </div>
+        <div class="train-progress-bar">
+          <div class="train-progress-fill" id="trainProgressFill" style="width:0%"></div>
+        </div>
+        <div style="font-size:9px;color:var(--muted);margin-top:2px;" id="trainProgressLabel">0% toward next meaningful retrain</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Direction Accuracy</div>
+          <div style="font-size:26px;font-weight:700;font-family:'Syne',sans-serif;color:var(--accent);" id="trainDirAcc">—</div>
+          <div style="font-size:9px;color:var(--muted);" id="trainTrainN">— signals in dataset</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Last Retrain</div>
+        <div style="font-size:12px;font-weight:600;color:var(--text);" id="trainLastDate">—</div>
+        <div style="font-size:9px;color:var(--muted);" id="trainDaysAgo">—</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Next Scheduled</div>
+        <div style="font-size:12px;font-weight:600;color:var(--blue);" id="trainNextDate">—</div>
+        <div style="font-size:9px;color:var(--muted);">Sunday 3:00 UTC · auto</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       TRADING STATS — Expectancy & Direction
+  ═══════════════════════════════════════════ -->
+  <div class="panel" style="margin-bottom:14px;" id="tradingStatsPanel">
+    <div class="panel-header">
+      <div class="panel-title">Trading Stats &mdash; Expectancy</div>
+      <div class="panel-tag tag-muted" id="tsVerdictBadge">LOADING</div>
+    </div>
+    <div style="padding:14px 18px 16px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px 20px;">
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Expectancy</div>
+        <div style="font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace;" id="tsExpectancy">&#8212;</div>
+        <div style="font-size:9px;color:var(--muted);">per bet (all time)</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Expectancy L20</div>
+        <div style="font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace;" id="tsExpectancyL20">&#8212;</div>
+        <div style="font-size:9px;color:var(--muted);">last 20 bets</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Avg Win / Avg Loss</div>
+        <div style="font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--warn);" id="tsWinLossRatio">&#8212;</div>
+        <div style="font-size:9px;color:var(--muted);">reward/risk ratio</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">UP Bets WR</div>
+        <div style="font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--accent);" id="tsUpWr">&#8212;</div>
+        <div style="font-size:9px;color:var(--muted);" id="tsUpPnl">PnL: &#8212;</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">DOWN Bets WR</div>
+        <div style="font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--danger);" id="tsDownWr">&#8212;</div>
+        <div style="font-size:9px;color:var(--muted);" id="tsDownPnl">PnL: &#8212;</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Avg PnL / Bet</div>
+        <div style="font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace;" id="tsAvgPnl">&#8212;</div>
+        <div style="font-size:9px;color:var(--muted);" id="tsAvgPnlSub">wins: &#8212; / losses: &#8212;</div>
+      </div>
     </div>
   </div>
 
