@@ -2145,16 +2145,28 @@ def error_patterns():
 
 @app.route("/backtest-report", methods=["GET"])
 def backtest_report():
-    """Return last walk-forward backtest report."""
+    """Return last walk-forward backtest report and XGBoost training report."""
     import os as _os
-    report_path = _os.path.join(_os.path.dirname(__file__), "datasets", "backtest_report.txt")
+    base = _os.path.dirname(__file__)
+    report_path = _os.path.join(base, "datasets", "backtest_report.txt")
+    xgb_path = _os.path.join(base, "datasets", "xgb_report.txt")
     if not _os.path.exists(report_path):
         return jsonify({"error": "No backtest report found. Run backtest.py first."}), 404
     try:
         with open(report_path, "r") as f:
             content = f.read()
         lines = content.strip().split("\n")
-        return jsonify({"report": content, "lines": len(lines), "ok": True})
+        xgb_content = None
+        if _os.path.exists(xgb_path):
+            with open(xgb_path, "r") as f:
+                xgb_content = f.read()
+        return jsonify({
+            "report": content,
+            "backtest_report": content,
+            "xgb_report": xgb_content,
+            "lines": len(lines),
+            "ok": True,
+        })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
