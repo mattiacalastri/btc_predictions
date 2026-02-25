@@ -2535,7 +2535,7 @@ def commit_prediction():
             [bet_id, direction, int(confidence * 1e6), int(entry_price * 1e2), int(bet_size * 1e8), ts]
         )
 
-        nonce = w3.eth.get_transaction_count(account.address)
+        nonce = w3.eth.get_transaction_count(account.address, 'pending')
         tx = contract.functions.commit(bet_id, commit_hash).build_transaction({
             "from": account.address,
             "nonce": nonce,
@@ -2600,7 +2600,7 @@ def resolve_prediction():
             [bet_id, int(exit_price * 1e2), int(pnl_usd * 1e6), won, close_ts]
         )
 
-        nonce = w3.eth.get_transaction_count(account.address)
+        nonce = w3.eth.get_transaction_count(account.address, 'pending')
         tx = contract.functions.resolve(bet_id, resolve_hash, won).build_transaction({
             "from": account.address,
             "nonce": nonce,
