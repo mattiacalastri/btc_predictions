@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BTC BOT · ASTRA DIGITAL</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='15' fill='%230d0d0d'/%3E%3Ctext x='50' y='72' font-size='70' text-anchor='middle' fill='%2300ff88' font-family='Arial'%3E%E2%82%BF%3C/text%3E%3C/svg%3E">
 <style>
   :root {
     --bg: #080b0f;
@@ -493,6 +494,38 @@
   .tab-btn.active { background: rgba(0,255,136,0.08); border-color: rgba(0,255,136,0.3); color: var(--accent); }
   .tab-content { display: none; }
   .tab-content.active { display: block; }
+
+  /* ── TAB NAV MOBILE SCROLL ──────────────────────────────── */
+  @media (max-width: 900px) {
+    .tab-nav {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      flex-wrap: nowrap;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--bg);
+      padding: 8px 0 8px;
+      margin-bottom: 14px;
+      gap: 8px;
+    }
+    .tab-nav::-webkit-scrollbar { display: none; }
+    .tab-buttons {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      flex-shrink: 0;
+    }
+    .tab-buttons::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+  }
 
   /* ── AGENTS TAB ──────────────────────────────────────────── */
   .agents-section-header {
@@ -1104,6 +1137,11 @@
     .kpi-sub { white-space: normal; overflow: visible; text-overflow: unset; }
   }
 
+  /* Expectancy tab: 2-col grid on mobile */
+  @media (max-width: 600px) {
+    #exp-breakdownGrid { grid-template-columns: 1fr 1fr !important; }
+  }
+
   /* TASK 9 — Live Position widget layout su mobile */
   @media (max-width: 600px) {
     /* Stack tutto in colonna: info+pnl row | gauge barra sotto */
@@ -1247,11 +1285,12 @@
   <!-- TAB NAVIGATION + GLOBAL TIME FILTER -->
   <div class="tab-nav">
     <div class="tab-buttons">
-      <button class="tab-btn active" data-tab="dashboard" onclick="switchTab(this)">📊 Dashboard</button>
-      <button class="tab-btn"        data-tab="agents"    onclick="switchTab(this)">🤖 Agents</button>
-      <button class="tab-btn"        data-tab="costs"     onclick="switchTab(this)">💰 Costs</button>
-      <button class="tab-btn"        data-tab="backtest"  onclick="switchTab(this)">📈 Backtest</button>
-      <button class="tab-btn"        data-tab="training"  onclick="switchTab(this)">🧠 Training</button>
+      <button class="tab-btn active" data-tab="dashboard"   onclick="switchTab(this)">📊 Dashboard</button>
+      <button class="tab-btn"        data-tab="training"    onclick="switchTab(this)">🧠 Training</button>
+      <button class="tab-btn"        data-tab="expectancy"  onclick="switchTab(this)">📈 Expectancy</button>
+      <button class="tab-btn"        data-tab="agents"      onclick="switchTab(this)">🤖 Agents</button>
+      <button class="tab-btn"        data-tab="costs"       onclick="switchTab(this)">💰 Costs</button>
+      <button class="tab-btn"        data-tab="backtest"    onclick="switchTab(this)">📊 Backtest</button>
     </div>
     <div style="display:flex;align-items:center;gap:6px;">
       <span style="font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-right:4px">PERIOD</span>
@@ -2055,6 +2094,134 @@
     </div>
 
   </div><!-- /#tab-costs -->
+
+  <!-- EXPECTANCY TAB -->
+  <div id="tab-expectancy" class="tab-content">
+
+    <!-- KPI row -->
+    <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
+      <div class="kpi green">
+        <div class="kpi-label">Expectancy / Trade</div>
+        <div class="kpi-value green" id="exp-expectancy">—</div>
+        <div class="kpi-sub">E = WR x avgWin - (1-WR) x avgLoss</div>
+      </div>
+      <div class="kpi yellow">
+        <div class="kpi-label">Profit Factor</div>
+        <div class="kpi-value yellow" id="exp-profitFactor">—</div>
+        <div class="kpi-sub">gross wins / gross losses</div>
+      </div>
+      <div class="kpi blue">
+        <div class="kpi-label">Kelly %</div>
+        <div class="kpi-value blue" id="exp-kelly">—</div>
+        <div class="kpi-sub">optimal fraction</div>
+      </div>
+      <div class="kpi purple">
+        <div class="kpi-label">Win Rate</div>
+        <div class="kpi-value purple" id="exp-winRate">—</div>
+        <div class="kpi-sub" id="exp-winRateSub">executed bets</div>
+      </div>
+    </div>
+
+    <!-- Expectancy detail panel -->
+    <div class="panel" style="margin-bottom:16px">
+      <div class="panel-header">
+        <div class="panel-title">Expectancy &mdash; Formula Breakdown</div>
+        <div class="panel-tag" id="exp-verdictBadge" style="background:rgba(74,96,112,0.15);color:var(--muted);border:1px solid rgba(74,96,112,0.3)">LOADING</div>
+      </div>
+      <div style="padding:18px 20px;display:grid;grid-template-columns:repeat(3,1fr);gap:14px 24px;" id="exp-breakdownGrid">
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Avg Win</div>
+          <div style="font-size:22px;font-weight:700;font-family:'Syne',sans-serif;color:var(--accent);" id="exp-avgWin">—</div>
+          <div style="font-size:9px;color:var(--muted);">per winning bet</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Avg Loss</div>
+          <div style="font-size:22px;font-weight:700;font-family:'Syne',sans-serif;color:var(--danger);" id="exp-avgLoss">—</div>
+          <div style="font-size:9px;color:var(--muted);">per losing bet</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Win/Loss Ratio</div>
+          <div style="font-size:22px;font-weight:700;font-family:'Syne',sans-serif;color:var(--warn);" id="exp-wlRatio">—</div>
+          <div style="font-size:9px;color:var(--muted);">avgWin / avgLoss</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Total Bets (closed)</div>
+          <div style="font-size:22px;font-weight:700;font-family:'Syne',sans-serif;" id="exp-totalBets">—</div>
+          <div style="font-size:9px;color:var(--muted);">sample size</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Gross Wins</div>
+          <div style="font-size:22px;font-weight:700;font-family:'Syne',sans-serif;color:var(--accent);" id="exp-grossWins">—</div>
+          <div style="font-size:9px;color:var(--muted);">sum of profitable trades</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Gross Losses</div>
+          <div style="font-size:22px;font-weight:700;font-family:'Syne',sans-serif;color:var(--danger);" id="exp-grossLosses">—</div>
+          <div style="font-size:9px;color:var(--muted);">sum of losing trades</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Direction breakdown -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title" style="color:var(--accent)">▲ UP Bets</div>
+          <div class="panel-tag tag-green" id="exp-upWrBadge">—</div>
+        </div>
+        <div style="padding:14px 18px;display:flex;flex-direction:column;gap:8px;">
+          <div style="display:flex;justify-content:space-between;font-size:11px">
+            <span style="color:var(--muted)">Win Rate</span>
+            <span style="font-weight:700;color:var(--accent)" id="exp-upWr">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11px">
+            <span style="color:var(--muted)">Total PnL</span>
+            <span style="font-weight:700" id="exp-upPnl">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11px">
+            <span style="color:var(--muted)">Count</span>
+            <span style="font-weight:700" id="exp-upCount">—</span>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title" style="color:var(--danger)">▼ DOWN Bets</div>
+          <div class="panel-tag tag-red" id="exp-downWrBadge">—</div>
+        </div>
+        <div style="padding:14px 18px;display:flex;flex-direction:column;gap:8px;">
+          <div style="display:flex;justify-content:space-between;font-size:11px">
+            <span style="color:var(--muted)">Win Rate</span>
+            <span style="font-weight:700;color:var(--danger)" id="exp-downWr">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11px">
+            <span style="color:var(--muted)">Total PnL</span>
+            <span style="font-weight:700" id="exp-downPnl">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11px">
+            <span style="color:var(--muted)">Count</span>
+            <span style="font-weight:700" id="exp-downCount">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Expectancy L20 rolling -->
+    <div class="panel" style="margin-bottom:16px">
+      <div class="panel-header">
+        <div class="panel-title">Rolling Expectancy &mdash; Last 20 Bets</div>
+        <div class="panel-tag tag-blue" id="exp-l20Badge">—</div>
+      </div>
+      <div style="padding:14px 20px;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
+        <div style="font-size:36px;font-weight:800;font-family:'Syne',sans-serif;" id="exp-l20">—</div>
+        <div style="font-size:11px;color:var(--muted);line-height:1.6">
+          Expectancy delle ultime 20 bet chiuse.<br>
+          Positivo = sistema in profitto nel breve termine.
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /#tab-expectancy -->
 
   <!-- TRAINING TAB -->
   <div id="tab-training" class="tab-content">
@@ -3123,10 +3290,125 @@ function switchTab(btn) {
   const targetTab = btn.dataset.tab;
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   document.getElementById('tab-' + targetTab).classList.add('active');
-  if (targetTab === 'agents')   refreshAgentsTab();
-  if (targetTab === 'costs')    refreshCostsTab();
-  if (targetTab === 'backtest') fetchBacktestReport();
-  if (targetTab === 'training') fetchTrainingTab();
+  if (targetTab === 'agents')     refreshAgentsTab();
+  if (targetTab === 'costs')      refreshCostsTab();
+  if (targetTab === 'backtest')   fetchBacktestReport();
+  if (targetTab === 'training')   fetchTrainingTab();
+  if (targetTab === 'expectancy') fetchExpectancyTab();
+}
+
+// ── EXPECTANCY TAB ────────────────────────────────────────────────────────────
+
+async function fetchExpectancyTab() {
+  try {
+    const [tsRes, sigRes] = await Promise.allSettled([
+      fetch(`${CONFIG.RAILWAY_URL}/training-status`, { signal: AbortSignal.timeout(10000) }),
+      fetch(`${CONFIG.RAILWAY_URL}/signals?limit=500`,  { signal: AbortSignal.timeout(12000) })
+    ]);
+
+    // Build metrics from signals (closed bets only)
+    let signals = [];
+    if (sigRes.status === 'fulfilled' && sigRes.value.ok) {
+      const j = await sigRes.value.json();
+      signals = (j.signals || j || []);
+    }
+
+    const closedBets = signals.filter(s =>
+      s.classification === 'BET' && s.bet_taken &&
+      s.correct !== null && s.correct !== undefined
+    );
+
+    const wins   = closedBets.filter(s => s.correct === true);
+    const losses = closedBets.filter(s => s.correct === false);
+    const n      = closedBets.length;
+    const wr     = n > 0 ? wins.length / n : 0;
+
+    const grossWins   = wins.reduce((acc, s) => acc + parseFloat(s.pnl_usd || 0), 0);
+    const grossLosses = Math.abs(losses.reduce((acc, s) => acc + parseFloat(s.pnl_usd || 0), 0));
+    const avgWin  = wins.length   > 0 ? grossWins   / wins.length   : 0;
+    const avgLoss = losses.length > 0 ? grossLosses / losses.length : 0;
+    const expectancy = wr * avgWin - (1 - wr) * avgLoss;
+    const pf = grossLosses > 0 ? grossWins / grossLosses : (grossWins > 0 ? 999 : 0);
+    // Kelly: WR - (1-WR)/WL_ratio
+    const wlRatio = avgLoss > 0 ? avgWin / avgLoss : 0;
+    const kelly   = wlRatio > 0 ? (wr - (1 - wr) / wlRatio) * 100 : 0;
+
+    // Last 20 bets expectancy
+    const last20 = closedBets.slice(-20);
+    const l20w   = last20.filter(s => s.correct === true);
+    const l20l   = last20.filter(s => s.correct === false);
+    const l20n   = last20.length;
+    const l20wr  = l20n > 0 ? l20w.length / l20n : 0;
+    const l20aw  = l20w.length > 0 ? l20w.reduce((a, s) => a + parseFloat(s.pnl_usd || 0), 0) / l20w.length : 0;
+    const l20al  = l20l.length > 0 ? Math.abs(l20l.reduce((a, s) => a + parseFloat(s.pnl_usd || 0), 0)) / l20l.length : 0;
+    const l20exp = l20wr * l20aw - (1 - l20wr) * l20al;
+
+    // Direction breakdown
+    const upBets   = closedBets.filter(s => s.direction === 'UP');
+    const downBets = closedBets.filter(s => s.direction === 'DOWN');
+    const upWins   = upBets.filter(s => s.correct === true).length;
+    const downWins = downBets.filter(s => s.correct === true).length;
+    const upWr     = upBets.length   > 0 ? upWins   / upBets.length   : 0;
+    const downWr   = downBets.length > 0 ? downWins / downBets.length : 0;
+    const upPnl    = upBets.reduce((a, s) => a + parseFloat(s.pnl_usd || 0), 0);
+    const downPnl  = downBets.reduce((a, s) => a + parseFloat(s.pnl_usd || 0), 0);
+
+    // Render KPI row
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    const setHtml = (id, val) => { const el = document.getElementById(id); if (el) el.innerHTML = val; };
+    const fmtE = v => (v >= 0 ? '+' : '') + '$' + Math.abs(v).toFixed(3);
+
+    set('exp-expectancy',   fmtE(expectancy));
+    const expEl = document.getElementById('exp-expectancy');
+    if (expEl) expEl.className = 'kpi-value ' + (expectancy >= 0 ? 'green' : 'red');
+
+    set('exp-profitFactor', pf >= 999 ? '∞' : pf.toFixed(2));
+    set('exp-kelly',        (kelly > 0 ? kelly.toFixed(1) : '0.0') + '%');
+    set('exp-winRate',      (wr * 100).toFixed(1) + '%');
+    set('exp-winRateSub',   n + ' closed bets');
+
+    // Verdict badge
+    const badge = document.getElementById('exp-verdictBadge');
+    if (badge) {
+      if (expectancy > 0.05)       { badge.className = 'panel-tag tag-green'; badge.textContent = 'POSITIVE EV'; }
+      else if (expectancy >= -0.01){ badge.className = 'panel-tag tag-yellow'; badge.textContent = 'BREAK EVEN'; }
+      else                         { badge.className = 'panel-tag tag-red';    badge.textContent = 'NEGATIVE EV'; }
+    }
+
+    // Breakdown
+    set('exp-avgWin',     '$' + avgWin.toFixed(3));
+    set('exp-avgLoss',    '$' + avgLoss.toFixed(3));
+    set('exp-wlRatio',    wlRatio > 0 ? wlRatio.toFixed(2) + 'x' : '—');
+    set('exp-totalBets',  n);
+    set('exp-grossWins',  '$' + grossWins.toFixed(2));
+    set('exp-grossLosses','$' + grossLosses.toFixed(2));
+
+    // Direction
+    set('exp-upWr',    (upWr * 100).toFixed(1) + '%');
+    set('exp-upPnl',   (upPnl >= 0 ? '+' : '') + '$' + upPnl.toFixed(2));
+    set('exp-upCount', upBets.length + ' bets');
+    const upWrBadge = document.getElementById('exp-upWrBadge');
+    if (upWrBadge) upWrBadge.textContent = (upWr * 100).toFixed(1) + '%';
+
+    set('exp-downWr',    (downWr * 100).toFixed(1) + '%');
+    set('exp-downPnl',   (downPnl >= 0 ? '+' : '') + '$' + downPnl.toFixed(2));
+    set('exp-downCount', downBets.length + ' bets');
+    const downWrBadge = document.getElementById('exp-downWrBadge');
+    if (downWrBadge) downWrBadge.textContent = (downWr * 100).toFixed(1) + '%';
+
+    // L20
+    set('exp-l20', fmtE(l20exp));
+    const l20El = document.getElementById('exp-l20');
+    if (l20El) l20El.style.color = l20exp >= 0 ? 'var(--accent)' : 'var(--danger)';
+    const l20Badge = document.getElementById('exp-l20Badge');
+    if (l20Badge) {
+      l20Badge.textContent = 'LAST 20: ' + fmtE(l20exp);
+      l20Badge.className = 'panel-tag ' + (l20exp >= 0 ? 'tag-green' : 'tag-red');
+    }
+
+  } catch(e) {
+    console.warn('fetchExpectancyTab error:', e);
+  }
 }
 
 // ── AGENTS TAB ────────────────────────────────────────────────────────────────
@@ -4212,13 +4494,13 @@ function renderMobileBetList(data) {
     let resultText = '—', resultClass = '';
     const isBet = d.classification === 'BET' && d.bet_taken;
     if (d.correct === true) {
-      resultText  = isBet ? 'WIN' : 'RIGHT';
+      resultText  = isBet ? '&#x2705; WIN' : '&#x2705; RIGHT';
       resultClass = 'win';
     } else if (d.correct === false) {
-      resultText  = isBet ? 'LOSS' : 'WRONG';
+      resultText  = isBet ? '&#x274C; LOSS' : '&#x274C; WRONG';
       resultClass = 'loss';
     } else if (isBet) {
-      resultText  = 'OPEN';
+      resultText  = '&#x23F3; OPEN';
       resultClass = '';
     } else {
       resultText  = d.classification || '—';
