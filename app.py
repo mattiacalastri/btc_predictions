@@ -1702,7 +1702,7 @@ def costs():
     claude_code_cost = float(os.environ.get("CLAUDE_CODE_MONTHLY_USD", "0"))
 
     # ── 6. Railway (statico) ──────────────────────────────────────────────────
-    railway_plan = os.environ.get("RAILWAY_PLAN", "free").lower()
+    railway_plan = os.environ.get("RAILWAY_PLAN", "hobby").lower()
     railway_cost = 5.0 if railway_plan == "hobby" else 0.0
 
     total = round(
