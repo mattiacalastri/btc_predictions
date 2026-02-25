@@ -1,12 +1,8 @@
 # GitHub Actions CI/CD — BTC Prediction Bot
 #
-# SETUP REQUIRED:
-# 1. Go to GitHub repo → Settings → Secrets and variables → Actions
-# 2. Create a new secret named RAILWAY_DEPLOY_HOOK_URL
-#    Value: the deploy hook URL from Railway (Project → Settings → Deploy Hooks)
-#    Example: https://backboard.railway.app/graphql/internal?...
-#
-# The deploy job only runs on push to main (not on PRs).
+# Deploy automatico: Railway gestisce il deploy direttamente dopo che
+# questo workflow passa, grazie a "Wait for CI" attivato su Railway.
+# Non serve Deploy Hook — Railway vede lo status check di GitHub Actions.
 
 name: CI/CD
 
@@ -61,19 +57,3 @@ jobs:
           pytest tests/ -v --tb=short --cov=app --cov-report=term-missing \
             || [ $? -eq 5 ] && echo "No tests collected — skipping coverage."
 
-  deploy:
-    name: Deploy to Railway
-    runs-on: ubuntu-latest
-    needs: test
-    # Only deploy on push to main, not on PRs
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
-    steps:
-      - name: Trigger Railway deploy hook
-        # SETUP: Add RAILWAY_DEPLOY_HOOK_URL as a GitHub Actions secret.
-        # Railway → Project → Settings → Deploy Hooks → Create hook → copy URL.
-        run: |
-          curl -sS -X POST "${{ secrets.RAILWAY_DEPLOY_HOOK_URL }}" \
-            -w "\nHTTP status: %{http_code}\n" \
-            --fail \
-            || { echo "Railway deploy hook failed"; exit 1; }
