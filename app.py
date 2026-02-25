@@ -1481,7 +1481,7 @@ def rescue_orphaned():
         r = requests.get(
             f"{supabase_url}/rest/v1/btc_predictions"
             "?select=id,direction,created_at,entry_fill_price"
-            "&bet_taken=eq.true&correct=is.null&order=id.desc",
+            "&bet_taken=eq.true&correct=is.null&entry_fill_price=not.is.null&order=id.desc",
             headers={
                 "apikey": supabase_key,
                 "Authorization": f"Bearer {supabase_key}",
@@ -1934,7 +1934,7 @@ def orphaned_bets():
         r = requests.get(
             f"{sb_url}/rest/v1/btc_predictions"
             "?select=id,created_at,direction,btc_price_entry,bet_size"
-            "&bet_taken=eq.true&correct=is.null&order=id.desc&limit=20",
+            "&bet_taken=eq.true&correct=is.null&entry_fill_price=not.is.null&order=id.desc&limit=20",
             headers=sb_headers,
             timeout=6,
         )
