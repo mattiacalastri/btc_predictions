@@ -3617,6 +3617,57 @@ async function fetchTradingStats() {
   }
 }
 
+// ── HOURLY WR HEATMAP ───────────────────────────────────────────────────────
+
+async function fetchErrorPatterns() {
+  try {
+    const res = await fetch(`${CONFIG.RAILWAY_URL}/error-patterns`, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const d = await res.json();
+    renderHourlyHeatmap(d);
+  } catch(e) { console.warn('fetchErrorPatterns error:', e); }
+}
+
+function renderHourlyHeatmap(d) {
+  const grid = document.getElementById('hourlyHeatmapGrid');
+  const tag  = document.getElementById('heatmapTag');
+  if (!grid) return;
+
+  // Build hour map from all_patterns where type === 'hour'
+  const hourMap = {};
+  (d.all_patterns || []).filter(p => p.type === 'hour').forEach(p => {
+    const h = parseInt(p.label.match(/\d+/)?.[0] ?? '-1');
+    if (h >= 0) hourMap[h] = p;
+  });
+
+  grid.innerHTML = '';
+  for (let h = 0; h < 24; h++) {
+    const p = hourMap[h];
+    const hasData = p && p.n >= 5;
+    const wr = hasData ? p.wr : null;
+    let bg = 'rgba(255,255,255,0.03)';
+    let color = 'var(--muted)';
+    let borderColor = 'var(--border)';
+    if (hasData) {
+      if (wr > 0.55)      { bg = 'rgba(0,255,136,0.10)'; color = 'var(--accent)'; borderColor = 'rgba(0,255,136,0.3)'; }
+      else if (wr < 0.45) { bg = 'rgba(255,68,102,0.10)'; color = 'var(--danger)'; borderColor = 'rgba(255,68,102,0.3)'; }
+    }
+    const cell = document.createElement('div');
+    cell.style.cssText = `background:${bg};border:1px solid ${borderColor};padding:6px 4px;text-align:center;border-radius:2px;`;
+    cell.innerHTML = `<div style="font-size:8px;color:var(--muted);letter-spacing:1px;">${String(h).padStart(2,'0')}h</div>
+      <div style="font-size:10px;font-weight:700;color:${color};margin-top:2px;">${hasData ? Math.round(wr*100)+'%' : '\u2014'}</div>
+      ${hasData ? `<div style="font-size:7px;color:var(--muted);">${p.n}n</div>` : ''}`;
+    if (hasData) cell.title = `${p.label}: WR ${p.wr_pct}% on ${p.n} bets, PnL $${p.pnl?.toFixed(2)}`;
+    grid.appendChild(cell);
+  }
+
+  if (tag) {
+    const total = d.total_bets || 0;
+    tag.textContent = total + ' BETS';
+    tag.className = 'panel-tag tag-blue';
+  }
+}
+
 // Start everything
 refresh();
 setInterval(refresh, CONFIG.REFRESH_INTERVAL);
