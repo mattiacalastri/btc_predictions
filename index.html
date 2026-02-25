@@ -859,14 +859,6 @@
   .cube-face.cube-left   { transform: rotateY(-90deg)  translateZ(28px); }
   .cube-face.cube-top    { transform: rotateX(90deg)   translateZ(28px); }
   .cube-face.cube-bottom { transform: rotateX(-90deg)  translateZ(28px); }
-  /* ── Merkaba (stella tetraedrica — profit state) ─────────────────────────── */
-  .merkaba-scene { width: 56px; height: 56px; position: relative; perspective: 160px; }
-  .merkaba-tri { position: absolute; top: 0; left: 0; width: 56px; height: 56px; }
-  .merkaba-tri svg { width: 56px; height: 56px; display: block; }
-  .merkaba-tri-up   { animation: merkabaCW  6s linear infinite; }
-  .merkaba-tri-down { animation: merkabaCCW 6s linear infinite; }
-  @keyframes merkabaCW  { 0% { transform: rotateY(0deg) rotateX(20deg); } 100% { transform: rotateY(360deg) rotateX(20deg); } }
-  @keyframes merkabaCCW { 0% { transform: rotateY(0deg) rotateX(-20deg); } 100% { transform: rotateY(-360deg) rotateX(-20deg); } }
   .ai-decision { display:flex; align-items:center; gap:5px; font-size:10px; font-weight:700; letter-spacing:1px; color:var(--text); text-align:center; }
   .ai-status-dot { width:5px; height:5px; border-radius:50%; background:var(--accent); animation:pulse 1.5s ease-in-out infinite; flex-shrink:0; }
   .ai-think-label { font-size:7px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
@@ -1209,8 +1201,7 @@
       border-left: none;
       background: none;
     }
-    .lp-right .ai-cube-scene,
-    .lp-right .merkaba-scene {
+    .lp-right .ai-cube-scene {
       width: 44px;
       height: 44px;
       perspective: 130px;
@@ -1263,7 +1254,7 @@
 
   <!-- AI SIGNAL SOURCES -->
   <div class="sources-strip">
-    <div class="sources-label">AI FEEDS<br><em>11</em> SOURCES</div>
+    <div class="sources-label">AI FEEDS<br><em>13</em> SOURCES</div>
     <div class="sources-list">
       <div class="src-chip" style="--src-color:#00aaff" title="BTC/USD spot price — Kraken Futures">
         <div class="src-dot"></div>
@@ -1308,6 +1299,14 @@
       <div class="src-chip" style="--src-color:#e5251b" title="US financial &amp; markets news — CNBC Finance">
         <div class="src-dot"></div>
         <div class="src-info"><span class="src-name">CNBC</span><span class="src-cat">NEWS</span></div>
+      </div>
+      <div class="src-chip" style="--src-color:#00ccff" title="Order book imbalance 5 livelli bid/ask — Kraken Futures">
+        <div class="src-dot"></div>
+        <div class="src-info"><span class="src-name">ORDER BOOK</span><span class="src-cat">MICROSTRUCTURE</span></div>
+      </div>
+      <div class="src-chip" style="--src-color:#88ddff" title="EMA+RSI multi-timeframe 15m e 4h — Binance">
+        <div class="src-dot"></div>
+        <div class="src-info"><span class="src-name">MULTI-TF</span><span class="src-cat">TECHNICAL</span></div>
       </div>
     </div>
   </div>
@@ -1392,19 +1391,6 @@
             <div class="cube-face cube-left">EXIT</div>
             <div class="cube-face cube-top" id="cubeFaceConf">—%</div>
             <div class="cube-face cube-bottom">BOT</div>
-          </div>
-        </div>
-        <!-- Merkaba — due tetraedri controrifinanti, appare solo in stato profit -->
-        <div class="merkaba-scene" id="merkabaScene" style="display:none">
-          <div class="merkaba-tri merkaba-tri-up">
-            <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <polygon points="28,3 52,48 4,48" fill="rgba(0,255,136,0.08)" stroke="rgba(0,255,136,0.9)" stroke-width="1.5" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <div class="merkaba-tri merkaba-tri-down">
-            <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <polygon points="28,53 4,8 52,8" fill="rgba(0,255,136,0.04)" stroke="rgba(0,255,136,0.6)" stroke-width="1.5" stroke-linejoin="round"/>
-            </svg>
           </div>
         </div>
         <div class="ai-decision">
@@ -2724,16 +2710,6 @@ function renderLivePosition() {
   const cube  = document.getElementById('aiCube');
   const state = pnlUsd > 0.05 ? 'profit' : pnlUsd < -0.05 ? 'loss' : 'neutral';
   cube.dataset.state = state;
-  // Merkaba (stella tetraedrica) appare solo in stato profit
-  const cubeScene = document.getElementById('cubeScene');
-  const merkabaEl = document.getElementById('merkabaScene');
-  if (state === 'profit') {
-    if (cubeScene) cubeScene.style.display = 'none';
-    if (merkabaEl) merkabaEl.style.display = 'block';
-  } else {
-    if (cubeScene) cubeScene.style.display = '';
-    if (merkabaEl) merkabaEl.style.display = 'none';
-  }
 
   const aiText = document.getElementById('aiDecisionText');
   if (Math.abs(pnlUsd) < 0.02) aiText.textContent = 'Flat — watching';
@@ -2947,7 +2923,7 @@ function render(data) {
   document.getElementById('footerCapital').textContent = fmtUsd(capitalBase) + ' equity';
 
   document.getElementById('kpiWinRate').textContent = closedBets.length ? Math.round(correctBets.length / closedBets.length * 100) + '%' : '—';
-  const noBets        = data.filter(d => d.classification === 'NO_BET');
+  const noBets        = data.filter(d => !d.bet_taken);  // include SKIP+NO_BET+ALERT
   const noBetsClosed  = noBets.filter(d => d.correct !== null);
   const noBetsCorrect = noBetsClosed.filter(d => d.correct === true);
   document.getElementById('kpiWrNoBet').textContent = noBetsClosed.length ? Math.round(noBetsCorrect.length / noBetsClosed.length * 100) + '%' : '—';
@@ -4372,6 +4348,8 @@ fetch(CONFIG.RAILWAY_URL + '/health')
     'SOLE24ORE':   {cat:'NEWS',        color:'#ff6b35', desc:'Sole24Ore Italian financial news RSS. Captures European macro & regulatory sentiment on crypto.'},
     'PATTERNS':    {cat:'MEMORY',      color:'#ff44aa', desc:'Historical signal patterns from Supabase DB. Similar past setups and their outcomes inform the AI.'},
     'CNBC':        {cat:'NEWS',        color:'#e5251b', desc:'CNBC Finance RSS — US financial & markets headlines. Macro context from Wall Street perspective.'},
+    'ORDER BOOK':  {cat:'MICROSTRUCTURE', color:'#00ccff', desc:'Order book imbalance calcolato su 5 livelli bid/ask dal Kraken Futures. Segnali: STRONG_BUY_PRESSURE / MILD_BUY / NEUTRAL / MILD_SELL / STRONG_SELL. Utile per rilevare pressione immediata sul prezzo.'},
+    'MULTI-TF':    {cat:'TECHNICAL',   color:'#88ddff', desc:'Analisi multi-timeframe 15m e 4h: EMA9, EMA21, RSI14 per ciascuno. MTF Consensus: STRONG_UP (entrambi bullish), STRONG_DOWN (entrambi bearish), MIXED. Riduce il noise del timeframe 1m.'},
   };
   const KPI_INFO = {
     'BTC Price':      {cat:'LIVE DATA',  color:'#00aaff', desc:'Current BTC/USD price, refreshed every 30s from Kraken Futures mark price.'},
@@ -4403,15 +4381,44 @@ fetch(CONFIG.RAILWAY_URL + '/health')
 
   function hideModal() { modal.classList.remove('visible'); }
 
+  // Hover tooltip: segue il cursore, si mostra su src-chip e kpi
+  let _ttEl = null;
+  document.addEventListener('mousemove', function(e) {
+    const chip = e.target.closest('.src-chip');
+    const kpi  = e.target.closest('.kpi');
+    const newEl = chip || kpi || null;
+    if (newEl !== _ttEl) {
+      _ttEl = newEl;
+      if (!newEl) { hideModal(); return; }
+      if (chip) {
+        const name = chip.querySelector('.src-name')?.textContent.trim();
+        if (name && SOURCES_INFO[name]) showModal(e, name, SOURCES_INFO[name]);
+        else hideModal();
+      } else {
+        const label = kpi.querySelector('.kpi-label');
+        if (label) {
+          const key = Object.keys(KPI_INFO).find(k => label.textContent.includes(k));
+          if (key) showModal(e, key, KPI_INFO[key]); else hideModal();
+        } else hideModal();
+      }
+    } else if (_ttEl) {
+      // Aggiorna posizione seguendo il cursore
+      const pad = 12;
+      let x = e.clientX + pad, y = e.clientY + pad;
+      if (x + 340 > window.innerWidth)  x = e.clientX - 340;
+      if (y + 160 > window.innerHeight) y = e.clientY - 140;
+      modal.style.left = x + 'px';
+      modal.style.top  = y + 'px';
+    }
+  });
+  // Click per mobile (tap = show, tap altrove = hide)
   document.addEventListener('click', function(e) {
     const chip = e.target.closest('.src-chip');
+    const kpi  = e.target.closest('.kpi');
     if (chip) {
-      const name = chip.querySelector('.src-name').textContent.trim();
-      showModal(e, name, SOURCES_INFO[name]);
-      e.stopPropagation();
-      return;
+      const name = chip.querySelector('.src-name')?.textContent.trim();
+      if (name && SOURCES_INFO[name]) { showModal(e, name, SOURCES_INFO[name]); e.stopPropagation(); return; }
     }
-    const kpi = e.target.closest('.kpi');
     if (kpi) {
       const label = kpi.querySelector('.kpi-label');
       if (label) {
