@@ -1008,9 +1008,8 @@
   @media (max-width: 600px) {
     .sources-strip {
       flex-wrap: nowrap;
-      overflow-x: auto;
+      overflow: hidden;
       padding: 6px 10px;
-      -webkit-overflow-scrolling: touch;
     }
     .sources-label { display: none; }
     .sources-list {
@@ -1018,6 +1017,7 @@
       gap: 6px;
       flex-wrap: nowrap;
       flex-shrink: 0;
+      will-change: transform;
     }
     .src-chip { flex-shrink: 0; }
   }
@@ -4976,49 +4976,50 @@ document.addEventListener('DOMContentLoaded', function() {
   // Duplicate chips for seamless loop
   list.innerHTML += list.innerHTML;
 
-  const SPEED = 0.6; // px per frame
-  let paused       = false;
-  let raf          = null;
-  let touchStartX  = 0;
-  let touchScrollX = 0;
-
-  function halfWidth() { return list.scrollWidth / 2; }
+  const SPEED = 0.5; // px per frame
+  let paused      = false;
+  let offsetX     = 0;   // px traslazione corrente (negativa = scorri a sx)
+  let halfW       = 0;
+  let touchStartX = 0;
+  let touchBase   = 0;
 
   function tick() {
     if (!paused) {
-      strip.scrollLeft += SPEED;
-      if (strip.scrollLeft >= halfWidth()) strip.scrollLeft -= halfWidth();
+      offsetX -= SPEED;
+      if (offsetX <= -halfW) offsetX += halfW;
     }
-    raf = requestAnimationFrame(tick);
+    list.style.transform = `translateX(${offsetX}px)`;
+    requestAnimationFrame(tick);
   }
 
   // Touch: swipe manuale in real-time
   strip.addEventListener('touchstart', function(e) {
-    paused       = true;
-    touchStartX  = e.touches[0].clientX;
-    touchScrollX = strip.scrollLeft;
+    paused      = true;
+    touchStartX = e.touches[0].clientX;
+    touchBase   = offsetX;
   }, { passive: true });
 
   strip.addEventListener('touchmove', function(e) {
-    const dx = touchStartX - e.touches[0].clientX;
-    let next = touchScrollX + dx;
-    const hw = halfWidth();
-    // Mantieni il loop seamless anche durante lo swipe manuale
-    if (next >= hw)  next -= hw;
-    if (next < 0)    next += hw;
-    strip.scrollLeft = next;
+    const dx = e.touches[0].clientX - touchStartX;
+    offsetX = touchBase + dx;
+    if (offsetX > 0)       offsetX -= halfW;
+    if (offsetX <= -halfW) offsetX += halfW;
   }, { passive: true });
 
   strip.addEventListener('touchend', function() {
-    touchScrollX = strip.scrollLeft; // riprendi da dove si è fermato
-    paused = false;
+    touchBase = offsetX;
+    paused    = false;
   }, { passive: true });
 
   // Desktop: pausa su hover
   strip.addEventListener('mouseenter', function() { paused = true; });
   strip.addEventListener('mouseleave', function() { paused = false; });
 
-  raf = requestAnimationFrame(tick);
+  // Aspetta layout per misurare halfWidth correttamente
+  requestAnimationFrame(function() {
+    halfW = list.scrollWidth / 2;
+    requestAnimationFrame(tick);
+  });
 });
 
 // ── AI Cube: touch rotation (mobile only) ─────────────────────────────────────
@@ -5028,48 +5029,46 @@ document.addEventListener('DOMContentLoaded', function() {
   const scene = document.getElementById('cubeScene');
   if (!cube || !scene) return;
 
-  let touching = false;
-  let startX = 0, startY = 0;
-  let baseRX = 15, baseRY = 0;
+  // Prendi controllo: disabilita CSS animation, usiamo RAF
+  cube.style.animation = 'none';
 
-  // Legge rotateX/Y corrente dal computed matrix3d (colonna-major 4x4)
-  function readRotation() {
-    const t = window.getComputedStyle(cube).transform;
-    if (!t || t === 'none') return { rx: 15, ry: 0 };
-    const m = (t.match(/matrix3d\(([^)]+)\)/) || ['', ''])[1].split(',').map(Number);
-    if (m.length === 16) {
-      // rx = atan2(-m[9], m[10]),  ry = asin(clamp(m[8]))
-      const rx = Math.atan2(-m[9], m[10]) * 180 / Math.PI;
-      const ry = Math.asin(Math.max(-1, Math.min(1, m[8]))) * 180 / Math.PI;
-      return { rx, ry };
+  let rotX = 15, rotY = 0;   // rotazione corrente in gradi
+  let touching  = false;
+  let startX    = 0, startY = 0;
+  let baseRX    = 15, baseRY = 0;
+
+  // Auto-rotate: ~stessa velocità dell'animazione CSS originale (9s = 40°/s)
+  const AUTO_SPEED = 40 / 60; // gradi per frame a 60fps
+
+  function tick() {
+    if (!touching) {
+      rotX += AUTO_SPEED;
+      rotY += AUTO_SPEED;
     }
-    return { rx: 15, ry: 0 };
+    cube.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+    requestAnimationFrame(tick);
   }
 
   scene.addEventListener('touchstart', function(e) {
     touching = true;
-    cube.style.animationPlayState = 'paused';
-    const rot = readRotation();
-    baseRX = rot.rx;
-    baseRY = rot.ry;
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
+    startX   = e.touches[0].clientX;
+    startY   = e.touches[0].clientY;
+    baseRX   = rotX;
+    baseRY   = rotY;
   }, { passive: true });
 
   scene.addEventListener('touchmove', function(e) {
-    if (!touching) return;
     const dx = e.touches[0].clientX - startX;
     const dy = e.touches[0].clientY - startY;
-    const newRX = baseRX - dy * 0.6;
-    const newRY = baseRY + dx * 0.6;
-    cube.style.transform = `rotateX(${newRX}deg) rotateY(${newRY}deg)`;
+    rotX = baseRX - dy * 0.6;
+    rotY = baseRY + dx * 0.6;
   }, { passive: true });
 
   scene.addEventListener('touchend', function() {
-    touching = false;
-    cube.style.transform = '';          // rimuove override → animazione riprende
-    cube.style.animationPlayState = 'running';
+    touching = false; // riprende auto-rotate da rotX/rotY correnti
   }, { passive: true });
+
+  requestAnimationFrame(tick);
 })();
 
 // ── TASK 2: Story Highlights sync ─────────────────────────────────────────────
