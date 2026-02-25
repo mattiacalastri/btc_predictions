@@ -1277,29 +1277,29 @@
       display: block;
       position: absolute;
       top: -6px;
-      right: -6px;
+      right: 6px;
       z-index: 10;
       padding: 0;
       border-left: none;
       background: none;
     }
     .lp-right .ai-cube-scene {
-      width: 42px;
-      height: 42px;
-      perspective: 120px;
+      width: 52px;
+      height: 52px;
+      perspective: 150px;
       /* NO filter: drop-shadow — crea stacking context che rompe preserve-3d */
     }
     .lp-right .cube-face {
-      width: 42px;
-      height: 42px;
-      font-size: 7px;
+      width: 52px;
+      height: 52px;
+      font-size: 8px;
     }
-    .lp-right .cube-face.cube-front  { transform: translateZ(21px); }
-    .lp-right .cube-face.cube-back   { transform: rotateY(180deg)  translateZ(21px); }
-    .lp-right .cube-face.cube-right  { transform: rotateY(90deg)   translateZ(21px); }
-    .lp-right .cube-face.cube-left   { transform: rotateY(-90deg)  translateZ(21px); }
-    .lp-right .cube-face.cube-top    { transform: rotateX(90deg)   translateZ(21px); }
-    .lp-right .cube-face.cube-bottom { transform: rotateX(-90deg)  translateZ(21px); }
+    .lp-right .cube-face.cube-front  { transform: translateZ(26px); }
+    .lp-right .cube-face.cube-back   { transform: rotateY(180deg)  translateZ(26px); }
+    .lp-right .cube-face.cube-right  { transform: rotateY(90deg)   translateZ(26px); }
+    .lp-right .cube-face.cube-left   { transform: rotateY(-90deg)  translateZ(26px); }
+    .lp-right .cube-face.cube-top    { transform: rotateX(90deg)   translateZ(26px); }
+    .lp-right .cube-face.cube-bottom { transform: rotateX(-90deg)  translateZ(26px); }
     .lp-right .ai-decision,
     .lp-right .ai-think-label {
       display: none;
@@ -5136,6 +5136,7 @@ function stopWarRoomClock() {
 ═══════════════════════════════════════ */
 var _signalFilters = { type: 'all', outcome: 'all', direction: 'all' };
 var _signalCurrentData = [];
+var _origRenderTable = null; // assegnato in DOMContentLoaded
 
 function setSignalFilter(btn, group) {
   // Update active button in group
@@ -5194,15 +5195,16 @@ function applySignalFilters() {
 }
 
 function renderTableFiltered(filtered) {
-  // Re-use the existing renderTable logic but with pre-filtered data
-  // We temporarily override the filter selects to ALL so renderTable doesn't double-filter
+  // Chiama _origRenderTable direttamente per evitare la ricorsione:
+  // renderTable (patchata) → applySignalFilters → renderTableFiltered → renderTable → loop
+  if (!_origRenderTable) return;
   var dirEl   = document.getElementById('filterDir');
   var classEl = document.getElementById('filterClass');
   var origDir   = dirEl   ? dirEl.value   : 'ALL';
   var origClass = classEl ? classEl.value : 'ALL';
   if (dirEl)   dirEl.value   = 'ALL';
   if (classEl) classEl.value = 'ALL';
-  renderTable(filtered);
+  _origRenderTable(filtered);
   if (dirEl)   dirEl.value   = origDir;
   if (classEl) classEl.value = origClass;
 }
@@ -5211,16 +5213,17 @@ function renderTableFiltered(filtered) {
 var _origRenderAll = typeof renderAll === 'function' ? renderAll : null;
 // Override after DOMContentLoaded since renderAll is defined in the same script
 document.addEventListener('DOMContentLoaded', function() {
-  // Patch renderTable to also feed _signalCurrentData
-  var _origRenderTable = window.renderTable;
+  // Patch renderTable per catturare _signalCurrentData e applicare i filtri pill
+  _origRenderTable = window.renderTable;
   if (_origRenderTable) {
     window.renderTable = function(data) {
+      // Aggiorna il dataset completo (MAI sovrascrivere con dati già filtrati)
       _signalCurrentData = data;
-      // Apply our pill/search filters on top of period filter
       var search = (document.getElementById('signal-search') || {}).value || '';
       search = search.toLowerCase().replace(/^[🔍\s]+/, '').trim();
       var hasFilter = (_signalFilters.type !== 'all' || _signalFilters.outcome !== 'all' || _signalFilters.direction !== 'all' || search !== '');
       if (hasFilter) {
+        // applySignalFilters → renderTableFiltered → _origRenderTable (nessuna ricorsione)
         applySignalFilters();
       } else {
         _origRenderTable(data);
