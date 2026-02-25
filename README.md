@@ -177,6 +177,13 @@ The authors and contributors of this project are not licensed financial advisors
 
 ---
 
+## Contact
+
+**BTC Predictor** · [btcpredictor.io](https://btcpredictor.io)
+✉ [signal@btcpredictor.io](mailto:signal@btcpredictor.io)
+
+---
+
 ## License
 
 MIT
