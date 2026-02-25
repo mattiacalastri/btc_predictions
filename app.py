@@ -2615,10 +2615,12 @@ def resolve_prediction():
 
 def _supabase_update(bet_id: int, fields: dict):
     """Helper: aggiorna una riga Supabase per bet_id."""
-    url = f"{CONFIG.SUPABASE_URL}/rest/v1/btc_predictions?id=eq.{bet_id}"
+    sb_url = os.environ.get("SUPABASE_URL", "")
+    sb_key = os.environ.get("SUPABASE_KEY", "")
+    url = f"{sb_url}/rest/v1/btc_predictions?id=eq.{bet_id}"
     headers = {
-        "apikey": CONFIG.SUPABASE_KEY,
-        "Authorization": f"Bearer {CONFIG.SUPABASE_KEY}",
+        "apikey": sb_key,
+        "Authorization": f"Bearer {sb_key}",
         "Content-Type": "application/json",
         "Prefer": "return=minimal",
     }
