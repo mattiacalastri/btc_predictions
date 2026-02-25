@@ -1012,15 +1012,16 @@
   @media (max-width: 600px) {
     .sources-strip {
       flex-wrap: nowrap;
-      overflow: hidden;
+      overflow-x: auto;
       padding: 6px 10px;
+      -webkit-overflow-scrolling: touch;
     }
     .sources-label { display: none; }
     .sources-list {
       display: flex;
       gap: 6px;
       flex-wrap: nowrap;
-      width: max-content;
+      flex-shrink: 0;
     }
     .src-chip { flex-shrink: 0; }
   }
@@ -1214,7 +1215,7 @@
   @media (max-width: 600px) {
     .stats-row { grid-template-columns: repeat(3, 1fr); }
     .stat-cell { padding: 8px 10px; }
-    .stat-cell-label { font-size: 7px; }
+    .stat-cell-label { font-size: 9px; }
     .stat-cell-val { font-size: 14px; }
   }
 
@@ -1252,6 +1253,14 @@
   /* Expectancy tab: 2-col grid on mobile */
   @media (max-width: 600px) {
     #exp-breakdownGrid { grid-template-columns: 1fr 1fr !important; }
+  }
+
+  /* Ultra-small screens (iPhone SE, 375px) */
+  @media (max-width: 375px) {
+    .stat-cell-label { font-size: 8px; letter-spacing: 1px; }
+    .stat-cell-val   { font-size: 13px; }
+    .kpi-value       { font-size: 15px !important; }
+    .stats-row       { grid-template-columns: repeat(2, 1fr); }
   }
 
   /* TASK 9 — Live Position widget layout su mobile */
