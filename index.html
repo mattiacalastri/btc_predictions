@@ -1925,6 +1925,7 @@
               <th>PNL $ / THR%</th>
               <th>FEE $</th>
               <th>SL/TP</th>
+              <th title="On-chain audit trail — Polygon PoS">⛓</th>
             </tr>
           </thead>
           <tbody id="signalTable"></tbody>
@@ -2147,6 +2148,10 @@
 
   <footer>
     <div class="footer-text">ASTRA DIGITAL MARKETING · <span>BOT ENGINE</span> · AUTO REFRESH 60s</div>
+    <div class="footer-text" style="font-size:9px">
+      ⛓ <span>ON-CHAIN</span> · Polygon PoS ·
+      <a href="https://polygonscan.com/address/0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;letter-spacing:1px" title="BTCBotAudit.sol — immutable prediction audit trail">0xe4661F…833a55 ↗</a>
+    </div>
     <div class="config-hint">Table: <code>btc_predictions</code> · Capital: <code id="footerCapital">$20 USDC</code> · Refresh <code>60s</code></div>
   </footer>
 
@@ -3409,6 +3414,7 @@ function renderTable(data) {
       <td>${pnlCell}</td>
       <td>${feeCell}</td>
       <td>${d.sl_price || d.tp_price || d.rr_ratio ? `<span style="font-size:9px;color:var(--danger)">SL ${d.sl_price ? fmtPrice(d.sl_price) : '—'}</span><br><span style="font-size:9px;color:var(--accent)">TP ${d.tp_price ? fmtPrice(d.tp_price) : '—'}</span><br><span style="font-size:9px;color:var(--muted)">RR ${d.rr_ratio ? parseFloat(d.rr_ratio).toFixed(2) + '×' : '—'}</span>` : '<span style="color:var(--muted)">—</span>'}</td>
+      <td style="text-align:center">${d.onchain_commit_tx ? `<a href="https://polygonscan.com/tx/${d.onchain_commit_tx}" target="_blank" rel="noopener" title="Verified on Polygon PoS" style="text-decoration:none;font-size:13px">🔗</a>` : '<span style="color:var(--muted);font-size:9px">—</span>'}</td>
     </tr>`;
   }).join('');
   renderMobileBetList(data);
