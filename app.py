@@ -558,8 +558,8 @@ def place_bet():
                     "xgb_prob_up": round(float(prob[1]), 3),
                     "message": f"XGB predicts {xgb_direction}, LLM predicts {direction}. Skipping for safety.",
                 }), 200
-        except Exception:
-            pass  # XGB check failed → procedi senza gate
+        except Exception as e:
+            app.logger.warning(f"[XGB] Check failed: {e}")
 
     desired_side = "long" if direction == "UP" else "short"
 
@@ -1841,6 +1841,9 @@ def risk_metrics():
 
 @app.route("/wf-status", methods=["GET"])
 def wf_status():
+    err = _check_api_key()
+    if err:
+        return err
     sb_url = os.environ.get("SUPABASE_URL", "")
     sb_key = os.environ.get("SUPABASE_KEY", "")
     sb_headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
@@ -1899,6 +1902,9 @@ def wf_status():
 
 @app.route("/orphaned-bets", methods=["GET"])
 def orphaned_bets():
+    err = _check_api_key()
+    if err:
+        return err
     import datetime
     sb_url = os.environ.get("SUPABASE_URL", "")
     sb_key = os.environ.get("SUPABASE_KEY", "")
