@@ -1248,6 +1248,134 @@
       box-sizing: border-box;
     }
   }
+
+  /* ═══════════════════════════════════════
+     WAR ROOM MODE
+  ═══════════════════════════════════════ */
+  .war-room-btn {
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    border: 1px solid rgba(0,255,65,0.35);
+    background: rgba(0,255,65,0.05);
+    color: #00ff41;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .war-room-btn:hover { background: rgba(0,255,65,0.12); border-color: rgba(0,255,65,0.6); }
+  .war-room-btn.wr-active { background: rgba(0,255,65,0.15); border-color: #00ff41; box-shadow: 0 0 8px rgba(0,255,65,0.25); }
+
+  /* WAR ROOM BODY OVERRIDES */
+  body.war-room { background: #000 !important; color: #00ff41 !important; }
+  body.war-room::before { background-image: linear-gradient(rgba(0,255,65,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,65,0.04) 1px, transparent 1px); }
+  body.war-room .kpi { background: #0a0a0a !important; border: 1px solid #00ff41 !important; box-shadow: 0 0 10px rgba(0,255,65,0.3) !important; }
+  body.war-room .kpi::after { display: none; }
+  body.war-room .kpi-value { font-size: 2.2rem !important; font-family: 'JetBrains Mono', monospace !important; line-height: 1.1 !important; }
+  body.war-room .kpi-label { color: #888 !important; font-family: 'JetBrains Mono', monospace !important; font-size: 0.65rem !important; letter-spacing: 1px !important; }
+  body.war-room .kpi-sub   { color: #555 !important; font-size: 0.7rem !important; }
+  body.war-room .tab-btn   { background: #0a0a0a !important; border-color: #222 !important; color: #555 !important; }
+  body.war-room .tab-btn.active { background: rgba(0,255,65,0.1) !important; border-color: #00ff41 !important; color: #00ff41 !important; }
+  body.war-room .tab-nav   { background: #000 !important; border-color: #111 !important; }
+  body.war-room .panel, body.war-room .acct-panel { background: #0a0a0a !important; border-color: #1a1a1a !important; }
+  body.war-room .panel-header, body.war-room .acct-panel-header { background: #050505 !important; border-color: #111 !important; }
+  body.war-room header { border-color: #111 !important; }
+  /* Hide non-essential elements in War Room */
+  body.war-room footer { display: none !important; }
+  body.war-room .sources-strip { display: none !important; }
+  body.war-room .charts-grid { display: none !important; }
+  body.war-room .stats-row { display: none !important; }
+  body.war-room #pnlChartPanel { display: none !important; }
+
+  /* War Room header bar */
+  #warRoomHeader {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0 14px;
+    border-bottom: 1px solid #00ff41;
+    margin-bottom: 14px;
+  }
+  body.war-room #warRoomHeader { display: flex; }
+  #warRoomTitle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    font-weight: 700;
+    color: #00ff41;
+    letter-spacing: 3px;
+    text-shadow: 0 0 16px rgba(0,255,65,0.5);
+  }
+  #warRoomClock {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    color: #00ff41;
+    letter-spacing: 4px;
+    text-shadow: 0 0 12px rgba(0,255,65,0.4);
+  }
+  #warRoomClockLabel {
+    font-size: 8px;
+    color: #555;
+    letter-spacing: 2px;
+    text-align: right;
+    margin-top: 2px;
+  }
+
+  /* ═══════════════════════════════════════
+     SIGNAL LOG FILTERS
+  ═══════════════════════════════════════ */
+  .signal-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    background: var(--card);
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    align-items: center;
+  }
+  .filter-group { display: flex; gap: 4px; }
+  .filter-btn {
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.72rem;
+    letter-spacing: 0.8px;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .filter-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+  .filter-btn.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 700; }
+  .filter-group-sep { width: 1px; background: var(--border); align-self: stretch; margin: 0 2px; }
+  #signal-search {
+    flex: 1;
+    min-width: 140px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.72rem;
+    padding: 4px 10px;
+    border-radius: 20px;
+    outline: none;
+    letter-spacing: 0.5px;
+    transition: border-color 0.15s;
+  }
+  #signal-search::placeholder { color: var(--muted); }
+  #signal-search:focus { border-color: rgba(0,255,136,0.4); }
+  body.war-room .signal-filters { background: #0a0a0a; border-color: #222; }
+  body.war-room .filter-btn { border-color: #333; color: #555; }
+  body.war-room .filter-btn.active { background: #00ff41; color: #000; border-color: #00ff41; }
+  body.war-room #signal-search { background: #050505; border-color: #333; color: #00ff41; }
 </style>
 </head>
 <body>
@@ -1255,6 +1383,15 @@
   🧪 DRY RUN MODE — Nessun trade reale in esecuzione
 </div>
 <div class="container">
+
+  <!-- WAR ROOM HEADER (visible only when body.war-room is active) -->
+  <div id="warRoomHeader">
+    <div id="warRoomTitle">&#9876;&#65039; BTC BOT // WAR ROOM</div>
+    <div style="text-align:right;">
+      <div id="warRoomClock">00:00:00</div>
+      <div id="warRoomClockLabel">UTC</div>
+    </div>
+  </div>
 
   <header>
     <div>
@@ -1347,7 +1484,9 @@
       <button class="tab-btn"        data-tab="costs"       onclick="switchTab(this)">💰 Costs</button>
       <button class="tab-btn"        data-tab="backtest"    onclick="switchTab(this)">📊 Backtest</button>
     </div>
-    <div style="display:flex;align-items:center;gap:6px;">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <button class="war-room-btn" id="warRoomToggle" onclick="toggleWarRoom(this)">&#9876;&#65039; War Room</button>
+      <div style="width:1px;height:20px;background:var(--border);"></div>
       <span style="font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-right:4px">PERIOD</span>
       <button class="time-pill active" data-period="ALL"   onclick="setTimePeriod(this)">ALL</button>
       <button class="time-pill"        data-period="7D"    onclick="setTimePeriod(this)">7D</button>
@@ -1676,6 +1815,29 @@
           <select id="filterDir"   class="filter-sel"><option value="ALL">ALL DIR</option><option value="UP">UP</option><option value="DOWN">DOWN</option></select>
           <select id="filterClass" class="filter-sel"><option value="ALL">ALL</option><option value="BET">BETS</option><option value="NO_BET">NO-BET</option></select>
         </div>
+      </div>
+      <!-- SIGNAL LOG FILTER BAR -->
+      <div class="signal-filters" id="signalFiltersBar">
+        <div class="filter-group">
+          <button class="filter-btn active" data-filter="type" data-value="all" onclick="setSignalFilter(this,'type')">Tutti</button>
+          <button class="filter-btn"        data-filter="type" data-value="bet"   onclick="setSignalFilter(this,'type')">BET</button>
+          <button class="filter-btn"        data-filter="type" data-value="skip"  onclick="setSignalFilter(this,'type')">SKIP</button>
+          <button class="filter-btn"        data-filter="type" data-value="nobet" onclick="setSignalFilter(this,'type')">NO BET</button>
+        </div>
+        <div class="filter-group-sep"></div>
+        <div class="filter-group">
+          <button class="filter-btn active" data-filter="outcome" data-value="all"  onclick="setSignalFilter(this,'outcome')">Tutti</button>
+          <button class="filter-btn"        data-filter="outcome" data-value="win"  onclick="setSignalFilter(this,'outcome')">WIN</button>
+          <button class="filter-btn"        data-filter="outcome" data-value="loss" onclick="setSignalFilter(this,'outcome')">LOSS</button>
+          <button class="filter-btn"        data-filter="outcome" data-value="open" onclick="setSignalFilter(this,'outcome')">Aperte</button>
+        </div>
+        <div class="filter-group-sep"></div>
+        <div class="filter-group">
+          <button class="filter-btn active" data-filter="direction" data-value="all"  onclick="setSignalFilter(this,'direction')">Entrambe</button>
+          <button class="filter-btn"        data-filter="direction" data-value="up"   onclick="setSignalFilter(this,'direction')">&#8593; UP</button>
+          <button class="filter-btn"        data-filter="direction" data-value="down" onclick="setSignalFilter(this,'direction')">&#8595; DOWN</button>
+        </div>
+        <input type="text" id="signal-search" placeholder="&#128269; Cerca ID, conf..." oninput="applySignalFilters()">
       </div>
       <div class="table-wrap">
         <table>
@@ -3378,8 +3540,8 @@ async function refresh() {
   catch(e) { console.error('Render error:', e); }
 }
 
-document.getElementById('filterDir').addEventListener('change',   () => renderTable(filterByPeriod(allData)));
-document.getElementById('filterClass').addEventListener('change', () => renderTable(filterByPeriod(allData)));
+document.getElementById('filterDir').addEventListener('change',   () => { if (typeof applySignalFilters === 'function') applySignalFilters(); else renderTable(filterByPeriod(allData)); });
+document.getElementById('filterClass').addEventListener('change', () => { if (typeof applySignalFilters === 'function') applySignalFilters(); else renderTable(filterByPeriod(allData)); });
 
 // ── TAB SYSTEM ────────────────────────────────────────────────────────────────
 
@@ -4778,6 +4940,146 @@ document.addEventListener('click', function(e) {
   }
   _showTooltip(el, title, '', desc);
 }, true);
+
+/* ═══════════════════════════════════════
+   WAR ROOM
+═══════════════════════════════════════ */
+var _warRoomClockInterval = null;
+
+function toggleWarRoom(btn) {
+  var body = document.body;
+  var active = body.classList.toggle('war-room');
+  btn.classList.toggle('wr-active', active);
+  localStorage.setItem('warRoomActive', active ? '1' : '0');
+  if (active) {
+    startWarRoomClock();
+  } else {
+    stopWarRoomClock();
+  }
+}
+
+function startWarRoomClock() {
+  stopWarRoomClock();
+  function tick() {
+    var now = new Date();
+    var h = String(now.getUTCHours()).padStart(2,'0');
+    var m = String(now.getUTCMinutes()).padStart(2,'0');
+    var s = String(now.getUTCSeconds()).padStart(2,'0');
+    var el = document.getElementById('warRoomClock');
+    if (el) el.textContent = h + ':' + m + ':' + s;
+  }
+  tick();
+  _warRoomClockInterval = setInterval(tick, 1000);
+}
+
+function stopWarRoomClock() {
+  if (_warRoomClockInterval) { clearInterval(_warRoomClockInterval); _warRoomClockInterval = null; }
+}
+
+// Restore War Room on page load
+(function() {
+  if (localStorage.getItem('warRoomActive') === '1') {
+    document.body.classList.add('war-room');
+    var btn = document.getElementById('warRoomToggle');
+    if (btn) btn.classList.add('wr-active');
+    startWarRoomClock();
+  }
+})();
+
+/* ═══════════════════════════════════════
+   SIGNAL LOG FILTERS
+═══════════════════════════════════════ */
+var _signalFilters = { type: 'all', outcome: 'all', direction: 'all' };
+var _signalCurrentData = [];
+
+function setSignalFilter(btn, group) {
+  // Update active button in group
+  var groupBtns = document.querySelectorAll('.filter-btn[data-filter="' + group + '"]');
+  groupBtns.forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  _signalFilters[group] = btn.dataset.value;
+  applySignalFilters();
+}
+
+function applySignalFilters() {
+  if (!_signalCurrentData || !_signalCurrentData.length) return;
+  var search = (document.getElementById('signal-search') || {}).value || '';
+  search = search.toLowerCase().replace(/^[🔍\s]+/, '').trim();
+
+  var filtered = _signalCurrentData.filter(function(d) {
+    // Type filter
+    var type = _signalFilters.type;
+    if (type !== 'all') {
+      if (type === 'bet'   && d.classification !== 'BET')    return false;
+      if (type === 'skip'  && d.classification !== 'SKIP')   return false;
+      if (type === 'nobet' && d.bet_taken)                   return false;
+    }
+    // Outcome filter
+    var outcome = _signalFilters.outcome;
+    if (outcome !== 'all') {
+      if (outcome === 'win'  && d.correct !== true)                               return false;
+      if (outcome === 'loss' && d.correct !== false)                              return false;
+      if (outcome === 'open' && !(d.bet_taken && d.correct === null))             return false;
+    }
+    // Direction filter
+    var dir = _signalFilters.direction;
+    if (dir !== 'all') {
+      var dDir = (d.direction || '').toUpperCase();
+      if (dir === 'up'   && dDir !== 'UP')   return false;
+      if (dir === 'down' && dDir !== 'DOWN') return false;
+    }
+    // Search
+    if (search) {
+      var haystack = [
+        String(d.id || ''),
+        String(d.confidence || ''),
+        String(d.classification || ''),
+        String(d.prediction || ''),
+        String(d.direction || '')
+      ].join(' ').toLowerCase();
+      if (haystack.indexOf(search) === -1) return false;
+    }
+    return true;
+  });
+
+  renderTableFiltered(filtered);
+}
+
+function renderTableFiltered(filtered) {
+  // Re-use the existing renderTable logic but with pre-filtered data
+  // We temporarily override the filter selects to ALL so renderTable doesn't double-filter
+  var dirEl   = document.getElementById('filterDir');
+  var classEl = document.getElementById('filterClass');
+  var origDir   = dirEl   ? dirEl.value   : 'ALL';
+  var origClass = classEl ? classEl.value : 'ALL';
+  if (dirEl)   dirEl.value   = 'ALL';
+  if (classEl) classEl.value = 'ALL';
+  renderTable(filtered);
+  if (dirEl)   dirEl.value   = origDir;
+  if (classEl) classEl.value = origClass;
+}
+
+// Hook into the existing renderAll to capture data for our filters
+var _origRenderAll = typeof renderAll === 'function' ? renderAll : null;
+// Override after DOMContentLoaded since renderAll is defined in the same script
+document.addEventListener('DOMContentLoaded', function() {
+  // Patch renderTable to also feed _signalCurrentData
+  var _origRenderTable = window.renderTable;
+  if (_origRenderTable) {
+    window.renderTable = function(data) {
+      _signalCurrentData = data;
+      // Apply our pill/search filters on top of period filter
+      var search = (document.getElementById('signal-search') || {}).value || '';
+      search = search.toLowerCase().replace(/^[🔍\s]+/, '').trim();
+      var hasFilter = (_signalFilters.type !== 'all' || _signalFilters.outcome !== 'all' || _signalFilters.direction !== 'all' || search !== '');
+      if (hasFilter) {
+        applySignalFilters();
+      } else {
+        _origRenderTable(data);
+      }
+    };
+  }
+});
 </script>
 <div id="infoModal">
   <div class="im-title" id="imTitle"></div>
