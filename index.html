@@ -954,6 +954,7 @@
     background: rgba(255,170,0,0.08); border: 1px solid rgba(255,170,0,0.3);
     border-radius: 2px; padding: 8px 14px; margin-bottom: 14px;
     font-size: 11px; color: var(--warn); font-weight: 600; letter-spacing: 1px;
+    word-break: break-word;
   }
   #botAlertBanner.visible { display: flex; }
 
@@ -1146,6 +1147,17 @@
     .stat-cell { padding: 8px 10px; }
     .stat-cell-label { font-size: 7px; }
     .stat-cell-val { font-size: 14px; }
+  }
+
+  /* Auto-training panel single-column on mobile */
+  @media (max-width: 600px) {
+    .train-panel-grid {
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    .train-panel-grid > div:first-child {
+      order: 1; /* New bets + progress bar first */
+    }
   }
 
   /* TASK 9 — Live Position widget layout su mobile */
@@ -1526,6 +1538,25 @@
     <div class="stat-cell mobile-only">
       <div class="stat-cell-label">Best Streak</div>
       <div class="stat-cell-val" id="statBestStreak" style="color:var(--accent)">—</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       HOURLY WR HEATMAP
+  ═══════════════════════════════════════════ -->
+  <!-- HOURLY WR HEATMAP -->
+  <div class="panel" style="margin-bottom:14px;" id="hourlyHeatmapPanel">
+    <div class="panel-header">
+      <div class="panel-title">Win Rate per UTC Hour</div>
+      <div class="panel-tag tag-muted" id="heatmapTag">LOADING</div>
+    </div>
+    <div style="padding:12px 18px 14px;">
+      <div id="hourlyHeatmapGrid" style="display:grid;grid-template-columns:repeat(8,1fr);gap:4px;"></div>
+      <div style="display:flex;gap:16px;margin-top:8px;font-size:9px;color:var(--muted);">
+        <span style="color:var(--accent);">&#9632; &gt;55% WR</span>
+        <span style="color:var(--danger);">&#9632; &lt;45% WR</span>
+        <span style="color:var(--muted);">&#9632; neutral / no data</span>
+      </div>
     </div>
   </div>
 
@@ -3598,6 +3629,7 @@ setInterval(refreshAccountSummary, CONFIG.ACCT_REFRESH);
 
 fetchEquityHistory();
 fetchTradingStats();
+fetchErrorPatterns();
 fetchTrainingStatus();
 fetchBotAlerts();
 
