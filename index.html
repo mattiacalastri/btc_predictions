@@ -789,7 +789,7 @@
     border: 1px solid rgba(0,255,136,0.25);
     box-shadow: 0 0 24px rgba(0,255,136,0.06);
     position: relative;
-    overflow: hidden;
+    overflow: visible;
   }
   .live-pos-card::before {
     content: '';
@@ -1287,7 +1287,7 @@
 
     /* PnL: spostato a destra nella stessa prima riga tramite margin-left:auto */
     .lp-left .lp-pnl {
-      font-size: 28px;
+      font-size: 20px;
       font-weight: 900;
       letter-spacing: -0.5px;
       line-height: 1;
@@ -1296,17 +1296,23 @@
       text-align: right;
       align-self: center;
       flex: 0 0 auto;
+      padding-right: 52px; /* spazio per il cubo che sborda */
     }
 
-    /* AI cube su mobile: angolo top-right assoluto, sborda di 12px per effetto profondità */
+    /* AI cube su mobile: angolo top-right assoluto, sborda per effetto profondità */
+    #livePositionWidget {
+      position: relative;
+      z-index: 10;
+      overflow: visible;
+    }
     .live-pos-card {
       overflow: visible;
     }
     .lp-right {
       display: block;
       position: absolute;
-      top: -6px;
-      right: 6px;
+      top: -20px;
+      right: 8px;
       z-index: 50;
       padding: 0;
       border-left: none;
