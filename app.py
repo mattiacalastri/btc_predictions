@@ -1129,6 +1129,8 @@ def get_signals():
             "Authorization": f"Bearer {supabase_key}"
         }, timeout=10)
 
+        if not res.ok:
+            return jsonify({"error": f"Supabase HTTP {res.status_code}"}), 502
         return jsonify(res.json()), res.status_code
 
     except Exception as e:
@@ -1159,6 +1161,8 @@ def performance_stats():
             "apikey": supabase_key,
             "Authorization": f"Bearer {supabase_key}"
         }, timeout=5)
+        if not res.ok:
+            return jsonify({"perf_stats_text": "n/a (Supabase error)"}), 200
         rows = res.json()
 
         if not rows or len(rows) < 5:
@@ -2545,13 +2549,19 @@ def commit_prediction():
 
         commit_hash_hex = commit_hash.hex()
 
-        # Aggiorna Supabase
-        _supabase_update(bet_id, {
-            "onchain_commit_hash": commit_hash_hex,
-            "onchain_commit_tx": tx_hex,
-        })
-
         app.logger.info(f"[ONCHAIN] commit bet #{bet_id} → tx {tx_hex}")
+
+        # Aggiorna Supabase — errore non critico (tx già inviata on-chain)
+        try:
+            _supabase_update(bet_id, {
+                "onchain_commit_hash": commit_hash_hex,
+                "onchain_commit_tx": tx_hex,
+            })
+        except Exception as sb_err:
+            app.logger.error(f"[ONCHAIN] Supabase update failed for bet #{bet_id}: {sb_err}")
+            return jsonify({"ok": True, "commit_hash": commit_hash_hex, "tx": tx_hex,
+                            "warning": "tx sent but Supabase update failed"})
+
         return jsonify({"ok": True, "commit_hash": commit_hash_hex, "tx": tx_hex})
 
     except Exception as e:
@@ -2604,12 +2614,19 @@ def resolve_prediction():
 
         resolve_hash_hex = resolve_hash.hex()
 
-        _supabase_update(bet_id, {
-            "onchain_resolve_hash": resolve_hash_hex,
-            "onchain_resolve_tx": tx_hex,
-        })
-
         app.logger.info(f"[ONCHAIN] resolve bet #{bet_id} won={won} → tx {tx_hex}")
+
+        # Aggiorna Supabase — errore non critico (tx già inviata on-chain)
+        try:
+            _supabase_update(bet_id, {
+                "onchain_resolve_hash": resolve_hash_hex,
+                "onchain_resolve_tx": tx_hex,
+            })
+        except Exception as sb_err:
+            app.logger.error(f"[ONCHAIN] Supabase update failed for bet #{bet_id}: {sb_err}")
+            return jsonify({"ok": True, "resolve_hash": resolve_hash_hex, "tx": tx_hex,
+                            "warning": "tx sent but Supabase update failed"})
+
         return jsonify({"ok": True, "resolve_hash": resolve_hash_hex, "tx": tx_hex})
 
     except Exception as e:
