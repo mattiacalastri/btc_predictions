@@ -330,7 +330,7 @@ def row_to_csv_dict(row: dict, cvd_6m_pct: float | None = None) -> dict:
         # NaN/vuoto = dati non disponibili (retroattivo non richiesto).
         "cvd_6m_pct": cvd_6m_pct if cvd_6m_pct is not None else "",
         # Categoriche (encoded)
-        "ema_trend_up": 1 if row.get("ema_trend", "").upper() == "UP" else 0,
+        "ema_trend_up": 1 if (row.get("ema_trend") or "").upper() == "UP" else 0,
         "technical_bias_bullish": 1 if "bull" in (row.get("technical_bias") or "").lower() else 0,
         "signal_technical_buy": 1 if (row.get("signal_technical") or "").upper() == "BUY" else 0,
         "signal_sentiment_pos": 1 if (row.get("signal_sentiment") or "").upper() in ("POSITIVE", "POS", "BUY") else 0,

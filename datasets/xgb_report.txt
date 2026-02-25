@@ -1,24 +1,27 @@
-Generated: 2026-02-24 03:00:00
-[00:01:20] Righe valide dopo dropna: 294/294
-  Totale righe:   294
-  WIN rate:       51.4%
+Generated: 2026-02-25 09:52:43
+[10:52:43] hour_sin/hour_cos trovati nel CSV — nessun ricalcolo
+[10:52:43] Feature opzionale 'cvd_6m_pct' saltata (0.0% copertura < 80%)
+[10:52:43] Righe valide dopo dropna: 366/366
+  Totale righe:   366
+  WIN rate:       51.9%
   UP rate:        50.0%  (DOWN: 50.0%)
-  Confidence avg: 0.617
-  RSI14 avg:      50.0
-  Tech score avg: 0.47
+  Confidence avg: 0.628
+  RSI14 avg:      50.2
+  Tech score avg: 0.17
   Impara a predire la direzione BTC dai dati di mercato,
   indipendentemente dal segnale LLM.
 
   Feature Importance (direzione):
   Feature                    Importance
   --------------------------------------
-  technical_score            0.2718  ██████████
-  technical_bias_bullish     0.1655  ██████
-  fear_greed_value           0.1509  ██████
-  confidence                 0.1442  █████
-  signal_fg_fear             0.1327  █████
-  rsi14                      0.0709  ██
-  hour_utc                   0.0640  ██
+  technical_score            0.2252  █████████
+  confidence                 0.1695  ██████
+  technical_bias_bullish     0.1429  █████
+  signal_fg_fear             0.1390  █████
+  fear_greed_value           0.1144  ████
+  rsi14                      0.0865  ███
+  hour_sin                   0.0689  ██
+  hour_cos                   0.0537  ██
   ema_trend_up               0.0000  
   signal_technical_buy       0.0000  
   signal_sentiment_pos       0.0000  
@@ -27,30 +30,31 @@ Generated: 2026-02-24 03:00:00
   Classification Report:
               precision    recall  f1-score   support
 
-        DOWN      0.960     0.973     0.966       147
-          UP      0.972     0.959     0.966       147
+        DOWN      0.947     0.978     0.962       183
+          UP      0.977     0.945     0.961       183
 
-    accuracy                          0.966       294
-   macro avg      0.966     0.966     0.966       294
-weighted avg      0.966     0.966     0.966       294
+    accuracy                          0.962       366
+   macro avg      0.962     0.962     0.962       366
+weighted avg      0.962     0.962     0.962       366
 
   Confusion Matrix (DOWN/UP):
     Pred→  DOWN   UP
-    DOWN    143     4
-    UP        6   141
+    DOWN    179     4
+    UP       10   173
   Dati le stesse features, il segnale LLM sarà corretto?
   Utile come filtro di qualità: bet solo se XGB dice 'correct'.
 
   Feature Importance (correttezza):
   Feature                    Importance
   --------------------------------------
-  rsi14                      0.1811  ███████
-  confidence                 0.1620  ██████
-  hour_utc                   0.1577  ██████
-  technical_score            0.1423  █████
-  signal_fg_fear             0.1243  ████
-  fear_greed_value           0.1195  ████
-  technical_bias_bullish     0.1131  ████
+  rsi14                      0.1583  ██████
+  hour_cos                   0.1366  █████
+  confidence                 0.1245  ████
+  technical_score            0.1236  ████
+  signal_fg_fear             0.1231  ████
+  hour_sin                   0.1212  ████
+  fear_greed_value           0.1170  ████
+  technical_bias_bullish     0.0956  ███
   ema_trend_up               0.0000  
   signal_technical_buy       0.0000  
   signal_sentiment_pos       0.0000  
@@ -59,50 +63,50 @@ weighted avg      0.966     0.966     0.966       294
   Classification Report:
               precision    recall  f1-score   support
 
-       WRONG      0.908     0.902     0.905       143
-     CORRECT      0.908     0.914     0.911       151
+       WRONG      0.924     0.898     0.911       176
+     CORRECT      0.908     0.932     0.919       190
 
-    accuracy                          0.908       294
-   macro avg      0.908     0.908     0.908       294
-weighted avg      0.908     0.908     0.908       294
+    accuracy                          0.915       366
+   macro avg      0.916     0.915     0.915       366
+weighted avg      0.916     0.915     0.915       366
 
   Binning per confidence — mostra se confidence è calibrata:
   Bucket          N   WinRate    AvgConf
   ----------------------------------------
-  [0.50,0.55)    52     48.1%      0.513
-  [0.55,0.60)    51     47.1%      0.566
-  [0.60,0.62)    29     48.3%      0.600
-  [0.62,0.65)    43     58.1%      0.622
-  [0.65,0.70)    50     46.0%      0.661
-  [0.70,0.80)    64     57.8%      0.730
+  [0.50,0.55)    57     47.4%      0.512
+  [0.55,0.60)    65     49.2%      0.566
+  [0.60,0.62)    29     51.7%      0.600
+  [0.62,0.65)    49     57.1%      0.622
+  [0.65,0.70)    57     47.4%      0.661
+  [0.70,0.80)   104     56.7%      0.734
    Ora     N   WinRate   Direzione
   -----------------------------------
-     0h    12     25.0%      75.0%UP
-     1h     5     20.0%      20.0%UP
-     2h     6     83.3%       0.0%UP
-     3h     5     60.0%       0.0%UP
-     4h     7     71.4%       0.0%UP
-     5h    10     30.0%      50.0%UP
-     6h    11     63.6%      45.5%UP
-     7h     9     33.3%      11.1%UP
-     8h     8     50.0%      62.5%UP
-     9h     9     55.6%      44.4%UP
-    10h    17     52.9%      64.7%UP
-    11h     5     60.0%      80.0%UP
-    12h    12     33.3%      50.0%UP
-    13h    17     47.1%      47.1%UP
-    14h    13     38.5%      30.8%UP
-    15h    16     68.8%      50.0%UP
-    16h    14     35.7%      57.1%UP
-    17h    21     52.4%      66.7%UP
-    18h    17     64.7%      64.7%UP
-    19h    16     31.2%      37.5%UP
-    20h    13     61.5%      38.5%UP
-    21h    19     73.7%      84.2%UP
-    22h    24     58.3%      62.5%UP
-    23h     8     50.0%      12.5%UP
-  ✅ Direction model accuracy 83.3% > 55% — le features hanno potere predittivo
-  ⚠️  Correctness model accuracy 51.7% ≤ 55% — LLM non più prevedibile delle features
+     0h    21     42.9%      81.0%UP
+     1h    16     56.2%      43.8%UP
+     2h    11     54.5%      27.3%UP
+     3h    14     50.0%      14.3%UP
+     4h     9     55.6%      11.1%UP
+     5h    16     50.0%      56.2%UP
+     6h    20     55.0%      25.0%UP
+     7h    18     44.4%      11.1%UP
+     8h    16     62.5%      68.8%UP
+     9h    11     45.5%      45.5%UP
+    10h    16     50.0%      68.8%UP
+    11h     6     66.7%      66.7%UP
+    12h    13     38.5%      46.2%UP
+    13h    19     57.9%      42.1%UP
+    14h    12     41.7%      33.3%UP
+    15h    12     66.7%      66.7%UP
+    16h    18     33.3%      44.4%UP
+    17h    22     45.5%      63.6%UP
+    18h    19     63.2%      57.9%UP
+    19h    11     36.4%      54.5%UP
+    20h    13     53.8%      38.5%UP
+    21h    21     71.4%      76.2%UP
+    22h    21     47.6%      71.4%UP
+    23h    11     63.6%      45.5%UP
+  ✅ Direction model accuracy 85.2% > 55% — le features hanno potere predittivo
+  ⚠️  Correctness model accuracy 52.7% ≤ 55% — LLM non più prevedibile delle features
 
   Prossimi step:
   1. Integra correctness_model in /bet-sizing per ridurre size se XGB=WRONG
