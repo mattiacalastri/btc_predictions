@@ -159,6 +159,24 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions, open areas, and w
 
 ---
 
+## Disclaimer
+
+**This project is for educational and research purposes only.**
+
+This software does not constitute financial advice, investment advice, trading advice, or any other sort of advice. Nothing in this repository should be interpreted as a recommendation to buy, sell, or hold any financial instrument.
+
+Trading cryptocurrency futures involves substantial risk of loss. Past performance of the bot — including win rate, PnL, and backtest results — is not indicative of future results. You may lose some or all of your capital.
+
+The authors and contributors of this project are not licensed financial advisors. By using, forking, or deploying this software you acknowledge that:
+
+- You take full responsibility for any trading decisions made by you or by a deployed instance of this software.
+- The authors provide no warranty of any kind, express or implied, regarding the accuracy, reliability, or profitability of the system.
+- You have read and understood the applicable laws and regulations in your jurisdiction regarding automated trading systems (including but not limited to MiCA / ESMA in the EU).
+
+**Run with `DRY_RUN=true` (the default in `.env.example`) to paper-trade and understand the system before using real funds.**
+
+---
+
 ## License
 
 MIT
