@@ -656,137 +656,58 @@
   opacity: 0.6;
 }
 
-/* KPI MODAL */
-#kpiModalOverlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.65);
-  z-index: 1999;
-}
-#kpiModal {
+/* KPI TOOLTIP (floating card, no overlay) */
+#kpiTooltip {
   display: none;
   position: fixed;
   z-index: 2000;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: min(520px, 90vw);
-  max-height: 80vh;
-  overflow-y: auto;
-  padding: 20px 24px;
+  width: 220px;
+  padding: 12px 14px 13px;
   background: var(--card);
   border: 1px solid var(--border);
-  box-shadow: 0 12px 40px rgba(0,0,0,0.7);
+  border-top: 2px solid var(--accent);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.55);
+  border-radius: 6px;
   font-family: 'JetBrains Mono', monospace;
-  border-radius: 4px;
+  opacity: 0;
+  transform: translateY(6px) scale(0.97);
+  transition: opacity 0.14s ease, transform 0.14s ease;
+  pointer-events: none;
 }
-#kpiModal .km-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--border);
+#kpiTooltip.kt-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
 }
-#kpiModal .km-title {
+#kpiTooltip .kt-label {
   font-family: 'Syne', sans-serif;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 1.2px;
-  text-transform: uppercase;
-  color: var(--text);
-}
-#kpiModal .km-close {
-  background: none;
-  border: none;
-  color: var(--muted);
-  font-size: 18px;
-  cursor: pointer;
-  padding: 0 4px;
-  line-height: 1;
-  transition: color 0.15s;
-}
-#kpiModal .km-close:hover { color: var(--text); }
-#kpiModal .km-body {
-  font-size: 11px;
-  color: var(--muted);
-  line-height: 1.7;
-}
-#kpiModal .km-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 5px 0;
-  border-bottom: 1px solid rgba(30,45,61,0.5);
-}
-#kpiModal .km-row:last-child { border-bottom: none; }
-#kpiModal .km-label { color: var(--muted); font-size: 10px; letter-spacing: 0.5px; }
-#kpiModal .km-val   { color: var(--text);  font-size: 12px; font-weight: 700; }
-#kpiModal .km-val.green  { color: var(--accent); }
-#kpiModal .km-val.red    { color: var(--danger); }
-#kpiModal .km-val.blue   { color: var(--blue); }
-#kpiModal .km-val.yellow { color: var(--warn); }
-#kpiModal .km-val.purple { color: #aa66ff; }
-#kpiModal .km-section {
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 1.5px;
   text-transform: uppercase;
   color: var(--muted);
-  margin: 12px 0 6px;
-  padding-bottom: 4px;
-  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
 }
-#kpiModal .km-fg-bar {
-  display: flex;
-  gap: 2px;
-  margin: 10px 0 4px;
-  height: 20px;
-  border-radius: 3px;
-  overflow: hidden;
-}
-#kpiModal .km-fg-seg {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 8px;
+#kpiTooltip .kt-val {
+  font-size: 18px;
   font-weight: 700;
-  letter-spacing: 0.5px;
-  color: rgba(0,0,0,0.8);
-}
-#kpiModal .km-fg-labels {
-  display: flex;
-  gap: 2px;
+  color: var(--text);
   margin-bottom: 8px;
+  line-height: 1;
 }
-#kpiModal .km-fg-labels span {
-  flex: 1;
-  font-size: 7px;
-  text-align: center;
+#kpiTooltip .kt-desc {
+  font-size: 10px;
   color: var(--muted);
-  letter-spacing: 0.3px;
+  line-height: 1.6;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
 }
-#kpiModal .km-conf-bar-wrap {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 4px 0;
-}
-#kpiModal .km-conf-bar-bg {
-  flex: 1;
-  height: 6px;
-  background: var(--border);
-  border-radius: 3px;
-  overflow: hidden;
-}
-#kpiModal .km-conf-bar-fill {
-  height: 100%;
-  border-radius: 3px;
-  background: var(--blue);
-  transition: width 0.3s;
-}
+/* Clickable hint on KPI tiles */
+.kpi-grid .kpi { cursor: pointer; }
+.kpi-grid .kpi:hover { border-color: rgba(0,255,136,0.25); }
+/* [i] badge on hoverable elements */
+[data-tip]          { cursor: pointer; }
+[data-tip]:hover    { opacity: 0.85; }
 
 /* ═══════════════════════════════════════
    LIVE POSITION WIDGET
@@ -1501,12 +1422,12 @@
       <div class="kpi-sub">Single trade</div>
     </div>
     <!-- Mobile-only: 2 extra KPI slots fill the last row on 3-col mobile grid -->
-    <div class="kpi mobile-only green">
+    <div class="kpi mobile-only green" data-tip-title="Expectancy" data-tip="Valore atteso per ogni bet = PnL totale / numero bet chiuse. Positivo = sistema profittevole nel lungo periodo.">
       <div class="kpi-label">Expectancy</div>
       <div class="kpi-value white" id="kpiExpectancyVal">—</div>
       <div class="kpi-sub">avg $/bet</div>
     </div>
-    <div class="kpi mobile-only purple">
+    <div class="kpi mobile-only purple" data-tip-title="Profit Factor" data-tip="Profit Factor = Guadagni lordi / Perdite lorde. Sopra 1.0 = sistema in profitto. &gt;1.5 è considerato buono.">
       <div class="kpi-label">Profit Factor</div>
       <div class="kpi-value purple" id="kpiProfitFactorVal">—</div>
       <div class="kpi-sub">wins/losses</div>
@@ -1535,28 +1456,9 @@
       <div class="stat-cell-val" id="statRR" style="color:var(--accent)">—</div>
     </div>
     <!-- Mobile-only: fills empty slot in 3-col row 2 -->
-    <div class="stat-cell mobile-only">
+    <div class="stat-cell mobile-only" data-tip-title="Best Win Streak" data-tip="Numero massimo di vincite consecutive nell'intera storia delle bet. Indica la stabilità del modello.">
       <div class="stat-cell-label">Best Streak</div>
       <div class="stat-cell-val" id="statBestStreak" style="color:var(--accent)">—</div>
-    </div>
-  </div>
-
-  <!-- ═══════════════════════════════════════════
-       HOURLY WR HEATMAP
-  ═══════════════════════════════════════════ -->
-  <!-- HOURLY WR HEATMAP -->
-  <div class="panel" style="margin-bottom:14px;" id="hourlyHeatmapPanel">
-    <div class="panel-header">
-      <div class="panel-title">Win Rate per UTC Hour</div>
-      <div class="panel-tag tag-muted" id="heatmapTag">LOADING</div>
-    </div>
-    <div style="padding:12px 18px 14px;">
-      <div id="hourlyHeatmapGrid" style="display:grid;grid-template-columns:repeat(8,1fr);gap:4px;"></div>
-      <div style="display:flex;gap:16px;margin-top:8px;font-size:9px;color:var(--muted);">
-        <span style="color:var(--accent);">&#9632; &gt;55% WR</span>
-        <span style="color:var(--danger);">&#9632; &lt;45% WR</span>
-        <span style="color:var(--muted);">&#9632; neutral / no data</span>
-      </div>
     </div>
   </div>
 
@@ -1566,7 +1468,7 @@
   <div class="panel" style="margin-bottom:14px;">
     <div class="panel-header">
       <div class="panel-title">Cumulative Equity Curve (Real Bets)</div>
-      <div class="panel-tag tag-green" id="equityTag">LOADING</div>
+      <div class="panel-tag tag-green" id="equityTag" data-tip-title="Equity Curve" data-tip="Curva del capitale nel tempo basata sui PnL reali di ogni bet chiusa. Include fee di trading.">LOADING</div>
     </div>
     <div style="padding:16px 18px 10px;">
       <svg id="equitySvg" class="equity-svg" height="110" viewBox="0 0 1000 110" preserveAspectRatio="none"></svg>
@@ -1719,7 +1621,7 @@
   <div class="panel" style="margin-bottom:14px;" id="trainingStatusPanel">
     <div class="panel-header">
       <div class="panel-title">Auto-Training &mdash; XGBoost Engine</div>
-      <div id="trainStatusPill" class="train-status-pill recent">
+      <div id="trainStatusPill" class="train-status-pill recent" data-tip-title="Auto-Training Status" data-tip="RECENT = retrained &lt;7 giorni fa. ON TRACK = last train &lt;14 giorni. RETRAIN READY = &gt;14 giorni, domenica notte verrà riaddestrато. Il retraining avviene ogni domenica alle 3:00 AM automaticamente.">
         <span id="trainStatusDot" style="width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0;animation:pulse 2s infinite;"></span>
         <span id="trainStatusText">LOADING</span>
       </div>
@@ -1794,6 +1696,24 @@
         <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Avg PnL / Bet</div>
         <div style="font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace;" id="tsAvgPnl">&#8212;</div>
         <div style="font-size:9px;color:var(--muted);" id="tsAvgPnlSub">wins: &#8212; / losses: &#8212;</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       HOURLY WR HEATMAP
+  ═══════════════════════════════════════════ -->
+  <div class="panel" style="margin-bottom:14px;" id="hourlyHeatmapPanel">
+    <div class="panel-header">
+      <div class="panel-title">Win Rate per UTC Hour</div>
+      <div class="panel-tag tag-muted" id="heatmapTag" data-tip="Heatmap delle performance orarie. Basato su tutte le scommesse chiuse, mostra a quali ore del giorno il bot performa meglio.">LOADING</div>
+    </div>
+    <div style="padding:12px 18px 14px;">
+      <div id="hourlyHeatmapGrid" style="display:grid;grid-template-columns:repeat(8,1fr);gap:4px;"></div>
+      <div style="display:flex;gap:16px;margin-top:8px;font-size:9px;color:var(--muted);">
+        <span style="color:var(--accent);">&#9632; &gt;55% WR</span>
+        <span style="color:var(--danger);">&#9632; &lt;45% WR</span>
+        <span style="color:var(--muted);">&#9632; neutral / no data</span>
       </div>
     </div>
   </div>
@@ -4133,7 +4053,7 @@ function renderMobileBetList(data) {
   }).join('');
 }
 
-/* ── KPI MODAL ─────────────────────────────────────────── */
+/* ── KPI TOOLTIP ─────────────────────────────────────────── */
 const KPI_DESCRIPTIONS = {
   kpiPrice:           { label: 'BTC Price',        desc: 'Current BTC price at last bet entry.' },
   kpiTotal:           { label: 'Total Signals',    desc: 'Total signals generated by the AI system (LLM + XGB).' },
@@ -4149,34 +4069,95 @@ const KPI_DESCRIPTIONS = {
   kpiProfitFactorVal: { label: 'Profit Factor',    desc: 'Profit Factor = Gross Wins / Gross Losses (>1.5 is good).' }
 };
 
-function openKpiModal(kpiId) {
-  const meta = KPI_DESCRIPTIONS[kpiId];
+var _kpiTipOpen = false;
+var _kpiTipTimeout = null;
+
+function _positionTooltip(tip, anchor) {
+  var rect = anchor.getBoundingClientRect();
+  var tipW = 220;
+  tip.style.display = 'block';
+  var tipH = tip.offsetHeight;
+  var left = rect.left;
+  var top  = rect.bottom + 8;
+  if (left + tipW > window.innerWidth - 8)  left = window.innerWidth - tipW - 8;
+  if (left < 8) left = 8;
+  if (top + tipH > window.innerHeight - 8)  top = rect.top - tipH - 8;
+  tip.style.left = left + 'px';
+  tip.style.top  = top  + 'px';
+}
+
+function openKpiModal(kpiId, anchorEl) {
+  var meta = KPI_DESCRIPTIONS[kpiId];
   if (!meta) return;
-  const valEl = document.getElementById(kpiId);
-  const val = valEl ? valEl.textContent.trim() : '—';
-  document.getElementById('kpiModalTitle').textContent = meta.label;
-  document.getElementById('kpiModalBody').innerHTML =
-    '<div class="km-row"><span class="km-label">VALUE</span><span class="km-val">' + val + '</span></div>'
-    + '<p style="margin-top:12px;font-size:11px;color:var(--muted);line-height:1.6;">' + meta.desc + '</p>';
-  document.getElementById('kpiModalOverlay').style.display = 'block';
-  document.getElementById('kpiModal').style.display = 'block';
+  var valEl = document.getElementById(kpiId);
+  var val   = valEl ? valEl.textContent.trim() : '—';
+  _showTooltip(anchorEl || document.getElementById(kpiId), meta.label, val, meta.desc);
+}
+
+function _showTooltip(anchor, label, val, desc) {
+  if (_kpiTipTimeout) clearTimeout(_kpiTipTimeout);
+  var tip = document.getElementById('kpiTooltip');
+  tip.classList.remove('kt-visible');
+  var labelEl = label ? '<div class="kt-label">' + label + '</div>' : '';
+  var valEl   = val   ? '<div class="kt-val">'   + val   + '</div>' : '';
+  var descEl  = desc  ? '<div class="kt-desc">'  + desc  + '</div>' : '';
+  tip.innerHTML = labelEl + valEl + descEl;
+  _positionTooltip(tip, anchor);
+  requestAnimationFrame(function() { tip.classList.add('kt-visible'); });
+  _kpiTipOpen = true;
 }
 
 function closeKpiModal() {
-  document.getElementById('kpiModalOverlay').style.display = 'none';
-  document.getElementById('kpiModal').style.display = 'none';
+  var tip = document.getElementById('kpiTooltip');
+  tip.classList.remove('kt-visible');
+  _kpiTipTimeout = setTimeout(function() { tip.style.display = 'none'; }, 150);
+  _kpiTipOpen = false;
 }
 
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') closeKpiModal();
 });
 
+document.addEventListener('click', function(e) {
+  if (!_kpiTipOpen) return;
+  var tip = document.getElementById('kpiTooltip');
+  if (!tip.contains(e.target) && !e.target.closest('[data-tip]') && !e.target.closest('.kpi-grid .kpi')) {
+    closeKpiModal();
+  }
+});
+
+/* KPI grid tiles */
 document.querySelectorAll('.kpi-grid .kpi').forEach(function(tile) {
-  tile.addEventListener('click', function() {
-    const valEl = tile.querySelector('[id^="kpi"]');
-    if (valEl) openKpiModal(valEl.id);
+  tile.addEventListener('click', function(e) {
+    e.stopPropagation();
+    var valEl = tile.querySelector('[id^="kpi"]');
+    if (!valEl) return;
+    var kpiId = valEl.id;
+    var meta = KPI_DESCRIPTIONS[kpiId];
+    if (!meta) return;
+    var val = valEl.textContent.trim();
+    /* toggle: click same tile again = close */
+    var tip = document.getElementById('kpiTooltip');
+    if (_kpiTipOpen && tip.querySelector('.kt-label') && tip.querySelector('.kt-label').textContent === meta.label) {
+      closeKpiModal(); return;
+    }
+    _showTooltip(tile, meta.label, val, meta.desc);
   });
 });
+
+/* Generic data-tip elements */
+document.addEventListener('click', function(e) {
+  var el = e.target.closest('[data-tip]');
+  if (!el) return;
+  e.stopPropagation();
+  var tip = document.getElementById('kpiTooltip');
+  var title = el.dataset.tipTitle || el.textContent.trim();
+  var desc  = el.dataset.tip || '';
+  if (_kpiTipOpen && tip.querySelector('.kt-label') && tip.querySelector('.kt-label').textContent === title) {
+    closeKpiModal(); return;
+  }
+  _showTooltip(el, title, '', desc);
+}, true);
 </script>
 <div id="infoModal">
   <div class="im-title" id="imTitle"></div>
@@ -4184,14 +4165,7 @@ document.querySelectorAll('.kpi-grid .kpi').forEach(function(tile) {
   <div class="im-cat" id="imCat"></div>
   <div class="im-body" id="imBody"></div>
 </div>
-<!-- KPI MODAL -->
-<div id="kpiModalOverlay" onclick="closeKpiModal()"></div>
-<div id="kpiModal">
-  <div class="km-header">
-    <div class="km-title" id="kpiModalTitle">Detail</div>
-    <button class="km-close" onclick="closeKpiModal()" title="Close">&#x2715;</button>
-  </div>
-  <div class="km-body" id="kpiModalBody"></div>
-</div>
+<!-- KPI TOOLTIP -->
+<div id="kpiTooltip"></div>
 </body>
 </html>
