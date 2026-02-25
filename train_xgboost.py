@@ -16,6 +16,7 @@ Usage:
 """
 
 import argparse
+import math
 import pickle
 import os
 import csv
@@ -32,18 +33,37 @@ from sklearn.metrics import (
 from sklearn.preprocessing import LabelEncoder
 
 # ─── Features usate per la predizione ─────────────────────────────────────────
+# Nota: hour_utc NON è incluso direttamente.
+# Viene sostituito da hour_sin e hour_cos (encoding ciclico).
+# Questo cattura la natura circolare del tempo: l'ora 23 è vicina all'ora 0.
+# hour_utc rimane nel CSV e viene usato solo per la sezione di analisi/reporting.
+#
+# CVD (cvd_6m_pct): feature opzionale — inclusa automaticamente se la colonna
+# è presente nel CSV con almeno l'80% dei valori non-nulli.
+# Per generarla: python build_dataset.py --cvd
 FEATURE_COLS = [
     "confidence",
     "fear_greed_value",
     "rsi14",
     "technical_score",
-    "hour_utc",
+    # Encoding ciclico dell'ora UTC (sostituisce hour_utc intero)
+    "hour_sin",   # sin(2π * hour_utc / 24)
+    "hour_cos",   # cos(2π * hour_utc / 24)
     "ema_trend_up",
     "technical_bias_bullish",
     "signal_technical_buy",
     "signal_sentiment_pos",
     "signal_fg_fear",
     "signal_volume_high",
+]
+
+# Feature opzionali: aggiunte dinamicamente in main() se disponibili nel CSV
+# e con copertura sufficiente (>= 80% non-null).
+OPTIONAL_FEATURE_COLS = [
+    # CVD proxy: pressione netta acquisto/vendita ultime 6 candele 1m Binance.
+    # Range: -100 (tutto vendita) → +100 (tutto acquisto).
+    # Generato da: python build_dataset.py --cvd
+    "cvd_6m_pct",
 ]
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -123,14 +143,47 @@ def main():
     # ── Carica dati ──────────────────────────────────────────────────────────
     df = load_data(args.data)
 
+    # ── Encoding ciclico dell'ora UTC ─────────────────────────────────────────
+    # Trasforma hour_utc (0-23 intero) in due feature continue che catturano
+    # la circolarità del tempo: l'ora 23 è "vicina" all'ora 0 nello spazio
+    # trigonometrico, mentre come intero sarebbe a distanza 23.
+    # Se le colonne sono già nel CSV (generate da build_dataset.py), non le
+    # ricalcola; altrimenti le deriva da hour_utc al volo.
+    if "hour_sin" not in df.columns or "hour_cos" not in df.columns:
+        df["hour_sin"] = df["hour_utc"].apply(lambda h: math.sin(2 * math.pi * h / 24))
+        df["hour_cos"] = df["hour_utc"].apply(lambda h: math.cos(2 * math.pi * h / 24))
+        log(f"[{now()}] hour_sin/hour_cos calcolati on-the-fly da hour_utc")
+    else:
+        log(f"[{now()}] hour_sin/hour_cos trovati nel CSV — nessun ricalcolo")
+
+    # ── Feature opzionali (es. cvd_6m_pct) ────────────────────────────────────
+    # Includi una feature opzionale solo se:
+    #   1. La colonna esiste nel DataFrame
+    #   2. Ha almeno l'80% dei valori non-nulli/non-vuoti
+    # Questo permette di aggiungere nuove feature senza rompere il training
+    # su dataset vecchi che non le hanno ancora.
+    active_feature_cols = list(FEATURE_COLS)
+    for opt_col in OPTIONAL_FEATURE_COLS:
+        if opt_col in df.columns:
+            # Converte a numerico (i valori vuoti "" diventano NaN)
+            df[opt_col] = pd.to_numeric(df[opt_col], errors="coerce")
+            coverage = df[opt_col].notna().mean()
+            if coverage >= 0.80:
+                active_feature_cols.append(opt_col)
+                log(f"[{now()}] Feature opzionale '{opt_col}' inclusa ({coverage:.1%} copertura)")
+            else:
+                log(f"[{now()}] Feature opzionale '{opt_col}' saltata ({coverage:.1%} copertura < 80%)")
+        else:
+            log(f"[{now()}] Feature opzionale '{opt_col}' non presente nel CSV — saltata")
+
     # Encode direction: UP=1, DOWN=0
     df["direction_bin"] = (df["direction"] == "UP").astype(int)
 
     # Filtra righe con features complete
-    df_clean = df.dropna(subset=FEATURE_COLS + ["label", "direction_bin"])
+    df_clean = df.dropna(subset=active_feature_cols + ["label", "direction_bin"])
     log(f"[{now()}] Righe valide dopo dropna: {len(df_clean)}/{len(df)}")
 
-    X = df_clean[FEATURE_COLS].values
+    X = df_clean[active_feature_cols].values
     y_label = df_clean["label"].values          # correct=1, wrong=0
     y_dir   = df_clean["direction_bin"].values  # UP=1, DOWN=0
 
@@ -150,7 +203,7 @@ def main():
     res_dir = train_and_eval(X, y_dir, "Direction Model")
 
     log("\n  Feature Importance (direzione):")
-    log(feature_importance_table(res_dir["model"], FEATURE_COLS))
+    log(feature_importance_table(res_dir["model"], active_feature_cols))
 
     # Classification report
     y_pred_dir = res_dir["model"].predict(X)
@@ -175,7 +228,7 @@ def main():
     res_corr = train_and_eval(X, y_label, "Correctness Model")
 
     log("\n  Feature Importance (correttezza):")
-    log(feature_importance_table(res_corr["model"], FEATURE_COLS))
+    log(feature_importance_table(res_corr["model"], active_feature_cols))
 
     y_pred_corr = res_corr["model"].predict(X)
     log("\n  Classification Report:")

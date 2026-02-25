@@ -17,6 +17,7 @@ Env vars (stessi di app.py):
 import os
 import json
 import csv
+import math
 import random
 import argparse
 import ssl
@@ -68,6 +69,90 @@ def supabase_get(table: str, params: dict) -> list:
     })
     with urllib.request.urlopen(req, context=_SSL_CTX) as resp:
         return json.loads(resp.read().decode())
+
+
+# ─── CVD (Cumulative Volume Delta) proxy — infrastruttura ──────────────────────
+# Il CVD approssima la pressione di acquisto/vendita aggregando le ultime N
+# candele 1-minuto di Binance.
+#
+# Ogni kline Binance ha:
+#   indice 5  → volume totale (base asset)
+#   indice 9  → taker_buy_base_vol (volume acquistato dai taker)
+#
+# Per ogni candela:
+#   cvd_delta = taker_buy_vol - (total_vol - taker_buy_vol)
+#             = 2 * taker_buy_vol - total_vol
+#   (>0 = pressione di acquisto netta, <0 = pressione di vendita netta)
+#
+# Metrica finale:
+#   cvd_6m_pct = sum(cvd_delta per ultime 6 candele) / sum(total_vol) * 100
+#   Range tipico: -100 (tutto vendita) a +100 (tutto acquisto)
+#
+# NOTA: Questa funzione richiede una chiamata HTTP a Binance per ogni riga.
+#       Per retroattivo su dataset storico usare --cvd flag (non implementato yet).
+#       Per nuove predizioni live, il dato va incluso nel wf01 e passato a Supabase.
+
+def fetch_cvd_6m(timestamp_ms: int) -> float | None:
+    """
+    Recupera le ultime 6 kline 1-minuto di Binance BTCUSDT fino a timestamp_ms
+    e calcola cvd_6m_pct (CVD proxy normalizzato sul volume totale).
+
+    Args:
+        timestamp_ms: timestamp Unix in millisecondi del momento della predizione.
+
+    Returns:
+        cvd_6m_pct come float, oppure None in caso di errore/dati mancanti.
+    """
+    try:
+        # Binance endTime = timestamp della predizione, ultime 8 kline (6 + buffer)
+        params = urllib.parse.urlencode({
+            "symbol": "BTCUSDT",
+            "interval": "1m",
+            "endTime": timestamp_ms,
+            "limit": 8,
+        })
+        url = f"https://api.binance.com/api/v3/klines?{params}"
+        req = urllib.request.Request(url, headers={"User-Agent": "btcbot/1.0"})
+        with urllib.request.urlopen(req, context=_SSL_CTX, timeout=5) as resp:
+            klines = json.loads(resp.read().decode())
+
+        # Prende le ultime 6 kline complete (escludi l'eventuale kline aperta)
+        klines = klines[-6:]
+        if len(klines) < 6:
+            return None
+
+        total_vol_6m = 0.0
+        cvd_sum = 0.0
+        for k in klines:
+            total_vol     = float(k[5])   # indice 5: volume totale
+            taker_buy_vol = float(k[9])   # indice 9: taker buy base volume
+            cvd_delta = 2.0 * taker_buy_vol - total_vol
+            cvd_sum      += cvd_delta
+            total_vol_6m += total_vol
+
+        if total_vol_6m == 0:
+            return None
+
+        cvd_6m_pct = (cvd_sum / total_vol_6m) * 100.0
+        return round(cvd_6m_pct, 4)
+
+    except Exception:
+        return None
+
+
+def created_at_to_ms(created_at: str) -> int:
+    """Converte 'created_at' ISO 8601 da Supabase in Unix timestamp milliseconds."""
+    # Formato atteso: "2024-10-15T09:34:12.123456+00:00" oppure "...Z"
+    ts = created_at.replace("Z", "+00:00")
+    # Tronca i microsecondi a 6 cifre per compatibilità fromisoformat
+    try:
+        from datetime import timezone
+        dt = datetime.fromisoformat(ts)
+        # Normalizza a UTC
+        dt_utc = dt.astimezone(timezone.utc)
+        return int(dt_utc.timestamp() * 1000)
+    except Exception:
+        return 0
 
 
 def fetch_resolved_predictions() -> list:
@@ -204,13 +289,26 @@ def row_to_jsonl(row: dict) -> dict:
     }
 
 
-def row_to_csv_dict(row: dict) -> dict:
-    """Converte una riga in dizionario per features.csv (ML approach)."""
+def row_to_csv_dict(row: dict, cvd_6m_pct: float | None = None) -> dict:
+    """
+    Converte una riga Supabase in dizionario per features.csv (ML approach).
+
+    Args:
+        row:         riga raw da Supabase.
+        cvd_6m_pct:  CVD proxy normalizzato (opzionale, calcolato da fetch_cvd_6m).
+                     Se None, la colonna viene inclusa come stringa vuota.
+    """
     hour = 0
     try:
         hour = int(row.get("created_at", "T00:")[11:13])
     except Exception:
         pass
+
+    # Encoding ciclico dell'ora UTC.
+    # Sin e cos catturano la natura circolare del tempo: ora 23 è vicina a 0.
+    # hour_utc viene mantenuto per analisi e reporting (non usato come feature ML).
+    hour_sin = math.sin(2 * math.pi * hour / 24)
+    hour_cos = math.cos(2 * math.pi * hour / 24)
 
     return {
         # Target
@@ -222,7 +320,15 @@ def row_to_csv_dict(row: dict) -> dict:
         "fear_greed_value": float(row.get("fear_greed_value") or 50),
         "rsi14": float(row.get("rsi14") or 50),
         "technical_score": float(row.get("technical_score") or 0),
+        # Ora UTC: intero grezzo (per reporting) + encoding ciclico (per ML)
         "hour_utc": hour,
+        "hour_sin": round(hour_sin, 6),   # sin(2π * hour / 24) — feature ML
+        "hour_cos": round(hour_cos, 6),   # cos(2π * hour / 24) — feature ML
+        # CVD proxy: pressione netta acquisto/vendita ultime 6 candele 1m.
+        # Popolato solo se build_dataset.py eseguito con --cvd flag.
+        # Range: da -100 (tutto vendita) a +100 (tutto acquisto).
+        # NaN/vuoto = dati non disponibili (retroattivo non richiesto).
+        "cvd_6m_pct": cvd_6m_pct if cvd_6m_pct is not None else "",
         # Categoriche (encoded)
         "ema_trend_up": 1 if row.get("ema_trend", "").upper() == "UP" else 0,
         "technical_bias_bullish": 1 if "bull" in (row.get("technical_bias") or "").lower() else 0,
@@ -240,6 +346,14 @@ def main():
     parser.add_argument("--output-dir", default="./datasets", help="Directory output (default: ./datasets)")
     parser.add_argument("--val-ratio", type=float, default=0.2, help="Validation split ratio (default: 0.2)")
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
+    parser.add_argument(
+        "--cvd", action="store_true",
+        help=(
+            "Fetch CVD proxy da Binance per ogni riga (richiede rete, ~1 req/riga). "
+            "Aggiunge colonna cvd_6m_pct al features.csv. "
+            "Disabilitato di default per compatibilità con dataset esistenti."
+        ),
+    )
     args = parser.parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)
@@ -295,7 +409,25 @@ def main():
     print(f"[{datetime.now():%H:%M:%S}] Salvato {val_path} ({len(val_idx)} esempi)")
 
     # ── CSV per ML ────────────────────────────────────────────────────────────
-    csv_rows = [row_to_csv_dict(r) for r in rows]
+    # Se --cvd è abilitato, recupera il CVD proxy da Binance per ogni riga.
+    # Ogni chiamata è ~1 req HTTP; su 400 righe impiega ~20-60s.
+    if args.cvd:
+        print(f"[{datetime.now():%H:%M:%S}] --cvd attivo: fetching CVD da Binance per {len(rows)} righe...")
+        cvd_map: dict[str, float | None] = {}
+        for i, r in enumerate(rows):
+            ts_ms = created_at_to_ms(r.get("created_at", ""))
+            cvd_val = fetch_cvd_6m(ts_ms) if ts_ms else None
+            cvd_map[r.get("id", str(i))] = cvd_val
+            if (i + 1) % 50 == 0:
+                filled = sum(1 for v in cvd_map.values() if v is not None)
+                print(f"  {i+1}/{len(rows)} — {filled} CVD ok")
+        filled_total = sum(1 for v in cvd_map.values() if v is not None)
+        print(f"[{datetime.now():%H:%M:%S}] CVD fetch completato: {filled_total}/{len(rows)} righe con dato")
+        csv_rows = [row_to_csv_dict(r, cvd_6m_pct=cvd_map.get(r.get("id", ""), None)) for r in rows]
+    else:
+        # CVD non richiesto: colonna inclusa ma vuota (compatibilità forward)
+        csv_rows = [row_to_csv_dict(r) for r in rows]
+
     csv_path = os.path.join(args.output_dir, "features.csv")
     if csv_rows:
         fieldnames = list(csv_rows[0].keys())
