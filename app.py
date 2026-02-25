@@ -2486,10 +2486,11 @@ def _get_web3_contract():
     if not private_key or not contract_address:
         raise RuntimeError("POLYGON_PRIVATE_KEY o POLYGON_CONTRACT_ADDRESS non configurati")
 
-    w3 = Web3(Web3.HTTPProvider("https://polygon-rpc.com"))
+    rpc_url = os.environ.get("POLYGON_RPC_URL", "https://rpc.ankr.com/polygon")
+    w3 = Web3(Web3.HTTPProvider(rpc_url))
     w3.middleware_onion.inject(ExtraDataToPOAMiddleware, layer=0)
     if not w3.is_connected():
-        raise RuntimeError("Impossibile connettersi a Polygon RPC")
+        raise RuntimeError(f"Impossibile connettersi a Polygon RPC ({rpc_url})")
 
     account = w3.eth.account.from_key(private_key)
     contract = w3.eth.contract(
