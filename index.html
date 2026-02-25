@@ -136,6 +136,9 @@
   .panel { background: var(--card); border: 1px solid var(--border); overflow: hidden; }
   .panel-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-bottom: 1px solid var(--border); background: rgba(255,255,255,0.015); flex-wrap: wrap; gap: 8px; }
   .panel-title { font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--muted); }
+  .next-signal-badge { font-size: 9px; font-weight: 700; letter-spacing: 0.8px; color: var(--muted); background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; margin-left: 6px; font-family: 'IBM Plex Mono', monospace; vertical-align: middle; white-space: nowrap; }
+  .next-signal-badge.imminent { color: var(--accent); border-color: rgba(0,255,136,0.3); }
+  .next-signal-badge.overdue  { color: var(--warn);   border-color: rgba(255,170,0,0.3); }
   .panel-tag { font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; padding: 3px 9px; border-radius: 2px; }
   .tag-green  { background: rgba(0,255,136,0.08);  color: var(--accent); border: 1px solid rgba(0,255,136,0.2); }
   .tag-red    { background: rgba(255,68,102,0.08); color: var(--danger); border: 1px solid rgba(255,68,102,0.2); }
@@ -1202,11 +1205,22 @@
       background: none;
     }
     .lp-right .ai-cube-scene {
-      width: 44px;
-      height: 44px;
-      perspective: 130px;
+      width: 34px;
+      height: 34px;
+      perspective: 100px;
       /* NO filter: drop-shadow — crea stacking context che rompe preserve-3d */
     }
+    .lp-right .cube-face {
+      width: 34px;
+      height: 34px;
+      font-size: 6px;
+    }
+    .lp-right .cube-face.cube-front  { transform: translateZ(17px); }
+    .lp-right .cube-face.cube-back   { transform: rotateY(180deg)  translateZ(17px); }
+    .lp-right .cube-face.cube-right  { transform: rotateY(90deg)   translateZ(17px); }
+    .lp-right .cube-face.cube-left   { transform: rotateY(-90deg)  translateZ(17px); }
+    .lp-right .cube-face.cube-top    { transform: rotateX(90deg)   translateZ(17px); }
+    .lp-right .cube-face.cube-bottom { transform: rotateX(-90deg)  translateZ(17px); }
     .lp-right .ai-decision,
     .lp-right .ai-think-label {
       display: none;
@@ -1645,7 +1659,7 @@
 
     <div class="panel">
       <div class="panel-header">
-        <div class="panel-title" id="signalLogTitle">Signal Log</div>
+        <div class="panel-title" id="signalLogTitle">Signal Log <span id="nextSignalTimer" class="next-signal-badge"></span></div>
         <div class="filters-row">
           <select id="filterDir"   class="filter-sel"><option value="ALL">ALL DIR</option><option value="UP">UP</option><option value="DOWN">DOWN</option></select>
           <select id="filterClass" class="filter-sel"><option value="ALL">ALL</option><option value="BET">BETS</option><option value="NO_BET">NO-BET</option></select>
@@ -2878,10 +2892,38 @@ function renderAll(data) {
   renderLivePosition(); // mostra widget se c'è posizione aperta
 }
 
+// ── Next Signal countdown timer ───────────────────────────────────────────────
+let _nextSignalInterval = null;
+function startNextSignalTimer(lastTs) {
+  if (_nextSignalInterval) { clearInterval(_nextSignalInterval); _nextSignalInterval = null; }
+  const el = document.getElementById('nextSignalTimer');
+  if (!el || !lastTs) return;
+  const lastMs = new Date(lastTs).getTime();
+  function tick() {
+    const remaining = (lastMs + 6 * 60 * 1000) - Date.now();
+    if (remaining > 0) {
+      const m = Math.floor(remaining / 60000);
+      const s = Math.floor((remaining % 60000) / 1000);
+      el.textContent = `⏱ ${m}m ${String(s).padStart(2,'0')}s`;
+      el.className = 'next-signal-badge';
+    } else if (remaining > -3 * 60 * 1000) {
+      el.textContent = '⏳ imminente…';
+      el.className = 'next-signal-badge imminent';
+    } else {
+      el.textContent = '⚠ ritardo';
+      el.className = 'next-signal-badge overdue';
+    }
+  }
+  tick();
+  _nextSignalInterval = setInterval(tick, 1000);
+}
+
 function render(data) {
   updateBotStatus(data);
   document.getElementById('lastUpdate').innerHTML =
     `LAST UPDATE: <strong>${new Date().toLocaleTimeString('it-IT')}</strong>`;
+  // Start next-signal countdown from most recent record
+  if (data.length > 0) startNextSignalTimer(data[0].created_at);
 
   const bets        = data.filter(d => d.classification === 'BET');
   const realBets    = bets.filter(d => d.pnl_usd !== null);
