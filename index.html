@@ -1233,13 +1233,10 @@
   #dashboardMain { display: flex; flex-direction: column; }
   @media (max-width: 900px) {
     #equityCurvePanel { order: 1; }
-    .main-grid        { order: 2; }
-    .charts-grid      { order: 3; }
-    #trainingStatusPanel { order: 4; }
-    #tradingStatsPanel   { order: 5; }
-    #hourlyHeatmapPanel  { order: 6; }
-    /* hide duplicate PnL chart (already in charts-grid as pnlBarsLarge) */
-    #pnlChartPanel { display: none; }
+    .charts-grid      { order: 2; }
+    #signalLogPanel   { order: 3; }
+    /* small panels + pnlChartPanel hidden on mobile */
+    #dashSmallPanels  { display: none; }
     /* KPI values bigger on mobile */
     .kpi-value { font-size: 20px !important; }
     /* Costs KPI: 3 cols on tablet */
@@ -1845,16 +1842,21 @@
   <!-- ═══════════════════════════════════════════
        CHARTS GRID — 4 temporal charts
   ═══════════════════════════════════════════ -->
+  <!-- Top charts: BTC Price vs Predictions + Rolling Win Rate -->
   <div class="charts-grid">
 
-    <!-- Chart 1: Confidence Over Time -->
+    <!-- Chart 1: BTC Price + Predictions Overlay -->
     <div class="panel">
       <div class="panel-header">
-        <div class="panel-title">Confidence Over Time</div>
-        <div class="panel-tag tag-blue" id="confTag">ALL</div>
+        <div class="panel-title">BTC Price vs Predictions</div>
+        <div style="display:flex;gap:8px;font-size:9px;">
+          <span style="color:var(--accent);">● correct</span>
+          <span style="color:var(--danger);">● wrong</span>
+          <span style="color:var(--muted);">▲▼ = direction</span>
+        </div>
       </div>
       <div style="padding:12px 16px 8px;">
-        <svg id="confSvg" width="100%" height="110" viewBox="0 0 600 110" preserveAspectRatio="none"></svg>
+        <svg id="btcOverlaySvg" width="100%" height="110" viewBox="0 0 600 110" preserveAspectRatio="none"></svg>
         <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:2px;">
           <span>oldest</span><span>newest</span>
         </div>
@@ -1879,7 +1881,86 @@
       </div>
     </div>
 
-    <!-- Chart 3: PnL Per Bet Bar Chart (large) -->
+  </div><!-- /.charts-grid top -->
+
+  <!-- Signal Log — full width -->
+  <div class="panel" id="signalLogPanel" style="margin-bottom:14px;">
+    <div class="panel-header">
+      <div class="panel-title" id="signalLogTitle">Signal Log <span id="nextSignalTimer" class="next-signal-badge"></span></div>
+      <div class="filters-row">
+        <select id="filterDir"   class="filter-sel"><option value="ALL">ALL DIR</option><option value="UP">UP</option><option value="DOWN">DOWN</option></select>
+        <select id="filterClass" class="filter-sel"><option value="ALL">ALL</option><option value="BET">BETS</option><option value="NO_BET">NO-BET</option></select>
+      </div>
+    </div>
+    <!-- SIGNAL LOG FILTER BAR -->
+    <div class="signal-filters" id="signalFiltersBar">
+      <div class="filter-group">
+        <button class="filter-btn active" data-filter="type" data-value="all" onclick="setSignalFilter(this,'type')">Tutti</button>
+        <button class="filter-btn"        data-filter="type" data-value="bet"   onclick="setSignalFilter(this,'type')">BET</button>
+        <button class="filter-btn"        data-filter="type" data-value="skip"  onclick="setSignalFilter(this,'type')">SKIP</button>
+        <button class="filter-btn"        data-filter="type" data-value="nobet" onclick="setSignalFilter(this,'type')">NO BET</button>
+      </div>
+      <div class="filter-group-sep"></div>
+      <div class="filter-group">
+        <button class="filter-btn active" data-filter="outcome" data-value="all"  onclick="setSignalFilter(this,'outcome')">Tutti</button>
+        <button class="filter-btn"        data-filter="outcome" data-value="win"  onclick="setSignalFilter(this,'outcome')">WIN</button>
+        <button class="filter-btn"        data-filter="outcome" data-value="loss" onclick="setSignalFilter(this,'outcome')">LOSS</button>
+        <button class="filter-btn"        data-filter="outcome" data-value="open" onclick="setSignalFilter(this,'outcome')">Aperte</button>
+      </div>
+      <div class="filter-group-sep"></div>
+      <div class="filter-group">
+        <button class="filter-btn active" data-filter="direction" data-value="all"  onclick="setSignalFilter(this,'direction')">Entrambe</button>
+        <button class="filter-btn"        data-filter="direction" data-value="up"   onclick="setSignalFilter(this,'direction')">&#8593; UP</button>
+        <button class="filter-btn"        data-filter="direction" data-value="down" onclick="setSignalFilter(this,'direction')">&#8595; DOWN</button>
+      </div>
+      <input type="text" id="signal-search" placeholder="&#128269; Cerca ID, conf..." oninput="applySignalFilters()">
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>DATE/TIME</th>
+            <th>DIR</th>
+            <th>CONF</th>
+            <th>ENTRY $</th>
+            <th>EXIT $</th>
+            <th>RSI</th>
+            <th>EMA</th>
+            <th>SCORE</th>
+            <th>SIZE</th>
+            <th>TYPE</th>
+            <th>RESULT</th>
+            <th>PNL $ / THR%</th>
+            <th>FEE $</th>
+            <th>SL/TP</th>
+            <th title="On-chain audit trail — Polygon PoS">⛓</th>
+          </tr>
+        </thead>
+        <tbody id="signalTable"></tbody>
+      </table>
+      <div class="mobile-bet-list" id="mobileBetList"></div>
+    </div>
+  </div>
+
+  <!-- Lower charts: Confidence Over Time + PnL per Bet -->
+  <div class="charts-grid">
+
+    <!-- Confidence Over Time -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Confidence Over Time</div>
+        <div class="panel-tag tag-blue" id="confTag">ALL</div>
+      </div>
+      <div style="padding:12px 16px 8px;">
+        <svg id="confSvg" width="100%" height="110" viewBox="0 0 600 110" preserveAspectRatio="none"></svg>
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:2px;">
+          <span>oldest</span><span>newest</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- PnL Per Bet Bar Chart (large) -->
     <div class="panel">
       <div class="panel-header">
         <div class="panel-title">PnL per Bet ($)</div>
@@ -1893,117 +1974,38 @@
       </div>
     </div>
 
-    <!-- Chart 4: BTC Price + Predictions Overlay -->
-    <div class="panel">
+  </div><!-- /.charts-grid lower -->
+
+  <!-- Small panels row: PnL per Trade · Signal Quality · Confidence Distribution -->
+  <div id="dashSmallPanels" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;">
+
+    <div class="panel" id="pnlChartPanel">
       <div class="panel-header">
-        <div class="panel-title">BTC Price vs Predictions</div>
-        <div style="display:flex;gap:8px;font-size:9px;">
-          <span style="color:var(--accent);">● correct</span>
-          <span style="color:var(--danger);">● wrong</span>
-          <span style="color:var(--muted);">▲▼ = direction</span>
-        </div>
+        <div class="panel-title">PnL per Trade</div>
+        <div class="panel-tag tag-green" id="totalPnlTag">TOTAL: —</div>
       </div>
-      <div style="padding:12px 16px 8px;">
-        <svg id="btcOverlaySvg" width="100%" height="110" viewBox="0 0 600 110" preserveAspectRatio="none"></svg>
-        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:2px;">
-          <span>oldest</span><span>newest</span>
-        </div>
+      <div class="chart-area">
+        <div class="pnl-chart" id="pnlChart"></div>
+        <div class="bar-labels"><span id="chartStart">—</span><span>PnL USD</span><span id="chartEnd">—</span></div>
       </div>
     </div>
-
-  </div><!-- /.charts-grid -->
-
-  <div class="main-grid">
 
     <div class="panel">
       <div class="panel-header">
-        <div class="panel-title" id="signalLogTitle">Signal Log <span id="nextSignalTimer" class="next-signal-badge"></span></div>
-        <div class="filters-row">
-          <select id="filterDir"   class="filter-sel"><option value="ALL">ALL DIR</option><option value="UP">UP</option><option value="DOWN">DOWN</option></select>
-          <select id="filterClass" class="filter-sel"><option value="ALL">ALL</option><option value="BET">BETS</option><option value="NO_BET">NO-BET</option></select>
-        </div>
+        <div class="panel-title">Signal Quality</div>
+        <div class="panel-tag tag-blue">LIVE</div>
       </div>
-      <!-- SIGNAL LOG FILTER BAR -->
-      <div class="signal-filters" id="signalFiltersBar">
-        <div class="filter-group">
-          <button class="filter-btn active" data-filter="type" data-value="all" onclick="setSignalFilter(this,'type')">Tutti</button>
-          <button class="filter-btn"        data-filter="type" data-value="bet"   onclick="setSignalFilter(this,'type')">BET</button>
-          <button class="filter-btn"        data-filter="type" data-value="skip"  onclick="setSignalFilter(this,'type')">SKIP</button>
-          <button class="filter-btn"        data-filter="type" data-value="nobet" onclick="setSignalFilter(this,'type')">NO BET</button>
-        </div>
-        <div class="filter-group-sep"></div>
-        <div class="filter-group">
-          <button class="filter-btn active" data-filter="outcome" data-value="all"  onclick="setSignalFilter(this,'outcome')">Tutti</button>
-          <button class="filter-btn"        data-filter="outcome" data-value="win"  onclick="setSignalFilter(this,'outcome')">WIN</button>
-          <button class="filter-btn"        data-filter="outcome" data-value="loss" onclick="setSignalFilter(this,'outcome')">LOSS</button>
-          <button class="filter-btn"        data-filter="outcome" data-value="open" onclick="setSignalFilter(this,'outcome')">Aperte</button>
-        </div>
-        <div class="filter-group-sep"></div>
-        <div class="filter-group">
-          <button class="filter-btn active" data-filter="direction" data-value="all"  onclick="setSignalFilter(this,'direction')">Entrambe</button>
-          <button class="filter-btn"        data-filter="direction" data-value="up"   onclick="setSignalFilter(this,'direction')">&#8593; UP</button>
-          <button class="filter-btn"        data-filter="direction" data-value="down" onclick="setSignalFilter(this,'direction')">&#8595; DOWN</button>
-        </div>
-        <input type="text" id="signal-search" placeholder="&#128269; Cerca ID, conf..." oninput="applySignalFilters()">
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>DATE/TIME</th>
-              <th>DIR</th>
-              <th>CONF</th>
-              <th>ENTRY $</th>
-              <th>EXIT $</th>
-              <th>RSI</th>
-              <th>EMA</th>
-              <th>SCORE</th>
-              <th>SIZE</th>
-              <th>TYPE</th>
-              <th>RESULT</th>
-              <th>PNL $ / THR%</th>
-              <th>FEE $</th>
-              <th>SL/TP</th>
-              <th title="On-chain audit trail — Polygon PoS">⛓</th>
-            </tr>
-          </thead>
-          <tbody id="signalTable"></tbody>
-        </table>
-        <div class="mobile-bet-list" id="mobileBetList"></div>
-      </div>
+      <div class="signal-grid" id="signalQuality"></div>
     </div>
 
-    <div style="display:flex;flex-direction:column;gap:14px;">
-
-      <div class="panel" id="pnlChartPanel">
-        <div class="panel-header">
-          <div class="panel-title">PnL per Trade</div>
-          <div class="panel-tag tag-green" id="totalPnlTag">TOTAL: —</div>
-        </div>
-        <div class="chart-area">
-          <div class="pnl-chart" id="pnlChart"></div>
-          <div class="bar-labels"><span id="chartStart">—</span><span>PnL USD</span><span id="chartEnd">—</span></div>
-        </div>
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Confidence Distribution</div>
+        <div class="panel-tag tag-yellow">HISTOGRAM</div>
       </div>
-
-      <div class="panel">
-        <div class="panel-header">
-          <div class="panel-title">Signal Quality</div>
-          <div class="panel-tag tag-blue">LIVE</div>
-        </div>
-        <div class="signal-grid" id="signalQuality"></div>
-      </div>
-
-      <div class="panel">
-        <div class="panel-header">
-          <div class="panel-title">Confidence Distribution</div>
-          <div class="panel-tag tag-yellow">HISTOGRAM</div>
-        </div>
-        <div class="conf-bars" id="confDist"></div>
-      </div>
-
+      <div class="conf-bars" id="confDist"></div>
     </div>
+
   </div>
 
   </div><!-- /#dashboardMain -->
