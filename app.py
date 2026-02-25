@@ -1687,6 +1687,8 @@ def costs():
             "avg_input_tokens": avg_in,
             "avg_output_tokens": avg_out,
             "cost_usd": claude_api_cost,
+            "cost_estimated": claude_api_estimated,
+            "source": claude_api_source,
             "pricing": pricing,
         },
         "claude_code": {
