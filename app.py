@@ -69,7 +69,7 @@ def refresh_calibration():
         return {"ok": False, "error": "no_supabase_env"}
     try:
         r = requests.get(
-            f"{sb_url}/rest/v1/btc_predictions"
+            f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
             "?select=confidence,correct&bet_taken=eq.true&correct=not.is.null",
             headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
             timeout=8,
@@ -113,7 +113,7 @@ def refresh_dead_hours():
     try:
         import datetime
         r = requests.get(
-            f"{sb_url}/rest/v1/btc_predictions"
+            f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
             "?select=created_at,correct&bet_taken=eq.true&correct=not.is.null",
             headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
             timeout=8,
@@ -158,6 +158,7 @@ API_SECRET = os.environ.get("KRAKEN_FUTURES_API_SECRET", "")
 DEFAULT_SYMBOL = os.environ.get("KRAKEN_DEFAULT_SYMBOL", "PF_XBTUSD")
 KRAKEN_BASE = "https://futures.kraken.com"
 DRY_RUN = os.environ.get("DRY_RUN", "false").lower() in ("true", "1", "yes")
+SUPABASE_TABLE = os.environ.get("SUPABASE_TABLE", "btc_predictions")
 _BOT_PAUSED = False  # runtime pause via /pause — non persiste al restart
 _costs_cache = {"data": None, "ts": 0.0}
 
@@ -269,7 +270,7 @@ def _close_prev_bet_on_reverse(old_side: str, exit_price: float, closed_size: fl
 
         # Trova il bet aperto più recente nella direzione opposta
         query = (
-            f"{supabase_url}/rest/v1/btc_predictions"
+            f"{supabase_url}/rest/v1/{SUPABASE_TABLE}"
             f"?bet_taken=eq.true&correct=is.null&direction=eq.{old_direction}"
             f"&order=id.desc&limit=1&select=id,entry_fill_price,btc_price_entry,bet_size"
         )
@@ -293,7 +294,7 @@ def _close_prev_bet_on_reverse(old_side: str, exit_price: float, closed_size: fl
         fee = bet_size * (entry_price + exit_price) * 0.00005  # entry + exit taker fee
         pnl_net = round(pnl_gross - fee, 6)
 
-        patch_url = f"{supabase_url}/rest/v1/btc_predictions?id=eq.{bet_id}"
+        patch_url = f"{supabase_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{bet_id}"
         patch_headers = {**headers, "Content-Type": "application/json", "Prefer": "return=minimal"}
         requests.patch(patch_url, json={
             "btc_price_exit":     exit_price,
@@ -329,7 +330,7 @@ def health():
         sb_key = os.environ.get("SUPABASE_KEY", "")
         if sb_url and sb_key:
             r = requests.get(
-                f"{sb_url}/rest/v1/btc_predictions"
+                f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
                 "?select=correct,pnl_usd&bet_taken=eq.true&correct=not.is.null&order=id.desc&limit=10",
                 headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
                 timeout=3,
@@ -406,7 +407,7 @@ def position():
                     sb_url = os.environ.get("SUPABASE_URL", "")
                     sb_key = os.environ.get("SUPABASE_ANON_KEY", "")
                     r = requests.get(
-                        f"{sb_url}/rest/v1/btc_predictions"
+                        f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
                         f"?bet_taken=eq.true&correct=is.null"
                         f"&select=id,entry_fill_price,btc_price_entry,direction,bet_size,pyramid_count"
                         f"&order=id.desc&limit=1",
@@ -627,7 +628,7 @@ def place_bet():
                 sb_key = os.environ.get("SUPABASE_KEY", "")
                 if sb_url and sb_key:
                     r = requests.get(
-                        f"{sb_url}/rest/v1/btc_predictions"
+                        f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
                         "?select=id,created_at,direction,entry_fill_price,pyramid_count"
                         "&bet_taken=eq.true&correct=is.null&order=id.desc&limit=1",
                         headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
@@ -698,7 +699,7 @@ def place_bet():
                         _sb_key = os.environ.get("SUPABASE_KEY", "")
                         try:
                             requests.patch(
-                                f"{_sb_url}/rest/v1/btc_predictions?id=eq.{bet_id}",
+                                f"{_sb_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{bet_id}",
                                 json={"pyramid_count": 1, "bet_size": round(current_pos_size + pyramid_size, 4)},
                                 headers={
                                     "apikey": _sb_key,
@@ -1122,7 +1123,7 @@ def get_signals():
         if not supabase_url or not supabase_key:
             return jsonify({"error": "Supabase credentials not configured"}), 500
 
-        url = f"{supabase_url}/rest/v1/btc_predictions?select=*&order=id.desc&limit={limit}"
+        url = f"{supabase_url}/rest/v1/{SUPABASE_TABLE}?select=*&order=id.desc&limit={limit}"
         if days > 0:
             from datetime import datetime, timedelta, timezone
             since = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -1156,7 +1157,7 @@ def performance_stats():
 
         # Fetch ultimi 50 bet risolti
         url = (
-            f"{supabase_url}/rest/v1/btc_predictions"
+            f"{supabase_url}/rest/v1/{SUPABASE_TABLE}"
             "?select=direction,confidence,correct,pnl_usd,created_at"
             "&bet_taken=eq.true&correct=not.is.null"
             "&order=id.desc&limit=50"
@@ -1352,7 +1353,7 @@ def bet_sizing():
         supabase_url = os.environ.get("SUPABASE_URL", "")
         supabase_key = os.environ.get("SUPABASE_KEY", "")
 
-        url = f"{supabase_url}/rest/v1/btc_predictions?select=correct,pnl_usd&bet_taken=eq.true&correct=not.is.null&order=id.desc&limit=10"
+        url = f"{supabase_url}/rest/v1/{SUPABASE_TABLE}?select=correct,pnl_usd&bet_taken=eq.true&correct=not.is.null&order=id.desc&limit=10"
         res = requests.get(url, headers={
             "apikey": supabase_key,
             "Authorization": f"Bearer {supabase_key}"
@@ -1493,7 +1494,7 @@ def rescue_orphaned():
     # 1. Cerca bet orfane in Supabase
     try:
         r = requests.get(
-            f"{supabase_url}/rest/v1/btc_predictions"
+            f"{supabase_url}/rest/v1/{SUPABASE_TABLE}"
             "?select=id,direction,created_at,entry_fill_price"
             "&bet_taken=eq.true&correct=is.null&entry_fill_price=not.is.null&order=id.desc",
             headers={
@@ -1608,7 +1609,7 @@ def costs():
     kraken_fees_total = 0.0
     trade_count = 0
     try:
-        url = (f"{sb_url}/rest/v1/btc_predictions"
+        url = (f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
                f"?select=fees_total&bet_taken=eq.true&correct=not.is.null")
         res = requests.get(url, headers=sb_headers, timeout=5)
         rows = res.json() if res.ok else []
@@ -1623,7 +1624,7 @@ def costs():
     # ── 2. Supabase row count (reale) ─────────────────────────────────────────
     row_count = 0
     try:
-        url = f"{sb_url}/rest/v1/btc_predictions?select=id"
+        url = f"{sb_url}/rest/v1/{SUPABASE_TABLE}?select=id"
         res = requests.get(url, headers={**sb_headers, "Prefer": "count=exact"}, timeout=5)
         cr = res.headers.get("Content-Range", "")
         if "/" in cr:
@@ -1678,7 +1679,7 @@ def costs():
     monthly_calls = 0
     month_start = _dt.date.today().replace(day=1).isoformat()
     try:
-        url = (f"{sb_url}/rest/v1/btc_predictions"
+        url = (f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
                f"?select=id&created_at=gte.{month_start}T00:00:00")
         res = requests.get(url, headers={**sb_headers, "Prefer": "count=exact"}, timeout=5)
         cr = res.headers.get("Content-Range", "")
@@ -1771,7 +1772,7 @@ def equity_history():
 
     try:
         r = requests.get(
-            f"{sb_url}/rest/v1/btc_predictions"
+            f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
             "?select=id,created_at,pnl_usd"
             "&bet_taken=eq.true&correct=not.is.null&pnl_usd=not.is.null"
             "&created_at=gte.2026-02-24T00:00:00Z"
@@ -1813,7 +1814,7 @@ def risk_metrics():
 
     try:
         r = requests.get(
-            f"{sb_url}/rest/v1/btc_predictions"
+            f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
             "?select=id,correct,pnl_usd,direction,created_at"
             "&bet_taken=eq.true&correct=not.is.null"
             "&order=id.asc",
@@ -1924,7 +1925,7 @@ def wf_status():
     open_bets_supabase = 0
     try:
         r = requests.get(
-            f"{sb_url}/rest/v1/btc_predictions"
+            f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
             "?select=id&bet_taken=eq.true&correct=is.null",
             headers={**sb_headers, "Prefer": "count=exact"},
             timeout=5,
@@ -1959,7 +1960,7 @@ def orphaned_bets():
 
     try:
         r = requests.get(
-            f"{sb_url}/rest/v1/btc_predictions"
+            f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
             "?select=id,created_at,direction,btc_price_entry,bet_size"
             "&bet_taken=eq.true&correct=is.null&entry_fill_price=not.is.null&order=id.desc&limit=20",
             headers=sb_headers,
@@ -2012,7 +2013,7 @@ def backfill_bet(bet_id):
     # 1. Fetch bet from Supabase
     try:
         r = requests.get(
-            f"{sb_url}/rest/v1/btc_predictions"
+            f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
             f"?id=eq.{bet_id}&select=id,direction,btc_price_entry,bet_size,correct",
             headers=sb_headers,
             timeout=6,
@@ -2063,7 +2064,7 @@ def backfill_bet(bet_id):
     }
     try:
         pr = requests.patch(
-            f"{sb_url}/rest/v1/btc_predictions?id=eq.{bet_id}",
+            f"{sb_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{bet_id}",
             headers={**sb_headers, "Content-Type": "application/json", "Prefer": "return=minimal"},
             json=patch_data,
             timeout=6,
@@ -2289,7 +2290,7 @@ def training_status():
         try:
             cutoff = last_retrain_ts.strftime("%Y-%m-%dT%H:%M:%S")
             r = requests.get(
-                f"{sb_url}/rest/v1/btc_predictions"
+                f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
                 f"?select=id&bet_taken=eq.true"
                 f"&created_at=gt.{cutoff}",
                 headers={
@@ -2661,7 +2662,7 @@ def _supabase_update(bet_id: int, fields: dict):
     """Helper: aggiorna una riga Supabase per bet_id."""
     sb_url = os.environ.get("SUPABASE_URL", "")
     sb_key = os.environ.get("SUPABASE_KEY", "")
-    url = f"{sb_url}/rest/v1/btc_predictions?id=eq.{bet_id}"
+    url = f"{sb_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{bet_id}"
     headers = {
         "apikey": sb_key,
         "Authorization": f"Bearer {sb_key}",
@@ -2673,6 +2674,55 @@ def _supabase_update(bet_id: int, fields: dict):
 
 
 # ── DASHBOARD ────────────────────────────────────────────────────────────────
+
+@app.route("/llms.txt", methods=["GET"])
+def llms_txt():
+    """AI crawler context file (llms.txt standard)."""
+    try:
+        with open("static/llms.txt", "r") as f:
+            content = f.read()
+    except FileNotFoundError:
+        content = "# BTC Predictor\nhttps://btcpredictor.io\n"
+    return content, 200, {"Content-Type": "text/plain; charset=utf-8"}
+
+@app.route("/robots.txt", methods=["GET"])
+def robots_txt():
+    """robots.txt — allow all crawlers, point to llms.txt."""
+    content = (
+        "User-agent: *\n"
+        "Allow: /\n"
+        "Disallow: /place-bet\n"
+        "Disallow: /close-position\n"
+        "Disallow: /pause\n"
+        "Disallow: /resume\n"
+        "\n"
+        "# AI crawlers\n"
+        "User-agent: GPTBot\n"
+        "Allow: /\n"
+        "User-agent: ClaudeBot\n"
+        "Allow: /\n"
+        "User-agent: PerplexityBot\n"
+        "Allow: /\n"
+        "\n"
+        "Sitemap: https://btcpredictor.io/sitemap.xml\n"
+        "LLMs: https://btcpredictor.io/llms.txt\n"
+    )
+    return content, 200, {"Content-Type": "text/plain; charset=utf-8"}
+
+@app.route("/sitemap.xml", methods=["GET"])
+def sitemap_xml():
+    """Basic sitemap for indexing."""
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        '  <url>\n'
+        '    <loc>https://btcpredictor.io/dashboard</loc>\n'
+        '    <changefreq>hourly</changefreq>\n'
+        '    <priority>1.0</priority>\n'
+        '  </url>\n'
+        '</urlset>\n'
+    )
+    return xml, 200, {"Content-Type": "application/xml"}
 
 @app.route("/dashboard", methods=["GET"])
 def dashboard():

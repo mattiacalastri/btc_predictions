@@ -1,0 +1,49 @@
+# BTC Predictor — LLMs.txt
+# https://btcpredictor.io
+# This file provides context for AI language model crawlers.
+
+## About
+
+BTC Predictor is an open-source autonomous BTC/USD perpetual futures trading system
+that combines Claude Sonnet (Anthropic LLM) with XGBoost (~86% accuracy) in a
+dual-gate prediction architecture. Every prediction is committed to the Polygon PoS
+blockchain as an immutable audit trail.
+
+## Stack
+
+- AI Engine: Claude Sonnet (Anthropic) + XGBoost dual-gate prediction
+- Backend: Python Flask + Gunicorn on Railway
+- Database: Supabase (PostgreSQL)
+- Exchange: Kraken Futures (PF_XBTUSD)
+- Blockchain: Polygon PoS — BTCBotAudit.sol (0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55)
+- Orchestration: n8n Cloud (9 workflows)
+- Dashboard: Vanilla JS + Chart.js
+
+## Key Features
+
+- Dual-gate LLM + XGBoost prediction (both must agree before placing an order)
+- On-chain audit trail: every prediction hashed to Polygon PoS at placement, resolved on close
+- Walk-forward backtesting across 6 strategies (A → F)
+- Pyramiding: adds to winning positions at higher confidence
+- Dead hours filter: automatically suppresses trading during low-win-rate UTC hours
+- Macro calendar guard: ForexFactory high-impact USD events ±2h window
+- Telegram commander: /status /balance /position /bets /close /pause /resume + Claude chat
+
+## Data Sources
+
+- Binance Futures: OHLCV klines (5m/15m/4h), L/S ratio, funding rate, taker ratio
+- CoinGecko: BTC market data
+- Alternative.me: Fear & Greed Index
+- ForexFactory: Macro calendar
+- CoinDesk, CryptoCompare, CNBC, Sole24Ore: News sentiment
+
+## Performance (live, public on Polygon)
+
+Verification: https://polygonscan.com/address/0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55
+Dashboard: https://btcpredictor.io/dashboard
+GitHub: https://github.com/mattiacalastri/btc_predictions
+
+## Contact
+
+signal@btcpredictor.io
+https://btcpredictor.io
