@@ -74,9 +74,14 @@
   .btc-price-change.neg { color: var(--danger); }
 
   .live-badge { display: flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); border: 1px solid rgba(0,255,136,0.3); padding: 5px 12px; border-radius: 2px; background: rgba(0,255,136,0.05); }
-  .onchain-badge { display: flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #a855f7; border: 1px solid rgba(168,85,247,0.35); padding: 5px 12px; border-radius: 2px; background: rgba(168,85,247,0.07); text-decoration: none; transition: background 0.2s, border-color 0.2s; }
-  .onchain-badge:hover { background: rgba(168,85,247,0.14); border-color: rgba(168,85,247,0.6); }
-  .onchain-dot { width: 6px; height: 6px; border-radius: 50%; background: #a855f7; animation: pulse 2s infinite; flex-shrink: 0; }
+  .onchain-badge { display: flex; align-items: center; gap: 8px; font-size: 9.5px; font-weight: 800; letter-spacing: 1.8px; text-transform: uppercase; color: #c084fc; border: 1px solid rgba(168,85,247,0.5); padding: 5px 14px; border-radius: 3px; background: linear-gradient(135deg, rgba(130,71,229,0.12), rgba(168,85,247,0.06)); text-decoration: none; box-shadow: 0 0 14px rgba(168,85,247,0.18), inset 0 0 10px rgba(168,85,247,0.04); transition: all 0.3s; position: relative; overflow: hidden; }
+  .onchain-badge::before { content: ''; position: absolute; top: 0; left: -100%; width: 60%; height: 100%; background: linear-gradient(90deg, transparent, rgba(200,132,252,0.12), transparent); animation: onchain-shimmer 3.5s infinite; pointer-events: none; }
+  @keyframes onchain-shimmer { 0% { left: -60%; } 60%, 100% { left: 120%; } }
+  .onchain-badge:hover { background: linear-gradient(135deg, rgba(130,71,229,0.22), rgba(168,85,247,0.12)); border-color: rgba(200,132,252,0.75); box-shadow: 0 0 22px rgba(168,85,247,0.35), inset 0 0 12px rgba(168,85,247,0.06); color: #d8b4fe; }
+  .onchain-badge-inner { display: flex; flex-direction: column; gap: 1px; }
+  .onchain-badge-title { font-size: 9.5px; font-weight: 800; letter-spacing: 1.8px; line-height: 1; }
+  .onchain-badge-sub { font-size: 7.5px; font-weight: 600; letter-spacing: 1.5px; color: rgba(200,132,252,0.65); line-height: 1; }
+  .onchain-dot { width: 7px; height: 7px; border-radius: 50%; background: #a855f7; box-shadow: 0 0 7px rgba(168,85,247,0.9); animation: pulse 2s infinite; flex-shrink: 0; }
   .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse 1.5s infinite; }
   .last-update { font-size: 10px; color: var(--muted); letter-spacing: 1px; }
 
@@ -231,6 +236,9 @@
   .bar-labels { display: flex; justify-content: space-between; font-size: 9px; color: var(--muted); }
   .tooltip { position: absolute; bottom: calc(100% + 5px); left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--border); padding: 3px 7px; font-size: 9px; white-space: nowrap; pointer-events: none; z-index: 100; display: none; }
   .bar:hover .tooltip { display: block; }
+
+  /* Global data-tip tooltip */
+  [data-tip] { cursor: help; }
 
   /* SIGNAL QUALITY */
   .signal-grid { padding: 14px 18px; display: flex; flex-direction: column; gap: 12px; }
@@ -1169,6 +1177,8 @@
     .kpi-sub { font-size: 8px; margin-top: 3px; }
   }
 
+  .mobile-bet-list { display: none; }
+
   /* TASK 5 — Bet list card layout su mobile */
   @media (max-width: 600px) {
     .table-wrap { overflow-x: hidden; }
@@ -1516,7 +1526,13 @@
         <div class="btc-price-meta">BTC/USD · LIVE <span class="btc-price-change" id="btcPriceChange"></span></div>
       </div>
       <span class="last-update" id="lastUpdate">LAST UPDATE: <span class="loading">—</span></span>
-      <a href="https://polygonscan.com/address/0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55" target="_blank" class="onchain-badge"><div class="onchain-dot"></div>ON-CHAIN · POLYGON ✓</a>
+      <a href="https://polygonscan.com/address/0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55" target="_blank" class="onchain-badge" title="Every prediction committed to Polygon PoS — immutable audit trail">
+        <div class="onchain-dot"></div>
+        <div class="onchain-badge-inner">
+          <span class="onchain-badge-title">⬡ POLYGON PoS · VERIFIED ✓</span>
+          <span class="onchain-badge-sub">ON-CHAIN AUDIT TRAIL</span>
+        </div>
+      </a>
       <div class="live-badge"><div class="live-dot"></div>LIVE DATA</div>
       <div id="botStatus" class="bot-status alive">
         <div class="bot-status-dot"></div>
@@ -2004,7 +2020,7 @@
         <div class="panel-tag tag-blue" id="confTag">ALL</div>
       </div>
       <div style="padding:12px 16px 8px;">
-        <svg id="confSvg" width="100%" height="110" viewBox="0 0 600 110" preserveAspectRatio="none"></svg>
+        <svg id="confSvg" width="100%" height="110" viewBox="0 0 600 110" preserveAspectRatio="none" overflow="visible"></svg>
         <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:2px;">
           <span>oldest</span><span>newest</span>
         </div>
@@ -2260,12 +2276,12 @@
 
     <!-- KPI row -->
     <div class="kpi-grid" style="grid-template-columns:repeat(6,1fr);margin-bottom:16px" id="btKpiGrid">
-      <div class="kpi"><div class="kpi-label">Best Strategy</div><div class="kpi-value" id="btKpiBest">—</div><div class="kpi-sub" id="btKpiBestPnl">—</div></div>
-      <div class="kpi"><div class="kpi-label">Current (FULL_STACK)</div><div class="kpi-value" id="btKpiCurrent">—</div><div class="kpi-sub" id="btKpiCurrentPnl">—</div></div>
-      <div class="kpi"><div class="kpi-label">Test WR</div><div class="kpi-value" id="btKpiWR">—</div><div class="kpi-sub" id="btKpiWRSub">—</div></div>
-      <div class="kpi"><div class="kpi-label">Profit Factor</div><div class="kpi-value" id="btKpiPF">—</div><div class="kpi-sub">Best strategy</div></div>
-      <div class="kpi"><div class="kpi-label">XGB CV Acc</div><div class="kpi-value" id="btKpiXgb">—</div><div class="kpi-sub" id="btKpiXgbSub">train set</div></div>
-      <div class="kpi"><div class="kpi-label">Max Streak</div><div class="kpi-value green" id="btKpiStreak">—</div><div class="kpi-sub" id="btKpiStreakSub">W / L</div></div>
+      <div class="kpi" data-tip="Strategia ottimale trovata dal walk-forward backtest.<br>Threshold di confidenza che massimizza il PnL.<br>Es. CONF_062 = confidenza minima 62%."><div class="kpi-label">Best Strategy</div><div class="kpi-value" id="btKpiBest">—</div><div class="kpi-sub" id="btKpiBestPnl">—</div></div>
+      <div class="kpi" data-tip="Win rate della configurazione live attuale.<br>FULL_STACK = tutti i segnali senza filtro confidenza.<br>Dati in tempo reale da Supabase."><div class="kpi-label">Current (FULL_STACK)</div><div class="kpi-value" id="btKpiCurrent">—</div><div class="kpi-sub" id="btKpiCurrentPnl">—</div></div>
+      <div class="kpi" data-tip="Win rate sul TEST SET (dati non visti in training).<br>Misura la vera generalizzazione del modello.<br>N = numero di bet nel set di test."><div class="kpi-label">Test WR</div><div class="kpi-value" id="btKpiWR">—</div><div class="kpi-sub" id="btKpiWRSub">—</div></div>
+      <div class="kpi" data-tip="Gross wins ÷ gross losses sulla best strategy.<br>&gt;3 = edge eccezionale nel backtest.<br>Calcolato su tutte le bet del periodo."><div class="kpi-label">Profit Factor</div><div class="kpi-value" id="btKpiPF">—</div><div class="kpi-sub">Best strategy</div></div>
+      <div class="kpi" data-tip="Accuratezza XGBoost in cross-validation (5-fold).<br>Modello direzione UP/DOWN addestrato su segnali storici.<br>Dual-gate: LLM + XGB devono concordare."><div class="kpi-label">XGB CV Acc</div><div class="kpi-value" id="btKpiXgb">—</div><div class="kpi-sub" id="btKpiXgbSub">train set</div></div>
+      <div class="kpi" data-tip="Massima serie consecutiva di WIN nel backtest.<br>×9W = 9 vittorie di fila (momentum del sistema).<br>Mostra anche il peggior streak di perdite."><div class="kpi-label">Max Streak</div><div class="kpi-value green" id="btKpiStreak">—</div><div class="kpi-sub" id="btKpiStreakSub">W / L</div></div>
     </div>
 
     <!-- Equity curves chart -->
@@ -2362,32 +2378,32 @@
 
     <!-- 6 KPI -->
     <div class="kpi-grid costs-kpi-grid" style="grid-template-columns:repeat(6,1fr);margin-bottom:16px">
-      <div class="kpi red" id="costKpiTotal">
+      <div class="kpi red" id="costKpiTotal" data-tip="Costo operativo totale del mese in corso.<br>Somma: fee Kraken + API AI + infrastruttura.<br>MTD = Month To Date">
         <div class="kpi-label">Total Cost MTD</div>
         <div class="kpi-value red" id="costKpiTotalVal">—</div>
         <div class="kpi-sub" id="costKpiTotalSub">loading...</div>
       </div>
-      <div class="kpi yellow" id="costKpiKraken">
+      <div class="kpi yellow" id="costKpiKraken" data-tip="Fee di trading pagate a Kraken Futures.<br>Taker fee: 0.005% per fill.<br>Applicata su entry E exit.">
         <div class="kpi-label">Kraken Fees</div>
         <div class="kpi-value yellow" id="costKpiKrakenVal">—</div>
         <div class="kpi-sub" id="costKpiKrakenSub">loading...</div>
       </div>
-      <div class="kpi blue" id="costKpiN8n">
+      <div class="kpi blue" id="costKpiN8n" data-tip="Piano n8n Cloud — orchestrazione 9 workflow.<br>2500 esecuzioni/mese (limite piano free).<br>Percentuale = esecuzioni usate questo mese.">
         <div class="kpi-label">n8n Plan</div>
         <div class="kpi-value blue" id="costKpiN8nVal">—</div>
         <div class="kpi-sub" id="costKpiN8nSub">loading...</div>
       </div>
-      <div class="kpi purple" id="costKpiClaudeApi">
+      <div class="kpi purple" id="costKpiClaudeApi" data-tip="Costo Anthropic Claude API.<br>Usato per: generazione segnale LLM + Oracolo email.<br>Modello: claude-haiku-4-5 (più economico).">
         <div class="kpi-label">Claude API</div>
         <div class="kpi-value purple" id="costKpiClaudeApiVal">—</div>
         <div class="kpi-sub" id="costKpiClaudeApiSub">loading...</div>
       </div>
-      <div class="kpi" style="--kc:#e5251b" id="costKpiClaudeCode">
+      <div class="kpi" style="--kc:#e5251b" id="costKpiClaudeCode" data-tip="Abbonamento Claude Code (questo assistente!).<br>Impostato manualmente — non tracciato automaticamente.<br>Usato per sviluppo e manutenzione del bot.">
         <div class="kpi-label">Claude Code</div>
         <div class="kpi-value" style="color:#e5251b" id="costKpiClaudeCodeVal">—</div>
         <div class="kpi-sub" id="costKpiClaudeCodeSub">loading...</div>
       </div>
-      <div class="kpi" id="costKpiRailway">
+      <div class="kpi" id="costKpiRailway" data-tip="Railway Hobby Plan: $5/mese.<br>Backend Flask + Gunicorn + auto-deploy da GitHub.<br>512MB RAM · CPU condivisa · deploy su push.">
         <div class="kpi-label">Railway</div>
         <div class="kpi-value white" id="costKpiRailwayVal">—</div>
         <div class="kpi-sub" id="costKpiRailwaySub">loading...</div>
@@ -3391,6 +3407,7 @@ function render(data) {
   // Mobile sync
   syncStoryHighlights();
   syncMobilePrimary();
+  initTooltips();
   // renderMobileBetList already called inside renderTable() — no duplicate needed
 }
 
@@ -3486,6 +3503,24 @@ function renderTable(data) {
     </tr>`;
   }).join('');
   renderMobileBetList(data);
+}
+
+function initTooltips() {
+  let tip = document.getElementById('globalTip');
+  if (!tip) {
+    tip = document.createElement('div');
+    tip.id = 'globalTip';
+    tip.style.cssText = 'position:fixed;background:rgba(8,12,25,0.97);border:1px solid rgba(0,255,136,0.25);color:#99aabb;font-size:9px;font-family:JetBrains Mono,monospace;letter-spacing:0.5px;padding:6px 11px;border-radius:2px;pointer-events:none;display:none;z-index:9999;max-width:240px;line-height:1.6;white-space:normal;';
+    document.body.appendChild(tip);
+  }
+  document.querySelectorAll('[data-tip]').forEach(el => {
+    el.addEventListener('mouseenter', () => { tip.innerHTML = el.dataset.tip; tip.style.display = 'block'; });
+    el.addEventListener('mousemove', e => {
+      tip.style.left = Math.min(e.clientX + 14, window.innerWidth - 255) + 'px';
+      tip.style.top  = Math.max(e.clientY - 48, 4) + 'px';
+    });
+    el.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+  });
 }
 
 function renderGalaxy(data) {
@@ -3622,14 +3657,19 @@ function renderSignalQuality(data) {
   const avgPnlLabel = betsWithPnl.length ? (avgPnl >= 0 ? '+' : '') + '$' + avgPnl.toFixed(4) : '—';
 
   const metrics = [
-    { label: 'Profit Factor',        barVal: Math.min(pf / 2 * 100, 100), displayVal: pfLabel,    color: pf >= 1 ? 'var(--accent)' : 'var(--danger)' },
-    { label: 'Avg PnL / Trade',      barVal: 50,                           displayVal: avgPnlLabel, color: avgPnl >= 0 ? 'var(--accent)' : 'var(--danger)' },
-    { label: 'UP Signal Accuracy',   barVal: pct(upClosed, d => d.correct), displayVal: null,      color: 'var(--accent)' },
-    { label: 'DOWN Signal Accuracy', barVal: pct(dnClosed, d => d.correct), displayVal: null,      color: 'var(--danger)' },
-    { label: 'Bet Coverage',         barVal: data.length ? Math.round(data.filter(d => d.classification === 'BET').length / data.length * 100) : 0, displayVal: null, color: 'var(--warn)' },
+    { label: 'Profit Factor',        barVal: Math.min(pf / 2 * 100, 100), displayVal: pfLabel,    color: pf >= 1 ? 'var(--accent)' : 'var(--danger)',
+      tip: 'Gross wins ÷ gross losses.<br>≥2.0 = sistema eccellente.<br>Misura la redditività strutturale.' },
+    { label: 'Avg PnL / Trade',      barVal: 50,                           displayVal: avgPnlLabel, color: avgPnl >= 0 ? 'var(--accent)' : 'var(--danger)',
+      tip: 'P&amp;L medio per ogni BET eseguita.<br>Positivo = edge reale presente.<br>Include fee di trading.' },
+    { label: 'UP Signal Accuracy',   barVal: pct(upClosed, d => d.correct), displayVal: null,      color: 'var(--accent)',
+      tip: 'Win rate sulle previsioni LONG (rialzo).<br>Solo BET chiuse con direction=UP.' },
+    { label: 'DOWN Signal Accuracy', barVal: pct(dnClosed, d => d.correct), displayVal: null,      color: 'var(--danger)',
+      tip: 'Win rate sulle previsioni SHORT (ribasso).<br>Storicamente più difficile da predire.' },
+    { label: 'Bet Coverage',         barVal: data.length ? Math.round(data.filter(d => d.classification === 'BET').length / data.length * 100) : 0, displayVal: null, color: 'var(--warn)',
+      tip: '% dei segnali convertiti in BET reali.<br>Basso = threshold alta e selettiva.<br>Alto = più bet ma meno filtrate.' },
   ];
   document.getElementById('signalQuality').innerHTML = metrics.map(m => `
-    <div class="signal-row">
+    <div class="signal-row" data-tip="${m.tip}">
       <div class="signal-meta">
         <span class="signal-label">${m.label}</span>
         <span class="signal-val" style="color:${m.color}">${m.displayVal !== null ? m.displayVal : m.barVal + '%'}</span>
@@ -3684,6 +3724,33 @@ function renderEquityCurve(chronoBets, totalPnl) {
     <circle cx="${toX(points.length-1).toFixed(1)}" cy="${toY(points[points.length-1].cum).toFixed(1)}" r="3.5" fill="${color}"/>`;
   document.getElementById('equityTag').textContent = (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toFixed(2);
   document.getElementById('equityTag').className   = 'panel-tag ' + (totalPnl >= 0 ? 'tag-green' : 'tag-red');
+
+  // Interactive crosshair on hover
+  const CAPITAL = 100;
+  let eqTip = document.getElementById('equityTip');
+  if (!eqTip) {
+    eqTip = document.createElement('div');
+    eqTip.id = 'equityTip';
+    eqTip.style.cssText = 'position:fixed;background:rgba(8,12,25,0.95);border:1px solid rgba(0,255,136,0.3);color:#eee;font-size:10px;font-family:JetBrains Mono,monospace;padding:5px 10px;border-radius:2px;pointer-events:none;display:none;z-index:9999;white-space:nowrap;';
+    document.body.appendChild(eqTip);
+  }
+  svg.addEventListener('mousemove', e => {
+    const rect = svg.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const pct = Math.max(0, Math.min(1, mx / rect.width));
+    const idx = Math.round(pct * (points.length - 1));
+    const pt  = points[idx];
+    if (!pt) return;
+    const pnlSign = pt.cum >= 0 ? '+' : '';
+    const pnlPct  = CAPITAL > 0 ? (pt.cum / CAPITAL * 100).toFixed(1) : '—';
+    const pctSign = pt.cum >= 0 ? '+' : '';
+    eqTip.innerHTML = `Bet #${idx} &nbsp;|&nbsp; <span style="color:${pt.cum >= 0 ? '#00ff88' : '#ff4466'}">${pnlSign}$${pt.cum.toFixed(2)}</span> <span style="color:#888">(${pctSign}${pnlPct}%)</span>`;
+    eqTip.style.display = 'block';
+    eqTip.style.left = Math.min(e.clientX + 14, window.innerWidth - 220) + 'px';
+    eqTip.style.top  = (e.clientY - 36) + 'px';
+  });
+  svg.addEventListener('mouseleave', () => { eqTip.style.display = 'none'; });
+  svg.style.cursor = 'crosshair';
 }
 
 // ── CHARTS GRID FUNCTIONS ────────────────────────────────────────────────────
@@ -4137,9 +4204,9 @@ function escapeHtml(s) {
 
 function syntaxHighlight(text) {
   return text.split('\n').map(line => {
-    // Decorator lines (ASCII box-drawing) — near-invisible border color
+    // Decorator lines (ASCII box-drawing) — visible dim border
     if (/[═─╔╚╗╝║╠╣╦╩╬]/.test(line)) {
-      return `<span style="color:#1e2d3d">${line}</span>`;
+      return `<span style="color:#2a3f55">${line}</span>`;
     }
     // Trophy / star / "Miglior" lines — gold bold
     if (/[🏆★]|Miglior/.test(line)) {
@@ -4334,21 +4401,21 @@ function renderBacktestDashboard(d) {
       if (h.n === 0) {
         bg = '#1a1a1a'; label = `${h.hour}h`; title = 'no data';
       } else if (h.is_dead) {
-        bg = 'rgba(224,107,107,0.35)'; label = `${h.hour}h\n${h.wr}%`; title = `${h.hour}h — DEAD (${h.wr}% WR, n=${h.n})`;
+        bg = 'rgba(255,55,85,0.55)'; label = `${h.hour}h\n${h.wr}%`; title = `${h.hour}h — DEAD (${h.wr}% WR, n=${h.n})`;
       } else if (h.is_hot) {
-        bg = 'rgba(126,200,164,0.35)'; label = `${h.hour}h\n${h.wr}%`; title = `${h.hour}h — HOT (${h.wr}% WR, n=${h.n})`;
+        bg = 'rgba(0,255,136,0.35)'; label = `${h.hour}h\n${h.wr}%`; title = `${h.hour}h — HOT (${h.wr}% WR, n=${h.n})`;
       } else {
         const wr = h.wr || 50;
         const intensity = Math.max(0, Math.min(1, (wr - 40) / 30));
-        bg = `rgba(74,144,217,${(intensity * 0.4).toFixed(2)})`; label = `${h.hour}h\n${h.wr}%`; title = `${h.hour}h — ${h.wr}% WR (n=${h.n})`;
+        bg = `rgba(80,160,255,${(0.1 + intensity * 0.45).toFixed(2)})`; label = `${h.hour}h\n${h.wr}%`; title = `${h.hour}h — ${h.wr}% WR (n=${h.n})`;
       }
       const lowMark = h.low_sample ? '*' : '';
       const lines = label.split('\n');
       const pnlStr = h.n > 0 ? (h.pnl >= 0 ? '+' : '') + '$' + h.pnl.toFixed(2) : '';
       const pnlC = h.pnl >= 0 ? 'var(--accent)' : 'var(--danger)';
       return `<div title="${title}" style="background:${bg};border-radius:4px;padding:5px 3px;text-align:center;font-size:9px;line-height:1.3;cursor:default">
-        <div style="color:#aaa">${lines[0]}${lowMark}</div>
-        ${lines[1] ? `<div style="color:#eee;font-weight:600">${lines[1]}</div>` : ''}
+        <div style="color:rgba(255,255,255,0.6);font-size:8px">${lines[0]}${lowMark}</div>
+        ${lines[1] ? `<div style="color:#fff;font-weight:700;font-size:10px">${lines[1]}</div>` : ''}
         ${pnlStr ? `<div style="color:${pnlC};font-size:8px;opacity:0.8">${pnlStr}</div>` : ''}
       </div>`;
     }).join('');
