@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
 <title>BTC BOT · ASTRA DIGITAL</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='15' fill='%230d0d0d'/%3E%3Ctext x='50' y='72' font-size='70' text-anchor='middle' fill='%2300ff88' font-family='Arial'%3E%E2%82%BF%3C/text%3E%3C/svg%3E">
@@ -877,6 +878,17 @@
     gap: 14px 20px;
     padding: 14px 18px 16px;
   }
+  /* QW9 — responsive 2-col grid for Backtest/Training panels */
+  .two-col-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 600px) {
+    .two-col-grid { grid-template-columns: 1fr; }
+  }
+
   .train-progress-bar {
     width: 100%; height: 4px;
     background: var(--border);
@@ -2009,7 +2021,7 @@
     </div>
 
     <!-- Confidence calibration + Hourly heatmap side by side -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+    <div class="two-col-grid">
 
       <div class="panel">
         <div class="panel-header"><div class="panel-title">Confidence Calibration</div><div class="panel-tag tag-yellow">CALIBRATION</div></div>
@@ -2314,7 +2326,7 @@
     </div>
 
     <!-- Config + Pipeline side by side -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+    <div class="two-col-grid">
 
       <div class="panel">
         <div class="panel-header">
@@ -2868,7 +2880,7 @@ async function fetchLiveBtcPrice() {
       changeEl.className = 'btc-price-change ' + (diff >= 0 ? 'pos' : 'neg');
       changeEl.textContent = (diff >= 0 ? '+' : '') + diffPct + '%';
     }
-    priceEl.textContent = '$' + price.toLocaleString('it-IT', { maximumFractionDigits: 0 });
+    priceEl.textContent = '$' + price.toLocaleString('en-US', { maximumFractionDigits: 0 });
     lastBtcPrice = price;
     const kp = price >= 1000 ? '$' + Math.round(price / 1000) + 'k' : '$' + Math.round(price);
     document.title = '₿ ' + kp + ' · BTC Bot';
@@ -3055,7 +3067,7 @@ function render(data) {
   // Mobile sync
   syncStoryHighlights();
   syncMobilePrimary();
-  renderMobileBetList(data);
+  // renderMobileBetList already called inside renderTable() — no duplicate needed
 }
 
 function renderTable(data) {
@@ -3766,7 +3778,7 @@ function renderBacktestDashboard(d) {
   const currR  = strats[curr]  || {};
 
   // ── KPIs ───────────────────────────────────────────────────────────────
-  const pnlCol = v => v >= 0 ? 'var(--green)' : 'var(--danger)';
+  const pnlCol = v => v >= 0 ? 'var(--accent)' : 'var(--danger)';
   const fmtPnl = v => (v >= 0 ? '+' : '') + '$' + Number(v).toFixed(4);
 
   _bt('btKpiBest',    best?.replace(/^[A-Z]_/, '') || '—');
@@ -3800,7 +3812,7 @@ function renderBacktestDashboard(d) {
         <td style="text-align:right;padding:6px 8px;color:${pnlC}">${fmtPnl(r.pnl)}</td>
         <td style="text-align:right;padding:6px 8px;color:${pnlCol(r.pnl_per_bet)}">${fmtPnl(r.pnl_per_bet)}</td>
         <td style="text-align:right;padding:6px 8px;color:var(--danger)">-$${r.max_dd?.toFixed(4)||'—'}</td>
-        <td style="text-align:right;padding:6px 8px;color:${r.profit_factor>=1.5?'var(--green)':r.profit_factor<1?'var(--danger)':'inherit'}">${r.profit_factor?.toFixed(2)||'—'}</td>
+        <td style="text-align:right;padding:6px 8px;color:${r.profit_factor>=1.5?'var(--accent)':r.profit_factor<1?'var(--danger)':'inherit'}">${r.profit_factor?.toFixed(2)||'—'}</td>
         <td style="text-align:right;padding:6px 8px">${r.sortino?.toFixed(2)||'—'}</td>
         <td style="text-align:right;padding:6px 8px">${r.sharpe?.toFixed(2)||'—'}</td>
       </tr>`;
@@ -3871,7 +3883,7 @@ function renderBacktestDashboard(d) {
   const calibBody = document.getElementById('btCalibBody');
   if (calibBody && d.confidence_buckets) {
     calibBody.innerHTML = d.confidence_buckets.map(b => {
-      const deltaCol = b.delta >= 5 ? 'var(--green)' : b.delta <= -5 ? 'var(--danger)' : 'var(--muted)';
+      const deltaCol = b.delta >= 5 ? 'var(--accent)' : b.delta <= -5 ? 'var(--danger)' : 'var(--muted)';
       const deltaStr = (b.delta >= 0 ? '+' : '') + b.delta.toFixed(1) + '%';
       const ppb = b.pnl_per_bet;
       const ppbCol = ppb >= 0 ? 'var(--accent)' : 'var(--danger)';
