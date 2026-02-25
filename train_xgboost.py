@@ -113,7 +113,8 @@ def main():
     args = parser.parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)
-    report_lines = []
+    import datetime as _dt_mod
+    report_lines = [f"Generated: {_dt_mod.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}"]
 
     def log(s=""):
         print(s)
