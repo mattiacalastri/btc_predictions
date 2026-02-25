@@ -529,6 +529,14 @@
       white-space: nowrap;
       flex-shrink: 0;
     }
+    /* WAR ROOM + period pills: una riga senza wrap */
+    .tab-controls {
+      flex-wrap: nowrap !important;
+      gap: 5px !important;
+      flex-shrink: 0;
+    }
+    .tab-controls-sep,
+    .period-label { display: none; }
   }
 
   /* ── AGENTS TAB ──────────────────────────────────────────── */
@@ -1551,10 +1559,10 @@
       <button class="tab-btn"        data-tab="costs"       onclick="switchTab(this)">💰 Costs</button>
       <button class="tab-btn"        data-tab="backtest"    onclick="switchTab(this)">📊 Backtest</button>
     </div>
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+    <div class="tab-controls" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
       <button class="war-room-btn" id="warRoomToggle" onclick="toggleWarRoom(this)">&#9876;&#65039; War Room</button>
-      <div style="width:1px;height:20px;background:var(--border);"></div>
-      <span style="font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-right:4px">PERIOD</span>
+      <div class="tab-controls-sep" style="width:1px;height:20px;background:var(--border);"></div>
+      <span class="period-label" style="font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-right:4px">PERIOD</span>
       <button class="time-pill active" data-period="ALL"   onclick="setTimePeriod(this)">ALL</button>
       <button class="time-pill"        data-period="7D"    onclick="setTimePeriod(this)">7D</button>
       <button class="time-pill"        data-period="24H"   onclick="setTimePeriod(this)">24H</button>
