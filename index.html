@@ -1987,12 +1987,14 @@
 
     <div class="panel" id="pnlChartPanel">
       <div class="panel-header">
-        <div class="panel-title">PnL per Trade</div>
-        <div class="panel-tag tag-green" id="totalPnlTag">TOTAL: —</div>
+        <div class="panel-title">Prediction Galaxy ✦</div>
+        <div class="panel-tag tag-blue" id="galaxyTag">CONF × PnL</div>
       </div>
-      <div class="chart-area">
-        <div class="pnl-chart" id="pnlChart"></div>
-        <div class="bar-labels"><span id="chartStart">—</span><span>PnL USD</span><span id="chartEnd">—</span></div>
+      <div style="padding:8px 12px 4px;position:relative;">
+        <svg id="galaxySvg" width="100%" height="112" viewBox="0 0 320 112" style="overflow:visible;"></svg>
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:1px;">
+          <span>← low conf</span><span>confidence</span><span>high conf →</span>
+        </div>
       </div>
     </div>
 
@@ -3355,7 +3357,7 @@ function render(data) {
   renderTable(data);
 
   const chronoBets = [...realBets].reverse();
-  renderPnlChart(chronoBets);
+  renderGalaxy(data);
   renderSignalQuality(data);
   renderConfDist(data);
   renderEquityCurve(chronoBets, totalPnl);
@@ -3471,20 +3473,122 @@ function renderTable(data) {
   renderMobileBetList(data);
 }
 
-function renderPnlChart(chronoBets) {
-  if (!chronoBets.length) return;
-  const chart  = document.getElementById('pnlChart');
-  const maxAbs = Math.max(...chronoBets.map(d => Math.abs(parseFloat(d.pnl_usd || 0))));
-  const maxH   = 82;
-  chart.innerHTML = chronoBets.map(d => {
-    const v   = parseFloat(d.pnl_usd || 0);
-    const h   = maxAbs > 0 ? Math.max(2, Math.abs(v) / maxAbs * maxH) : 2;
-    const cls = v > 0 ? 'pos' : v < 0 ? 'neg' : 'zero';
-    return `<div class="bar ${cls}" style="height:${h}px"><div class="tooltip">${fmtPnl(v)}</div></div>`;
-  }).join('');
-  const times = chronoBets.map(d => fmtTime(d.created_at));
-  document.getElementById('chartStart').textContent = times[0];
-  document.getElementById('chartEnd').textContent   = times[times.length - 1];
+function renderGalaxy(data) {
+  const svg = document.getElementById('galaxySvg');
+  if (!svg) return;
+
+  // Only real closed bets with both confidence and pnl
+  const bets = data.filter(d =>
+    d.classification === 'BET' &&
+    d.pnl_usd !== null && d.pnl_usd !== undefined &&
+    d.confidence !== null
+  );
+  if (!bets.length) { svg.innerHTML = '<text x="160" y="56" text-anchor="middle" fill="#555" font-size="11">No data</text>'; return; }
+
+  const W = 320, H = 112;
+  const PAD = { l: 28, r: 10, t: 10, b: 10 };
+  const plotW = W - PAD.l - PAD.r;
+  const plotH = H - PAD.t - PAD.b;
+
+  // Scales
+  const confs  = bets.map(d => parseFloat(d.confidence));
+  const pnls   = bets.map(d => parseFloat(d.pnl_usd));
+  const sizes  = bets.map(d => parseFloat(d.bet_size || 0.002));
+
+  const confMin = Math.min(...confs), confMax = Math.max(...confs, 0.85);
+  const pnlAbs  = Math.max(...pnls.map(Math.abs), 0.5);
+  const sizeMin = Math.min(...sizes), sizeMax = Math.max(...sizes);
+
+  const cx = c => PAD.l + ((c - confMin) / (confMax - confMin || 1)) * plotW;
+  const cy = v => PAD.t + plotH / 2 - (v / pnlAbs) * (plotH / 2 - 6);
+  const cr = s => {
+    const t = sizeMax > sizeMin ? (s - sizeMin) / (sizeMax - sizeMin) : 0.5;
+    return 3 + t * 4.5; // radius 3–7.5px
+  };
+
+  // Threshold line at conf=0.65 and pnl=0
+  const threshX = cx(0.65);
+  const midY    = cy(0);
+
+  let html = '';
+
+  // Subtle grid lines
+  html += `<line x1="${PAD.l}" y1="${midY}" x2="${W - PAD.r}" y2="${midY}" stroke="#ffffff18" stroke-width="1" stroke-dasharray="3,3"/>`;
+  if (threshX > PAD.l && threshX < W - PAD.r)
+    html += `<line x1="${threshX}" y1="${PAD.t}" x2="${threshX}" y2="${H - PAD.b}" stroke="#ffffff18" stroke-width="1" stroke-dasharray="3,3"/>`;
+
+  // Axis labels
+  html += `<text x="${PAD.l - 2}" y="${midY + 3}" text-anchor="end" fill="#444" font-size="8">$0</text>`;
+  html += `<text x="${PAD.l - 2}" y="${PAD.t + 8}" text-anchor="end" fill="#1a6b3a" font-size="7">+</text>`;
+  html += `<text x="${PAD.l - 2}" y="${H - PAD.b}" text-anchor="end" fill="#6b1a1a" font-size="7">−</text>`;
+
+  // Quadrant labels (very subtle)
+  const qAlpha = '22';
+  if (threshX > PAD.l + 20) {
+    html += `<text x="${PAD.l + 2}" y="${PAD.t + 9}" fill="#ffffff${qAlpha}" font-size="7">LOW</text>`;
+    html += `<text x="${PAD.l + 2}" y="${H - PAD.b - 2}" fill="#ffffff${qAlpha}" font-size="7">LOW</text>`;
+  }
+  html += `<text x="${W - PAD.r - 2}" y="${PAD.t + 9}" text-anchor="end" fill="#00ff88${qAlpha}" font-size="7">WIN ✦</text>`;
+  html += `<text x="${W - PAD.r - 2}" y="${H - PAD.b - 2}" text-anchor="end" fill="#ff4d4d${qAlpha}" font-size="7">LOSS ✦</text>`;
+
+  // Draw stars — open bets last so they're on top
+  const closed = bets.filter(d => d.correct !== null);
+  const open   = bets.filter(d => d.correct === null);
+
+  [...closed, ...open].forEach(d => {
+    const x   = cx(parseFloat(d.confidence));
+    const y   = cy(parseFloat(d.pnl_usd));
+    const r   = cr(parseFloat(d.bet_size || 0.002));
+    const win = d.correct === true;
+    const los = d.correct === false;
+    const opn = d.correct === null;
+
+    const fill   = opn ? '#888' : win ? '#00ff88' : '#ff4d4d';
+    const glow   = opn ? 'none' : win ? `drop-shadow(0 0 ${r+1}px #00ff8866)` : `drop-shadow(0 0 ${r+1}px #ff4d4d66)`;
+    const opacity = opn ? 0.5 : 0.82;
+    const pnlV  = parseFloat(d.pnl_usd);
+    const conf  = parseFloat(d.confidence);
+    const dir   = d.direction || '';
+    const dt    = d.created_at ? d.created_at.slice(0, 16).replace('T', ' ') : '';
+
+    // Tooltip content encoded in data attrs, rendered by JS mouseover
+    const tip = `${dir} conf=${(conf*100).toFixed(0)}% pnl=${pnlV >= 0 ? '+' : ''}$${Math.abs(pnlV).toFixed(2)} size=${d.bet_size} ${dt}`;
+
+    html += `<circle
+      cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}"
+      fill="${fill}" opacity="${opacity}"
+      style="filter:${glow};cursor:pointer;"
+      data-tip="${tip.replace(/"/g, '&quot;')}"
+    />`;
+  });
+
+  // Count tag
+  const nWin = closed.filter(d => d.correct === true).length;
+  const nLos = closed.filter(d => d.correct === false).length;
+  const galaxyTagEl = document.getElementById('galaxyTag');
+  if (galaxyTagEl) galaxyTagEl.textContent = `${nWin}W · ${nLos}L`;
+
+  svg.innerHTML = html;
+
+  // Tooltip on hover (reuse existing .tooltip-float if present, else create)
+  let tipEl = document.getElementById('galaxyTip');
+  if (!tipEl) {
+    tipEl = document.createElement('div');
+    tipEl.id = 'galaxyTip';
+    tipEl.style.cssText = 'position:fixed;background:#1a1a2e;border:1px solid #333;color:#eee;font-size:10px;padding:4px 8px;border-radius:6px;pointer-events:none;display:none;z-index:9999;white-space:nowrap;';
+    document.body.appendChild(tipEl);
+  }
+  svg.querySelectorAll('circle').forEach(el => {
+    el.addEventListener('mouseenter', e => {
+      tipEl.textContent = el.dataset.tip;
+      tipEl.style.display = 'block';
+    });
+    el.addEventListener('mousemove', e => {
+      tipEl.style.left = (e.clientX + 12) + 'px';
+      tipEl.style.top  = (e.clientY - 28) + 'px';
+    });
+    el.addEventListener('mouseleave', () => { tipEl.style.display = 'none'; });
+  });
 }
 
 function renderSignalQuality(data) {
