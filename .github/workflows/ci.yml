@@ -57,3 +57,14 @@ jobs:
           pytest tests/ -v --tb=short --cov=app --cov-report=term-missing \
             || [ $? -eq 5 ] && echo "No tests collected — skipping coverage."
 
+      - name: Report commit status to GitHub
+        # Railway "Wait for CI" reads the legacy Commit Statuses API, not Check Runs.
+        # This step explicitly posts a status so Railway sees success/failure correctly.
+        if: always()
+        run: |
+          STATE=$([ "${{ job.status }}" = "success" ] && echo "success" || echo "failure")
+          curl -s -X POST \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }}" \
+            -d "{\"state\":\"$STATE\",\"context\":\"ci/tests\",\"description\":\"Tests $STATE\"}"
