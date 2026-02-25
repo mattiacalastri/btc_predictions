@@ -2447,6 +2447,186 @@ def macro_guard():
     return jsonify({"blocked": False})
 
 
+# ── ON-CHAIN AUDIT TRAIL (Polygon PoS) ────────────────────────────────────────
+#
+# Richiede: web3 (pip), POLYGON_PRIVATE_KEY + POLYGON_CONTRACT_ADDRESS su Railway.
+# Hash formula commit:  keccak256(abi.encodePacked(betId, direction, confidence, entryPrice, betSize, timestamp))
+# Hash formula resolve: keccak256(abi.encodePacked(betId, exitPrice, pnlUsd, won, closeTimestamp))
+#
+# ABI minimo del contratto BTCBotAudit.sol (solo funzioni usate):
+_BTCBOT_AUDIT_ABI = [
+    {"inputs":[{"internalType":"uint256","name":"betId","type":"uint256"},
+               {"internalType":"bytes32","name":"commitHash","type":"bytes32"}],
+     "name":"commit","outputs":[],"stateMutability":"nonpayable","type":"function"},
+    {"inputs":[{"internalType":"uint256","name":"betId","type":"uint256"},
+               {"internalType":"bytes32","name":"resolveHash","type":"bytes32"},
+               {"internalType":"bool","name":"won","type":"bool"}],
+     "name":"resolve","outputs":[],"stateMutability":"nonpayable","type":"function"},
+    {"inputs":[{"internalType":"uint256","name":"betId","type":"uint256"}],
+     "name":"getCommit","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],
+     "stateMutability":"view","type":"function"},
+    {"inputs":[{"internalType":"uint256","name":"betId","type":"uint256"}],
+     "name":"isCommitted","outputs":[{"internalType":"bool","name":"","type":"bool"}],
+     "stateMutability":"view","type":"function"},
+    {"inputs":[{"internalType":"uint256","name":"betId","type":"uint256"}],
+     "name":"isResolved","outputs":[{"internalType":"bool","name":"","type":"bool"}],
+     "stateMutability":"view","type":"function"},
+]
+
+def _get_web3_contract():
+    """Restituisce (w3, contract, account) oppure raise RuntimeError se non configurato."""
+    try:
+        from web3 import Web3
+        from web3.middleware import ExtraDataToPOAMiddleware
+    except ImportError:
+        raise RuntimeError("web3 non installato")
+
+    private_key = os.environ.get("POLYGON_PRIVATE_KEY", "")
+    contract_address = os.environ.get("POLYGON_CONTRACT_ADDRESS", "")
+    if not private_key or not contract_address:
+        raise RuntimeError("POLYGON_PRIVATE_KEY o POLYGON_CONTRACT_ADDRESS non configurati")
+
+    w3 = Web3(Web3.HTTPProvider("https://polygon-rpc.com"))
+    w3.middleware_onion.inject(ExtraDataToPOAMiddleware, layer=0)
+    if not w3.is_connected():
+        raise RuntimeError("Impossibile connettersi a Polygon RPC")
+
+    account = w3.eth.account.from_key(private_key)
+    contract = w3.eth.contract(
+        address=Web3.to_checksum_address(contract_address),
+        abi=_BTCBOT_AUDIT_ABI
+    )
+    return w3, contract, account
+
+
+@app.route("/commit-prediction", methods=["POST"])
+def commit_prediction():
+    """
+    Committa l'hash di una prediction su Polygon.
+    Body JSON: { bet_id, direction, confidence, entry_price, bet_size, timestamp }
+    Salva onchain_commit_hash + onchain_commit_tx su Supabase.
+    """
+    _check_api_key()
+    data = request.get_json(force=True) or {}
+    required = ["bet_id", "direction", "confidence", "entry_price", "bet_size", "timestamp"]
+    missing = [f for f in required if f not in data]
+    if missing:
+        return jsonify({"ok": False, "error": f"Campi mancanti: {missing}"}), 400
+
+    bet_id = int(data["bet_id"])
+    direction = str(data["direction"]).upper()     # "UP" o "DOWN"
+    confidence = float(data["confidence"])
+    entry_price = float(data["entry_price"])
+    bet_size = float(data["bet_size"])
+    ts = int(data["timestamp"])
+
+    try:
+        from web3 import Web3
+        w3, contract, account = _get_web3_contract()
+
+        # Calcola hash deterministico della prediction
+        commit_hash = Web3.solidity_keccak(
+            ["uint256", "string", "uint256", "uint256", "uint256", "uint256"],
+            [bet_id, direction, int(confidence * 1e6), int(entry_price * 1e2), int(bet_size * 1e8), ts]
+        )
+
+        nonce = w3.eth.get_transaction_count(account.address)
+        tx = contract.functions.commit(bet_id, commit_hash).build_transaction({
+            "from": account.address,
+            "nonce": nonce,
+            "gas": 80000,
+            "gasPrice": w3.to_wei("30", "gwei"),
+            "chainId": 137,
+        })
+        signed = account.sign_transaction(tx)
+        tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
+        tx_hex = tx_hash.hex()
+
+        commit_hash_hex = commit_hash.hex()
+
+        # Aggiorna Supabase
+        _supabase_update(bet_id, {
+            "onchain_commit_hash": commit_hash_hex,
+            "onchain_commit_tx": tx_hex,
+        })
+
+        app.logger.info(f"[ONCHAIN] commit bet #{bet_id} → tx {tx_hex}")
+        return jsonify({"ok": True, "commit_hash": commit_hash_hex, "tx": tx_hex})
+
+    except Exception as e:
+        app.logger.error(f"[ONCHAIN] commit_prediction error: {e}")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/resolve-prediction", methods=["POST"])
+def resolve_prediction():
+    """
+    Risolve l'hash dell'outcome di una bet su Polygon.
+    Body JSON: { bet_id, exit_price, pnl_usd, won, close_timestamp }
+    Salva onchain_resolve_hash + onchain_resolve_tx su Supabase.
+    """
+    _check_api_key()
+    data = request.get_json(force=True) or {}
+    required = ["bet_id", "exit_price", "pnl_usd", "won", "close_timestamp"]
+    missing = [f for f in required if f not in data]
+    if missing:
+        return jsonify({"ok": False, "error": f"Campi mancanti: {missing}"}), 400
+
+    bet_id = int(data["bet_id"])
+    exit_price = float(data["exit_price"])
+    pnl_usd = float(data["pnl_usd"])
+    won = bool(data["won"])
+    close_ts = int(data["close_timestamp"])
+
+    try:
+        from web3 import Web3
+        w3, contract, account = _get_web3_contract()
+
+        resolve_hash = Web3.solidity_keccak(
+            ["uint256", "uint256", "int256", "bool", "uint256"],
+            [bet_id, int(exit_price * 1e2), int(pnl_usd * 1e6), won, close_ts]
+        )
+
+        nonce = w3.eth.get_transaction_count(account.address)
+        tx = contract.functions.resolve(bet_id, resolve_hash, won).build_transaction({
+            "from": account.address,
+            "nonce": nonce,
+            "gas": 80000,
+            "gasPrice": w3.to_wei("30", "gwei"),
+            "chainId": 137,
+        })
+        signed = account.sign_transaction(tx)
+        tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
+        tx_hex = tx_hash.hex()
+
+        resolve_hash_hex = resolve_hash.hex()
+
+        _supabase_update(bet_id, {
+            "onchain_resolve_hash": resolve_hash_hex,
+            "onchain_resolve_tx": tx_hex,
+        })
+
+        app.logger.info(f"[ONCHAIN] resolve bet #{bet_id} won={won} → tx {tx_hex}")
+        return jsonify({"ok": True, "resolve_hash": resolve_hash_hex, "tx": tx_hex})
+
+    except Exception as e:
+        app.logger.error(f"[ONCHAIN] resolve_prediction error: {e}")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+def _supabase_update(bet_id: int, fields: dict):
+    """Helper: aggiorna una riga Supabase per bet_id."""
+    url = f"{CONFIG.SUPABASE_URL}/rest/v1/btc_predictions?id=eq.{bet_id}"
+    headers = {
+        "apikey": CONFIG.SUPABASE_KEY,
+        "Authorization": f"Bearer {CONFIG.SUPABASE_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal",
+    }
+    r = requests.patch(url, json=fields, headers=headers, timeout=10)
+    r.raise_for_status()
+
+
 # ── DASHBOARD ────────────────────────────────────────────────────────────────
 
 @app.route("/dashboard", methods=["GET"])

@@ -3,3 +3,4 @@ gunicorn
 python-kraken-sdk
 xgboost
 scikit-learn
+web3
