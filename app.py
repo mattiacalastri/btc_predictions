@@ -2505,7 +2505,9 @@ def commit_prediction():
     Body JSON: { bet_id, direction, confidence, entry_price, bet_size, timestamp }
     Salva onchain_commit_hash + onchain_commit_tx su Supabase.
     """
-    _check_api_key()
+    err = _check_api_key()
+    if err:
+        return err
     data = request.get_json(force=True) or {}
     required = ["bet_id", "direction", "confidence", "entry_price", "bet_size", "timestamp"]
     missing = [f for f in required if f not in data]
@@ -2564,7 +2566,9 @@ def resolve_prediction():
     Body JSON: { bet_id, exit_price, pnl_usd, won, close_timestamp }
     Salva onchain_resolve_hash + onchain_resolve_tx su Supabase.
     """
-    _check_api_key()
+    err = _check_api_key()
+    if err:
+        return err
     data = request.get_json(force=True) or {}
     required = ["bet_id", "exit_price", "pnl_usd", "won", "close_timestamp"]
     missing = [f for f in required if f not in data]

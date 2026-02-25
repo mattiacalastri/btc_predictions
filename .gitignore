@@ -12,3 +12,13 @@ datasets/
 # Credenziali e config locali — non committare
 .mcp.json
 backfill_*.py
+check_orphaned_bets.py
+prepare_finetune.py
+
+# Modelli ML — file binari grandi, non committare
+models/
+*.pkl
+
+# Dati sensibili
+datasets/features.csv
+datasets/backup_*.csv
