@@ -583,7 +583,7 @@
   .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
   @media (max-width: 900px) { .charts-grid { grid-template-columns: 1fr; } }
 
-  .pnl-bars-large { display: flex; align-items: flex-end; gap: 3px; height: 130px; }
+  .pnl-bars-large { display: flex; align-items: flex-end; gap: 1px; height: 130px; overflow: hidden; }
 
   ::-webkit-scrollbar { width: 3px; }
   ::-webkit-scrollbar-thumb { background: var(--border); }
@@ -1786,19 +1786,19 @@
       <button class="war-room-btn" id="warRoomToggle" onclick="toggleWarRoom(this)">&#9876;&#65039; War Room</button>
       <div class="tab-controls-sep" style="width:1px;height:20px;background:var(--border);"></div>
       <span class="period-label" style="font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-right:4px">PERIOD</span>
-      <button class="time-pill desktop-period-pill active" data-period="ALL"   onclick="setTimePeriod(this)">ALL</button>
+      <button class="time-pill desktop-period-pill"        data-period="ALL"   onclick="setTimePeriod(this)">ALL</button>
       <button class="time-pill desktop-period-pill"        data-period="7D"    onclick="setTimePeriod(this)">7D</button>
       <button class="time-pill desktop-period-pill"        data-period="24H"   onclick="setTimePeriod(this)">24H</button>
-      <button class="time-pill desktop-period-pill"        data-period="TODAY" onclick="setTimePeriod(this)">TODAY</button>
+      <button class="time-pill desktop-period-pill active"  data-period="TODAY" onclick="setTimePeriod(this)">TODAY</button>
     </div>
   </div>
 
   <!-- MOBILE PERIOD BAR — visible only on mobile, sticky below tab nav -->
   <div class="mobile-period-bar" id="mobilePeriodBar">
-    <button class="time-pill active" data-period="ALL"   onclick="setTimePeriod(this)">ALL</button>
+    <button class="time-pill"        data-period="ALL"   onclick="setTimePeriod(this)">ALL</button>
     <button class="time-pill"        data-period="7D"    onclick="setTimePeriod(this)">7D</button>
     <button class="time-pill"        data-period="24H"   onclick="setTimePeriod(this)">24H</button>
-    <button class="time-pill"        data-period="TODAY" onclick="setTimePeriod(this)">TODAY</button>
+    <button class="time-pill active"  data-period="TODAY" onclick="setTimePeriod(this)">TODAY</button>
     <div style="flex:1;min-width:4px;"></div>
     <button class="war-room-btn" id="warRoomToggleMobile" onclick="toggleWarRoom(document.getElementById('warRoomToggle'))" style="font-size:8px;padding:5px 8px;white-space:nowrap;">&#9876;&#65039; WR</button>
   </div>
@@ -3445,7 +3445,7 @@ function renderSizeCell(d) {
          `<span class="size-mult ${multClass}">${multLabel} ${reasonDisplay}</span>`;
 }
 
-let currentPeriod = 'ALL';
+let currentPeriod = 'TODAY';
 let allData = [];
 
 function setTimePeriod(btn) {
@@ -4348,12 +4348,15 @@ function renderPnlBarsLarge(chronoBets) {
   }
   const maxAbs = Math.max(...chronoBets.map(d => Math.abs(parseFloat(d.pnl_usd || 0))), 0.0001);
   const maxH = 120;
+  const n = chronoBets.length;
+  const minW = n > 400 ? 1 : n > 150 ? 2 : 3;
+  const maxW = n > 400 ? 3 : n > 150 ? 6 : 14;
   container.innerHTML = chronoBets.map(d => {
     const v = parseFloat(d.pnl_usd || 0);
     const h = Math.max(2, Math.abs(v) / maxAbs * maxH);
     const cls = v > 0 ? 'pos' : v < 0 ? 'neg' : 'zero';
     const label = (v >= 0 ? '+' : '') + '$' + v.toFixed(4);
-    return `<div class="bar ${cls}" style="height:${h}px;flex:1;min-width:2px;max-width:14px;" title="${label}"><div class="tooltip">${label}</div></div>`;
+    return `<div class="bar ${cls}" style="height:${h}px;flex:1;min-width:${minW}px;max-width:${maxW}px;" title="${label}"><div class="tooltip">${label}</div></div>`;
   }).join('');
   document.getElementById('pnlBarsTag').textContent = chronoBets.length + ' BETS';
 }
