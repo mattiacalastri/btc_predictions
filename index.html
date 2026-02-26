@@ -325,12 +325,16 @@
   .signal-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
 
   /* CONF DIST */
-  .conf-bars { padding: 14px 18px; display: flex; flex-direction: column; gap: 9px; }
-  .conf-row { display: flex; align-items: center; gap: 9px; }
-  .conf-label   { font-size: 9px; color: var(--muted); width: 42px; text-align: right; }
-  .conf-bar-bg  { flex: 1; height: 12px; background: var(--border); border-radius: 2px; overflow: hidden; }
-  .conf-bar-fill{ height: 100%; background: var(--blue); transition: width 0.5s ease; }
-  .conf-count   { font-size: 9px; color: var(--muted); width: 22px; text-align: right; }
+  .conf-bars { padding: 12px 14px 10px; display: flex; flex-direction: column; gap: 9px; }
+  .conf-row { display: flex; align-items: center; gap: 8px; cursor: default; transition: opacity 0.15s; }
+  .conf-row:hover { opacity: 0.85; }
+  .conf-label   { font-size: 8px; font-weight: 700; color: var(--muted); width: 36px; text-align: right; letter-spacing: 0.5px; flex-shrink: 0; }
+  .conf-bar-bg  { flex: 1; height: 9px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .conf-bar-fill{ height: 100%; border-radius: 2px; transition: width 0.6s ease; }
+  .conf-count   { font-size: 8px; color: var(--muted); width: 20px; text-align: right; flex-shrink: 0; }
+  .conf-wr      { font-size: 8px; font-family: 'JetBrains Mono', monospace; width: 28px; text-align: right; flex-shrink: 0; font-weight: 700; }
+  .conf-thresh-line { margin: 2px 0; border-top: 1px dashed rgba(0,255,136,0.2); display: flex; align-items: center; padding-top: 2px; }
+  .conf-thresh-label { font-size: 7px; color: rgba(0,255,136,0.4); letter-spacing: 1.5px; text-transform: uppercase; margin-left: auto; }
 
   .equity-svg { width: 100%; }
 
@@ -1319,6 +1323,11 @@
     .stat-cell-val { font-size: 14px; }
   }
 
+  /* Backtest + Costs KPI grids: 6-col → 3-col on mobile */
+  @media (max-width: 600px) {
+    #btKpiGrid, .costs-kpi-grid { grid-template-columns: repeat(3, 1fr) !important; }
+  }
+
   /* Auto-training panel single-column on mobile */
   @media (max-width: 600px) {
     .train-panel-grid {
@@ -1951,12 +1960,12 @@
       <div class="kpi-sub">Single trade</div>
     </div>
     <!-- Mobile-only: 2 extra KPI slots fill the last row on 3-col mobile grid -->
-    <div class="kpi mobile-only green" data-tip-title="Expectancy" data-tip="Valore atteso per ogni bet = PnL totale / numero bet chiuse. Positivo = sistema profittevole nel lungo periodo.">
+    <div class="kpi mobile-only green" data-tip-title="Expectancy" data-tip="Expected value per bet = total PnL / number of closed bets. Positive = system is profitable long-term.">
       <div class="kpi-label">Expectancy</div>
       <div class="kpi-value white" id="kpiExpectancyVal">—</div>
       <div class="kpi-sub">avg $/bet</div>
     </div>
-    <div class="kpi mobile-only purple" data-tip-title="Profit Factor" data-tip="Profit Factor = Guadagni lordi / Perdite lorde. Sopra 1.0 = sistema in profitto. &gt;1.5 è considerato buono.">
+    <div class="kpi mobile-only purple" data-tip-title="Profit Factor" data-tip="Profit Factor = gross wins / gross losses. Above 1.0 = system is profitable. &gt;1.5 is considered good.">
       <div class="kpi-label">Profit Factor</div>
       <div class="kpi-value purple" id="kpiProfitFactorVal">—</div>
       <div class="kpi-sub">wins/losses</div>
@@ -1964,28 +1973,28 @@
   </div>
 
   <div class="stats-row">
-    <div class="stat-cell" data-tip-title="Avg Confidence" data-tip="Media della confidence (probabilità stimata) assegnata dall AI a tutte le previsioni nel periodo selezionato. Valori >65% indicano segnali ad alta convinzione.">
+    <div class="stat-cell" data-tip-title="Avg Confidence" data-tip="Average confidence (estimated probability) assigned by the AI across all predictions in the selected period. Values >65% indicate high-conviction signals.">
       <div class="stat-cell-label">Avg Confidence</div>
       <div class="stat-cell-val" id="statConf" style="color:var(--blue)">—</div>
     </div>
-    <div class="stat-cell" data-tip-title="Best Trade PnL" data-tip="Il singolo trade con il guadagno più alto in USD nel periodo. Misura il potenziale massimo del bot in una singola operazione.">
+    <div class="stat-cell" data-tip-title="Best Trade PnL" data-tip="The single trade with the highest gain in USD for the period. Measures the bot&apos;s maximum upside in a single operation.">
       <div class="stat-cell-label">Best Trade PnL</div>
       <div class="stat-cell-val" id="statBest" style="color:var(--accent)">—</div>
     </div>
-    <div class="stat-cell" data-tip-title="Current Streak" data-tip="Streak attiva: numero di vittorie (W) o sconfitte (L) consecutive partendo dall ultima bet chiusa. Una lunga W-streak indica momentum positivo del modello.">
+    <div class="stat-cell" data-tip-title="Current Streak" data-tip="Active streak: consecutive wins (W) or losses (L) from the last closed bet. A long W-streak signals positive model momentum.">
       <div class="stat-cell-label">Current Streak</div>
       <div class="stat-cell-val" id="statStreak" style="color:var(--text)">—</div>
     </div>
-    <div class="stat-cell" data-tip-title="Avg Entry Slippage" data-tip="Differenza media tra il prezzo previsto e il prezzo di esecuzione reale. Slippage negativo = eseguito a prezzo peggiore del previsto. Valori <$5 sono accettabili.">
+    <div class="stat-cell" data-tip-title="Avg Entry Slippage" data-tip="Average difference between expected and actual execution price. Negative slippage = filled at a worse price than expected. Values &lt;$5 are acceptable.">
       <div class="stat-cell-label">Avg Entry Slippage</div>
       <div class="stat-cell-val" id="statSlippage" style="color:var(--warn)">—</div>
     </div>
-    <div class="stat-cell" data-tip-title="Avg RR Ratio" data-tip="Risk/Reward medio: rapporto tra il guadagno atteso (TP) e la perdita rischiata (SL). Un valore >=2.0x significa che ogni dollaro rischiato punta a guadagnarne 2+.">
+    <div class="stat-cell" data-tip-title="Avg RR Ratio" data-tip="Average Risk/Reward: ratio of expected gain (TP) to risked loss (SL). A value ≥2.0x means every $1 risked targets $2+ in return.">
       <div class="stat-cell-label">Avg RR Ratio</div>
       <div class="stat-cell-val" id="statRR" style="color:var(--accent)">—</div>
     </div>
     <!-- Mobile-only: fills empty slot in 3-col row 2 -->
-    <div class="stat-cell mobile-only" data-tip-title="Best Win Streak" data-tip="Numero massimo di vincite consecutive nell'intera storia delle bet. Indica la stabilità del modello.">
+    <div class="stat-cell mobile-only" data-tip-title="Best Win Streak" data-tip="Maximum consecutive wins across the entire bet history. Indicates model consistency.">
       <div class="stat-cell-label">Best Streak</div>
       <div class="stat-cell-val" id="statBestStreak" style="color:var(--accent)">—</div>
     </div>
@@ -1999,7 +2008,7 @@
   <div class="panel" id="equityCurvePanel" style="margin-bottom:14px;">
     <div class="panel-header">
       <div class="panel-title">Cumulative Equity Curve (Real Bets)</div>
-      <div class="panel-tag tag-green" id="equityTag" data-tip-title="Equity Curve" data-tip="Curva del capitale nel tempo basata sui PnL reali di ogni bet chiusa. Include fee di trading.">LOADING</div>
+      <div class="panel-tag tag-green" id="equityTag" data-tip-title="Equity Curve" data-tip="Capital curve over time based on real PnL from every closed bet. Includes trading fees.">LOADING</div>
     </div>
     <div style="padding:16px 18px 10px;">
       <svg id="equitySvg" class="equity-svg" height="110" viewBox="0 0 1000 110" preserveAspectRatio="none"></svg>
@@ -2136,8 +2145,8 @@
 
     <div class="panel">
       <div class="panel-header">
-        <div class="panel-title">Confidence Distribution</div>
-        <div class="panel-tag tag-yellow">HISTOGRAM</div>
+        <div class="panel-title" data-tip="How the AI confidence score is distributed across all signals. The vertical dashed line marks the 0.65 threshold — only bets above this are executed. Each bar shows bet count and win rate for that confidence bucket.">Confidence Distribution</div>
+        <div class="panel-tag tag-yellow">BETs ONLY</div>
       </div>
       <div class="conf-bars" id="confDist"></div>
     </div>
@@ -2188,7 +2197,7 @@
         <div class="panel-title">Auto-Training &mdash; XGBoost Engine</div>
         <div style="font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:0.5px;">Dual-gate AI: XGBoost learns from live bet history. Retrains automatically every Sunday 03:00 UTC. Both XGB + Claude must agree before placing an order.</div>
       </div>
-      <div id="trainStatusPill" class="train-status-pill recent" data-tip-title="Auto-Training Status" data-tip="RECENT = retrained &lt;7 giorni fa. ON TRACK = last train &lt;14 giorni. RETRAIN READY = &gt;14 giorni, domenica notte verrà riaddestrато. Il retraining avviene ogni domenica alle 3:00 AM automaticamente.">
+      <div id="trainStatusPill" class="train-status-pill recent" data-tip-title="Auto-Training Status" data-tip="RECENT = retrained &lt;7 days ago. ON TRACK = last train &lt;14 days. RETRAIN READY = &gt;14 days — auto-retrain runs every Sunday at 3:00 AM UTC via launchd.">
         <span id="trainStatusDot" style="width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0;animation:pulse 2s infinite;"></span>
         <span id="trainStatusText">LOADING</span>
       </div>
@@ -2276,7 +2285,7 @@
   <div class="panel" style="margin-bottom:14px;" id="hourlyHeatmapPanel">
     <div class="panel-header">
       <div class="panel-title">Win Rate per UTC Hour</div>
-      <div class="panel-tag tag-muted" id="heatmapTag" data-tip="Heatmap delle performance orarie. Basato su tutte le scommesse chiuse, mostra a quali ore del giorno il bot performa meglio.">LOADING</div>
+      <div class="panel-tag tag-muted" id="heatmapTag" data-tip="Hourly performance heatmap. Based on all closed bets — shows which UTC hours the bot performs best.">LOADING</div>
     </div>
     <div style="padding:10px 18px 12px;">
       <div id="hourlyHeatmapGrid" style="display:grid;grid-template-columns:repeat(12,1fr);gap:3px;"></div>
@@ -2436,12 +2445,12 @@
 
     <!-- KPI row -->
     <div class="kpi-grid" style="grid-template-columns:repeat(6,1fr);margin-bottom:16px" id="btKpiGrid">
-      <div class="kpi" data-tip="Strategia ottimale trovata dal walk-forward backtest.<br>Threshold di confidenza che massimizza il PnL.<br>Es. CONF_062 = confidenza minima 62%."><div class="kpi-label">Best Strategy</div><div class="kpi-value" id="btKpiBest">—</div><div class="kpi-sub" id="btKpiBestPnl">—</div></div>
-      <div class="kpi" data-tip="Win rate della configurazione live attuale.<br>FULL_STACK = tutti i segnali senza filtro confidenza.<br>Dati in tempo reale da Supabase."><div class="kpi-label">Current (FULL_STACK)</div><div class="kpi-value" id="btKpiCurrent">—</div><div class="kpi-sub" id="btKpiCurrentPnl">—</div></div>
-      <div class="kpi" data-tip="Win rate sul TEST SET (dati non visti in training).<br>Misura la vera generalizzazione del modello.<br>N = numero di bet nel set di test."><div class="kpi-label">Test WR</div><div class="kpi-value" id="btKpiWR">—</div><div class="kpi-sub" id="btKpiWRSub">—</div></div>
-      <div class="kpi" data-tip="Gross wins ÷ gross losses sulla best strategy.<br>&gt;3 = edge eccezionale nel backtest.<br>Calcolato su tutte le bet del periodo."><div class="kpi-label">Profit Factor</div><div class="kpi-value" id="btKpiPF">—</div><div class="kpi-sub">Best strategy</div></div>
-      <div class="kpi" data-tip="Accuratezza XGBoost in cross-validation (5-fold).<br>Modello direzione UP/DOWN addestrato su segnali storici.<br>Dual-gate: LLM + XGB devono concordare."><div class="kpi-label">XGB CV Acc</div><div class="kpi-value" id="btKpiXgb">—</div><div class="kpi-sub" id="btKpiXgbSub">train set</div></div>
-      <div class="kpi" data-tip="Massima serie consecutiva di WIN nel backtest.<br>×9W = 9 vittorie di fila (momentum del sistema).<br>Mostra anche il peggior streak di perdite."><div class="kpi-label">Max Streak</div><div class="kpi-value green" id="btKpiStreak">—</div><div class="kpi-sub" id="btKpiStreakSub">W / L</div></div>
+      <div class="kpi" data-tip="Optimal strategy found by the walk-forward backtest.<br>Confidence threshold that maximises PnL.<br>e.g. CONF_062 = minimum confidence 62%."><div class="kpi-label">Best Strategy</div><div class="kpi-value" id="btKpiBest">—</div><div class="kpi-sub" id="btKpiBestPnl">—</div></div>
+      <div class="kpi" data-tip="Win rate of the current live configuration.<br>FULL_STACK = all signals with no confidence filter applied.<br>Real-time data from Supabase."><div class="kpi-label">Current (FULL_STACK)</div><div class="kpi-value" id="btKpiCurrent">—</div><div class="kpi-sub" id="btKpiCurrentPnl">—</div></div>
+      <div class="kpi" data-tip="Win rate on the TEST SET (data unseen during training).<br>Measures the true generalisation of the model.<br>N = number of bets in the test set."><div class="kpi-label">Test WR</div><div class="kpi-value" id="btKpiWR">—</div><div class="kpi-sub" id="btKpiWRSub">—</div></div>
+      <div class="kpi" data-tip="Gross wins ÷ gross losses on the best strategy.<br>&gt;3 = exceptional edge in the backtest.<br>Calculated across all bets in the period."><div class="kpi-label">Profit Factor</div><div class="kpi-value" id="btKpiPF">—</div><div class="kpi-sub">Best strategy</div></div>
+      <div class="kpi" data-tip="XGBoost accuracy in 5-fold cross-validation.<br>Direction model UP/DOWN trained on historical signals.<br>Dual-gate: LLM + XGB must both agree before placing a bet."><div class="kpi-label">XGB CV Acc</div><div class="kpi-value" id="btKpiXgb">—</div><div class="kpi-sub" id="btKpiXgbSub">train set</div></div>
+      <div class="kpi" data-tip="Longest consecutive WIN streak in the backtest.<br>×9W = 9 wins in a row (system momentum).<br>Also shows the worst losing streak."><div class="kpi-label">Max Streak</div><div class="kpi-value green" id="btKpiStreak">—</div><div class="kpi-sub" id="btKpiStreakSub">W / L</div></div>
     </div>
 
     <!-- Equity curves chart -->
@@ -2459,7 +2468,7 @@
     <!-- Strategy table -->
     <div class="panel" style="margin-bottom:16px">
       <div class="panel-header">
-        <div class="panel-title">Confronto Strategie</div>
+        <div class="panel-title">Strategy Comparison</div>
         <div class="panel-tag tag-blue">WALK-FORWARD</div>
       </div>
       <div style="overflow-x:auto;padding:0 4px">
@@ -2546,32 +2555,32 @@
 
     <!-- 6 KPI -->
     <div class="kpi-grid costs-kpi-grid" style="grid-template-columns:repeat(6,1fr);margin-bottom:16px">
-      <div class="kpi red" id="costKpiTotal" data-tip="Costo operativo totale del mese in corso.<br>Somma: fee Kraken + API AI + infrastruttura.<br>MTD = Month To Date">
+      <div class="kpi red" id="costKpiTotal" data-tip="Total operational cost for the current month.<br>Sum: Kraken fees + AI API + infrastructure.<br>MTD = Month To Date">
         <div class="kpi-label">Total Cost MTD</div>
         <div class="kpi-value red" id="costKpiTotalVal">—</div>
         <div class="kpi-sub" id="costKpiTotalSub">loading...</div>
       </div>
-      <div class="kpi yellow" id="costKpiKraken" data-tip="Fee di trading pagate a Kraken Futures.<br>Taker fee: 0.005% per fill.<br>Applicata su entry E exit.">
+      <div class="kpi yellow" id="costKpiKraken" data-tip="Trading fees paid to Kraken Futures.<br>Taker fee: 0.005% per fill.<br>Applied on both entry AND exit.">
         <div class="kpi-label">Kraken Fees</div>
         <div class="kpi-value yellow" id="costKpiKrakenVal">—</div>
         <div class="kpi-sub" id="costKpiKrakenSub">loading...</div>
       </div>
-      <div class="kpi blue" id="costKpiN8n" data-tip="Piano n8n Cloud — orchestrazione 9 workflow.<br>2500 esecuzioni/mese (limite piano free).<br>Percentuale = esecuzioni usate questo mese.">
+      <div class="kpi blue" id="costKpiN8n" data-tip="n8n Cloud plan — orchestrates 9 workflows.<br>2,500 executions/month (free plan limit).<br>Percentage = executions used this month.">
         <div class="kpi-label">n8n Plan</div>
         <div class="kpi-value blue" id="costKpiN8nVal">—</div>
         <div class="kpi-sub" id="costKpiN8nSub">loading...</div>
       </div>
-      <div class="kpi purple" id="costKpiClaudeApi" data-tip="Costo Anthropic Claude API.<br>Usato per: generazione segnale LLM + Oracolo email.<br>Modello: claude-haiku-4-5 (più economico).">
+      <div class="kpi purple" id="costKpiClaudeApi" data-tip="Anthropic Claude API cost.<br>Used for: LLM signal generation + email oracle.<br>Model: claude-haiku-4-5 (most cost-efficient).">
         <div class="kpi-label">Claude API</div>
         <div class="kpi-value purple" id="costKpiClaudeApiVal">—</div>
         <div class="kpi-sub" id="costKpiClaudeApiSub">loading...</div>
       </div>
-      <div class="kpi" style="--kc:#e5251b" id="costKpiClaudeCode" data-tip="Abbonamento Claude Code (questo assistente!).<br>Impostato manualmente — non tracciato automaticamente.<br>Usato per sviluppo e manutenzione del bot.">
+      <div class="kpi" style="--kc:#e5251b" id="costKpiClaudeCode" data-tip="Claude Code subscription (this assistant!).<br>Set manually — not tracked automatically.<br>Used for bot development and maintenance.">
         <div class="kpi-label">Claude Code</div>
         <div class="kpi-value" style="color:#e5251b" id="costKpiClaudeCodeVal">—</div>
         <div class="kpi-sub" id="costKpiClaudeCodeSub">loading...</div>
       </div>
-      <div class="kpi" id="costKpiRailway" data-tip="Railway Hobby Plan: $5/mese.<br>Backend Flask + Gunicorn + auto-deploy da GitHub.<br>512MB RAM · CPU condivisa · deploy su push.">
+      <div class="kpi" id="costKpiRailway" data-tip="Railway Hobby Plan: $5/month.<br>Flask + Gunicorn backend + auto-deploy from GitHub.<br>512MB RAM · shared CPU · deploys on every push.">
         <div class="kpi-label">Railway</div>
         <div class="kpi-value white" id="costKpiRailwayVal">—</div>
         <div class="kpi-sub" id="costKpiRailwaySub">loading...</div>
@@ -2751,8 +2760,8 @@
       <div style="padding:14px 20px;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
         <div style="font-size:36px;font-weight:800;font-family:'Syne',sans-serif;" id="exp-l20">—</div>
         <div style="font-size:11px;color:var(--muted);line-height:1.6">
-          Expectancy delle ultime 20 bet chiuse.<br>
-          Positivo = sistema in profitto nel breve termine.
+          Expectancy over the last 20 closed bets.<br>
+          Positive = system profitable in the short term.
         </div>
       </div>
     </div>
@@ -2865,15 +2874,15 @@
 
       <div class="panel">
         <div class="panel-header">
-          <div class="panel-title">Pipeline Automatica</div>
+          <div class="panel-title">Automated Pipeline</div>
           <div class="panel-tag tag-blue">LAUNCHD · DOM 3:00 UTC</div>
         </div>
         <div style="padding:14px 18px">
           <div style="font-size:11px;line-height:2;color:var(--text)">
-            <span style="color:var(--muted);display:inline-block;width:16px">1.</span><code style="font-size:10px;color:var(--accent)">build_dataset.py</code> — aggiorna dataset da Supabase<br>
-            <span style="color:var(--muted);display:inline-block;width:16px">2.</span><code style="font-size:10px;color:var(--accent)">train_xgboost.py</code> — ri-addestra XGBoost<br>
+            <span style="color:var(--muted);display:inline-block;width:16px">1.</span><code style="font-size:10px;color:var(--accent)">build_dataset.py</code> — refresh dataset from Supabase<br>
+            <span style="color:var(--muted);display:inline-block;width:16px">2.</span><code style="font-size:10px;color:var(--accent)">train_xgboost.py</code> — retrain XGBoost<br>
             <span style="color:var(--muted);display:inline-block;width:16px">3.</span><code style="font-size:10px;color:var(--accent)">backtest.py</code> — walk-forward validation<br>
-            <span style="color:var(--muted);display:inline-block;width:16px">4.</span><code style="font-size:10px;color:var(--accent)">analyze_errors.py</code> — pattern errori<br>
+            <span style="color:var(--muted);display:inline-block;width:16px">4.</span><code style="font-size:10px;color:var(--accent)">analyze_errors.py</code> — error pattern analysis<br>
             <span style="color:var(--muted);display:inline-block;width:16px">5.</span><span style="color:var(--blue)">git push → Railway auto-deploy</span><br>
             <span style="color:var(--muted);display:inline-block;width:16px">6.</span><span style="color:var(--blue)">/reload-calibration → hot reload</span>
           </div>
@@ -3958,15 +3967,15 @@ function renderSignalQuality(data) {
 
   const metrics = [
     { label: 'Profit Factor',        barVal: Math.min(pf / 2 * 100, 100), displayVal: pfLabel,    color: pf >= 1 ? 'var(--accent)' : 'var(--danger)',
-      tip: 'Gross wins ÷ gross losses.<br>≥2.0 = sistema eccellente.<br>Misura la redditività strutturale.' },
+      tip: 'Gross wins ÷ gross losses.<br>≥2.0 = excellent system quality.<br>Measures structural profitability.' },
     { label: 'Avg PnL / Trade',      barVal: 50,                           displayVal: avgPnlLabel, color: avgPnl >= 0 ? 'var(--accent)' : 'var(--danger)',
-      tip: 'P&amp;L medio per ogni BET eseguita.<br>Positivo = edge reale presente.<br>Include fee di trading.' },
+      tip: 'Average P&amp;L per executed BET.<br>Positive = real edge confirmed.<br>Includes trading fees.' },
     { label: 'UP Signal Accuracy',   barVal: pct(upClosed, d => d.correct), displayVal: null,      color: 'var(--accent)',
-      tip: 'Win rate sulle previsioni LONG (rialzo).<br>Solo BET chiuse con direction=UP.' },
+      tip: 'Win rate on LONG (bullish) predictions.<br>Closed BETs with direction=UP only.' },
     { label: 'DOWN Signal Accuracy', barVal: pct(dnClosed, d => d.correct), displayVal: null,      color: 'var(--danger)',
-      tip: 'Win rate sulle previsioni SHORT (ribasso).<br>Storicamente più difficile da predire.' },
+      tip: 'Win rate on SHORT (bearish) predictions.<br>Historically harder to predict accurately.' },
     { label: 'Bet Coverage',         barVal: data.length ? Math.round(data.filter(d => d.classification === 'BET').length / data.length * 100) : 0, displayVal: null, color: 'var(--warn)',
-      tip: '% dei segnali convertiti in BET reali.<br>Basso = threshold alta e selettiva.<br>Alto = più bet ma meno filtrate.' },
+      tip: '% of signals converted into real BETs.<br>Low = high selective threshold.<br>High = more bets but less filtered.' },
   ];
   document.getElementById('signalQuality').innerHTML = metrics.map(m => `
     <div class="signal-row" data-tip="${m.tip}">
@@ -3980,20 +3989,42 @@ function renderSignalQuality(data) {
 
 function renderConfDist(data) {
   const buckets = [
-    { label: '50-54%', min: 0.50, max: 0.55 },
-    { label: '55-59%', min: 0.55, max: 0.60 },
-    { label: '60-64%', min: 0.60, max: 0.65 },
-    { label: '65-69%', min: 0.65, max: 0.70 },
-    { label: '70%+',   min: 0.70, max: 1.01 },
+    { label: '50-54%', min: 0.50, max: 0.55, above: false },
+    { label: '55-59%', min: 0.55, max: 0.60, above: false },
+    { label: '60-64%', min: 0.60, max: 0.65, above: false },
+    { label: '65-69%', min: 0.65, max: 0.70, above: true  },
+    { label: '70%+',   min: 0.70, max: 1.01, above: true  },
   ];
-  const counts   = buckets.map(b => ({ ...b, count: data.filter(d => { const c = parseFloat(d.confidence); return c >= b.min && c < b.max; }).length }));
+  // Use only BETs (executed signals) for distribution + win rate
+  const bets = data.filter(d => d.classification === 'BET' && d.confidence !== null);
+  const counts = buckets.map(b => {
+    const rows   = bets.filter(d => { const c = parseFloat(d.confidence); return c >= b.min && c < b.max; });
+    const closed = rows.filter(d => d.correct !== null);
+    const wins   = closed.filter(d => d.correct === true).length;
+    const wr     = closed.length > 0 ? Math.round(wins / closed.length * 100) : null;
+    return { ...b, count: rows.length, wr };
+  });
   const maxCount = Math.max(...counts.map(c => c.count), 1);
-  document.getElementById('confDist').innerHTML = counts.map(c => `
-    <div class="conf-row">
+  const barColors = ['#3a5060', '#4a6070', '#5a7080', '#ffaa00', '#00ff88'];
+
+  let html = '';
+  counts.forEach((c, i) => {
+    // Insert threshold divider before first above-threshold bucket
+    if (i === 3) {
+      html += `<div class="conf-thresh-line"><span class="conf-thresh-label">▲ min threshold 0.65</span></div>`;
+    }
+    const wrLabel = c.wr !== null ? c.wr + '%' : '—';
+    const wrColor = c.wr === null ? 'var(--muted)' : c.wr >= 60 ? 'var(--accent)' : c.wr >= 50 ? 'var(--warn)' : 'var(--danger)';
+    const glowStyle = c.above && c.count > 0 ? `box-shadow:0 0 5px ${barColors[i]}55;` : '';
+    const tip = `${c.label}: ${c.count} bet${c.count !== 1 ? 's' : ''} · WR ${wrLabel}${c.above ? ' · above threshold ✦' : ' · below min threshold'}`;
+    html += `<div class="conf-row" data-tip="${tip}">
       <div class="conf-label">${c.label}</div>
-      <div class="conf-bar-bg"><div class="conf-bar-fill" style="width:${Math.round(c.count / maxCount * 100)}%"></div></div>
-      <div class="conf-count">${c.count}</div>
-    </div>`).join('');
+      <div class="conf-bar-bg"><div class="conf-bar-fill" style="width:${Math.round(c.count / maxCount * 100)}%;background:${barColors[i]};${glowStyle}"></div></div>
+      <div class="conf-count" style="color:${c.above ? 'var(--text)' : 'var(--muted)'}">${c.count}</div>
+      <div class="conf-wr" style="color:${wrColor}">${wrLabel}</div>
+    </div>`;
+  });
+  document.getElementById('confDist').innerHTML = html;
 }
 
 function renderEquityCurve(chronoBets, totalPnl) {
