@@ -61,7 +61,9 @@ def run_git(cmd, cwd=BACKUP_DIR):
         cmd, cwd=cwd, capture_output=True, text=True, shell=False
     )
     if result.returncode != 0:
-        raise RuntimeError(f"git error: {result.stderr.strip()}")
+        # Include both stdout and stderr — git writes messages to stdout on some locales
+        out = (result.stdout + result.stderr).strip()
+        raise RuntimeError(f"git error: {out}")
     return result.stdout.strip()
 
 
@@ -108,7 +110,8 @@ def main():
             run_git(["git", "commit", "-m", msg])
             log(f"git commit OK: {msg}")
         except RuntimeError as e:
-            if "nothing to commit" in str(e):
+            # Handle both English and Italian git locales
+            if "nothing to commit" in str(e) or "nulla di cui eseguire" in str(e) or "nothing added" in str(e):
                 log("No changes since last backup — skipping push")
                 return
             raise
