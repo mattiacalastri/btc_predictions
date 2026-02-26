@@ -2566,7 +2566,7 @@
       <div class="tab-intro-icon">💸</div>
       <div class="tab-intro-text">
         <div class="tab-intro-title">Operational Costs</div>
-        <div class="tab-intro-desc">Real-time breakdown of all costs to run the bot: Kraken trading fees (0.005% taker per fill), Anthropic API usage, n8n Cloud orchestration, Railway hosting, and Claude Code development. Profit only counts after all costs are covered.</div>
+        <div class="tab-intro-desc">Real-time breakdown of all costs to run the bot: Kraken trading fees (0.005% taker per fill), Anthropic API usage, n8n self-hosted VPS orchestration (unlimited executions), Railway hosting, and Claude Code development. Profit only counts after all costs are covered.</div>
       </div>
     </div>
 
@@ -4596,16 +4596,18 @@ function _agentRelTime(iso) {
 
 // Agent personality map — keyed on 2-digit workflow prefix
 const _WF_META = {
-  '00': { code: 'ERR', role: 'Error Notifier',     accent: '#ff4444' },
-  '01': { code: 'SIG', role: 'Signal Generator',   accent: '#00ff88' },
-  '02': { code: 'TRD', role: 'Position Monitor',   accent: '#00aaff' },
-  '03': { code: 'BAL', role: 'Balance Guardian',   accent: '#ffaa00' },
-  '04': { code: 'LLM', role: 'LLM Analyst',        accent: '#aa66ff' },
-  '05': { code: 'VRF', role: 'Result Auditor',     accent: '#00ff88' },
-  '06': { code: 'MNT', role: 'System Janitor',     accent: '#4a6070' },
-  '07': { code: 'CMD', role: 'Command Center',     accent: '#00ccff' },
-  '08': { code: 'MON', role: 'Position Watchdog',  accent: '#ffaa00' },
-  '09': { code: 'SOC', role: 'Social Media',       accent: '#ff6fd8' },
+  '00':  { code: 'ERR', role: 'Error Notifier',        accent: '#ff4444', name: '00_Error_Notifier',              emoji: '🚨', desc: 'Error notifications via Telegram',    trigger: 'On workflow error' },
+  '01':  { code: 'SIG', role: 'Signal Generator',      accent: '#00ff88' },
+  '02':  { code: 'TRD', role: 'Position Monitor',      accent: '#00aaff' },
+  '03':  { code: 'BAL', role: 'Balance Guardian',      accent: '#ffaa00' },
+  '04':  { code: 'LLM', role: 'LLM Analyst',           accent: '#aa66ff' },
+  '05':  { code: 'VRF', role: 'Result Auditor',        accent: '#00ff88' },
+  '06':  { code: 'MNT', role: 'System Janitor',        accent: '#4a6070' },
+  '07':  { code: 'CMD', role: 'Command Center',        accent: '#00ccff' },
+  '08':  { code: 'MON', role: 'Position Watchdog',     accent: '#ffaa00' },
+  '09':  { code: 'SOC', role: 'Social Media',          accent: '#ff6fd8' },
+  '09A': { code: 'SOC', role: 'Social Media Manager',  accent: '#ff6fd8', name: '09A_BTC_Social_Media_Manager',    emoji: '📱', desc: 'AI Social Media Manager',             trigger: 'Triggered by wf02' },
+  '09B': { code: 'PUB', role: 'Social Publisher',      accent: '#ff6fd8', name: '09B_BTC_Social_Publisher',        emoji: '📤', desc: 'Social post publisher helper',        trigger: 'Called by 09A' },
 };
 
 function renderAgents(data, errorMsg) {
@@ -4630,9 +4632,10 @@ function renderAgents(data, errorMsg) {
     const execHistory  = wf.exec_history || [];
     const successRate  = wf.success_rate;
 
-    // Agent personality
-    const prefix = (wf.name || '').substring(0, 2);
-    const meta   = _WF_META[prefix] || { code: 'BOT', role: 'Automation Agent', accent: '#4a6070' };
+    // Agent personality — try 3-char prefix (e.g. '09A') before falling back to 2-char ('09')
+    const name3  = (wf.name || '').substring(0, 3);
+    const name2  = (wf.name || '').substring(0, 2);
+    const meta   = _WF_META[name3] || _WF_META[name2] || { code: 'BOT', role: 'Automation Agent', accent: '#4a6070' };
 
     // Health color — use var(--accent) for success (var(--green) doesn't exist)
     let borderCol, dotCol, dotGlow;
