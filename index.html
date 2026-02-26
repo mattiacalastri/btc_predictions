@@ -3714,8 +3714,8 @@ function render(data) {
   }
 
   // Hit Rate 7d
-  const cutoff7d = new Date(Date.now() - 7 * 86400000);
-  const last7dBets = realBets.filter(d => d.correct !== null && d.correct !== undefined && new Date(d.created_at) >= cutoff7d);
+  const cutoff7dHR = new Date(Date.now() - 7 * 86400000);
+  const last7dBets = realBets.filter(d => d.correct !== null && d.correct !== undefined && new Date(d.created_at) >= cutoff7dHR);
   const wr7d = last7dBets.length ? Math.round(last7dBets.filter(d => d.correct).length / last7dBets.length * 100) : null;
   const hr7dEl = document.getElementById('statHitRate7d');
   if (hr7dEl) hr7dEl.textContent = wr7d !== null ? wr7d + '%' : '—';
