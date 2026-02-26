@@ -1497,7 +1497,8 @@
   body.war-room::before { background-image: linear-gradient(rgba(0,255,65,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,65,0.04) 1px, transparent 1px); }
   body.war-room .kpi { background: #0a0a0a !important; border: 1px solid #00ff41 !important; box-shadow: 0 0 10px rgba(0,255,65,0.3) !important; }
   body.war-room .kpi::after { display: none; }
-  body.war-room .kpi-value { font-size: 2.2rem !important; font-family: 'JetBrains Mono', monospace !important; line-height: 1.1 !important; }
+  body.war-room .container { max-width: min(2400px, 97vw) !important; }
+  body.war-room .kpi-value { font-size: clamp(1.4rem, 1.5vw, 2.2rem) !important; font-family: 'JetBrains Mono', monospace !important; line-height: 1.1 !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   body.war-room .kpi-label { color: #888 !important; font-family: 'JetBrains Mono', monospace !important; font-size: 0.65rem !important; letter-spacing: 1px !important; }
   body.war-room .kpi-sub   { color: #555 !important; font-size: 0.7rem !important; }
   body.war-room .tab-btn   { background: #0a0a0a !important; border-color: #222 !important; color: #555 !important; }
