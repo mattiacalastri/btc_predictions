@@ -1080,7 +1080,21 @@
   @media (max-width: 600px) {
     .kpi.mobile-only    { display: block; }
     .stat-cell.mobile-only { display: block; }
+    .kpi.mobile-only .kpi-label { white-space: normal; overflow: visible; text-overflow: clip; }
+    .kpi.mobile-only .kpi-value { white-space: normal; overflow: visible; text-overflow: clip; font-size: 16px; }
   }
+
+  /* Tab intro banner */
+  .tab-intro {
+    display: flex; align-items: flex-start; gap: 12px;
+    background: rgba(255,255,255,0.015); border: 1px solid rgba(255,255,255,0.05);
+    border-left: 2px solid rgba(0,255,136,0.3);
+    padding: 10px 16px; margin-bottom: 16px; border-radius: 2px;
+  }
+  .tab-intro-icon { font-size: 15px; flex-shrink: 0; margin-top: 2px; opacity: 0.7; }
+  .tab-intro-text {}
+  .tab-intro-title { font-size: 9px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--text); margin-bottom: 3px; }
+  .tab-intro-desc  { font-size: 10px; color: var(--muted); line-height: 1.55; letter-spacing: 0.3px; }
 
   /* Bot alert banner */
   #botAlertBanner {
@@ -2358,6 +2372,14 @@
   <!-- AGENTS TAB -->
   <div id="tab-agents" class="tab-content">
 
+    <div class="tab-intro">
+      <div class="tab-intro-icon">🤖</div>
+      <div class="tab-intro-text">
+        <div class="tab-intro-title">Automation Agents</div>
+        <div class="tab-intro-desc">9 n8n workflows orchestrate the entire trading pipeline — from data ingestion to AI prediction, trade execution, Telegram notifications, and on-chain audit. The launchd agents run locally on Mac for maintenance, reporting, and orphan bet rescue.</div>
+      </div>
+    </div>
+
     <!-- n8n Workflows -->
     <div class="agents-section-header">
       <span>n8n Workflows</span>
@@ -2403,6 +2425,14 @@
 
   <!-- BACKTEST TAB -->
   <div id="tab-backtest" class="tab-content">
+
+    <div class="tab-intro">
+      <div class="tab-intro-icon">🔬</div>
+      <div class="tab-intro-text">
+        <div class="tab-intro-title">Walk-Forward Backtest</div>
+        <div class="tab-intro-desc">Out-of-sample simulation across 6 confidence strategies (A→F). Each strategy is tested on unseen data to identify the optimal threshold — the one that maximizes PnL without overfitting to historical signals.</div>
+      </div>
+    </div>
 
     <!-- KPI row -->
     <div class="kpi-grid" style="grid-template-columns:repeat(6,1fr);margin-bottom:16px" id="btKpiGrid">
@@ -2506,6 +2536,14 @@
   <!-- COSTS TAB -->
   <div id="tab-costs" class="tab-content">
 
+    <div class="tab-intro">
+      <div class="tab-intro-icon">💸</div>
+      <div class="tab-intro-text">
+        <div class="tab-intro-title">Operational Costs</div>
+        <div class="tab-intro-desc">Real-time breakdown of all costs to run the bot: Kraken trading fees (0.005% taker per fill), Anthropic API usage, n8n Cloud orchestration, Railway hosting, and Claude Code development. Profit only counts after all costs are covered.</div>
+      </div>
+    </div>
+
     <!-- 6 KPI -->
     <div class="kpi-grid costs-kpi-grid" style="grid-template-columns:repeat(6,1fr);margin-bottom:16px">
       <div class="kpi red" id="costKpiTotal" data-tip="Costo operativo totale del mese in corso.<br>Somma: fee Kraken + API AI + infrastruttura.<br>MTD = Month To Date">
@@ -2587,6 +2625,14 @@
 
   <!-- EXPECTANCY TAB -->
   <div id="tab-expectancy" class="tab-content">
+
+    <div class="tab-intro">
+      <div class="tab-intro-icon">📈</div>
+      <div class="tab-intro-text">
+        <div class="tab-intro-title">Edge Analysis — Expectancy</div>
+        <div class="tab-intro-desc">Expectancy measures how much the bot earns on average per bet. A positive value confirms a real statistical edge. Rolling L20 shows whether that edge is stable or degrading over the most recent 20 trades.</div>
+      </div>
+    </div>
 
     <!-- KPI row -->
     <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
@@ -2715,6 +2761,14 @@
 
   <!-- TRAINING TAB -->
   <div id="tab-training" class="tab-content">
+
+    <div class="tab-intro">
+      <div class="tab-intro-icon">🧠</div>
+      <div class="tab-intro-text">
+        <div class="tab-intro-title">XGBoost Model — Training & Status</div>
+        <div class="tab-intro-desc">The dual-gate prediction engine trains a gradient-boosted classifier on historical signals. Direction model targets UP/DOWN accuracy; correctness model predicts whether the LLM will be right. Both must agree before a bet is placed.</div>
+      </div>
+    </div>
 
     <!-- ── SECTION 1: Status header ── -->
     <div class="panel" style="margin-bottom:16px">
@@ -2970,38 +3024,50 @@ function renderAccountSummary(data) {
   if (marginUsage > 70) marginBarColor = 'var(--danger)';
   else if (marginUsage > 40) marginBarColor = 'var(--warn)';
 
-  document.getElementById('acctWalletBody').innerHTML = `
-    <div class="acct-row">
-      <span class="acct-row-label">USDC Available</span>
-      <span class="acct-row-val blue">${fmtUsd(usdc)}</span>
-    </div>
-    <div class="acct-row">
-      <span class="acct-row-label">Margin Equity</span>
-      <span class="acct-row-val ${equity >= CONFIG.CAPITAL ? 'green' : 'red'}">${fmtUsd(equity)}</span>
-    </div>
-    <div class="acct-row">
-      <span class="acct-row-label">Free Margin</span>
-      <span class="acct-row-val">${fmtUsd(w.available_margin)}</span>
-    </div>
-    <div class="acct-row">
-      <span class="acct-row-label">Portfolio</span>
-      <span class="acct-row-val">${fmtUsd(w.portfolio_value)}</span>
-    </div>
-    <div class="acct-row">
-      <span class="acct-row-label">P&amp;L Unrealized</span>
-      <span class="acct-row-val ${pnlClass(unrealPnl)}">${fmtPnlAcct(unrealPnl)}</span>
-    </div>
-    <div class="acct-row">
-      <span class="acct-row-label">Funding Accum.</span>
-      <span class="acct-row-val ${pnlClass(funding)}">${fmtPnlAcct(funding, 6)}</span>
-    </div>
-    <div class="margin-bar-wrap">
-      <div class="margin-bar-label">
-        <span>Margin Usage</span>
-        <span style="color:${marginBarColor}">${marginUsage.toFixed(2)}%</span>
+  const totalRoiPct = CONFIG.CAPITAL > 0 ? ((equity - CONFIG.CAPITAL) / CONFIG.CAPITAL * 100) : 0;
+  const roiColor = totalRoiPct >= 0 ? 'var(--accent)' : 'var(--danger)';
+  const walletBody = document.getElementById('acctWalletBody');
+  walletBody.style.cssText = 'padding:0;gap:0;';
+  walletBody.innerHTML = `
+    <!-- Hero equity section -->
+    <div style="background:linear-gradient(135deg,rgba(0,255,136,0.07) 0%,rgba(0,255,136,0.02) 100%);border-bottom:1px solid rgba(0,255,136,0.12);padding:16px 16px 13px;position:relative;overflow:hidden;">
+      <div style="position:absolute;top:-20px;right:-15px;width:80px;height:80px;background:radial-gradient(circle,rgba(0,255,136,0.1),transparent 70%);pointer-events:none;"></div>
+      <div style="font-family:'Syne',sans-serif;font-size:26px;font-weight:700;color:${equity >= CONFIG.CAPITAL ? 'var(--accent)' : 'var(--danger)'};line-height:1;margin-bottom:5px;">${fmtUsd(equity)}</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <span style="font-size:11px;font-weight:700;color:${roiColor};">${totalRoiPct >= 0 ? '+' : ''}${totalRoiPct.toFixed(2)}%</span>
+        <span style="font-size:9px;color:var(--muted);">ROI vs $${CONFIG.CAPITAL} base</span>
       </div>
-      <div class="margin-bar-bg">
-        <div class="margin-bar-fill" style="width:${Math.min(marginUsage,100)}%;background:${marginBarColor}"></div>
+      <div style="display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);padding:3px 9px;border-radius:2px;">
+        <div style="width:5px;height:5px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite;flex-shrink:0;"></div>
+        <span style="font-size:8px;font-weight:700;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;">Kraken Futures · PF_XBTUSD</span>
+      </div>
+    </div>
+    <!-- Detail rows -->
+    <div style="padding:12px 16px;display:flex;flex-direction:column;gap:8px;">
+      <div class="acct-row">
+        <span class="acct-row-label">USDC Available</span>
+        <span class="acct-row-val blue">${fmtUsd(usdc)}</span>
+      </div>
+      <div class="acct-row">
+        <span class="acct-row-label">Free Margin</span>
+        <span class="acct-row-val">${fmtUsd(w.available_margin)}</span>
+      </div>
+      <div class="acct-row">
+        <span class="acct-row-label">P&amp;L Unrealized</span>
+        <span class="acct-row-val ${pnlClass(unrealPnl)}">${fmtPnlAcct(unrealPnl)}</span>
+      </div>
+      <div class="acct-row">
+        <span class="acct-row-label">Funding Accum.</span>
+        <span class="acct-row-val ${pnlClass(funding)}">${fmtPnlAcct(funding, 6)}</span>
+      </div>
+      <div class="margin-bar-wrap" style="margin-top:4px;">
+        <div class="margin-bar-label">
+          <span>Margin Usage</span>
+          <span style="color:${marginBarColor}">${marginUsage.toFixed(2)}%</span>
+        </div>
+        <div class="margin-bar-bg">
+          <div class="margin-bar-fill" style="width:${Math.min(marginUsage,100)}%;background:${marginBarColor}"></div>
+        </div>
       </div>
     </div>
   `;
@@ -3842,7 +3908,7 @@ function renderGalaxy(data) {
       cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}"
       fill="${fill}" opacity="${opacity}"
       style="filter:${glow};cursor:pointer;"
-      data-tip="${tip.replace(/"/g, '&quot;')}"
+      data-gtip="${tip.replace(/"/g, '&quot;')}"
     />`;
   });
 
@@ -3864,7 +3930,7 @@ function renderGalaxy(data) {
   }
   svg.querySelectorAll('circle').forEach(el => {
     el.addEventListener('mouseenter', e => {
-      tipEl.textContent = el.dataset.tip;
+      tipEl.textContent = el.dataset.gtip;
       tipEl.style.display = 'block';
     });
     el.addEventListener('mousemove', e => {
