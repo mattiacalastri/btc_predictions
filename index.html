@@ -206,7 +206,7 @@
   .kpi-sub { font-size: 10px; color: var(--muted); margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   /* STATS ROW */
-  .stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: var(--border); margin-bottom: 16px; }
+  .stats-row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--border); margin-bottom: 16px; }
   @media (max-width: 900px) { .stats-row { grid-template-columns: repeat(3, 1fr); } }
   .stat-cell { background: var(--card); padding: 14px 18px; text-align: center; }
   .stat-cell-label { font-size: 9px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
@@ -1994,6 +1994,14 @@
       <div class="stat-cell-label">Avg RR Ratio</div>
       <div class="stat-cell-val" id="statRR" style="color:var(--accent)">—</div>
     </div>
+    <div class="stat-cell" data-tip-title="Total Fees Paid" data-tip="Total trading fees paid to Kraken across all closed bets. Each trade costs 0.005% × size × (entry+exit price). Lower is better — fees erode PnL over time.">
+      <div class="stat-cell-label">Total Fees</div>
+      <div class="stat-cell-val" id="statTotalFees" style="color:var(--warn)">—</div>
+    </div>
+    <div class="stat-cell" data-tip-title="Total Entry Slippage" data-tip="Cumulative difference between expected signal price and actual fill price across all bets. Negative = filled worse than expected. This is raw price difference (pts), not dollar cost.">
+      <div class="stat-cell-label">Total Slippage</div>
+      <div class="stat-cell-val" id="statTotalSlippage" style="color:var(--warn)">—</div>
+    </div>
     <!-- Mobile-only: fills empty slot in 3-col row 2 -->
     <div class="stat-cell mobile-only" data-tip-title="Best Win Streak" data-tip="Maximum consecutive wins across the entire bet history. Indicates model consistency.">
       <div class="stat-cell-label">Best Streak</div>
@@ -3566,6 +3574,18 @@ function render(data) {
   const slipEl = document.getElementById('statSlippage');
   slipEl.textContent = avgSlip !== null ? (avgSlip >= 0 ? '+' : '') + '$' + avgSlip.toFixed(2) : '—';
   slipEl.style.color = avgSlip === null ? 'var(--muted)' : Math.abs(avgSlip) > 20 ? 'var(--danger)' : Math.abs(avgSlip) > 5 ? 'var(--warn)' : 'var(--accent)';
+  // Total fees (from realBets fees_total)
+  const totalFeesSum = realBets.reduce((s, d) => s + (d.fees_total ? parseFloat(d.fees_total) : 0), 0);
+  const feesEl = document.getElementById('statTotalFees');
+  feesEl.textContent = totalFeesSum > 0 ? '-$' + totalFeesSum.toFixed(2) : '—';
+  feesEl.style.color = totalFeesSum > 5 ? 'var(--danger)' : totalFeesSum > 0 ? 'var(--warn)' : 'var(--muted)';
+
+  // Total slippage (sum of price-point differences, not dollar cost)
+  const totalSlipSum = betsWithSlip.reduce((s, d) => s + parseFloat(d.entry_slippage || 0), 0);
+  const totalSlipEl = document.getElementById('statTotalSlippage');
+  totalSlipEl.textContent = betsWithSlip.length ? (totalSlipSum >= 0 ? '+' : '') + '$' + totalSlipSum.toFixed(2) : '—';
+  totalSlipEl.style.color = betsWithSlip.length === 0 ? 'var(--muted)' : totalSlipSum < -200 ? 'var(--danger)' : 'var(--warn)';
+
   const betsWithRR = bets.filter(d => d.rr_ratio !== null && d.rr_ratio !== undefined);
   const avgRR = betsWithRR.length
     ? betsWithRR.reduce((s, d) => s + parseFloat(d.rr_ratio || 0), 0) / betsWithRR.length

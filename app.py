@@ -1708,6 +1708,23 @@ def costs():
 
     avg_per_trade = round(kraken_fees_total / trade_count, 6) if trade_count > 0 else 0.0
 
+    # ── 1b. Entry slippage stats (da Supabase) ───────────────────────────────
+    slip_total = 0.0
+    slip_avg   = 0.0
+    slip_count = 0
+    try:
+        url = (f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
+               f"?select=entry_slippage,bet_size"
+               f"&bet_taken=eq.true&correct=not.is.null&entry_slippage=not.is.null")
+        res = requests.get(url, headers=sb_headers, timeout=5)
+        slip_rows = res.json() if res.ok else []
+        slip_vals = [float(r["entry_slippage"]) for r in slip_rows if r.get("entry_slippage") is not None]
+        slip_count = len(slip_vals)
+        slip_total = round(sum(slip_vals), 4) if slip_vals else 0.0
+        slip_avg   = round(slip_total / slip_count, 4) if slip_count > 0 else 0.0
+    except Exception:
+        pass
+
     # ── 2. Supabase row count (reale) ─────────────────────────────────────────
     row_count = 0
     try:
@@ -1815,6 +1832,11 @@ def costs():
             "total_usd": kraken_fees_total,
             "trade_count": trade_count,
             "avg_per_trade": avg_per_trade,
+        },
+        "slippage_stats": {
+            "total_pts": slip_total,
+            "avg_pts":   slip_avg,
+            "count":     slip_count,
         },
         "supabase": {
             "row_count": row_count,
