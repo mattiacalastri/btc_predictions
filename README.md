@@ -37,7 +37,9 @@ n8n wf01A (fetch data)
                on-chain audit trail
 ```
 
-Nine n8n workflows handle data ingestion, AI inference, trade monitoring, nightly maintenance, and Telegram commands. Flask on Railway is the stateless API that owns Kraken order execution and database writes.
+Ten n8n workflows handle data ingestion, AI inference, trade monitoring, nightly maintenance, Telegram commands, and social media publishing. Flask on Railway is the stateless API that owns Kraken order execution and database writes.
+
+> **Note:** The n8n workflows are the orchestration layer of this system — they are not included in this public repository. This repo contains the Flask backend, XGBoost models, smart contract, and dashboard. To run the full system you need to recreate the workflow logic in your own n8n instance using the architecture diagram above as a reference.
 
 ---
 
@@ -46,7 +48,7 @@ Nine n8n workflows handle data ingestion, AI inference, trade monitoring, nightl
 | Component   | Technology                              | Purpose                                    |
 |-------------|------------------------------------------|--------------------------------------------|
 | AI Engine   | Claude Sonnet + XGBoost (~86% accuracy) | Directional prediction, dual-gate filter   |
-| Workflow    | n8n Cloud (9 workflows)                 | Data fetch, orchestration, scheduling      |
+| Workflow    | n8n Cloud (10 workflows, private)       | Data fetch, orchestration, scheduling      |
 | Backend     | Python Flask + Gunicorn on Railway      | Order execution, bet sizing, REST API      |
 | Database    | Supabase (PostgreSQL, 52-column schema) | Trade history, signals, calibration data   |
 | Exchange    | Kraken Futures (PF_XBTUSD)             | Perpetual BTC/USD contract execution       |
@@ -74,6 +76,10 @@ cd btc_predictions
 cp .env.example .env
 # Edit .env — add your Kraken, Supabase, Anthropic, and n8n keys
 # Set DRY_RUN=true to paper-trade without placing real orders
+
+# NOTE: n8n workflows are not included in this repo.
+# The Flask API runs standalone (signals, backtesting, dashboard),
+# but autonomous trading requires the n8n orchestration layer.
 
 # 3a. Docker (recommended)
 docker-compose up
