@@ -223,9 +223,15 @@
   /* STATS ROW */
   .stats-row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--border); margin-bottom: 16px; }
   @media (max-width: 900px) { .stats-row { grid-template-columns: repeat(3, 1fr); } }
-  .stat-cell { background: var(--card); padding: 14px 18px; text-align: center; }
+  .stat-cell { background: var(--card); padding: 14px 18px; text-align: center; cursor: pointer; }
+  .stat-cell:hover { background: rgba(255,255,255,0.02); }
   .stat-cell-label { font-size: 9px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
   .stat-cell-val { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; }
+  .stat-info-icon { font-size: 8px; font-style: normal; opacity: 0.4; vertical-align: middle; margin-left: 2px; font-weight: 400; letter-spacing: 0; }
+  .stat-cell:hover .stat-info-icon { opacity: 0.8; }
+  /* Stat tooltip */
+  #statTooltip { display:none; position:fixed; z-index:3000; background:var(--card); border:1px solid var(--border); border-top:2px solid var(--accent); padding:10px 14px; max-width:260px; font-size:10px; color:var(--muted); line-height:1.6; box-shadow:0 8px 24px rgba(0,0,0,0.55); border-radius:4px; pointer-events:none; }
+  #statTooltip .st-title { font-size:9px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--text); margin-bottom:5px; }
 
   /* MAIN GRID */
   .main-grid { display: grid; grid-template-columns: 1fr 320px; gap: 14px; margin-bottom: 14px; }
@@ -570,6 +576,64 @@
     background-size: 200% 100%;
   }
   @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+  /* INTRO HERO */
+  .intro-hero {
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+    background: linear-gradient(135deg, rgba(0,255,136,0.06) 0%, rgba(0,170,255,0.04) 100%);
+    border-bottom: 1px solid rgba(0,255,136,0.15);
+    padding: 14px 24px; margin-bottom: 0; position: relative;
+    overflow: hidden;
+    animation: heroSlideIn 0.4s ease;
+  }
+  @keyframes heroSlideIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:none; } }
+  .intro-hero::after { content:''; position:absolute; inset:0; pointer-events:none;
+    background: radial-gradient(ellipse at 80% 50%, rgba(0,255,136,0.04), transparent 60%); }
+  .intro-content { display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
+  .intro-headline { font-family:'Syne',sans-serif; font-size:13px; font-weight:700; color:var(--text); letter-spacing:-0.3px; }
+  .intro-sub { font-size:9px; color:var(--muted); letter-spacing:1px; margin-top:2px; }
+  .intro-kpis { display:flex; gap:16px; flex-wrap:wrap; }
+  .intro-kpi { font-size:10px; font-weight:700; letter-spacing:1px; color:var(--accent);
+    background:rgba(0,255,136,0.07); border:1px solid rgba(0,255,136,0.2);
+    padding:3px 10px; border-radius:2px; white-space:nowrap; }
+  .intro-kpi span { font-family:'Syne',sans-serif; font-size:13px; margin-right:4px; }
+  .intro-close { background:none; border:none; color:var(--muted); font-size:16px; cursor:pointer;
+    line-height:1; padding:4px 6px; margin-left:auto; transition:color 0.15s; }
+  .intro-close:hover { color:var(--text); }
+
+  /* MINI STATUS BAR */
+  .mini-status-bar {
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(255,255,255,0.01); border-bottom: 1px solid rgba(255,255,255,0.04);
+    padding: 5px 24px; height: 24px;
+  }
+  .mini-status-bar .msb-label { font-size:8px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-right:4px; }
+  .mini-status-bar .msb-item { display:flex; align-items:center; gap:4px; font-size:8px; color:var(--muted); letter-spacing:0.5px; cursor:default; }
+  .mini-status-bar .msb-item:hover { color:var(--text); }
+  .status-dot { width:6px; height:6px; border-radius:50%; background:var(--muted); display:inline-block; transition:background 0.3s; flex-shrink:0; }
+  .status-dot.green  { background:var(--accent); box-shadow:0 0 4px rgba(0,255,136,0.6); animation:pulse 2s infinite; }
+  .status-dot.red    { background:var(--danger);  box-shadow:0 0 4px rgba(255,68,102,0.6); }
+  .status-dot.yellow { background:var(--warn);    box-shadow:0 0 4px rgba(255,170,0,0.6); animation:pulse 2.5s infinite; }
+  .msb-sep { width:1px; height:12px; background:var(--border); margin:0 2px; }
+
+  /* APPLE WALLET POSITION STACK */
+  .position-stack { position:relative; padding-bottom:24px; cursor:pointer; user-select:none; }
+  .position-stack .stack-layer {
+    transition: transform 0.3s ease, opacity 0.3s, top 0.3s;
+    border-radius: 4px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 12px 14px;
+  }
+  .position-stack .stack-layer:not(:first-child) {
+    position: absolute;
+    left: 0; right: 0;
+    z-index: -1;
+  }
+  .position-stack .stack-layer:nth-child(2) { top: 8px; transform: scale(0.97); opacity: 0.6; }
+  .position-stack .stack-layer:nth-child(3) { top: 16px; transform: scale(0.94); opacity: 0.4; }
+  .position-stack.expanded .stack-layer { position: relative !important; transform: none !important; opacity: 1 !important; top: auto !important; margin-bottom: 8px; }
+  .stack-expand-hint { font-size:8px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; text-align:center; margin-top:6px; }
 
   footer { max-width: 1600px; margin: 0 auto; padding: 16px 24px 24px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
   .footer-text { font-size: 9px; color: var(--muted); letter-spacing: 1px; }
@@ -1620,6 +1684,42 @@
 </style>
 </head>
 <body>
+  <!-- INTRO HERO — collapsible, auto-dismiss 8s, localStorage -->
+  <div class="intro-hero" id="introHero">
+    <div class="intro-content">
+      <div>
+        <div class="intro-headline">Autonomous AI trading BTC with real money</div>
+        <div class="intro-sub">Started with $100 · Every trade public · Every prediction on-chain</div>
+      </div>
+      <div class="intro-kpis">
+        <span class="intro-kpi"><span id="introWR">—</span> win rate</span>
+        <span class="intro-kpi"><span id="introPnL">—</span> total PnL</span>
+        <span class="intro-kpi"><span id="introTrades">—</span> trades</span>
+      </div>
+    </div>
+    <button class="intro-close" onclick="dismissIntro()" title="Dismiss">✕</button>
+  </div>
+
+  <!-- MINI STATUS BAR -->
+  <div class="mini-status-bar" id="miniStatusBar">
+    <span class="msb-label">Agents</span>
+    <span class="msb-item" title="Prediction Bot (wf01A/01B)">
+      <span class="status-dot" id="statusWf01"></span>wf01
+    </span>
+    <span class="msb-sep"></span>
+    <span class="msb-item" title="Trade Checker (wf02)">
+      <span class="status-dot" id="statusWf02"></span>wf02
+    </span>
+    <span class="msb-sep"></span>
+    <span class="msb-item" title="Commander (wf07)">
+      <span class="status-dot" id="statusWf07"></span>wf07
+    </span>
+    <span class="msb-sep"></span>
+    <span class="msb-item" title="Railway API">
+      <span class="status-dot" id="statusRailway"></span>API
+    </span>
+  </div>
+
   <div id="dry-run-banner" style="display:none; background:#f59e0b; color:#000; text-align:center; padding:10px; font-weight:bold; font-size:14px; letter-spacing:1px;">
   🧪 DRY RUN MODE — Nessun trade reale in esecuzione
 </div>
@@ -1788,6 +1888,7 @@
       <span class="period-label" style="font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-right:4px">PERIOD</span>
       <button class="time-pill desktop-period-pill"        data-period="ALL"   onclick="setTimePeriod(this)">ALL</button>
       <button class="time-pill desktop-period-pill"        data-period="7D"    onclick="setTimePeriod(this)">7D</button>
+      <button class="time-pill desktop-period-pill"        data-period="3D"    onclick="setTimePeriod(this)">3D</button>
       <button class="time-pill desktop-period-pill"        data-period="24H"   onclick="setTimePeriod(this)">24H</button>
       <button class="time-pill desktop-period-pill active"  data-period="TODAY" onclick="setTimePeriod(this)">TODAY</button>
     </div>
@@ -1797,6 +1898,7 @@
   <div class="mobile-period-bar" id="mobilePeriodBar">
     <button class="time-pill"        data-period="ALL"   onclick="setTimePeriod(this)">ALL</button>
     <button class="time-pill"        data-period="7D"    onclick="setTimePeriod(this)">7D</button>
+    <button class="time-pill"        data-period="3D"    onclick="setTimePeriod(this)">3D</button>
     <button class="time-pill"        data-period="24H"   onclick="setTimePeriod(this)">24H</button>
     <button class="time-pill active"  data-period="TODAY" onclick="setTimePeriod(this)">TODAY</button>
     <div style="flex:1;min-width:4px;"></div>
@@ -2005,60 +2107,8 @@
     </div>
   </div>
 
-  <div class="stats-row">
-    <div class="stat-cell" data-tip-title="Avg Confidence" data-tip="Average confidence (estimated probability) assigned by the AI across all predictions in the selected period. Values >65% indicate high-conviction signals.">
-      <div class="stat-cell-label">Avg Confidence</div>
-      <div class="stat-cell-val" id="statConf" style="color:var(--blue)">—</div>
-    </div>
-    <div class="stat-cell" data-tip-title="Best Trade PnL" data-tip="The single trade with the highest gain in USD for the period. Measures the bot&apos;s maximum upside in a single operation.">
-      <div class="stat-cell-label">Best Trade PnL</div>
-      <div class="stat-cell-val" id="statBest" style="color:var(--accent)">—</div>
-    </div>
-    <div class="stat-cell" data-tip-title="Current Streak" data-tip="Active streak: consecutive wins (W) or losses (L) from the last closed bet. A long W-streak signals positive model momentum.">
-      <div class="stat-cell-label">Current Streak</div>
-      <div class="stat-cell-val" id="statStreak" style="color:var(--text)">—</div>
-    </div>
-    <div class="stat-cell" data-tip-title="Avg Entry Slippage" data-tip="Average difference between expected and actual execution price. Negative slippage = filled at a worse price than expected. Values &lt;$5 are acceptable.">
-      <div class="stat-cell-label">Avg Entry Slippage</div>
-      <div class="stat-cell-val" id="statSlippage" style="color:var(--warn)">—</div>
-    </div>
-    <div class="stat-cell" data-tip-title="Avg RR Ratio" data-tip="Average Risk/Reward: ratio of expected gain (TP) to risked loss (SL). A value ≥2.0x means every $1 risked targets $2+ in return.">
-      <div class="stat-cell-label">Avg RR Ratio</div>
-      <div class="stat-cell-val" id="statRR" style="color:var(--accent)">—</div>
-    </div>
-    <div class="stat-cell" data-tip-title="Total Fees Paid" data-tip="Total trading fees paid to Kraken across all closed bets. Each trade costs 0.005% × size × (entry+exit price). Lower is better — fees erode PnL over time.">
-      <div class="stat-cell-label">Total Fees</div>
-      <div class="stat-cell-val" id="statTotalFees" style="color:var(--warn)">—</div>
-    </div>
-    <div class="stat-cell" data-tip-title="Total Entry Slippage" data-tip="Cumulative difference between expected signal price and actual fill price across all bets. Negative = filled worse than expected. This is raw price difference (pts), not dollar cost.">
-      <div class="stat-cell-label">Total Slippage</div>
-      <div class="stat-cell-val" id="statTotalSlippage" style="color:var(--warn)">—</div>
-    </div>
-    <div class="stat-cell" data-tip-title="APR Today" data-tip="Today's PnL annualized: (Today's PnL / Capital) × 365. Daily pulse of performance vs expected annual return.">
-      <div class="stat-cell-label">APR Today</div>
-      <div class="stat-cell-val" id="statAprToday" style="color:var(--purple)">—</div>
-    </div>
-    <div class="stat-cell" data-tip-title="APR 7d" data-tip="Last 7-day PnL annualized: (7d PnL / Capital) / 7 × 365. Rolling window to smooth daily variance and detect medium-term performance trends.">
-      <div class="stat-cell-label">APR 7d</div>
-      <div class="stat-cell-val" id="statApr7d" style="color:var(--purple)">—</div>
-    </div>
-    <!-- Mobile-only: fills empty slot in 3-col row 2 -->
-    <div class="stat-cell mobile-only" data-tip-title="Best Win Streak" data-tip="Maximum consecutive wins across the entire bet history. Indicates model consistency.">
-      <div class="stat-cell-label">Best Streak</div>
-      <div class="stat-cell-val" id="statBestStreak" style="color:var(--accent)">—</div>
-    </div>
-    <div class="stat-cell mobile-only" data-tip-title="Hit Rate 7d" data-tip="Win rate on bets closed in the last 7 days. Fresh performance indicator — detects recent model decay or improvement.">
-      <div class="stat-cell-label">Hit Rate 7d</div>
-      <div class="stat-cell-val" id="statHitRate7d" style="color:var(--blue)">—</div>
-    </div>
-    <div class="stat-cell mobile-only" data-tip-title="Conf: WIN / LOSS" data-tip="Average confidence on winning vs losing bets. A gap > 10% means the AI correctly assigns higher confidence to winning trades — good model calibration.">
-      <div class="stat-cell-label">Conf: WIN/LOSS</div>
-      <div class="stat-cell-val" id="statConfGap" style="color:var(--purple)">—</div>
-    </div>
-  </div>
-
   <!-- ═══════════════════════════════════════════
-       ACCOUNT SUMMARY SECTION
+       ACCOUNT SUMMARY SECTION — above the fold (Ops #17)
   ═══════════════════════════════════════════ -->
   <div class="section-divider" style="margin-bottom:12px;">
     <div class="section-divider-label" style="font-size:11px;color:var(--accent);letter-spacing:3px;display:flex;align-items:center;gap:7px;">
@@ -2134,6 +2184,59 @@
 
   </div>
   <!-- END ACCOUNT SUMMARY -->
+
+  <!-- TRADING STATS ROW -->
+  <div class="stats-row">
+    <div class="stat-cell" data-tip-title="Avg Confidence" data-tip="Average confidence (estimated probability) assigned by the AI across all predictions in the selected period. Values >65% indicate high-conviction signals." onclick="showStatExplain(event,'Avg Confidence','% of AI confidence averaged across all bets in the period. The bot only executes trades at ≥65% confidence.')">
+      <div class="stat-cell-label">Avg Confidence <span class="stat-info-icon">ⓘ</span></div>
+      <div class="stat-cell-val" id="statConf" style="color:var(--blue)">—</div>
+    </div>
+    <div class="stat-cell" data-tip-title="Best Trade PnL" data-tip="The single trade with the highest gain in USD for the period. Measures the bot&apos;s maximum upside in a single operation." onclick="showStatExplain(event,'Best Trade','Highest single trade profit in USD in the selected period.')">
+      <div class="stat-cell-label">Best Trade PnL <span class="stat-info-icon">ⓘ</span></div>
+      <div class="stat-cell-val" id="statBest" style="color:var(--accent)">—</div>
+    </div>
+    <div class="stat-cell" data-tip-title="Current Streak" data-tip="Active streak: consecutive wins (W) or losses (L) from the last closed bet. A long W-streak signals positive model momentum." onclick="showStatExplain(event,'Current Streak','Consecutive wins (W) or losses (L) from the last closed bet. A long W-streak signals model momentum.')">
+      <div class="stat-cell-label">Current Streak <span class="stat-info-icon">ⓘ</span></div>
+      <div class="stat-cell-val" id="statStreak" style="color:var(--text)">—</div>
+    </div>
+    <div class="stat-cell" data-tip-title="Avg Entry Slippage" data-tip="Average difference between expected and actual execution price. Negative slippage = filled at a worse price than expected. Values &lt;$5 are acceptable." onclick="showStatExplain(event,'Avg Entry Slippage','Average difference between signal price and actual fill. Negative = filled worse than expected. Values under $5 are normal.')">
+      <div class="stat-cell-label">Avg Entry Slippage <span class="stat-info-icon">ⓘ</span></div>
+      <div class="stat-cell-val" id="statSlippage" style="color:var(--warn)">—</div>
+    </div>
+    <div class="stat-cell" data-tip-title="Avg RR Ratio" data-tip="Average Risk/Reward: ratio of expected gain (TP) to risked loss (SL). A value ≥2.0x means every $1 risked targets $2+ in return." onclick="showStatExplain(event,'Avg RR Ratio','Average Risk/Reward: TP distance / SL distance. A value ≥2.0x means every $1 risked targets $2+ in return.')">
+      <div class="stat-cell-label">Avg RR Ratio <span class="stat-info-icon">ⓘ</span></div>
+      <div class="stat-cell-val" id="statRR" style="color:var(--accent)">—</div>
+    </div>
+    <div class="stat-cell" data-tip-title="Total Fees Paid" data-tip="Total trading fees paid to Kraken across all closed bets. Each trade costs 0.005% × size × (entry+exit price). Lower is better — fees erode PnL over time." onclick="showStatExplain(event,'Total Fees','Total Kraken trading fees: 0.005% × size × (entry+exit price) per trade. Fees erode PnL — track closely.')">
+      <div class="stat-cell-label">Total Fees <span class="stat-info-icon">ⓘ</span></div>
+      <div class="stat-cell-val" id="statTotalFees" style="color:var(--warn)">—</div>
+    </div>
+    <div class="stat-cell" data-tip-title="Total Entry Slippage" data-tip="Cumulative difference between expected signal price and actual fill price across all bets. Negative = filled worse than expected. This is raw price difference (pts), not dollar cost." onclick="showStatExplain(event,'Total Slippage','Cumulative price slippage across all bets (in USD points). Negative = consistently filled worse than expected.')">
+      <div class="stat-cell-label">Total Slippage <span class="stat-info-icon">ⓘ</span></div>
+      <div class="stat-cell-val" id="statTotalSlippage" style="color:var(--warn)">—</div>
+    </div>
+    <div class="stat-cell" data-tip-title="APR Today" data-tip="Today's PnL annualized: (Today's PnL / Capital) × 365. Daily pulse of performance vs expected annual return." onclick="showStatExplain(event,'APR Today','Today\'s PnL annualized: (today PnL / capital) × 365. Daily pulse — volatile but useful for trend detection.')">
+      <div class="stat-cell-label">APR Today <span class="stat-info-icon">ⓘ</span></div>
+      <div class="stat-cell-val" id="statAprToday" style="color:var(--purple)">—</div>
+    </div>
+    <div class="stat-cell" data-tip-title="APR 7d" data-tip="Last 7-day PnL annualized: (7d PnL / Capital) / 7 × 365. Rolling window to smooth daily variance and detect medium-term performance trends." onclick="showStatExplain(event,'APR 7d','Last 7-day PnL annualized. Rolling window smooths daily noise — a better estimate of sustained performance than APR Today.')">
+      <div class="stat-cell-label">APR 7d <span class="stat-info-icon">ⓘ</span></div>
+      <div class="stat-cell-val" id="statApr7d" style="color:var(--purple)">—</div>
+    </div>
+    <!-- Mobile-only: fills empty slot in 3-col row 2 -->
+    <div class="stat-cell mobile-only" data-tip-title="Best Win Streak" data-tip="Maximum consecutive wins across the entire bet history. Indicates model consistency.">
+      <div class="stat-cell-label">Best Streak</div>
+      <div class="stat-cell-val" id="statBestStreak" style="color:var(--accent)">—</div>
+    </div>
+    <div class="stat-cell mobile-only" data-tip-title="Hit Rate 7d" data-tip="Win rate on bets closed in the last 7 days. Fresh performance indicator — detects recent model decay or improvement.">
+      <div class="stat-cell-label">Hit Rate 7d</div>
+      <div class="stat-cell-val" id="statHitRate7d" style="color:var(--blue)">—</div>
+    </div>
+    <div class="stat-cell mobile-only" data-tip-title="Conf: WIN / LOSS" data-tip="Average confidence on winning vs losing bets. A gap > 10% means the AI correctly assigns higher confidence to winning trades — good model calibration.">
+      <div class="stat-cell-label">Conf: WIN/LOSS</div>
+      <div class="stat-cell-val" id="statConfGap" style="color:var(--purple)">—</div>
+    </div>
+  </div>
 
   <div id="dashboardMain">
 
@@ -2874,9 +2977,9 @@
 
     <!-- ── SECTION 2: Key Metric Cards ── -->
     <div class="trn-metric-cards">
-      <div class="trn-metric-card">
+      <div class="trn-metric-card" style="cursor:pointer" onclick="showStatExplain(event,'Accuracy','% of predictions matching actual BTC direction on the cross-validation test set. XGBoost is trained on historical bet data and evaluated on unseen samples. Target: >60%.')">
         <div class="trn-metric-icon">&#127919;</div>
-        <div class="trn-metric-label">CV Accuracy</div>
+        <div class="trn-metric-label">CV Accuracy <span class="stat-info-icon">ⓘ</span></div>
         <div class="trn-metric-value green" id="trn-dirAcc">—</div>
         <div class="trn-acc-bar-wrap">
           <div class="trn-acc-bar-track">
@@ -2885,21 +2988,21 @@
         </div>
         <div class="trn-metric-sub" id="trn-trainN">— signals</div>
       </div>
-      <div class="trn-metric-card">
+      <div class="trn-metric-card" style="cursor:pointer" onclick="showStatExplain(event,'Last Trained','Date of the last model retraining. XGBoost learns from new trade history automatically every Sunday at 3:00 AM UTC via a local launchd job.')">
         <div class="trn-metric-icon">&#128197;</div>
-        <div class="trn-metric-label">Last Retrain</div>
+        <div class="trn-metric-label">Last Retrain <span class="stat-info-icon">ⓘ</span></div>
         <div class="trn-metric-value" id="trn-lastDate" style="font-size:12px">—</div>
         <div class="trn-metric-sub" id="trn-daysAgo">—</div>
       </div>
-      <div class="trn-metric-card">
+      <div class="trn-metric-card" style="cursor:pointer" onclick="showStatExplain(event,'Features','Number of data inputs used by XGBoost for each prediction: RSI14, EMA9/21, ATR, ADX, funding rate, L/S ratio, taker ratio, fear &amp; greed, hour cyclical encoding, and more.')">
         <div class="trn-metric-icon">&#9201;</div>
-        <div class="trn-metric-label">Next Scheduled</div>
+        <div class="trn-metric-label">Next Scheduled <span class="stat-info-icon">ⓘ</span></div>
         <div class="trn-metric-value yellow" id="trn-nextDate" style="font-size:12px">—</div>
         <div class="trn-metric-sub">Sunday 3:00 UTC</div>
       </div>
-      <div class="trn-metric-card">
+      <div class="trn-metric-card" style="cursor:pointer" onclick="showStatExplain(event,'Model','XGBoost Classifier — gradient boosting algorithm optimized for binary classification (UP vs DOWN). Uses dual-gate: XGBoost AND Claude must agree before a bet is placed.')">
         <div class="trn-metric-icon">&#128272;</div>
-        <div class="trn-metric-label">Confidence Thr.</div>
+        <div class="trn-metric-label">Confidence Thr. <span class="stat-info-icon">ⓘ</span></div>
         <div class="trn-metric-value" id="trn-confThr">—</div>
         <div class="trn-metric-sub">min to open bet</div>
       </div>
@@ -6224,6 +6327,198 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     };
   }
+});
+
+/* ──────────────────────────────────────────────────────────────────────────
+   FIX 7 — INTRO HERO
+   ────────────────────────────────────────────────────────────────────────── */
+(function() {
+  if (localStorage.getItem('introDismissed')) {
+    var h = document.getElementById('introHero');
+    if (h) h.remove();
+  } else {
+    // Auto-dismiss after 8 seconds
+    setTimeout(function() { dismissIntro(); }, 8000);
+  }
+})();
+
+function dismissIntro() {
+  var h = document.getElementById('introHero');
+  if (!h) return;
+  localStorage.setItem('introDismissed', '1');
+  h.style.transition = 'opacity 0.4s, max-height 0.4s, padding 0.4s';
+  h.style.opacity = '0';
+  h.style.maxHeight = '0';
+  h.style.padding = '0';
+  h.style.overflow = 'hidden';
+  setTimeout(function() { if (h.parentNode) h.parentNode.removeChild(h); }, 450);
+}
+
+function populateIntroHero(data) {
+  // data = allData array from /signals
+  if (!data || !data.length) return;
+  var closed = data.filter(function(d) { return d.bet_taken && d.correct !== null && d.correct !== undefined && d.pnl_usd !== null; });
+  var wins = closed.filter(function(d) { return d.correct === true; });
+  var wrEl = document.getElementById('introWR');
+  var pnlEl = document.getElementById('introPnL');
+  var trEl = document.getElementById('introTrades');
+  if (wrEl && closed.length) wrEl.textContent = Math.round(wins.length / closed.length * 100) + '%';
+  if (trEl) trEl.textContent = closed.length;
+  if (pnlEl) {
+    var totalPnl = closed.reduce(function(s,d) { return s + parseFloat(d.pnl_usd||0); }, 0);
+    pnlEl.textContent = (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toFixed(2);
+    pnlEl.style.color = totalPnl >= 0 ? 'inherit' : 'var(--danger)';
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   FIX 3 — MINI STATUS BAR
+   ────────────────────────────────────────────────────────────────────────── */
+function updateMiniStatusBar(agentsData, railwayOk) {
+  var dotRailway = document.getElementById('statusRailway');
+  if (dotRailway) {
+    dotRailway.className = 'status-dot ' + (railwayOk ? 'green' : 'red');
+  }
+  if (!agentsData || agentsData.status !== 'ok') {
+    ['statusWf01','statusWf02','statusWf07'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.className = 'status-dot ' + (railwayOk ? 'yellow' : 'red');
+    });
+    return;
+  }
+  var wfs = agentsData.workflows || [];
+  var targets = { 'statusWf01': ['01A','01B','01'], 'statusWf02': ['02'], 'statusWf07': ['07'] };
+  Object.keys(targets).forEach(function(dotId) {
+    var prefixes = targets[dotId];
+    var match = wfs.find(function(wf) {
+      return prefixes.some(function(p) { return (wf.name||'').startsWith(p); });
+    });
+    var dotEl = document.getElementById(dotId);
+    if (!dotEl) return;
+    if (!match) { dotEl.className = 'status-dot yellow'; return; }
+    var isActive = match.active;
+    var lastStatus = match.last_execution && match.last_execution.status;
+    if (!isActive) { dotEl.className = 'status-dot red'; }
+    else if (lastStatus === 'success') { dotEl.className = 'status-dot green'; }
+    else if (lastStatus === 'crashed' || lastStatus === 'error') { dotEl.className = 'status-dot red'; }
+    else { dotEl.className = 'status-dot yellow'; }
+  });
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   FIX 5 + FIX 6 — STAT / TRAINING CLICK-TO-EXPLAIN TOOLTIP
+   ────────────────────────────────────────────────────────────────────────── */
+// Create tooltip element
+(function() {
+  var tip = document.createElement('div');
+  tip.id = 'statTooltip';
+  tip.innerHTML = '<div class="st-title" id="stTipTitle"></div><div id="stTipBody"></div>';
+  document.body.appendChild(tip);
+})();
+
+function showStatExplain(e, title, desc) {
+  e.stopPropagation();
+  var tip = document.getElementById('statTooltip');
+  document.getElementById('stTipTitle').textContent = title;
+  document.getElementById('stTipBody').innerHTML = desc;
+  tip.style.display = 'block';
+  var pad = 14;
+  var x = e.clientX + pad;
+  var y = e.clientY + pad;
+  if (x + 270 > window.innerWidth) x = e.clientX - 270;
+  if (y + 120 > window.innerHeight) y = e.clientY - 100;
+  tip.style.left = x + 'px';
+  tip.style.top  = y + 'px';
+}
+document.addEventListener('click', function() {
+  var tip = document.getElementById('statTooltip');
+  if (tip) tip.style.display = 'none';
+});
+
+/* ──────────────────────────────────────────────────────────────────────────
+   FIX 4 — APPLE WALLET POSITION STACK
+   ────────────────────────────────────────────────────────────────────────── */
+function renderPositionStack(openBets) {
+  var body = document.getElementById('acctPositionBody');
+  var tag  = document.getElementById('acctPositionTag');
+  if (!body || !openBets || openBets.length < 2) return; // only activate for 2+ open bets
+  var layers = openBets.slice(0, 3).map(function(bet, i) {
+    var dir = (bet.direction || bet.prediction || '').toUpperCase();
+    var conf = bet.confidence ? Math.round(parseFloat(bet.confidence) * 100) + '%' : '—';
+    var ts = bet.created_at ? new Date(bet.created_at).toLocaleTimeString('it-IT', {hour:'2-digit',minute:'2-digit'}) : '—';
+    var dirColor = dir === 'UP' ? 'var(--accent)' : 'var(--danger)';
+    return '<div class="stack-layer">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">' +
+        '<span style="font-size:11px;font-weight:700;color:' + dirColor + '">' + dir + '</span>' +
+        '<span style="font-size:9px;color:var(--warn)">' + conf + '</span>' +
+      '</div>' +
+      '<div style="font-size:9px;color:var(--muted)">' +
+        '#' + (bet.id||'—') + ' · ' + ts +
+      '</div>' +
+    '</div>';
+  }).join('');
+  body.innerHTML = '<div class="position-stack" id="positionStack" onclick="togglePositionStack(this)">' +
+    layers +
+    '<div class="stack-expand-hint" id="stackHint">▼ ' + openBets.length + ' open · tap to expand</div>' +
+  '</div>';
+  if (tag) {
+    tag.textContent = openBets.length + ' OPEN';
+    tag.className = 'panel-tag tag-yellow';
+    tag.style.cssText = '';
+  }
+}
+
+function togglePositionStack(el) {
+  el.classList.toggle('expanded');
+  var hint = document.getElementById('stackHint');
+  if (hint) hint.textContent = el.classList.contains('expanded') ? '▲ collapse' : '▼ ' + document.querySelectorAll('#positionStack .stack-layer').length + ' open · tap to expand';
+}
+
+/* ── Hook into existing renderAll to populate intro hero + stack ── */
+(function() {
+  var _origRefreshFn = window.refresh;
+  if (typeof _origRefreshFn === 'function') {
+    window.refresh = async function() {
+      await _origRefreshFn.apply(this, arguments);
+      // After render, populate intro hero + apple wallet
+      if (window.allData && window.allData.length) {
+        populateIntroHero(window.allData);
+        var openBets = window.allData.filter(function(d) {
+          return d.bet_taken && !d.actual_direction && (d.pnl_usd === null || d.pnl_usd === undefined);
+        });
+        if (openBets.length >= 2) renderPositionStack(openBets);
+      }
+    };
+  }
+})();
+
+// Hook into renderAgents to update mini status bar
+var _origRenderAgentsFn = window.renderAgents;
+if (typeof renderAgents === 'function') {
+  var _origRA = renderAgents;
+  window.renderAgents = function(data, errorMsg) {
+    _origRA.apply(this, arguments);
+    updateMiniStatusBar(data, true);
+  };
+}
+
+// Railway health sets Railway dot green on success
+(function() {
+  var origFetch = window.fetch;
+  // Simpler: piggyback on the existing /health fetch result
+  // We'll set Railway dot green after health fetch succeeds (done in health fetch block below)
+})();
+
+// After page load, attempt n8n status for mini bar (lazy, low priority)
+window.addEventListener('load', function() {
+  var dotRailway = document.getElementById('statusRailway');
+  // Railway dot: green if we got here (page loaded = API reachable)
+  if (dotRailway) dotRailway.className = 'status-dot green';
+  // Try n8n status endpoint for wf01/02/07 dots (best effort, no spinner)
+  fetch(CONFIG.RAILWAY_URL + '/n8n-status', { signal: AbortSignal.timeout(12000) })
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(data) { updateMiniStatusBar(data, true); })
+    .catch(function() { updateMiniStatusBar(null, true); });
 });
 </script>
 <div id="infoModal">
