@@ -159,6 +159,18 @@
   .bot-status-inner { display: flex; flex-direction: column; }
   .bot-status-detail { font-size: 9px; color: var(--muted); letter-spacing: 1px; font-weight: 400; margin-top: 1px; }
 
+  /* HEADER INFO POPOVER */
+  #headerPopover { position: fixed; z-index: 10000; background: rgba(8,12,25,0.97); border: 1px solid rgba(0,255,136,0.25); border-radius: 4px; padding: 12px 16px; min-width: 240px; max-width: 300px; box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 20px rgba(0,255,136,0.08); display: none; pointer-events: auto; }
+  #headerPopover::before { content: ''; position: absolute; top: -5px; left: 20px; width: 8px; height: 8px; background: rgba(8,12,25,0.97); border-left: 1px solid rgba(0,255,136,0.25); border-top: 1px solid rgba(0,255,136,0.25); transform: rotate(45deg); }
+  .hpop-title { font-size: 9px; font-weight: 700; letter-spacing: 2px; color: var(--accent); text-transform: uppercase; margin-bottom: 8px; border-bottom: 1px solid rgba(0,255,136,0.1); padding-bottom: 6px; }
+  .hpop-row { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 5px; font-size: 10px; color: var(--text); letter-spacing: 0.5px; line-height: 1.5; }
+  .hpop-row .hpop-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+  .hpop-row .hpop-key { color: var(--muted); font-size: 9px; letter-spacing: 1px; white-space: nowrap; }
+  .hpop-row .hpop-val { color: var(--text); }
+  .live-badge, #botStatus { cursor: pointer; user-select: none; }
+  .live-badge:hover { background: rgba(0,255,136,0.1) !important; }
+  #botStatus:hover { filter: brightness(1.15); }
+
   @keyframes pulse    { 0%,100%{opacity:1} 50%{opacity:0.4} }
   @keyframes deadPulse{ 0%,100%{opacity:1} 50%{opacity:0.5} }
   @keyframes blink    { 0%,100%{opacity:1} 50%{opacity:0} }
@@ -1599,8 +1611,8 @@
           <span class="onchain-badge-sub">ON-CHAIN AUDIT TRAIL</span>
         </div>
       </a>
-      <div class="live-badge"><div class="live-dot"></div>LIVE DATA</div>
-      <div id="botStatus" class="bot-status alive">
+      <div class="live-badge" onclick="showHeaderPopover(this,'live')"><div class="live-dot"></div>LIVE DATA</div>
+      <div id="botStatus" class="bot-status alive" onclick="showHeaderPopover(this,'bot')">
         <div class="bot-status-dot"></div>
         <div class="bot-status-inner">
           <div id="botStatusText">BOT ALIVE<span id="botPausedIndicator" style="display:none;color:var(--warn);font-size:9px;font-weight:700;margin-left:6px;">⏸ PAUSED</span></div>
@@ -1703,6 +1715,12 @@
       <div style="font-size:11px;color:var(--text);line-height:1.7;" id="srcModalDesc"></div>
       <button onclick="document.getElementById('srcModal').style.display='none'" style="position:absolute;top:12px;right:14px;background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;line-height:1;">✕</button>
     </div>
+  </div>
+
+  <!-- Header info popover -->
+  <div id="headerPopover">
+    <div class="hpop-title" id="hpopTitle">INFO</div>
+    <div id="hpopBody"></div>
   </div>
 
   <!-- TAB NAVIGATION + GLOBAL TIME FILTER -->
@@ -3640,6 +3658,60 @@ function showSrcModal(chip) {
 function closeSrcModal(e) {
   if (e.target === document.getElementById('srcModal')) document.getElementById('srcModal').style.display = 'none';
 }
+
+// ── HEADER BADGE POPOVERS ─────────────────────────────────────────────────────
+const _hpopContent = {
+  live: {
+    title: 'LIVE DATA FEED',
+    rows: [
+      { key: 'BTC Price',   val: 'Kraken Futures mark price · refreshes every 10s' },
+      { key: 'Signals',     val: 'Dashboard polls Railway backend every 60s' },
+      { key: 'Account',     val: 'Wallet equity + positions · refreshes every 30s' },
+      { key: 'Sources',     val: '13 AI feeds: Binance, CoinGecko, F&G, news, order book…' },
+      { key: 'On-Chain',    val: 'Each prediction committed to Polygon PoS in real-time' },
+    ]
+  },
+  bot: {
+    title: 'BOT STATUS',
+    rows: [
+      { dot: 'var(--accent)', key: '🟢 ALIVE',   val: 'Last signal < 8 min ago — system healthy' },
+      { dot: 'var(--warn)',   key: '🟡 SLOW',    val: 'Last signal 8–20 min — possible delay' },
+      { dot: 'var(--danger)', key: '🔴 OFFLINE', val: 'No signal > 20 min — check n8n wf01' },
+      { key: 'Cycle',        val: 'wf01 fires every 6 min: fetch → Claude AI → XGBoost → dual-gate → place/skip' },
+      { key: 'Threshold',    val: 'Both Claude (conf ≥ 0.65) AND XGBoost must agree — or bet is skipped' },
+    ]
+  }
+};
+
+let _hpopActive = null;
+function showHeaderPopover(el, type) {
+  const pop = document.getElementById('headerPopover');
+  if (_hpopActive === type && pop.style.display === 'block') {
+    pop.style.display = 'none'; _hpopActive = null; return;
+  }
+  _hpopActive = type;
+  const cfg = _hpopContent[type];
+  document.getElementById('hpopTitle').textContent = cfg.title;
+  document.getElementById('hpopBody').innerHTML = cfg.rows.map(r =>
+    `<div class="hpop-row">${r.dot ? `<div class="hpop-dot" style="background:${r.dot};box-shadow:0 0 4px ${r.dot}"></div>` : ''}<span class="hpop-key">${r.key}&nbsp;&nbsp;</span><span class="hpop-val">${r.val}</span></div>`
+  ).join('');
+  // Position below the clicked badge
+  const rect = el.getBoundingClientRect();
+  pop.style.display = 'block';
+  const pw = pop.offsetWidth;
+  let left = rect.left;
+  if (left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
+  pop.style.left = left + 'px';
+  pop.style.top  = (rect.bottom + 8) + 'px';
+}
+document.addEventListener('click', function(e) {
+  const pop = document.getElementById('headerPopover');
+  if (pop.style.display !== 'block') return;
+  if (!pop.contains(e.target) && !e.target.closest('.live-badge') && !e.target.closest('#botStatus')) {
+    pop.style.display = 'none'; _hpopActive = null;
+  }
+});
+
 
 /* ── Signal log mobile repositioning ── */
 function repositionSignalLog() {
