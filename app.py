@@ -2220,6 +2220,10 @@ def check_status():
     n8n_key = os.environ.get("N8N_API_KEY", "")
     n8n_url_base = os.environ.get("N8N_URL", "https://n8n.srv1432354.hstgr.cloud")
 
+    from datetime import datetime, timezone
+    # wf02 ID: NnjfpzgdIyleMVBO (02_BTC_Trade_Checker — VPS Hostinger)
+    # Active = currently running/waiting OR had a successful execution in the last 25 min
+    # (wf08 triggers wf02 every 10 min — 25 min gives 2.5x buffer)
     wf02_active = False
     if n8n_key:
         try:
@@ -2230,9 +2234,20 @@ def check_status():
             )
             if r.ok:
                 executions = r.json().get("data", [])
-                wf02_active = any(
-                    e.get("status") in ("running", "waiting") for e in executions
-                )
+                now_utc = datetime.now(timezone.utc)
+                for e in executions:
+                    if e.get("status") in ("running", "waiting"):
+                        wf02_active = True
+                        break
+                    ts = e.get("stoppedAt") or e.get("finishedAt") or e.get("startedAt")
+                    if ts:
+                        try:
+                            t = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                            if (now_utc - t).total_seconds() < 1500:  # 25 min
+                                wf02_active = True
+                                break
+                        except Exception:
+                            pass
         except Exception:
             pass
 

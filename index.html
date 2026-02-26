@@ -173,6 +173,10 @@
   .tg-cta-text strong { color: #e0e0e0; }
   .tg-cta-action { font-size: 10px; font-weight: 700; letter-spacing: 2px; color: #29b6f6; font-family: 'JetBrains Mono', monospace; margin-left: auto; white-space: nowrap; }
   @media (max-width: 600px) { .tg-cta-text { display: none; } .tg-cta-action { margin-left: 0; } }
+  .tg-cta-inner { display:flex; align-items:center; gap:12px; flex:1; text-decoration:none; overflow:hidden; }
+  .tg-cta-close { background:none; border:none; color:rgba(255,255,255,0.25); font-size:13px; cursor:pointer; padding:2px 8px; flex-shrink:0; line-height:1; transition:color 0.15s; }
+  .tg-cta-close:hover { color:rgba(255,255,255,0.65); }
+  body.war-room .tg-cta-banner { display:none !important; }
 
   /* HEADER INFO POPOVER */
   #headerPopover { position: fixed; z-index: 10000; background: rgba(8,12,25,0.97); border: 1px solid rgba(0,255,136,0.25); border-radius: 4px; padding: 12px 16px; min-width: 240px; max-width: 300px; box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 20px rgba(0,255,136,0.08); display: none; pointer-events: auto; }
@@ -1584,6 +1588,7 @@
   body.war-room .kpi { background: #0a0a0a !important; border: 1px solid #00ff41 !important; box-shadow: 0 0 10px rgba(0,255,65,0.3) !important; }
   body.war-room .kpi::after { display: none; }
   body.war-room .container { max-width: min(2400px, 97vw) !important; }
+  body.war-room .mini-status-bar { max-width: min(2400px, 97vw); margin: 0 auto; background: transparent; border-bottom-color: rgba(0,255,65,0.08); }
   body.war-room .kpi-value { font-size: clamp(1.4rem, 1.5vw, 2.2rem) !important; font-family: 'JetBrains Mono', monospace !important; line-height: 1.1 !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   body.war-room .kpi-label { color: #888 !important; font-family: 'JetBrains Mono', monospace !important; font-size: 0.65rem !important; letter-spacing: 1px !important; }
   body.war-room .kpi-sub   { color: #555 !important; font-size: 0.7rem !important; }
@@ -1778,11 +1783,14 @@
   </header>
 
   <!-- TELEGRAM CTA -->
-  <a href="https://t.me/BTCPredictorBot" target="_blank" rel="noopener" class="tg-cta-banner">
-    <span class="tg-cta-icon">✈</span>
-    <span class="tg-cta-text">Follow <strong>live signals</strong> — every trade, every result, on-chain verified</span>
-    <span class="tg-cta-action">JOIN ON TELEGRAM →</span>
-  </a>
+  <div class="tg-cta-banner" id="tgCtaBanner">
+    <a href="https://t.me/BTCPredictorBot" target="_blank" rel="noopener" class="tg-cta-inner">
+      <span class="tg-cta-icon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"><path fill="#29b6f6" d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-1.97 9.289c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.932z"/></svg></span>
+      <span class="tg-cta-text">Follow <strong>live signals</strong> — every trade, every result, on-chain verified</span>
+      <span class="tg-cta-action">JOIN ON TELEGRAM →</span>
+    </a>
+    <button class="tg-cta-close" onclick="dismissTgCta()" title="Dismiss">✕</button>
+  </div>
 
   <!-- AI SIGNAL SOURCES -->
   <div class="sources-strip">
@@ -6228,7 +6236,18 @@ function stopWarRoomClock() {
     if (btn) btn.classList.add('wr-active');
     startWarRoomClock();
   }
+  // Hide Telegram CTA if dismissed
+  if (localStorage.getItem('tgCtaDismissed') === '1') {
+    var _tgBanner = document.getElementById('tgCtaBanner');
+    if (_tgBanner) _tgBanner.style.display = 'none';
+  }
 })();
+
+function dismissTgCta() {
+  var el = document.getElementById('tgCtaBanner');
+  if (el) el.style.display = 'none';
+  localStorage.setItem('tgCtaDismissed', '1');
+}
 
 /* ═══════════════════════════════════════
    SIGNAL LOG FILTERS
