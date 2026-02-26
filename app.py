@@ -1198,6 +1198,24 @@ def account_summary():
         except Exception:
             pass
 
+        # ── 6. OPEN BETS (Supabase) ──────────────────────────────────────────────
+        open_bets = []
+        try:
+            supabase_url = os.environ.get("SUPABASE_URL", "")
+            supabase_key = os.environ.get("SUPABASE_KEY", "")
+            supabase_headers = {"apikey": supabase_key, "Authorization": f"Bearer {supabase_key}"}
+            r_bets = requests.get(
+                f"{supabase_url}/rest/v1/{SUPABASE_TABLE}"
+                "?select=id,created_at,direction,confidence,bet_size"
+                "&bet_taken=eq.true&correct=is.null&order=id.desc",
+                headers=supabase_headers,
+                timeout=3
+            )
+            if r_bets.ok:
+                open_bets = r_bets.json() or []
+        except Exception:
+            pass
+
         # ── RISPOSTA FINALE ──────────────────────────────────────────────────
         return jsonify({
             "status": "ok",
@@ -1239,6 +1257,8 @@ def account_summary():
                 "realized_pnl_recent":  round(realized_pnl_recent, 6),
                 "fills":                recent_fills,
             },
+
+            "open_bets": open_bets,
         })
 
     except Exception as e:
