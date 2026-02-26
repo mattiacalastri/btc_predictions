@@ -1,0 +1,6 @@
+# Claude Code Hooks — Credenziali Telegram
+# Copia questo file in .config e inserisci i valori reali
+# NON committare .config
+
+TELEGRAM_BOT_TOKEN="1234567890:AAFxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+TELEGRAM_CHAT_ID="123456789"
