@@ -635,6 +635,7 @@
     .tab-controls-sep,
     .period-label,
     .desktop-period-pill { display: none; }
+    .tab-controls .war-room-btn { display: none; }
 
     /* Barra periodo mobile — sticky sotto il tab nav */
     .mobile-period-bar {
@@ -1295,16 +1296,18 @@
       border: 1px solid var(--border);
       border-left: 3px solid var(--muted);
       padding: 8px 10px;
+      border-radius: 4px;
+      margin-bottom: 2px;
       font-size: 10px;
     }
-    .mbet-card.win  { border-left-color: var(--accent); }
-    .mbet-card.loss { border-left-color: var(--danger); }
+    .mbet-card.win  { border-left-color: var(--accent); background: rgba(0,255,136,0.03); }
+    .mbet-card.loss { border-left-color: var(--danger); background: rgba(255,60,60,0.03); }
     .mbet-card.nobet { border-left-color: var(--muted); opacity: 0.6; }
     .mbet-id   { grid-row: 1; color: var(--muted); font-size: 9px; }
     .mbet-dir  { grid-row: 1; font-weight: 900; font-size: 12px; }
     .mbet-dir.up   { color: var(--accent); }
     .mbet-dir.down { color: var(--danger); }
-    .mbet-conf { grid-row: 1; color: var(--blue); font-size: 10px; }
+    .mbet-conf { grid-row: 1; color: var(--blue); font-size: 10px; opacity: 0.7; }
     .mbet-result { grid-row: 1; font-weight: 700; font-size: 11px; text-align: right; }
     .mbet-result.win  { color: var(--accent); }
     .mbet-result.loss { color: var(--danger); }
@@ -1751,10 +1754,10 @@
   <div class="tab-nav">
     <div class="tab-buttons">
       <button class="tab-btn active" data-tab="dashboard"   onclick="switchTab(this)">📊 Dashboard</button>
-      <button class="tab-btn"        data-tab="training"    onclick="switchTab(this)">🧠 Training</button>
-      <button class="tab-btn"        data-tab="expectancy"  onclick="switchTab(this)">📈 Expectancy</button>
       <button class="tab-btn"        data-tab="agents"      onclick="switchTab(this)">🤖 Agents</button>
       <button class="tab-btn"        data-tab="costs"       onclick="switchTab(this)">💰 Costs</button>
+      <button class="tab-btn"        data-tab="training"    onclick="switchTab(this)">🧠 Training</button>
+      <button class="tab-btn"        data-tab="expectancy"  onclick="switchTab(this)">📈 Expectancy</button>
       <button class="tab-btn"        data-tab="backtest"    onclick="switchTab(this)">📊 Backtest</button>
     </div>
     <div class="tab-controls" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -1774,6 +1777,8 @@
     <button class="time-pill"        data-period="7D"    onclick="setTimePeriod(this)">7D</button>
     <button class="time-pill"        data-period="24H"   onclick="setTimePeriod(this)">24H</button>
     <button class="time-pill"        data-period="TODAY" onclick="setTimePeriod(this)">TODAY</button>
+    <div style="flex:1;min-width:4px;"></div>
+    <button class="war-room-btn" id="warRoomToggleMobile" onclick="toggleWarRoom(document.getElementById('warRoomToggle'))" style="font-size:8px;padding:5px 8px;white-space:nowrap;">&#9876;&#65039; WR</button>
   </div>
 
   <!-- DASHBOARD TAB -->
@@ -1930,10 +1935,15 @@
       <div class="kpi-value green" id="kpiPnl">—</div>
       <div class="kpi-sub" id="kpiPnlSub">from 2026-02-24</div>
     </div>
-    <div class="kpi purple" data-tip-title="APR (Annual Percentage Rate)" data-tip="PnL annualizzato: (PnL totale / Capitale) / giorni attivi × 365. Più utile del ROI per operatività quotidiana — mostra il rendimento proiettato annuo.">
-      <div class="kpi-label">APR <span style="font-size:8px;opacity:0.5;letter-spacing:0.5px">annualizzato</span></div>
+    <div class="kpi purple" data-tip-title="APR (Annual Percentage Rate)" data-tip="Annualized return: (Total PnL / Capital) / Active Days × 365. More useful than session ROI for daily operations — shows the projected annual return rate if current performance holds.">
+      <div class="kpi-label">APR <span style="font-size:8px;opacity:0.5;letter-spacing:0.5px">annualized</span></div>
       <div class="kpi-value purple" id="kpiApr">—</div>
-      <div class="kpi-sub" id="kpiAprSub">ROI — · — days</div>
+      <div class="kpi-sub" id="kpiAprSub">— days active</div>
+    </div>
+    <div class="kpi purple" data-tip-title="Session ROI" data-tip="Return on investment since session start (2026-02-24, $100 capital). Calculated as: (session PnL / capital) × 100. Independent from APR — measures total return, not annualized rate.">
+      <div class="kpi-label">Session ROI</div>
+      <div class="kpi-value purple" id="kpiRoi">—</div>
+      <div class="kpi-sub" id="kpiRoiSub">since Feb 24</div>
     </div>
     <div class="kpi yellow">
       <div class="kpi-label">Win Rate</div>
@@ -2002,11 +2012,11 @@
       <div class="stat-cell-label">Total Slippage</div>
       <div class="stat-cell-val" id="statTotalSlippage" style="color:var(--warn)">—</div>
     </div>
-    <div class="stat-cell" data-tip-title="APR Today" data-tip="PnL di oggi annualizzato: (PnL oggi / Capitale) × 365. Polso giornaliero della performance vs rendimento annuo atteso.">
+    <div class="stat-cell" data-tip-title="APR Today" data-tip="Today's PnL annualized: (Today's PnL / Capital) × 365. Daily pulse of performance vs expected annual return.">
       <div class="stat-cell-label">APR Today</div>
       <div class="stat-cell-val" id="statAprToday" style="color:var(--purple)">—</div>
     </div>
-    <div class="stat-cell" data-tip-title="APR 7d" data-tip="PnL ultimi 7 giorni annualizzato: (PnL 7d / Capitale) / 7 × 365. Finestra mobile per smorzare la varianza giornaliera.">
+    <div class="stat-cell" data-tip-title="APR 7d" data-tip="Last 7-day PnL annualized: (7d PnL / Capital) / 7 × 365. Rolling window to smooth daily variance and detect medium-term performance trends.">
       <div class="stat-cell-label">APR 7d</div>
       <div class="stat-cell-val" id="statApr7d" style="color:var(--purple)">—</div>
     </div>
@@ -2014,6 +2024,14 @@
     <div class="stat-cell mobile-only" data-tip-title="Best Win Streak" data-tip="Maximum consecutive wins across the entire bet history. Indicates model consistency.">
       <div class="stat-cell-label">Best Streak</div>
       <div class="stat-cell-val" id="statBestStreak" style="color:var(--accent)">—</div>
+    </div>
+    <div class="stat-cell mobile-only" data-tip-title="Hit Rate 7d" data-tip="Win rate on bets closed in the last 7 days. Fresh performance indicator — detects recent model decay or improvement.">
+      <div class="stat-cell-label">Hit Rate 7d</div>
+      <div class="stat-cell-val" id="statHitRate7d" style="color:var(--blue)">—</div>
+    </div>
+    <div class="stat-cell mobile-only" data-tip-title="Conf: WIN / LOSS" data-tip="Average confidence on winning vs losing bets. A gap > 10% means the AI correctly assigns higher confidence to winning trades — good model calibration.">
+      <div class="stat-cell-label">Conf: WIN/LOSS</div>
+      <div class="stat-cell-val" id="statConfGap" style="color:var(--purple)">—</div>
     </div>
   </div>
 
@@ -3030,12 +3048,15 @@ function renderAccountSummary(data) {
   const equity = parseFloat(w.margin_equity || 0);
   if (equity > 0) {
     liveWalletEquity = equity;
-    // Update APR sub-label with live equity context (value set by render())
+    // Update APR + ROI sub-labels with live equity context (value set by render())
     const daysAct = Math.max(1, (Date.now() - new Date(CONFIG.SESSION_START + 'T00:00:00Z')) / 86400000);
     const roiPct  = (lastSessionPnl / equity) * 100;
     const aprSubEl2 = document.getElementById('kpiAprSub');
-    if (aprSubEl2) aprSubEl2.textContent =
-      `ROI: ${(roiPct >= 0 ? '+' : '')}${roiPct.toFixed(2)}% · ${Math.round(daysAct)}d · ${fmtUsd(equity)} eq.`;
+    if (aprSubEl2) aprSubEl2.textContent = `${Math.round(daysAct)}d active · ${fmtUsd(equity)} eq.`;
+    const roiEl2 = document.getElementById('kpiRoi');
+    if (roiEl2) { roiEl2.textContent = (roiPct >= 0 ? '+' : '') + roiPct.toFixed(2) + '%'; roiEl2.className = 'kpi-value ' + (roiPct >= 0 ? 'purple' : 'red'); }
+    const roiSubEl2 = document.getElementById('kpiRoiSub');
+    if (roiSubEl2) roiSubEl2.textContent = `${fmtUsd(lastSessionPnl)} · ${Math.round(daysAct)}d`;
     const footerCapEl = document.getElementById('footerCapital');
     if (footerCapEl) footerCapEl.textContent = fmtUsd(equity) + ' equity';
   }
@@ -3580,7 +3601,11 @@ function render(data) {
     aprEl.className   = 'kpi-value ' + (aprTotal >= 0 ? 'purple' : 'red');
   }
   const aprSubEl = document.getElementById('kpiAprSub');
-  if (aprSubEl) aprSubEl.textContent = `ROI: ${(roiPct >= 0 ? '+' : '')}${roiPct.toFixed(2)}% · ${Math.round(daysActive)}d active`;
+  if (aprSubEl) aprSubEl.textContent = `${Math.round(daysActive)}d active`;
+  const roiEl = document.getElementById('kpiRoi');
+  if (roiEl) { roiEl.textContent = (roiPct >= 0 ? '+' : '') + roiPct.toFixed(2) + '%'; roiEl.className = 'kpi-value ' + (roiPct >= 0 ? 'purple' : 'red'); }
+  const roiSubEl = document.getElementById('kpiRoiSub');
+  if (roiSubEl) roiSubEl.textContent = (sessionPnl >= 0 ? '+' : '') + '$' + sessionPnl.toFixed(2) + ' session';
   const aprTodayEl = document.getElementById('statAprToday');
   if (aprTodayEl) aprTodayEl.textContent = (aprToday >= 0 ? '+' : '') + aprToday.toFixed(1) + '%';
   const apr7dEl = document.getElementById('statApr7d');
@@ -3665,6 +3690,21 @@ function render(data) {
     bsEl.textContent = bestStreakW > 0 ? 'W×' + bestStreakW : '—';
     bsEl.style.color = 'var(--accent)';
   }
+
+  // Hit Rate 7d
+  const cutoff7d = new Date(Date.now() - 7 * 86400000);
+  const last7dBets = realBets.filter(d => d.correct !== null && d.correct !== undefined && new Date(d.created_at) >= cutoff7d);
+  const wr7d = last7dBets.length ? Math.round(last7dBets.filter(d => d.correct).length / last7dBets.length * 100) : null;
+  const hr7dEl = document.getElementById('statHitRate7d');
+  if (hr7dEl) hr7dEl.textContent = wr7d !== null ? wr7d + '%' : '—';
+
+  // Conf WIN vs LOSS gap
+  const winBets  = realBets.filter(d => d.correct === true);
+  const lossBets = realBets.filter(d => d.correct === false);
+  const avgCW = winBets.length  ? winBets.reduce((s,d)  => s + parseFloat(d.confidence || 0), 0) / winBets.length  : null;
+  const avgCL = lossBets.length ? lossBets.reduce((s,d) => s + parseFloat(d.confidence || 0), 0) / lossBets.length : null;
+  const confGapEl = document.getElementById('statConfGap');
+  if (confGapEl) confGapEl.textContent = (avgCW && avgCL) ? `${Math.round(avgCW*100)}/${Math.round(avgCL*100)}%` : '—';
 
   renderTable(data);
 
@@ -5561,6 +5601,36 @@ fetch(CONFIG.RAILWAY_URL + '/health')
 
   function hideModal() { modal.classList.remove('visible'); }
 
+  /* ── CHART INFO POPUP ─────────────────────────────────────── */
+  window.CHART_INFO = {
+    'Cumulative Equity': { cat:'PERFORMANCE', color:'#00ff88', desc:'Capital curve built from real PnL of every closed bet. Steady upward trend = positive edge. Drawdowns visible as dips. Click any point to inspect that trade.' },
+    'BTC Price vs Predictions': { cat:'TECHNICAL', color:'#3399ee', desc:'BTC price action overlaid with AI prediction markers. ▲ Green = UP prediction (correct if price rose). ▼ Red = DOWN prediction. Diamonds = high-confidence bets taken. Shows if predictions align with price movement.' },
+    'Rolling Win Rate': { cat:'STATISTICS', color:'#ffbb00', desc:'Rolling 10-bet and 20-bet win rate curves. Target > 55% for profitability at 1:1 RR. Downward trend = potential model decay. Dashed line = overall WR.' },
+    'Prediction Galaxy': { cat:'ML ANALYSIS', color:'#aa66ff', desc:'Scatter plot: X-axis = confidence (0.65–1.0), Y-axis = PnL per bet. Cluster top-right = high-confidence wins. Bottom-left = low-confidence losses. Useful to detect if model calibration is working.' },
+    'BTC Regime & Confidence': { cat:'ML ANALYSIS', color:'#aa66ff', desc:'Confidence levels over time with BTC price context. Spikes = model conviction. Low-confidence periods may correlate with choppy/ranging market conditions.' },
+    'Rolling Rate & Bets': { cat:'STATISTICS', color:'#ffbb00', desc:'Rolling win rate (line) and individual bet outcomes (bars). Green bars = WIN, red bars = LOSS. Width proportional to bet size. Shows performance consistency over time.' },
+    'Cumulative Equity Curve': { cat:'PERFORMANCE', color:'#00ff88', desc:'Capital curve built from real PnL of every closed bet. Steady upward trend = positive edge. Drawdowns visible as dips.' },
+    'Cumulative Equity Curve (Real Bets)': { cat:'PERFORMANCE', color:'#00ff88', desc:'Capital curve built from real PnL of every closed bet. Steady upward trend = positive edge. Drawdowns visible as dips.' },
+    'Signal Log': { cat:'DATA', color:'#00d4aa', desc:'Complete log of all signals generated. Includes bets taken, skipped signals (low confidence or macro block), and no-bet classifications. Use filters to drill down.' },
+  };
+
+  window.showChartInfo = function(title) {
+    const info = window.CHART_INFO[title];
+    if (!info) return;
+    const titleEl = document.getElementById('imTitle');
+    const catEl   = document.getElementById('imCat');
+    const bodyEl  = document.getElementById('imBody');
+    if (titleEl) titleEl.textContent = title;
+    if (catEl)   { catEl.textContent = info.cat; catEl.style.setProperty('--im-color', info.color); }
+    if (bodyEl)  bodyEl.textContent  = info.desc;
+    modal.style.setProperty('--im-color', info.color);
+    // Center positioning
+    modal.style.left      = '50%';
+    modal.style.top       = '50%';
+    modal.style.transform = 'translate(-50%, -50%)';
+    modal.classList.add('visible');
+  };
+
   // Hover tooltip: segue il cursore, si mostra su src-chip e kpi
   let _ttEl = null;
   document.addEventListener('mousemove', function(e) {
@@ -6100,6 +6170,17 @@ function renderTableFiltered(filtered) {
 // Hook into the existing renderAll to capture data for our filters
 var _origRenderAll = typeof renderAll === 'function' ? renderAll : null;
 // Override after DOMContentLoaded since renderAll is defined in the same script
+document.addEventListener('DOMContentLoaded', function() {
+  // Chart info click handlers
+  document.querySelectorAll('.panel-title').forEach(function(el) {
+    if (window.CHART_INFO && window.CHART_INFO[el.textContent.trim()]) {
+      el.style.cursor = 'pointer';
+      el.title = 'Click for info';
+      el.addEventListener('click', function() { window.showChartInfo(el.textContent.trim()); });
+    }
+  });
+});
+
 document.addEventListener('DOMContentLoaded', function() {
   // Patch renderTable per catturare _signalCurrentData e applicare i filtri pill
   _origRenderTable = window.renderTable;
