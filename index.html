@@ -3421,7 +3421,9 @@ function filterByPeriod(data) {
   let cutoff;
   if      (currentPeriod === 'TODAY') cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   else if (currentPeriod === '24H')   cutoff = new Date(now - 86400000);
-  else if (currentPeriod === '7D')    cutoff = new Date(now - 7 * 86400000);
+  else if (currentPeriod === '3D')    cutoff = new Date(now - 3  * 86400000);
+  else if (currentPeriod === '7D')    cutoff = new Date(now - 7  * 86400000);
+  else if (currentPeriod === '30D')   cutoff = new Date(now - 30 * 86400000);
   return data.filter(d => new Date(d.created_at) >= cutoff);
 }
 
@@ -3559,7 +3561,10 @@ function render(data) {
 
   document.getElementById('kpiPrice').textContent   = lastEntry ? fmtPrice(lastEntry.btc_price_entry) : '—';
   const isAllPeriod = currentPeriod === 'ALL';
-  document.getElementById('kpiTotal').textContent   = isAllPeriod ? (dbTotalCount || data.length) : data.length;
+  const _kpiCount = isAllPeriod
+    ? (dbTotalCount > data.length ? dbTotalCount + '+' : (dbTotalCount || data.length))
+    : data.length;
+  document.getElementById('kpiTotal').textContent   = _kpiCount;
   document.getElementById('kpiTotalSub').textContent = isAllPeriod ? 'All time' : currentPeriod;
 
   const accEl = document.getElementById('kpiAccuracy');

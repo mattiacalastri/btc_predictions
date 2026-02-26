@@ -418,7 +418,6 @@ def health():
         "paused": _BOT_PAUSED,
         "bot_paused": bool(_BOT_PAUSED),
         "capital": capital,
-        "capital_usd": float(os.environ.get("CAPITAL_USD", "100.0")),
         "wallet_equity": wallet_equity,
         "base_size": base_size,
         "confidence_threshold": float(os.environ.get("CONF_THRESHOLD", "0.65")),
@@ -1288,7 +1287,12 @@ def get_signals():
         if total_count is None:
             total_count = len(data) if isinstance(data, list) else 0
 
-        return jsonify({"data": data, "total_count": total_count})
+        return jsonify({
+            "data": data,
+            "total_count": total_count,
+            "fetched": len(data),
+            "has_more": len(data) >= limit,
+        })
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
