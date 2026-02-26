@@ -35,8 +35,7 @@ WORKFLOWS = [
 ]
 
 _SSL_CTX = ssl.create_default_context()
-_SSL_CTX.check_hostname = False
-_SSL_CTX.verify_mode = ssl.CERT_NONE
+# SSL verification enabled — Hostinger VPS has valid Let's Encrypt cert
 
 
 def log(msg):
@@ -50,7 +49,7 @@ def log(msg):
 def fetch_workflow(wf_id):
     url = f"{N8N_API_URL}/api/v1/workflows/{wf_id}"
     req = urllib.request.Request(url, headers={"X-N8N-API-KEY": N8N_API_KEY})
-    with urllib.request.urlopen(req, context=_SSL_CTX, timeout=30) as resp:
+    with urllib.request.urlopen(req, context=_SSL_CTX, timeout=30) as resp:  # noqa: S310
         return json.loads(resp.read().decode())
 
 

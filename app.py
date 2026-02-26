@@ -1,6 +1,7 @@
 import os
 import json
 import time
+import hmac as _hmac
 import pickle
 import requests
 from flask import Flask, request, jsonify, redirect
@@ -173,6 +174,10 @@ _BOT_PAUSED = False              # runtime pause — persisted to Supabase bot_s
 _BOT_PAUSED_REFRESHED_AT = 0.0  # timestamp of last Supabase read
 _costs_cache = {"data": None, "ts": 0.0}
 
+# Startup security validation
+if not os.environ.get("BOT_API_KEY"):
+    print("[SECURITY WARNING] BOT_API_KEY not set — all protected endpoints are unauthenticated!")
+
 
 def _refresh_bot_paused():
     """Read paused state from Supabase bot_state. Called on restart and every 5 min."""
@@ -217,13 +222,14 @@ def _save_bot_paused(paused: bool):
 
 
 def _check_api_key():
-    """Verifica X-API-Key header se BOT_API_KEY env var è impostata.
-    Retrocompatibile: se BOT_API_KEY non configurata, passa tutto.
+    """Verifica X-API-Key header con timing-safe compare (hmac.compare_digest).
+    Se BOT_API_KEY non configurata, logga warning e passa (backwards compat).
     """
-    bot_key = os.environ.get("BOT_API_KEY")
+    bot_key = os.environ.get("BOT_API_KEY", "")
     if not bot_key:
         return None
-    if request.headers.get("X-API-Key") != bot_key:
+    req_key = request.headers.get("X-API-Key", "")
+    if not _hmac.compare_digest(req_key.encode(), bot_key.encode()):
         return jsonify({"error": "Unauthorized"}), 401
     return None
 
