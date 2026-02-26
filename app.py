@@ -1778,7 +1778,11 @@ def costs():
         _costs_cache["data"] = {"n8n_exec_est": n8n_exec_est}
         _costs_cache["ts"] = now
 
-    n8n_limit = int(os.environ.get("N8N_EXECUTION_LIMIT", 999999))  # VPS = illimitato
+    _n8n_limit_raw = os.environ.get("N8N_EXECUTION_LIMIT", "999999")
+    try:
+        n8n_limit = int(_n8n_limit_raw)
+    except (ValueError, TypeError):
+        n8n_limit = 999999  # "infinite" or invalid → treat as unlimited
     n8n_pct = round(n8n_exec_est / n8n_limit * 100, 1) if n8n_limit > 0 else 0.0
     n8n_cost = 0.0  # self-hosted su VPS Hostinger
 
