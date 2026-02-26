@@ -1918,7 +1918,7 @@
     <div class="kpi green">
       <div class="kpi-label">Total Signals</div>
       <div class="kpi-value white" id="kpiTotal">—</div>
-      <div class="kpi-sub">All time</div>
+      <div class="kpi-sub" id="kpiTotalSub">All time</div>
     </div>
     <div class="kpi green">
       <div class="kpi-label">Accuracy</div>
@@ -2394,7 +2394,7 @@
       <div class="tab-intro-icon">🤖</div>
       <div class="tab-intro-text">
         <div class="tab-intro-title">Automation Agents</div>
-        <div class="tab-intro-desc">9 n8n workflows orchestrate the entire trading pipeline — from data ingestion to AI prediction, trade execution, Telegram notifications, and on-chain audit. The launchd agents run locally on Mac for maintenance, reporting, and orphan bet rescue.</div>
+        <div class="tab-intro-desc">12 n8n workflows orchestrate the entire trading pipeline — from data ingestion to AI prediction, trade execution, Telegram notifications, on-chain audit, and social media publishing. The launchd agents run locally on Mac for maintenance, reporting, and orphan bet rescue.</div>
       </div>
     </div>
 
@@ -2574,7 +2574,7 @@
         <div class="kpi-value yellow" id="costKpiKrakenVal">—</div>
         <div class="kpi-sub" id="costKpiKrakenSub">loading...</div>
       </div>
-      <div class="kpi blue" id="costKpiN8n" data-tip="n8n Cloud plan — orchestrates 9 workflows.<br>2,500 executions/month (free plan limit).<br>Percentage = executions used this month.">
+      <div class="kpi blue" id="costKpiN8n" data-tip="n8n VPS (Hostinger KVM1) — orchestrates 12 workflows.<br>Unlimited executions · self-hosted on Ubuntu 24.04.<br>Migrated from n8n Cloud 2026-02-26.">
         <div class="kpi-label">n8n Plan</div>
         <div class="kpi-value blue" id="costKpiN8nVal">—</div>
         <div class="kpi-sub" id="costKpiN8nSub">loading...</div>
@@ -2940,7 +2940,7 @@
 const CONFIG = {
   RAILWAY_URL: window.RAILWAY_URL || window.location.origin || 'https://web-production-e27d0.up.railway.app',
   BTC_REFRESH: 10000,
-  LIMIT: 500,
+  LIMIT: 2000,
   REFRESH_INTERVAL: 60000,
   ACCT_REFRESH: 30000,
   CAPITAL: 100,
@@ -2950,6 +2950,7 @@ const CONFIG = {
 let liveWalletEquity = null;   // aggiornato da renderAccountSummary()
 let lastTotalPnl = 0;          // aggiornato da renderAll(), usato per ricalcolare ROI live
 let lastSessionPnl = 0;        // PnL solo dal SESSION_START — per Session ROI live
+let dbTotalCount = 0;          // conteggio reale DB da Supabase count=exact
 
 const SAMPLE_DATA = [];
 
@@ -3314,9 +3315,12 @@ async function fetchData() {
       signal: AbortSignal.timeout(10000)
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
+    const j = await res.json();
     hideApiError();
-    return data;
+    // Support new {data, total_count} wrapper and legacy plain array
+    const arr = Array.isArray(j) ? j : (j.data || []);
+    dbTotalCount = j.total_count || arr.length;
+    return arr;
   } catch(e) {
     console.warn('Fetch failed:', e);
     showApiError(`Railway /signals non raggiungibile (${e.message}) — mostro dati precedenti`);
@@ -3531,7 +3535,9 @@ function render(data) {
   const lastFG    = lastEntry ? lastEntry.fear_greed_value : null;
 
   document.getElementById('kpiPrice').textContent   = lastEntry ? fmtPrice(lastEntry.btc_price_entry) : '—';
-  document.getElementById('kpiTotal').textContent   = data.length;
+  const isAllPeriod = currentPeriod === 'ALL';
+  document.getElementById('kpiTotal').textContent   = isAllPeriod ? (dbTotalCount || data.length) : data.length;
+  document.getElementById('kpiTotalSub').textContent = isAllPeriod ? 'All time' : currentPeriod;
 
   const accEl = document.getElementById('kpiAccuracy');
   accEl.textContent = closed.length ? Math.round(correct.length / closed.length * 100) + '%' : '—';
@@ -4355,14 +4361,14 @@ async function fetchExpectancyTab() {
   try {
     const [tsRes, sigRes] = await Promise.allSettled([
       fetch(`${CONFIG.RAILWAY_URL}/training-status`, { signal: AbortSignal.timeout(10000) }),
-      fetch(`${CONFIG.RAILWAY_URL}/signals?limit=500`,  { signal: AbortSignal.timeout(12000) })
+      fetch(`${CONFIG.RAILWAY_URL}/signals?limit=${CONFIG.LIMIT}`,  { signal: AbortSignal.timeout(12000) })
     ]);
 
     // Build metrics from signals (closed bets only)
     let signals = [];
     if (sigRes.status === 'fulfilled' && sigRes.value.ok) {
       const j = await sigRes.value.json();
-      signals = (j.signals || j || []);
+      signals = (Array.isArray(j) ? j : (j.data || j.signals || []));
     }
 
     const closedBets = signals.filter(s =>
@@ -4472,10 +4478,11 @@ const LAUNCHD_TASKS = [
   { icon:'📈', name:'Weekly Analysis', label:'com.btcbot.weekly',        schedule:'sun_0800',   log:'/tmp/btcbot_weekly.log' },
   { icon:'👁', name:'Bet Monitor',     label:'com.btcbot.monitor_bets',  schedule:'every_5m',   log:'/tmp/btcbot_monitor.log' },
   { icon:'🤖', name:'XGB Retrain',     label:'com.btcbot.xgb_retrain',   schedule:'sun_0300',   log:'/tmp/btcbot_xgb_retrain.log' },
+  { icon:'💾', name:'n8n Backup',      label:'com.btcbot.n8n_backup',    schedule:'sun_0930',   log:'/tmp/btcbot_n8n_backup.log' },
 ];
 
 function _launchdScheduleLabel(s) {
-  return { every_5m:'Every 5min', every_1h:'Every 1h', daily_0700:'Daily 07:00 UTC+1', sun_0800:'Sun 08:00 UTC+1', sun_0300:'Sun 03:00 UTC+1' }[s] || s;
+  return { every_5m:'Every 5min', every_1h:'Every 1h', daily_0700:'Daily 07:00 UTC+1', sun_0800:'Sun 08:00 UTC+1', sun_0300:'Sun 03:00 UTC+1', sun_0930:'Sun 09:30 UTC+1' }[s] || s;
 }
 
 function _launchdNextRun(schedule) {
@@ -4496,6 +4503,9 @@ function _launchdNextRun(schedule) {
   } else if (schedule === 'sun_0300') {
     const d = (7 - now.getDay()) % 7 || 7;
     next.setDate(next.getDate() + d); next.setHours(3, 0, 0, 0);
+  } else if (schedule === 'sun_0930') {
+    const d = (7 - now.getDay()) % 7 || 7;
+    next.setDate(next.getDate() + d); next.setHours(9, 30, 0, 0);
   }
   const diff = next - now;
   const h = Math.floor(diff / 3600000);
@@ -4557,7 +4567,8 @@ function _agentRelTime(iso) {
 
 // Agent personality map — keyed on 2-digit workflow prefix
 const _WF_META = {
-  '01': { code: 'SIG', role: 'Signal Generator',  accent: '#00ff88' },
+  '00': { code: 'ERR', role: 'Error Notifier',     accent: '#ff4444' },
+  '01': { code: 'SIG', role: 'Signal Generator',   accent: '#00ff88' },
   '02': { code: 'TRD', role: 'Position Monitor',   accent: '#00aaff' },
   '03': { code: 'BAL', role: 'Balance Guardian',   accent: '#ffaa00' },
   '04': { code: 'LLM', role: 'LLM Analyst',        accent: '#aa66ff' },
@@ -4565,6 +4576,7 @@ const _WF_META = {
   '06': { code: 'MNT', role: 'System Janitor',     accent: '#4a6070' },
   '07': { code: 'CMD', role: 'Command Center',     accent: '#00ccff' },
   '08': { code: 'MON', role: 'Position Watchdog',  accent: '#ffaa00' },
+  '09': { code: 'SOC', role: 'Social Media',       accent: '#ff6fd8' },
 };
 
 function renderAgents(data, errorMsg) {
@@ -5297,27 +5309,30 @@ function renderCosts(d) {
   document.getElementById('costKpiTotalSub').textContent       = d.cached ? 'parz. cached' : 'live';
   document.getElementById('costKpiKrakenVal').textContent      = fmtUsd(d.kraken_fees?.total_usd);
   document.getElementById('costKpiKrakenSub').textContent      = `${d.kraken_fees?.trade_count ?? 0} trade · REALE`;
-  document.getElementById('costKpiN8nVal').textContent         = (d.n8n?.pct_used ?? 0).toFixed(1) + '%';
-  document.getElementById('costKpiN8nSub').textContent         = `${d.n8n?.executions_est ?? 0} / ${d.n8n?.limit ?? 2500} exec`;
+  document.getElementById('costKpiN8nVal').textContent         = d.n8n?.cost_usd != null ? '$' + (d.n8n.cost_usd).toFixed(2) : '€4.99';
+  document.getElementById('costKpiN8nSub').textContent         = d.n8n?.executions_est ? `${d.n8n.executions_est} exec · VPS` : 'VPS · unlimited exec';
   document.getElementById('costKpiClaudeApiVal').textContent   = fmtUsd(ca.cost_usd);
   document.getElementById('costKpiClaudeApiSub').textContent   = `${ca.monthly_calls ?? 0} call · ${ca.model ?? '—'}`.replace('claude-','').replace('-20251001','');
   document.getElementById('costKpiClaudeCodeVal').textContent  = cc.cost_usd > 0 ? fmtUsd(cc.cost_usd) : '—';
   document.getElementById('costKpiClaudeCodeSub').textContent  = cc.cost_usd > 0 ? 'impostato manualmente' : 'set CLAUDE_CODE_MONTHLY_USD';
+  const daysLeft = d.railway?.days_left ?? null;
   document.getElementById('costKpiRailwayVal').textContent     = fmtUsd(d.railway?.cost_usd);
-  document.getElementById('costKpiRailwaySub').textContent     = `piano ${d.railway?.plan ?? '—'}`;
+  document.getElementById('costKpiRailwaySub').textContent     = daysLeft != null ? `piano ${d.railway?.plan ?? '—'} · ${daysLeft}d left` : `piano ${d.railway?.plan ?? '—'}`;
 
   // Breakdown table
   const total = d.total_usd || 1;
   const rows = [
     { name: 'Kraken Fees',    logo: 'KRK', sub: `${d.kraken_fees?.trade_count ?? 0} trade, avg ${fmtUsd(d.kraken_fees?.avg_per_trade)} ciascuno`,
       usd: d.kraken_fees?.total_usd ?? 0, type: 'REALE', color: '#ffaa00' },
-    { name: 'n8n Plan',       logo: 'n8n', sub: `${d.n8n?.executions_est ?? 0} exec stimate · piano Starter`,
-      usd: d.n8n?.cost_usd ?? 0,          type: 'PIANO', color: '#ff6b35' },
+    { name: 'Hostinger VPS', logo: 'HST', sub: `${d.hostinger_vps?.plan ?? 'KVM1'} · n8n self-hosted · unlimited exec`,
+      usd: d.hostinger_vps?.cost_usd ?? 0, type: 'PIANO', color: '#ff6b35' },
+    { name: 'btcpredictor.io', logo: '.io', sub: `${d.domain?.registrar ?? 'Hostinger'} · ${d.domain?.period ?? '1 year'}`,
+      usd: d.domain?.cost_usd ?? 0,        type: 'PIANO', color: '#00aaff' },
     { name: 'Claude API',     logo: 'CLA', sub: `${ca.monthly_calls ?? 0} call · ${(ca.avg_input_tokens ?? 0)/1000}k in + ${ca.avg_output_tokens ?? 0} out token`,
       usd: ca.cost_usd ?? 0,              type: 'REALE', color: '#aa66ff' },
     { name: 'Claude Code',    logo: 'CLI', sub: cc.cost_usd > 0 ? 'spese sviluppo (sessioni CLI)' : 'aggiungi env CLAUDE_CODE_MONTHLY_USD',
       usd: cc.cost_usd ?? 0,              type: cc.cost_usd > 0 ? 'REALE' : 'ND',    color: '#e5251b' },
-    { name: 'Railway',        logo: 'RLY', sub: `piano ${d.railway?.plan ?? '—'}`,
+    { name: 'Railway',        logo: 'RLY', sub: daysLeft != null ? `piano ${d.railway?.plan ?? '—'} · ${daysLeft}d left` : `piano ${d.railway?.plan ?? '—'}`,
       usd: d.railway?.cost_usd ?? 0,      type: 'PIANO', color: '#8866ff' },
     { name: 'Supabase',       logo: 'SB',  sub: `${d.supabase?.row_count ?? 0} righe · piano free`,
       usd: d.supabase?.cost_usd ?? 0,     type: 'PIANO', color: '#3ecf8e' },

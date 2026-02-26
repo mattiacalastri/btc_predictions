@@ -1193,7 +1193,7 @@ def account_summary():
 def get_signals():
     try:
         try:
-            limit = max(1, min(int(request.args.get("limit", 500)), 1000))
+            limit = max(1, min(int(request.args.get("limit", 500)), 2000))
         except (ValueError, TypeError):
             limit = 500
 
@@ -1216,12 +1216,27 @@ def get_signals():
 
         res = requests.get(url, headers={
             "apikey": supabase_key,
-            "Authorization": f"Bearer {supabase_key}"
+            "Authorization": f"Bearer {supabase_key}",
+            "Prefer": "count=exact"
         }, timeout=10)
 
         if not res.ok:
             return jsonify({"error": f"Supabase HTTP {res.status_code}"}), 502
-        return jsonify(res.json()), res.status_code
+
+        # Parse total count from Content-Range header (e.g. "0-499/1243")
+        total_count = None
+        cr = res.headers.get("Content-Range", "")
+        if "/" in cr:
+            try:
+                total_count = int(cr.split("/")[1])
+            except (ValueError, IndexError):
+                pass
+
+        data = res.json()
+        if total_count is None:
+            total_count = len(data) if isinstance(data, list) else 0
+
+        return jsonify({"data": data, "total_count": total_count})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
