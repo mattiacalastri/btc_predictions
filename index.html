@@ -3732,7 +3732,7 @@ function renderTable(data) {
     }
     const pnlCls    = d.pnl_usd === null ? 'pnl-null' : parseFloat(d.pnl_usd) >= 0 ? 'pnl-pos' : 'pnl-neg';
     const score     = (d.technical_score !== null && d.technical_score !== undefined) ? parseFloat(d.technical_score).toFixed(1) : '—';
-    const scoreColor= parseFloat(d.technical_score) >= 0 ? 'var(--accent)' : 'var(--danger)';
+    const scoreColor= (d.technical_score !== null && d.technical_score !== undefined) ? (parseFloat(d.technical_score) >= 0 ? 'var(--accent)' : 'var(--danger)') : 'var(--muted)';
     // EXIT $: use actual fill price first, fallback to signal exit price
     const exitPrice = d.exit_fill_price ?? d.btc_price_exit;
     // PNL cell: real $ for BETs, theoretical % for NO BETs

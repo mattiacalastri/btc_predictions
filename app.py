@@ -785,7 +785,7 @@ def place_bet():
                         try:
                             requests.patch(
                                 f"{_sb_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{bet_id}",
-                                json={"pyramid_count": 1, "bet_size": round(current_pos_size + pyramid_size, 4)},
+                                json={"pyramid_count": pyramid_count_existing + 1, "bet_size": round(current_pos_size + pyramid_size, 4)},
                                 headers={
                                     "apikey": _sb_key,
                                     "Authorization": f"Bearer {_sb_key}",
@@ -2107,6 +2107,60 @@ def wf_status():
     return jsonify({
         "wf02_active": wf02_active,
         "wf02_last_execution": wf02_last_execution,
+        "open_bets_supabase": open_bets_supabase,
+        "alert": alert,
+    })
+
+
+@app.route("/check-status", methods=["GET"])
+def check_status():
+    """
+    Public health check for the dashboard alert banner.
+    Returns: alert message (or null), open bet count, wf02 active flag.
+    No auth required — only returns high-level system status.
+    """
+    sb_url = os.environ.get("SUPABASE_URL", "")
+    sb_key = os.environ.get("SUPABASE_KEY", "")
+    sb_headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
+    n8n_key = os.environ.get("N8N_API_KEY", "")
+    n8n_url_base = os.environ.get("N8N_URL", "https://n8n.srv1432354.hstgr.cloud")
+
+    wf02_active = False
+    if n8n_key:
+        try:
+            r = requests.get(
+                f"{n8n_url_base}/api/v1/executions?workflowId=NnjfpzgdIyleMVBO&limit=5",
+                headers={"X-N8N-API-KEY": n8n_key},
+                timeout=6,
+            )
+            if r.ok:
+                executions = r.json().get("data", [])
+                wf02_active = any(
+                    e.get("status") in ("running", "waiting") for e in executions
+                )
+        except Exception:
+            pass
+
+    open_bets_supabase = 0
+    try:
+        r = requests.get(
+            f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
+            "?select=id&bet_taken=eq.true&correct=is.null",
+            headers={**sb_headers, "Prefer": "count=exact"},
+            timeout=5,
+        )
+        cr = r.headers.get("Content-Range", "")
+        if "/" in cr:
+            open_bets_supabase = int(cr.split("/")[1])
+    except Exception:
+        pass
+
+    alert = None
+    if open_bets_supabase > 0 and not wf02_active:
+        alert = f"{open_bets_supabase} bet open but wf02 not monitoring"
+
+    return jsonify({
+        "wf02_active": wf02_active,
         "open_bets_supabase": open_bets_supabase,
         "alert": alert,
     })
