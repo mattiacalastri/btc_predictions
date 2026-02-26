@@ -8,6 +8,16 @@ from kraken.futures import Trade, User
 
 app = Flask(__name__)
 
+
+@app.after_request
+def set_security_headers(response):
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    return response
+
 # ── XGBoost direction model (caricato una volta all'avvio) ────────────────────
 _XGB_MODEL = None
 _XGB_FEATURE_COLS = [
@@ -2830,7 +2840,7 @@ def dashboard():
     railway_url = f"{scheme}://{request.host}"
     with open("index.html", "r") as f:
         html = f.read()
-    inject = f'<script>window.RAILWAY_URL = "{railway_url}";</script>'
+    inject = f'<script>window.RAILWAY_URL = {json.dumps(railway_url)};</script>'
     html = html.replace("</head>", inject + "\n</head>", 1)
     return html, 200, {"Content-Type": "text/html"}
 
