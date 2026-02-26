@@ -545,6 +545,8 @@
   .footer-text span { color: var(--accent); }
   .config-hint { font-size: 9px; color: var(--muted); background: rgba(255,255,255,0.02); border: 1px solid var(--border); padding: 5px 12px; border-radius: 2px; letter-spacing: 1px; }
   .config-hint code { color: var(--accent); }
+  footer a { transition: color 0.2s ease, text-shadow 0.2s ease; }
+  footer a:hover { color: var(--accent) !important; text-shadow: 0 0 10px rgba(0,255,136,0.4); }
 
   /* CHARTS GRID */
   .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
@@ -4103,7 +4105,7 @@ function renderBtcPredictionsOverlay(chronoAll) {
 
   // Tooltip (reuse or create)
   let btcTip = document.getElementById('btcTip');
-  if (\!btcTip) {
+  if (!btcTip) {
     btcTip = document.createElement('div');
     btcTip.id = 'btcTip';
     btcTip.style.cssText = 'position:fixed;background:rgba(8,12,25,0.95);border:1px solid rgba(0,255,136,0.3);color:#eee;font-size:10px;font-family:JetBrains Mono,monospace;padding:5px 10px;border-radius:2px;pointer-events:none;display:none;z-index:9999;white-space:nowrap;';
