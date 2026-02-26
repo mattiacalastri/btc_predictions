@@ -4,6 +4,7 @@ import time
 import hmac as _hmac
 import pickle
 import requests
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import Flask, request, jsonify, redirect
 from kraken.futures import Trade, User
 
@@ -2440,45 +2441,56 @@ def n8n_status():
     ]
 
     headers = {"X-N8N-API-KEY": n8n_key}
-    result = []
-    try:
-        for wf_id in BTC_WORKFLOW_IDS:
-            try:
-                wf_r = requests.get(
-                    f"{n8n_url}/api/v1/workflows/{wf_id}",
-                    headers=headers, timeout=5
-                )
-                if not wf_r.ok:
-                    continue
-                wf = wf_r.json()
-                wf_data = {
-                    "id":     wf_id,
-                    "name":   wf.get("name", wf_id),
-                    "active": wf.get("active", False),
-                }
-                # Ultime 5 executions per stats e sparkline
-                ex_r = requests.get(
-                    f"{n8n_url}/api/v1/executions?workflowId={wf_id}&limit=5",
-                    headers=headers, timeout=4
-                )
-                if ex_r.ok:
-                    executions = ex_r.json().get("data", [])
-                    if executions:
-                        last = executions[0]
-                        wf_data["last_execution"] = {
-                            "id":         last.get("id"),
-                            "status":     last.get("status"),
-                            "started_at": last.get("startedAt"),
-                            "stopped_at": last.get("stoppedAt"),
-                        }
-                        history = [ex.get("status", "unknown") for ex in executions]
-                        successes = sum(1 for s in history if s == "success")
-                        wf_data["exec_history"]  = history
-                        wf_data["success_rate"]  = round(successes / len(history) * 100) if history else None
-                result.append(wf_data)
-            except Exception:
-                pass
 
+    def _fetch_workflow(wf_id):
+        try:
+            wf_r = requests.get(
+                f"{n8n_url}/api/v1/workflows/{wf_id}",
+                headers=headers, timeout=5
+            )
+            if not wf_r.ok:
+                return None
+            wf = wf_r.json()
+            wf_data = {
+                "id":     wf_id,
+                "name":   wf.get("name", wf_id),
+                "active": wf.get("active", False),
+            }
+            # Ultime 5 executions per stats e sparkline
+            ex_r = requests.get(
+                f"{n8n_url}/api/v1/executions?workflowId={wf_id}&limit=5",
+                headers=headers, timeout=4
+            )
+            if ex_r.ok:
+                executions = ex_r.json().get("data", [])
+                if executions:
+                    last = executions[0]
+                    wf_data["last_execution"] = {
+                        "id":         last.get("id"),
+                        "status":     last.get("status"),
+                        "started_at": last.get("startedAt"),
+                        "stopped_at": last.get("stoppedAt"),
+                    }
+                    history = [ex.get("status", "unknown") for ex in executions]
+                    successes = sum(1 for s in history if s == "success")
+                    wf_data["exec_history"]  = history
+                    wf_data["success_rate"]  = round(successes / len(history) * 100) if history else None
+            return wf_data
+        except Exception:
+            return None
+
+    try:
+        # Parallel fetch — all 12 workflows in ~5s instead of ~60s sequential
+        result = []
+        with ThreadPoolExecutor(max_workers=12) as pool:
+            futures = {pool.submit(_fetch_workflow, wf_id): wf_id for wf_id in BTC_WORKFLOW_IDS}
+            for future in as_completed(futures, timeout=10):
+                data = future.result()
+                if data:
+                    result.append(data)
+        # Sort back to original order
+        id_order = {wf_id: i for i, wf_id in enumerate(BTC_WORKFLOW_IDS)}
+        result.sort(key=lambda w: id_order.get(w["id"], 99))
         return jsonify({"status": "ok", "workflows": result, "ts": int(time.time())})
 
     except Exception as e:
