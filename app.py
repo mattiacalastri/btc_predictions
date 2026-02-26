@@ -499,12 +499,80 @@ def close_position():
         ok = result.get("result") == "success"
         after = wait_for_position(symbol, want_open=False, retries=12, sleep_s=0.35)
 
+        # ── Aggiorna Supabase se la chiusura è andata a buon fine ─────────────
+        supabase_updated = False
+        exit_fill_price = None
+        pnl_net = None
+        if ok:
+            try:
+                # Estrai fill price dall'order event Kraken
+                events = result.get("sendStatus", {}).get("orderEvents", [])
+                exit_fill_price = float(events[0]["price"]) if events else 0.0
+
+                supabase_url = os.environ.get("SUPABASE_URL", "")
+                supabase_key = os.environ.get("SUPABASE_KEY", "")
+                headers = {"apikey": supabase_key, "Authorization": f"Bearer {supabase_key}"}
+
+                # Cerca il bet aperto più recente (bet_id esplicito ha priorità)
+                explicit_bet_id = data.get("bet_id")
+                if explicit_bet_id:
+                    query = (
+                        f"{supabase_url}/rest/v1/{SUPABASE_TABLE}"
+                        f"?id=eq.{explicit_bet_id}&select=id,entry_fill_price,btc_price_entry,bet_size,direction"
+                    )
+                else:
+                    query = (
+                        f"{supabase_url}/rest/v1/{SUPABASE_TABLE}"
+                        f"?bet_taken=eq.true&correct=is.null"
+                        f"&order=id.desc&limit=1"
+                        f"&select=id,entry_fill_price,btc_price_entry,bet_size,direction"
+                    )
+                resp = requests.get(query, headers=headers, timeout=5)
+                rows = resp.json() if resp.ok else []
+
+                if rows and exit_fill_price and exit_fill_price > 0:
+                    row = rows[0]
+                    bet_id = row["id"]
+                    entry_price = float(row.get("entry_fill_price") or row.get("btc_price_entry") or exit_fill_price)
+                    bet_size = float(row.get("bet_size") or size or 0.001)
+                    direction = row.get("direction", "UP")
+
+                    if direction == "UP":
+                        pnl_gross = (exit_fill_price - entry_price) * bet_size
+                        correct = exit_fill_price >= entry_price
+                        actual_direction = "UP" if exit_fill_price >= entry_price else "DOWN"
+                    else:
+                        pnl_gross = (entry_price - exit_fill_price) * bet_size
+                        correct = exit_fill_price <= entry_price
+                        actual_direction = "DOWN" if exit_fill_price <= entry_price else "UP"
+
+                    fee = bet_size * (entry_price + exit_fill_price) * 0.00005
+                    pnl_net = round(pnl_gross - fee, 6)
+
+                    _supabase_update(bet_id, {
+                        "exit_fill_price":    exit_fill_price,
+                        "btc_price_exit":     exit_fill_price,
+                        "correct":            correct,
+                        "actual_direction":   actual_direction,
+                        "pnl_usd":            pnl_net,
+                        "fees_total":         round(fee, 6),
+                        "has_real_exit_fill": True,
+                        "close_reason":       "manual_close",
+                    })
+                    supabase_updated = True
+                    app.logger.info(f"[close-position] Supabase updated: bet {bet_id}, pnl={pnl_net}, correct={correct}")
+            except Exception as e:
+                app.logger.warning(f"[close-position] Supabase update failed (non-critical): {e}")
+
         return jsonify({
             "status": "closed" if (ok and after is None) else ("closing" if ok else "failed"),
             "symbol": symbol,
             "closed_side": pos["side"],
             "close_order_side": close_side,
             "size": size,
+            "exit_fill_price": exit_fill_price,
+            "pnl_usd": pnl_net,
+            "supabase_updated": supabase_updated,
             "position_after": after,
             "raw": result,
         }), (200 if ok else 400)
