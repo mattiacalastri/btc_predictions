@@ -4,9 +4,16 @@ import time
 import hmac as _hmac
 import pickle
 import requests
+import sentry_sdk
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import Flask, request, jsonify, redirect
 from kraken.futures import Trade, User
+
+sentry_sdk.init(
+    dsn=os.environ.get("SENTRY_DSN", ""),
+    traces_sample_rate=0.0,   # solo error monitoring, no performance tracing
+    send_default_pii=False,
+)
 
 app = Flask(__name__)
 

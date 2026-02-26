@@ -4,3 +4,4 @@ python-kraken-sdk
 xgboost
 scikit-learn
 web3
+sentry-sdk[flask]

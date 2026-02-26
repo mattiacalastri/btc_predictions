@@ -1,6 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<!-- Microsoft Clarity -->
+<script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "vnm5ks28uw");
+</script>
 <!-- Google Analytics 4 — consent-based (GDPR) -->
 <script>
   window.dataLayer = window.dataLayer || [];
@@ -1976,7 +1984,6 @@
 .lp-tab-btn .lp-tab-pnl { font-size: 8px; margin-left: 6px; }
 .lp-tab-btn .lp-tab-pnl.pos { color: var(--accent); }
 .lp-tab-btn .lp-tab-pnl.neg { color: var(--danger); }
-/* ── SATOSHI SCULPTURE ───────────────────────────────────────────────── */
 /* ── GDPR COOKIE BANNER ─────────────────────────────────────────────── */
 #cookieBanner {
   position: fixed;
@@ -7298,7 +7305,7 @@ function tickSignalAge() {
 
 function refreshMiniStatusBarLive() {
   /* ── /health: bot status, equity, dry-run, Kraken ── */
-  fetch(CONFIG.RAILWAY_URL + '/health', { signal: AbortSignal.timeout(8000) })
+  fetch(CONFIG.RAILWAY_URL + '/health', { signal: AbortSignal.timeout(20000) })
     .then(function(r) { return r.ok ? r.json() : null; })
     .then(function(h) {
       if (!h) return;
