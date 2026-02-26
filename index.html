@@ -1930,10 +1930,10 @@
       <div class="kpi-value green" id="kpiPnl">—</div>
       <div class="kpi-sub" id="kpiPnlSub">from 2026-02-24</div>
     </div>
-    <div class="kpi purple">
-      <div class="kpi-label">Session ROI</div>
-      <div class="kpi-value purple" id="kpiRoi">—</div>
-      <div class="kpi-sub" id="kpiRoiSub">since 2026-02-24</div>
+    <div class="kpi purple" data-tip-title="APR (Annual Percentage Rate)" data-tip="PnL annualizzato: (PnL totale / Capitale) / giorni attivi × 365. Più utile del ROI per operatività quotidiana — mostra il rendimento proiettato annuo.">
+      <div class="kpi-label">APR <span style="font-size:8px;opacity:0.5;letter-spacing:0.5px">annualizzato</span></div>
+      <div class="kpi-value purple" id="kpiApr">—</div>
+      <div class="kpi-sub" id="kpiAprSub">ROI — · — days</div>
     </div>
     <div class="kpi yellow">
       <div class="kpi-label">Win Rate</div>
@@ -2001,6 +2001,14 @@
     <div class="stat-cell" data-tip-title="Total Entry Slippage" data-tip="Cumulative difference between expected signal price and actual fill price across all bets. Negative = filled worse than expected. This is raw price difference (pts), not dollar cost.">
       <div class="stat-cell-label">Total Slippage</div>
       <div class="stat-cell-val" id="statTotalSlippage" style="color:var(--warn)">—</div>
+    </div>
+    <div class="stat-cell" data-tip-title="APR Today" data-tip="PnL di oggi annualizzato: (PnL oggi / Capitale) × 365. Polso giornaliero della performance vs rendimento annuo atteso.">
+      <div class="stat-cell-label">APR Today</div>
+      <div class="stat-cell-val" id="statAprToday" style="color:var(--purple)">—</div>
+    </div>
+    <div class="stat-cell" data-tip-title="APR 7d" data-tip="PnL ultimi 7 giorni annualizzato: (PnL 7d / Capitale) / 7 × 365. Finestra mobile per smorzare la varianza giornaliera.">
+      <div class="stat-cell-label">APR 7d</div>
+      <div class="stat-cell-val" id="statApr7d" style="color:var(--purple)">—</div>
     </div>
     <!-- Mobile-only: fills empty slot in 3-col row 2 -->
     <div class="stat-cell mobile-only" data-tip-title="Best Win Streak" data-tip="Maximum consecutive wins across the entire bet history. Indicates model consistency.">
@@ -3022,15 +3030,12 @@ function renderAccountSummary(data) {
   const equity = parseFloat(w.margin_equity || 0);
   if (equity > 0) {
     liveWalletEquity = equity;
-    const roiPct = (lastSessionPnl / equity) * 100;
-    const roiEl = document.getElementById('kpiRoi');
-    if (roiEl) {
-      roiEl.textContent = (roiPct >= 0 ? '+' : '') + roiPct.toFixed(2) + '%';
-      roiEl.className   = 'kpi-value ' + (roiPct >= 0 ? 'purple' : 'red');
-    }
-    const roiSubEl = document.getElementById('kpiRoiSub');
-    if (roiSubEl) roiSubEl.textContent =
-      (lastSessionPnl >= 0 ? '+' : '') + fmtUsd(lastSessionPnl) + ' · ' + fmtUsd(equity) + ' eq.';
+    // Update APR sub-label with live equity context (value set by render())
+    const daysAct = Math.max(1, (Date.now() - new Date(CONFIG.SESSION_START + 'T00:00:00Z')) / 86400000);
+    const roiPct  = (lastSessionPnl / equity) * 100;
+    const aprSubEl2 = document.getElementById('kpiAprSub');
+    if (aprSubEl2) aprSubEl2.textContent =
+      `ROI: ${(roiPct >= 0 ? '+' : '')}${roiPct.toFixed(2)}% · ${Math.round(daysAct)}d · ${fmtUsd(equity)} eq.`;
     const footerCapEl = document.getElementById('footerCapital');
     if (footerCapEl) footerCapEl.textContent = fmtUsd(equity) + ' equity';
   }
@@ -3532,6 +3537,14 @@ function render(data) {
   const sessionPnl  = sessionBets.reduce((s, d) => s + parseFloat(d.pnl_usd || 0), 0);
   lastSessionPnl = sessionPnl;
   const roiPct      = (sessionPnl / capitalBase) * 100;
+  const daysActive  = Math.max(1, (Date.now() - new Date(CONFIG.SESSION_START + 'T00:00:00Z')) / 86400000);
+  const aprTotal    = (sessionPnl / CONFIG.CAPITAL) / daysActive * 365 * 100;
+  const todayStr    = new Date().toISOString().slice(0, 10);
+  const pnlToday    = realBets.filter(d => (d.created_at || '').slice(0, 10) === todayStr).reduce((s, d) => s + parseFloat(d.pnl_usd || 0), 0);
+  const aprToday    = (pnlToday / CONFIG.CAPITAL) * 365 * 100;
+  const cutoff7d    = new Date(Date.now() - 7 * 86400000);
+  const pnl7d       = realBets.filter(d => new Date(d.created_at) >= cutoff7d).reduce((s, d) => s + parseFloat(d.pnl_usd || 0), 0);
+  const apr7d       = (pnl7d / CONFIG.CAPITAL) / 7 * 365 * 100;
   const avgConf  = data.length ? data.reduce((s, d) => s + parseFloat(d.confidence || 0), 0) / data.length : 0;
   const pnlVals  = realBets.map(d => parseFloat(d.pnl_usd || 0));
   const bestPnl  = pnlVals.length ? Math.max(...pnlVals) : 0;
@@ -3552,11 +3565,17 @@ function render(data) {
   pnlEl.textContent = (sessionPnl >= 0 ? '+' : '') + '$' + sessionPnl.toFixed(2);
   pnlEl.className   = 'kpi-value ' + (sessionPnl >= 0 ? 'green' : 'red');
 
-  const roiEl = document.getElementById('kpiRoi');
-  roiEl.textContent = (roiPct >= 0 ? '+' : '') + roiPct.toFixed(2) + '%';
-  roiEl.className   = 'kpi-value ' + (roiPct >= 0 ? 'purple' : 'red');
-  document.getElementById('kpiRoiSub').textContent =
-    (sessionPnl >= 0 ? '+' : '') + fmtUsd(sessionPnl) + ' · ' + fmtUsd(capitalBase) + ' eq.';
+  const aprEl = document.getElementById('kpiApr');
+  if (aprEl) {
+    aprEl.textContent = (aprTotal >= 0 ? '+' : '') + aprTotal.toFixed(1) + '%';
+    aprEl.className   = 'kpi-value ' + (aprTotal >= 0 ? 'purple' : 'red');
+  }
+  const aprSubEl = document.getElementById('kpiAprSub');
+  if (aprSubEl) aprSubEl.textContent = `ROI: ${(roiPct >= 0 ? '+' : '')}${roiPct.toFixed(2)}% · ${Math.round(daysActive)}d active`;
+  const aprTodayEl = document.getElementById('statAprToday');
+  if (aprTodayEl) aprTodayEl.textContent = (aprToday >= 0 ? '+' : '') + aprToday.toFixed(1) + '%';
+  const apr7dEl = document.getElementById('statApr7d');
+  if (apr7dEl) apr7dEl.textContent = (apr7d >= 0 ? '+' : '') + apr7d.toFixed(1) + '%';
   document.getElementById('footerCapital').textContent = fmtUsd(capitalBase) + ' equity';
 
   document.getElementById('kpiWinRate').textContent = closedBets.length ? Math.round(correctBets.length / closedBets.length * 100) + '%' : '—';
