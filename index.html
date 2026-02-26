@@ -2630,6 +2630,12 @@
       </div>
     </div>
 
+    <!-- Subscription Expiry Widget -->
+    <div id="subscriptionExpiryWidget" style="margin-bottom:16px;padding:14px 16px;background:var(--card);border:1px solid var(--border);border-left:3px solid #00cccc">
+      <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#00cccc;margin-bottom:10px">SUBSCRIPTION EXPIRY</div>
+      <div id="subscriptionExpiryRows" style="display:flex;flex-direction:column;gap:8px"></div>
+    </div>
+
     <!-- Breakdown -->
     <div class="panel">
       <div class="panel-header">
@@ -5399,6 +5405,54 @@ function renderCosts(d) {
       <span>Per imposta Claude Code: Railway → <code style="color:var(--blue)">CLAUDE_CODE_MONTHLY_USD=XX</code></span>
     </div>`;
 }
+
+// ── SUBSCRIPTION EXPIRY WIDGET ────────────────────────────────────────────────
+
+const _SUBSCRIPTIONS = [
+  { icon: '✉️', name: 'Email signal@btcpredictor.io', expires: '2026-03-27', note: 'Starter Business Email · Hostinger', warn: true },
+  { icon: '🌐', name: 'btcpredictor.io domain',       expires: '2027-02-25', note: '.io · Hostinger · incl. Privacy',  warn: false },
+  { icon: '🖥️', name: 'Hostinger VPS (n8n)',          expires: null,         note: 'KVM1 · €4.99/mo · auto-renew',    warn: false },
+  { icon: '🚂', name: 'Railway',                       expires: null,         note: 'Hobby $5/mo · auto-renew',        warn: false },
+];
+
+function renderSubscriptionExpiry() {
+  const container = document.getElementById('subscriptionExpiryRows');
+  if (!container) return;
+  const now = new Date();
+
+  container.innerHTML = _SUBSCRIPTIONS.map(sub => {
+    let daysLeft = null, color = 'var(--muted)', badge = '', barWidth = 0;
+    if (sub.expires) {
+      const exp = new Date(sub.expires);
+      daysLeft = Math.ceil((exp - now) / 86400000);
+      const totalDays = Math.ceil((exp - new Date(now.getFullYear(), 0, 1)) / 86400000);
+      barWidth = Math.max(0, Math.min(100, (1 - daysLeft / 365) * 100));
+      if      (daysLeft < 14)  { color = '#ff4444'; badge = `<span style="background:#ff444422;color:#ff4444;border:1px solid #ff444440;font-size:9px;padding:1px 6px;border-radius:3px;font-weight:700">⚠️ ${daysLeft}d</span>`; }
+      else if (daysLeft < 30)  { color = '#ffaa00'; badge = `<span style="background:#ffaa0022;color:#ffaa00;border:1px solid #ffaa0040;font-size:9px;padding:1px 6px;border-radius:3px;font-weight:700">⚡ ${daysLeft}d</span>`; }
+      else if (daysLeft < 90)  { color = '#ffdd44'; badge = `<span style="font-size:9px;color:#ffdd44;font-weight:700">${daysLeft}d</span>`; }
+      else                     { color = '#00ff88'; badge = `<span style="font-size:9px;color:#00ff88">${daysLeft}d</span>`; }
+    } else {
+      badge = `<span style="font-size:9px;color:var(--muted)">auto-renew</span>`;
+      barWidth = 0;
+    }
+    return `
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:14px;width:20px;text-align:center">${sub.icon}</span>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+            <span style="font-size:11px;font-weight:700;color:var(--text)">${sub.name}</span>
+            ${badge}
+          </div>
+          <div style="font-size:9px;color:var(--muted);margin-bottom:4px">${sub.note}${sub.expires ? ' · scade ' + sub.expires : ''}</div>
+          ${sub.expires ? `<div style="height:2px;background:rgba(255,255,255,0.05);border-radius:2px;overflow:hidden"><div style="height:100%;width:${barWidth.toFixed(1)}%;background:${color};border-radius:2px;transition:width 0.3s"></div></div>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// Render on tab open + refresh every minute
+renderSubscriptionExpiry();
+setInterval(renderSubscriptionExpiry, 60000);
 
 // Dry-run banner + health check
 fetch(CONFIG.RAILWAY_URL + '/health')
