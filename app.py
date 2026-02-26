@@ -371,6 +371,7 @@ def health():
         "api_key_set": bool(API_KEY),
         "version": "2.5.1",
         "dry_run": DRY_RUN,
+        "supabase_table": SUPABASE_TABLE,
         "paused": _BOT_PAUSED,
         "bot_paused": bool(_BOT_PAUSED),
         "capital": capital,
