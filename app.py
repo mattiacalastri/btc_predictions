@@ -1198,7 +1198,7 @@ def get_signals():
             limit = 500
 
         try:
-            days = max(1, min(int(request.args.get("days", 0)), 365))
+            days = max(0, min(int(request.args.get("days", 0)), 365))
         except (ValueError, TypeError):
             days = 0
 
