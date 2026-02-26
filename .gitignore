@@ -24,3 +24,7 @@ prepare_finetune.py
 # Dati sensibili
 datasets/features.csv
 datasets/backup_*.csv
+
+# macOS + Claude Code local state
+.DS_Store
+.claude/worktrees/
