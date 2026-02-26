@@ -1398,40 +1398,179 @@
     .mobile-bet-list {
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      max-height: 420px;
+      gap: 7px;
+      max-height: 520px;
       overflow-y: auto;
-      padding: 4px 2px;
+      padding: 2px 0 4px;
     }
+
+    /* ── CARD BASE ─────────────────────────────── */
     .mbet-card {
-      display: grid;
-      grid-template-columns: 28px 1fr 1fr 1fr;
-      grid-template-rows: auto auto;
-      gap: 2px 8px;
-      background: rgba(255,255,255,0.02);
-      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      background: rgba(255,255,255,0.025);
+      border: 1px solid rgba(255,255,255,0.06);
       border-left: 3px solid var(--muted);
-      padding: 8px 10px;
-      border-radius: 4px;
-      margin-bottom: 2px;
-      font-size: 10px;
+      border-radius: 8px;
+      overflow: hidden;
+      transition: border-color 0.15s, background 0.15s;
     }
-    .mbet-card.win  { border-left-color: var(--accent); background: rgba(0,255,136,0.03); }
-    .mbet-card.loss { border-left-color: var(--danger); background: rgba(255,60,60,0.03); }
-    .mbet-card.nobet { border-left-color: var(--muted); opacity: 0.6; }
-    .mbet-id   { grid-row: 1; color: var(--muted); font-size: 9px; }
-    .mbet-dir  { grid-row: 1; font-weight: 900; font-size: 12px; }
+    .mbet-card.win  {
+      border-left-color: var(--accent);
+      background: rgba(0,255,136,0.04);
+      border-color: rgba(0,255,136,0.12);
+    }
+    .mbet-card.loss {
+      border-left-color: var(--danger);
+      background: rgba(255,60,60,0.04);
+      border-color: rgba(255,60,60,0.1);
+    }
+    .mbet-card.open-bet {
+      border-left-color: var(--warn);
+      background: rgba(255,170,0,0.04);
+      border-color: rgba(255,170,0,0.12);
+    }
+    .mbet-card.nobet {
+      border-left-color: rgba(100,120,140,0.4);
+      opacity: 0.72;
+    }
+
+    /* ── ROW 1: header ─────────────────────────── */
+    .mbet-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 11px 5px;
+    }
+    .mbet-dir {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      flex-shrink: 0;
+    }
     .mbet-dir.up   { color: var(--accent); }
     .mbet-dir.down { color: var(--danger); }
-    .mbet-conf { grid-row: 1; color: var(--blue); font-size: 10px; opacity: 0.7; }
-    .mbet-result { grid-row: 1; font-weight: 700; font-size: 11px; text-align: right; }
-    .mbet-result.win  { color: var(--accent); }
-    .mbet-result.loss { color: var(--danger); }
-    .mbet-result.skip { color: var(--muted); }
-    .mbet-time { grid-column: 1/3; grid-row: 2; color: var(--muted); font-size: 8px; }
-    .mbet-pnl  { grid-column: 3/5; grid-row: 2; text-align: right; font-size: 10px; font-weight: 700; }
-    .mbet-pnl.pos { color: var(--accent); }
-    .mbet-pnl.neg { color: var(--danger); }
+    .mbet-dir.neutral { color: var(--muted); }
+    .mbet-id {
+      font-size: 9px;
+      color: var(--muted);
+      letter-spacing: 0.5px;
+      flex-shrink: 0;
+    }
+    .mbet-time {
+      font-size: 9px;
+      color: rgba(255,255,255,0.35);
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+    .mbet-status-chip {
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      border-radius: 10px;
+      flex-shrink: 0;
+    }
+    .mbet-status-chip.win  { background: rgba(0,255,136,0.15); color: var(--accent); }
+    .mbet-status-chip.loss { background: rgba(255,60,60,0.15); color: var(--danger); }
+    .mbet-status-chip.open { background: rgba(255,170,0,0.15); color: var(--warn); }
+    .mbet-status-chip.skip { background: rgba(100,120,140,0.12); color: var(--muted); }
+    .mbet-status-chip.alert { background: rgba(0,170,255,0.12); color: var(--blue); }
+
+    /* ── ROW 2: confidence bar ─────────────────── */
+    .mbet-conf-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 11px 7px;
+    }
+    .mbet-conf-track {
+      flex: 1;
+      height: 4px;
+      background: rgba(255,255,255,0.07);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .mbet-conf-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.4s ease;
+    }
+    .mbet-conf-fill.up   { background: linear-gradient(90deg, rgba(0,255,136,0.5), var(--accent)); }
+    .mbet-conf-fill.down { background: linear-gradient(90deg, rgba(255,60,60,0.5), var(--danger)); }
+    .mbet-conf-fill.neutral { background: var(--muted); }
+    .mbet-conf-pct {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text);
+      flex-shrink: 0;
+      width: 32px;
+      text-align: right;
+    }
+
+    /* ── ROW 3: extra data (bets only) ─────────── */
+    .mbet-details {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      padding: 6px 11px 8px;
+      border-top: 1px solid rgba(255,255,255,0.05);
+      background: rgba(0,0,0,0.12);
+    }
+    .mbet-detail-item {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      flex: 1;
+    }
+    .mbet-detail-item + .mbet-detail-item {
+      border-left: 1px solid rgba(255,255,255,0.05);
+      padding-left: 10px;
+      margin-left: 10px;
+    }
+    .mbet-detail-label {
+      font-size: 7px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.3);
+    }
+    .mbet-detail-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .mbet-detail-val.pos { color: var(--accent); }
+    .mbet-detail-val.neg { color: var(--danger); }
+    .mbet-detail-val.muted { color: var(--muted); font-size: 10px; }
+
+    /* ── CHIPS row (XGB + MTF alignment) ───────── */
+    .mbet-chips {
+      display: flex;
+      gap: 5px;
+      padding: 0 11px 8px;
+      flex-wrap: wrap;
+    }
+    .mbet-chip {
+      font-size: 7px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.45);
+    }
+    .mbet-chip.agree  { border-color: rgba(0,255,136,0.25); color: rgba(0,255,136,0.7); }
+    .mbet-chip.disagree { border-color: rgba(255,60,60,0.2); color: rgba(255,60,60,0.6); }
+    .mbet-chip.bull { border-color: rgba(0,255,136,0.2); color: rgba(0,255,136,0.6); }
+    .mbet-chip.bear { border-color: rgba(255,60,60,0.2); color: rgba(255,60,60,0.6); }
+    .mbet-chip.pyra { border-color: rgba(168,85,247,0.3); color: rgba(168,85,247,0.8); }
   }
 
   /* TASK 6 — Stats row compatta su mobile */
@@ -3169,6 +3308,16 @@
 </footer>
 
 <script>
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+
 const CONFIG = {
   RAILWAY_URL: window.RAILWAY_URL || window.location.origin || 'https://web-production-e27d0.up.railway.app',
   BTC_REFRESH: 10000,
@@ -4008,7 +4157,7 @@ function renderTable(data) {
     return `<tr>
       <td style="color:var(--muted)">${d.id}</td>
       <td style="color:var(--muted)">${fmtDate(d.created_at)}</td>
-      <td class="${dirCls}">${dirIcon} ${d.direction}</td>
+      <td class="${dirCls}">${dirIcon} ${escapeHtml(d.direction)}</td>
       <td>${fmtConf(d.confidence)}</td>
       <td>${renderEntryCell(d)}</td>
       <td>${fmtPrice(exitPrice)}</td>
@@ -4021,7 +4170,7 @@ function renderTable(data) {
       <td>${pnlCell}</td>
       <td>${feeCell}</td>
       <td>${d.sl_price || d.tp_price || d.rr_ratio ? `<span style="font-size:9px;color:var(--danger)">SL ${d.sl_price ? fmtPrice(d.sl_price) : '—'}</span><br><span style="font-size:9px;color:var(--accent)">TP ${d.tp_price ? fmtPrice(d.tp_price) : '—'}</span><br><span style="font-size:9px;color:var(--muted)">RR ${d.rr_ratio ? parseFloat(d.rr_ratio).toFixed(2) + '×' : '—'}</span>` : '<span style="color:var(--muted)">—</span>'}</td>
-      <td style="text-align:center">${d.onchain_commit_tx ? `<a href="https://polygonscan.com/tx/${d.onchain_commit_tx}" target="_blank" rel="noopener" title="Verified on Polygon PoS" style="text-decoration:none;font-size:13px">🔗</a>` : '<span style="color:var(--muted);font-size:9px">—</span>'}</td>
+      <td style="text-align:center">${d.onchain_commit_tx && /^0x[0-9a-fA-F]{64}$/.test(d.onchain_commit_tx) ? `<a href="https://polygonscan.com/tx/${d.onchain_commit_tx}" target="_blank" rel="noopener" title="Verified on Polygon PoS" style="text-decoration:none;font-size:13px">🔗</a>` : '<span style="color:var(--muted);font-size:9px">—</span>'}</td>
     </tr>`;
   }).join('');
   renderMobileBetList(data);
@@ -4032,7 +4181,7 @@ function showSrcModal(chip) {
   const modal = document.getElementById('srcModal');
   const color = getComputedStyle(chip).getPropertyValue('--src-color').trim() || '#00ff88';
   document.getElementById('srcModalTitle').textContent = chip.dataset.srcModalTitle || '';
-  document.getElementById('srcModalDesc').innerHTML  = chip.dataset.srcModalDesc  || '';
+  document.getElementById('srcModalDesc').innerHTML  = chip.dataset.srcModalDesc  || ''; // safe: hardcoded in HTML attributes
   document.getElementById('srcModalColor').style.background = color;
   modal.style.display = 'flex';
 }
@@ -4129,7 +4278,7 @@ function initTooltips() {
     document.body.appendChild(tip);
   }
   document.querySelectorAll('[data-tip]').forEach(el => {
-    el.addEventListener('mouseenter', () => { tip.innerHTML = el.dataset.tip; tip.style.display = 'block'; });
+    el.addEventListener('mouseenter', () => { tip.textContent = el.dataset.tip; tip.style.display = 'block'; });
     el.addEventListener('mousemove', e => {
       tip.style.left = Math.min(e.clientX + 14, window.innerWidth - 255) + 'px';
       tip.style.top  = Math.max(e.clientY - 48, 4) + 'px';
@@ -4868,7 +5017,7 @@ function renderAgents(data, errorMsg) {
     const hint = (data && data.error && data.error.includes('N8N_API_KEY'))
       ? '<br><span style="font-size:10px;color:var(--muted)">Configura <code style="color:var(--blue)">N8N_API_KEY</code> su Railway per abilitare questo pannello</span>'
       : '';
-    grid.innerHTML = `<div style="grid-column:1/-1;padding:24px 16px;color:var(--danger);font-size:11px;letter-spacing:1px">⚠️ n8n status non disponibile: ${errDetail}${hint}</div>`;
+    grid.innerHTML = `<div style="grid-column:1/-1;padding:24px 16px;color:var(--danger);font-size:11px;letter-spacing:1px">⚠️ n8n status non disponibile: ${escapeHtml(errDetail)}${hint}</div>`;
     return;
   }
   const wfs = data.workflows || [];
@@ -4952,9 +5101,7 @@ function renderAgents(data, errorMsg) {
 
 
 // ── Backtest report syntax highlighting ──────────────────────────────────────
-function escapeHtml(s) {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
+// escapeHtml() is defined near the top of this script block (superset of the old 3-char version)
 
 function syntaxHighlight(text) {
   return text.split('\n').map(line => {
@@ -5578,7 +5725,7 @@ async function refreshCostsTab() {
     const data = await res.json();
     renderCosts(data);
   } catch(e) {
-    body.innerHTML = `<span style="color:var(--danger);font-size:11px">⚠️ Errore: ${e.message}</span>`;
+    body.innerHTML = `<span style="color:var(--danger);font-size:11px">⚠️ Errore: ${escapeHtml(e.message)}</span>`;
   }
 }
 
@@ -6097,50 +6244,121 @@ function renderMobileBetList(data) {
   }
 
   container.innerHTML = filtered.map(function(d) {
-    const dir = d.direction || '—';
-    const dirClass = dir === 'UP' ? 'up' : 'down';
+    const dir      = d.direction || '—';
+    const dirClass = dir === 'UP' ? 'up' : dir === 'DOWN' ? 'down' : 'neutral';
     const dirText  = dir === 'UP' ? '▲ UP' : dir === 'DOWN' ? '▼ DOWN' : '—';
-    const conf = d.confidence ? Math.round(parseFloat(d.confidence) * 100) + '%' : '—';
+    const confRaw  = d.confidence ? parseFloat(d.confidence) : 0;
+    const confPct  = confRaw ? Math.round(confRaw * 100) : 0;
+    const isBet    = d.classification === 'BET' && d.bet_taken;
 
-    let resultText = '—', resultClass = '';
-    const isBet = d.classification === 'BET' && d.bet_taken;
-    if (d.correct === true) {
-      resultText  = isBet ? '&#x2705; WIN' : '&#x2705; RIGHT';
-      resultClass = 'win';
-    } else if (d.correct === false) {
-      resultText  = isBet ? '&#x274C; LOSS' : '&#x274C; WRONG';
-      resultClass = 'loss';
-    } else if (isBet) {
-      resultText  = '&#x23F3; OPEN';
-      resultClass = '';
-    } else {
-      resultText  = d.classification || '—';
-      resultClass = 'skip';
-    }
+    // Status chip
+    let statusText, statusClass;
+    if (d.correct === true && isBet)       { statusText = '✓ WIN';    statusClass = 'win';  }
+    else if (d.correct === false && isBet) { statusText = '✕ LOSS';   statusClass = 'loss'; }
+    else if (isBet)                        { statusText = '⏳ OPEN';  statusClass = 'open'; }
+    else if (d.classification === 'ALERT') { statusText = '⚡ ALERT'; statusClass = 'alert'; }
+    else                                   { statusText = d.classification || 'SKIP'; statusClass = 'skip'; }
 
+    // Card class
     let cardClass = 'mbet-card';
-    if (d.correct === true && isBet) cardClass += ' win';
+    if (d.correct === true && isBet)       cardClass += ' win';
     else if (d.correct === false && isBet) cardClass += ' loss';
-    else if (!isBet) cardClass += ' nobet';
+    else if (isBet && !d.correct)          cardClass += ' open-bet';
+    else                                   cardClass += ' nobet';
 
-    const pnl = d.pnl_usd !== null && d.pnl_usd !== undefined ? parseFloat(d.pnl_usd) : null;
-    const pnlText  = pnl !== null ? (pnl >= 0 ? '+' : '') + '$' + pnl.toFixed(2) : '—';
+    // PnL
+    const pnl     = (d.pnl_usd !== null && d.pnl_usd !== undefined) ? parseFloat(d.pnl_usd) : null;
+    const pnlText = pnl !== null ? (pnl >= 0 ? '+' : '') + '$' + Math.abs(pnl).toFixed(2) : null;
     const pnlClass = pnl !== null ? (pnl >= 0 ? 'pos' : 'neg') : '';
 
+    // Time
     let timeStr = '—';
     if (d.created_at) {
       const dt = new Date(d.created_at);
-      timeStr = dt.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' }) + ' ' + dt.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+      timeStr = dt.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit'})
+               + ' ' + dt.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
     }
 
-    return '<div class="' + cardClass + '">'
-      + '<span class="mbet-id">#' + d.id + '</span>'
+    // Entry price
+    const entryPrice = parseFloat(d.entry_fill_price || d.btc_price_entry || 0);
+    const entryText  = entryPrice > 0 ? '$' + Math.round(entryPrice).toLocaleString('en-US') : null;
+
+    // Bet size
+    const sizeRaw  = parseFloat(d.bet_size || 0);
+    const sizeText = sizeRaw > 0 ? sizeRaw.toFixed(3) + ' ₿' : null;
+
+    // Duration
+    let durText = null;
+    if (d.duration_minutes && parseFloat(d.duration_minutes) > 0) {
+      const mins = Math.round(parseFloat(d.duration_minutes));
+      durText = mins < 60 ? mins + 'm' : Math.round(mins/60) + 'h';
+    }
+
+    // XGB alignment chip
+    let xgbChip = '';
+    if (d.xgb_direction) {
+      const agree = d.xgb_direction === dir;
+      xgbChip = '<span class="mbet-chip ' + (agree ? 'agree' : 'disagree') + '">XGB '
+              + (agree ? '✓' : '✗') + ' ' + d.xgb_direction + '</span>';
+    }
+
+    // MTF chip
+    let mtfChip = '';
+    if (d.mtf_consensus) {
+      const mtf = d.mtf_consensus.replace('MTF_','').replace('_CONSENSUS','');
+      const mtfClass = mtf.includes('BULL') ? 'bull' : mtf.includes('BEAR') ? 'bear' : '';
+      mtfChip = '<span class="mbet-chip ' + mtfClass + '">MTF ' + mtf + '</span>';
+    }
+
+    // Pyramid chip
+    const pyramidChip = (d.pyramid_count > 0)
+      ? '<span class="mbet-chip pyra">▲ PYR ×' + d.pyramid_count + '</span>'
+      : '';
+
+    // ── Build HTML ──
+    // Row 1: header
+    let html = '<div class="' + cardClass + '">';
+    html += '<div class="mbet-header">'
       + '<span class="mbet-dir ' + dirClass + '">' + dirText + '</span>'
-      + '<span class="mbet-conf">' + conf + '</span>'
-      + '<span class="mbet-result ' + resultClass + '">' + resultText + '</span>'
+      + '<span class="mbet-id">#' + d.id + '</span>'
       + '<span class="mbet-time">' + timeStr + '</span>'
-      + '<span class="mbet-pnl ' + pnlClass + '">' + pnlText + '</span>'
+      + '<span class="mbet-status-chip ' + statusClass + '">' + statusText + '</span>'
       + '</div>';
+
+    // Row 2: confidence bar
+    html += '<div class="mbet-conf-row">'
+      + '<div class="mbet-conf-track"><div class="mbet-conf-fill ' + dirClass + '" style="width:' + confPct + '%"></div></div>'
+      + '<span class="mbet-conf-pct">' + (confPct ? confPct + '%' : '—') + '</span>'
+      + '</div>';
+
+    // Row 3: details (bets only, or if we have entry price)
+    if (isBet || entryText) {
+      const items = [];
+      if (entryText) items.push({ label:'ENTRY', val: entryText, cls: '' });
+      if (pnlText)   items.push({ label:'PNL',   val: pnlText,   cls: pnlClass });
+      else if (sizeText) items.push({ label:'SIZE', val: sizeText, cls: 'muted' });
+      if (durText)   items.push({ label:'DURATION', val: durText, cls: 'muted' });
+
+      if (items.length) {
+        html += '<div class="mbet-details">';
+        items.forEach(function(it) {
+          html += '<div class="mbet-detail-item">'
+            + '<span class="mbet-detail-label">' + it.label + '</span>'
+            + '<span class="mbet-detail-val ' + it.cls + '">' + it.val + '</span>'
+            + '</div>';
+        });
+        html += '</div>';
+      }
+    }
+
+    // Row 4: chips (XGB + MTF + pyramid) — only when something to show
+    const chipsHtml = xgbChip + mtfChip + pyramidChip;
+    if (chipsHtml) {
+      html += '<div class="mbet-chips">' + chipsHtml + '</div>';
+    }
+
+    html += '</div>';
+    return html;
   }).join('');
 }
 
