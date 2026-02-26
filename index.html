@@ -3378,7 +3378,7 @@
             <span>Force Recalibrate</span>
           </button>
           <div id="trnRetrainHint" style="font-size:9px;color:var(--muted);text-align:right;line-height:1.7">
-            Unlocks at 30 bets<br>Public · anyone can trigger
+            Refreshes conf thresholds + dead hours<br><span style="color:rgba(255,170,0,0.7)">⚠ Not a model retrain — XGBoost retrains every Sunday 03:00 UTC</span>
           </div>
         </div>
       </div>
@@ -6108,7 +6108,7 @@ function renderTrainingTab(d) {
     retrainBtn.disabled = !ready;
     if (ready) {
       retrainBtn.classList.add('ready');
-      if (retrainHint) retrainHint.innerHTML = '🔓 Ready &mdash; anyone can trigger';
+      if (retrainHint) retrainHint.innerHTML = '🔓 Refreshes conf thresholds + dead hours<br><span style="color:rgba(255,170,0,0.65)">⚠ Not a model retrain &mdash; XGB retrains Sunday 03:00 UTC</span>';
     } else {
       retrainBtn.classList.remove('ready');
       if (retrainHint) retrainHint.innerHTML = `Unlocks at ${thr} bets &middot; ${thr - bets} remaining`;
