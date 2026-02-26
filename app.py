@@ -734,6 +734,16 @@ def place_bet():
 
     desired_side = "long" if direction == "UP" else "short"
 
+    # Temporary DOWN-bet kill switch (env DISABLE_DOWN_BETS=true → skip all shorts)
+    if direction == "DOWN" and os.environ.get("DISABLE_DOWN_BETS", "").lower() == "true":
+        return jsonify({
+            "status": "skipped",
+            "reason": "DOWN bets disabled (DISABLE_DOWN_BETS=true)",
+            "direction": direction,
+            "confidence": confidence,
+            "symbol": symbol,
+        }), 200
+
     # Refresh paused state from Supabase every 5 min (survives Railway restarts)
     global _BOT_PAUSED, _BOT_PAUSED_REFRESHED_AT
     if time.time() - _BOT_PAUSED_REFRESHED_AT > 300:
@@ -778,6 +788,31 @@ def place_bet():
                 sb_url = os.environ.get("SUPABASE_URL", "")
                 sb_key = os.environ.get("SUPABASE_KEY", "")
                 if sb_url and sb_key:
+                    # Hard cap: count ALL open bets before pyramid logic
+                    r_all = requests.get(
+                        f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
+                        "?select=id&bet_taken=eq.true&correct=is.null",
+                        headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}",
+                                 "Prefer": "count=exact"},
+                        timeout=5,
+                    )
+                    open_count = 0
+                    if r_all.status_code == 200:
+                        cr = r_all.headers.get("content-range", "")
+                        try:
+                            open_count = int(cr.split("/")[1]) if "/" in cr else len(r_all.json())
+                        except Exception:
+                            open_count = len(r_all.json())
+                    if open_count >= 2:
+                        app.logger.warning(f"[pyramid] Hard cap: {open_count} open bets — blocking new position")
+                        return jsonify({
+                            "status": "skipped",
+                            "reason": f"MAX_OPEN_BETS reached ({open_count} open bets)",
+                            "symbol": symbol,
+                            "direction": direction,
+                            "no_stack": True,
+                        }), 200
+                    # Fetch latest open bet for pyramid_count info
                     r = requests.get(
                         f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
                         "?select=id,created_at,direction,entry_fill_price,pyramid_count"
@@ -849,7 +884,7 @@ def place_bet():
                         _sb_url = os.environ.get("SUPABASE_URL", "")
                         _sb_key = os.environ.get("SUPABASE_KEY", "")
                         try:
-                            requests.patch(
+                            _patch_resp = requests.patch(
                                 f"{_sb_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{bet_id}",
                                 json={"pyramid_count": pyramid_count_existing + 1, "bet_size": round(current_pos_size + pyramid_size, 4)},
                                 headers={
@@ -860,8 +895,11 @@ def place_bet():
                                 },
                                 timeout=5,
                             )
-                        except Exception:
-                            pass
+                            if _patch_resp.status_code not in (200, 204):
+                                app.logger.error(f"[pyramid] PATCH pyramid_count failed {_patch_resp.status_code}: {_patch_resp.text[:200]}")
+                        except Exception as _e:
+                            app.logger.error(f"[pyramid] PATCH pyramid_count exception: {_e}")
+                            sentry_sdk.capture_exception(_e)
                     _pyr_order_id = ""
                     try:
                         _pyr_order_id = str(pyramid_result.get("sendStatus", {}).get("order_id", ""))
