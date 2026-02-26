@@ -169,8 +169,51 @@ DEFAULT_SYMBOL = os.environ.get("KRAKEN_DEFAULT_SYMBOL", "PF_XBTUSD")
 KRAKEN_BASE = "https://futures.kraken.com"
 DRY_RUN = os.environ.get("DRY_RUN", "false").lower() in ("true", "1", "yes")
 SUPABASE_TABLE = os.environ.get("SUPABASE_TABLE", "btc_predictions")
-_BOT_PAUSED = False  # runtime pause via /pause — non persiste al restart
+_BOT_PAUSED = False              # runtime pause — persisted to Supabase bot_state
+_BOT_PAUSED_REFRESHED_AT = 0.0  # timestamp of last Supabase read
 _costs_cache = {"data": None, "ts": 0.0}
+
+
+def _refresh_bot_paused():
+    """Read paused state from Supabase bot_state. Called on restart and every 5 min."""
+    global _BOT_PAUSED, _BOT_PAUSED_REFRESHED_AT
+    try:
+        sb_url = os.environ.get("SUPABASE_URL", "")
+        sb_key = os.environ.get("SUPABASE_KEY", "")
+        if not sb_url or not sb_key:
+            return
+        r = requests.get(
+            f"{sb_url}/rest/v1/bot_state?key=eq.paused&select=value",
+            headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
+            timeout=3,
+        )
+        if r.ok and r.json():
+            _BOT_PAUSED = r.json()[0].get("value", "false").lower() in ("true", "1")
+        _BOT_PAUSED_REFRESHED_AT = time.time()
+    except Exception:
+        pass
+
+
+def _save_bot_paused(paused: bool):
+    """Persist paused state to Supabase bot_state."""
+    try:
+        sb_url = os.environ.get("SUPABASE_URL", "")
+        sb_key = os.environ.get("SUPABASE_KEY", "")
+        if not sb_url or not sb_key:
+            return
+        requests.patch(
+            f"{sb_url}/rest/v1/bot_state?key=eq.paused",
+            json={"value": str(paused).lower()},
+            headers={
+                "apikey": sb_key,
+                "Authorization": f"Bearer {sb_key}",
+                "Content-Type": "application/json",
+                "Prefer": "return=minimal",
+            },
+            timeout=3,
+        )
+    except Exception:
+        pass
 
 
 def _check_api_key():
@@ -296,10 +339,10 @@ def _close_prev_bet_on_reverse(old_side: str, exit_price: float, closed_size: fl
 
         if old_direction == "UP":
             pnl_gross = (exit_price - entry_price) * bet_size
-            correct = exit_price >= entry_price
+            correct = exit_price > entry_price   # break-even = LOSS (fees make PnL negative)
         else:
             pnl_gross = (entry_price - exit_price) * bet_size
-            correct = exit_price <= entry_price
+            correct = exit_price < entry_price   # break-even = LOSS
 
         fee = bet_size * (entry_price + exit_price) * 0.00005  # entry + exit taker fee
         pnl_net = round(pnl_gross - fee, 6)
@@ -540,12 +583,12 @@ def close_position():
 
                     if direction == "UP":
                         pnl_gross = (exit_fill_price - entry_price) * bet_size
-                        correct = exit_fill_price >= entry_price
-                        actual_direction = "UP" if exit_fill_price >= entry_price else "DOWN"
+                        correct = exit_fill_price > entry_price   # break-even = LOSS
+                        actual_direction = "UP" if exit_fill_price > entry_price else "DOWN"
                     else:
                         pnl_gross = (entry_price - exit_fill_price) * bet_size
-                        correct = exit_fill_price <= entry_price
-                        actual_direction = "DOWN" if exit_fill_price <= entry_price else "UP"
+                        correct = exit_fill_price < entry_price   # break-even = LOSS
+                        actual_direction = "DOWN" if exit_fill_price < entry_price else "UP"
 
                     fee = bet_size * (entry_price + exit_fill_price) * 0.00005
                     pnl_net = round(pnl_gross - fee, 6)
@@ -589,8 +632,10 @@ def pause_bot():
     err = _check_api_key()
     if err:
         return err
-    global _BOT_PAUSED
+    global _BOT_PAUSED, _BOT_PAUSED_REFRESHED_AT
     _BOT_PAUSED = True
+    _BOT_PAUSED_REFRESHED_AT = time.time()
+    _save_bot_paused(True)
     return jsonify({"paused": True, "message": "Bot in pausa — nessun nuovo trade"}), 200
 
 
@@ -599,8 +644,10 @@ def resume_bot():
     err = _check_api_key()
     if err:
         return err
-    global _BOT_PAUSED
+    global _BOT_PAUSED, _BOT_PAUSED_REFRESHED_AT
     _BOT_PAUSED = False
+    _BOT_PAUSED_REFRESHED_AT = time.time()
+    _save_bot_paused(False)
     return jsonify({"paused": False, "message": "Bot riattivato — trading ripreso"}), 200
 
 
@@ -672,6 +719,11 @@ def place_bet():
             app.logger.warning(f"[XGB] Check failed: {e}")
 
     desired_side = "long" if direction == "UP" else "short"
+
+    # Refresh paused state from Supabase every 5 min (survives Railway restarts)
+    global _BOT_PAUSED, _BOT_PAUSED_REFRESHED_AT
+    if time.time() - _BOT_PAUSED_REFRESHED_AT > 300:
+        _refresh_bot_paused()
 
     if _BOT_PAUSED:
         return jsonify({
@@ -1856,9 +1908,12 @@ def costs():
     email_yearly_eur = float(os.environ.get("HOSTINGER_EMAIL_YEARLY_EUR", "6.59"))
     email_monthly_usd = round(email_yearly_eur / 12 * 1.08, 2)
 
+    polygon_gas_usd = float(os.environ.get("POLYGON_GAS_MONTHLY_USD", "0.0"))
+
     total = round(
-        kraken_fees_total + n8n_cost + claude_api_cost + claude_code_cost
-        + railway_cost + hostinger_vps_usd + domain_monthly_usd + email_monthly_usd,
+        kraken_fees_total + slip_total + n8n_cost + claude_api_cost + claude_code_cost
+        + railway_cost + hostinger_vps_usd + domain_monthly_usd + email_monthly_usd
+        + polygon_gas_usd,
         4
     )
 
@@ -1882,7 +1937,7 @@ def costs():
             "plan": "self-hosted (VPS)",
             "executions_est": n8n_exec_est,
             "limit": "unlimited",
-            "pct_used": 0.0,
+            "pct_used": n8n_pct,
             "cost_usd": 0.0,
         },
         "hostinger_vps": {
@@ -1922,6 +1977,10 @@ def costs():
             "plan": railway_plan,
             "cost_usd": railway_cost,
         },
+        "polygon_gas": {
+            "cost_usd": polygon_gas_usd,
+            "source": "env:POLYGON_GAS_MONTHLY_USD",
+        },
         "total_usd": total,
         "cached": cached,
     })
@@ -1939,7 +1998,6 @@ def equity_history():
             f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
             "?select=id,created_at,pnl_usd"
             "&bet_taken=eq.true&correct=not.is.null&pnl_usd=not.is.null"
-            "&created_at=gte.2026-02-24T00:00:00Z"
             "&order=id.asc",
             headers=sb_headers,
             timeout=6,
