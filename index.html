@@ -5161,6 +5161,7 @@ async function refresh() {
   try {
     allData = await fetchData();
     renderAll(allData);
+    populateIntroHero(allData);
     if (_dashboardFirstLoad) {
       _dashboardFirstLoad = false;
       trackEvent('dashboard_loaded', { load_ms: Math.round(performance.now() - _t0) });
@@ -7235,6 +7236,7 @@ function showIntro() {
   h.style.transition = 'opacity 0.35s';
   h.style.opacity = '1';
   h.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (window.allData && window.allData.length) populateIntroHero(window.allData);
 }
 
 function populateIntroHero(data) {
