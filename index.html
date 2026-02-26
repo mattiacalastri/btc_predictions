@@ -5148,13 +5148,41 @@ function renderBtcPredictionsOverlay(chronoAll) {
 
 // ── INIT ─────────────────────────────────────────────────────────────────────
 
+let _dashboardFirstLoad = true;
 async function refresh() {
-  try { allData = await fetchData(); renderAll(allData); }
+  const _t0 = performance.now();
+  try {
+    allData = await fetchData();
+    renderAll(allData);
+    if (_dashboardFirstLoad) {
+      _dashboardFirstLoad = false;
+      trackEvent('dashboard_loaded', { load_ms: Math.round(performance.now() - _t0) });
+    }
+  }
   catch(e) { console.error('Render error:', e); }
 }
 
-document.getElementById('filterDir').addEventListener('change',   () => { if (typeof applySignalFilters === 'function') applySignalFilters(); else renderTable(filterByPeriod(allData)); });
-document.getElementById('filterClass').addEventListener('change', () => { if (typeof applySignalFilters === 'function') applySignalFilters(); else renderTable(filterByPeriod(allData)); });
+document.getElementById('filterDir').addEventListener('change',   (e) => { trackEvent('signal_filter', { filter_type: 'direction', value: e.target.value }); if (typeof applySignalFilters === 'function') applySignalFilters(); else renderTable(filterByPeriod(allData)); });
+document.getElementById('filterClass').addEventListener('change', (e) => { trackEvent('signal_filter', { filter_type: 'classification', value: e.target.value }); if (typeof applySignalFilters === 'function') applySignalFilters(); else renderTable(filterByPeriod(allData)); });
+
+// ── GA4 CUSTOM EVENTS ─────────────────────────────────────────────────────────
+
+function trackEvent(name, params) {
+  if (typeof gtag !== 'undefined' && localStorage.getItem('btcp_ga_consent') === 'granted') {
+    gtag('event', name, params || {});
+  }
+}
+
+// Scroll depth — fires once at 25/50/75/90%
+(function() {
+  var thresholds = [25, 50, 75, 90], fired = {};
+  window.addEventListener('scroll', function() {
+    var pct = Math.round((window.scrollY + window.innerHeight) / document.body.scrollHeight * 100);
+    thresholds.forEach(function(t) {
+      if (!fired[t] && pct >= t) { fired[t] = true; trackEvent('scroll_depth', { depth_pct: t }); }
+    });
+  }, { passive: true });
+})();
 
 // ── TAB SYSTEM ────────────────────────────────────────────────────────────────
 
@@ -5164,6 +5192,7 @@ function switchTab(btn) {
   const targetTab = btn.dataset.tab;
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   document.getElementById('tab-' + targetTab).classList.add('active');
+  trackEvent('tab_view', { tab_name: targetTab });
   if (targetTab === 'agents')     refreshAgentsTab();
   if (targetTab === 'costs')      refreshCostsTab();
   if (targetTab === 'backtest')   fetchBacktestReport();
@@ -6964,6 +6993,7 @@ function toggleWarRoom(btn) {
   var active = body.classList.toggle('war-room');
   btn.classList.toggle('wr-active', active);
   localStorage.setItem('warRoomActive', active ? '1' : '0');
+  trackEvent('war_room_toggle', { state: active ? 'on' : 'off' });
   if (active) {
     startWarRoomClock();
   } else {
@@ -7513,9 +7543,12 @@ window.addEventListener('load', function() {
     var s = document.createElement('script');
     s.async = true;
     s.src = 'https://www.googletagmanager.com/gtag/js?id=G-K2E2B4FVQ5';
+    s.onload = function() {
+      gtag('js', new Date());
+      gtag('config', 'G-K2E2B4FVQ5');
+      gtag('event', 'consent_accepted', { method: 'cookie_banner' });
+    };
     document.head.appendChild(s);
-    gtag('js', new Date());
-    gtag('config', 'G-K2E2B4FVQ5');
   };
 
   window.cookieDecline = function() {
