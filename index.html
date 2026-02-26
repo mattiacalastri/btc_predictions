@@ -219,12 +219,11 @@
   /* KPI GRID */
   .kpi-grid {
     display: grid;
-    grid-template-columns: repeat(10, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 10px;
     margin-bottom: 16px;
   }
-  @media (max-width: 1300px) { .kpi-grid { grid-template-columns: repeat(5, 1fr); } }
-  @media (max-width: 700px)  { .kpi-grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 700px) { .kpi-grid { grid-template-columns: repeat(3, 1fr); } }
 
   .kpi { background: var(--card); border: 1px solid var(--border); padding: 14px 16px; position: relative; overflow: hidden; transition: border-color 0.2s; min-width: 0; cursor: pointer; }
   .kpi:hover { border-color: rgba(255,255,255,0.12); }
@@ -1978,38 +1977,6 @@
 .lp-tab-btn .lp-tab-pnl.pos { color: var(--accent); }
 .lp-tab-btn .lp-tab-pnl.neg { color: var(--danger); }
 /* ── SATOSHI SCULPTURE ───────────────────────────────────────────────── */
-.satoshi-kpi-wrapper {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  margin-bottom: 16px;
-}
-.satoshi-kpi-wrapper .kpi-grid {
-  flex: 1;
-  margin-bottom: 0;
-}
-.satoshi-sculpture {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-}
-.satoshi-bust-svg {
-  width: 190px;
-  height: auto;
-  filter: drop-shadow(0 0 20px rgba(0,255,136,0.22));
-  animation: satoshi-float 4s ease-in-out infinite;
-}
-@keyframes satoshi-float {
-  0%, 100% { transform: translateY(0px); }
-  50%       { transform: translateY(-6px); }
-}
-@media (max-width: 900px) {
-  .satoshi-kpi-wrapper { flex-direction: column; }
-  .satoshi-sculpture { flex: none; width: 100%; justify-content: center; }
-  .satoshi-bust-svg { width: 150px; }
-}
 /* ── GDPR COOKIE BANNER ─────────────────────────────────────────────── */
 #cookieBanner {
   position: fixed;
@@ -2479,89 +2446,6 @@
   </div>
 
   <!-- 9 KPI tiles + Satoshi Sculpture -->
-  <div class="satoshi-kpi-wrapper">
-  <div class="satoshi-sculpture" id="satoshiSculpture">
-    <svg class="satoshi-bust-svg" viewBox="0 0 200 320" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <filter id="satGlow" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="2.5" result="blur"/>
-          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-        <filter id="satSoft" x="-30%" y="-30%" width="160%" height="160%">
-          <feGaussianBlur stdDeviation="1.5" result="blur"/>
-          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-        <radialGradient id="chestAura" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stop-color="#00ff88" stop-opacity="0.35"/>
-          <stop offset="100%" stop-color="#00ff88" stop-opacity="0"/>
-        </radialGradient>
-        <pattern id="satLines" x="0" y="0" width="200" height="3.5" patternUnits="userSpaceOnUse">
-          <rect width="200" height="0.8" fill="#00ff88" opacity="0.05"/>
-        </pattern>
-      </defs>
-      <!-- Card background -->
-      <rect width="200" height="320" fill="#060e09" rx="3"/>
-      <rect x="0.5" y="0.5" width="199" height="319" fill="none" stroke="#00ff88" stroke-width="0.8" rx="3" opacity="0.6"/>
-      <rect x="2.5" y="2.5" width="195" height="315" fill="none" stroke="#00ff88" stroke-width="0.3" rx="2" opacity="0.2"/>
-      <!-- Corner brackets -->
-      <path d="M8,8 L8,20 M8,8 L20,8" stroke="#00ff88" stroke-width="1.1" opacity="0.55" stroke-linecap="square"/>
-      <path d="M192,8 L192,20 M192,8 L180,8" stroke="#00ff88" stroke-width="1.1" opacity="0.55" stroke-linecap="square"/>
-      <path d="M8,312 L8,300 M8,312 L20,312" stroke="#00ff88" stroke-width="1.1" opacity="0.55" stroke-linecap="square"/>
-      <path d="M192,312 L192,300 M192,312 L180,312" stroke="#00ff88" stroke-width="1.1" opacity="0.55" stroke-linecap="square"/>
-      <!-- ₿ floating at top with glow -->
-      <text x="100" y="44" font-size="28" fill="#00ff88" text-anchor="middle" font-family="serif" font-weight="bold" filter="url(#satGlow)">₿</text>
-      <line x1="100" y1="50" x2="100" y2="60" stroke="#00ff88" stroke-width="0.5" stroke-dasharray="1.5,2.5" opacity="0.4"/>
-      <!-- HOOD — outer silhouette (Budapest statue reference) -->
-      <path d="M 58,180 C 44,158 46,115 54,88 C 63,62 80,52 100,50 C 120,52 137,62 146,88 C 154,115 156,158 142,180 Z"
-            fill="#0a1410" stroke="#00ff88" stroke-width="1.8" filter="url(#satSoft)"/>
-      <!-- HOOD — inner brim / face opening -->
-      <path d="M 66,176 C 58,155 60,118 68,95 C 76,74 87,65 100,63 C 113,65 124,74 132,95 C 140,118 142,155 134,176"
-            fill="#060e09" stroke="#00ff88" stroke-width="1.1" opacity="0.8"/>
-      <!-- Hood brim droop accent line -->
-      <path d="M 48,148 C 55,155 72,165 100,166 C 128,165 145,155 152,148"
-            fill="none" stroke="#00ff88" stroke-width="0.7" opacity="0.3"/>
-      <!-- FACE — anonymous, barely visible in shadow -->
-      <ellipse cx="100" cy="130" rx="20" ry="26" fill="#0d1a10" stroke="#00ff88" stroke-width="0.7" opacity="0.38"/>
-      <line x1="83" y1="116" x2="117" y2="116" stroke="#00ff88" stroke-width="0.4" opacity="0.10"/>
-      <line x1="83" y1="122" x2="117" y2="122" stroke="#00ff88" stroke-width="0.4" opacity="0.12"/>
-      <line x1="84" y1="128" x2="116" y2="128" stroke="#00ff88" stroke-width="0.4" opacity="0.10"/>
-      <line x1="84" y1="134" x2="116" y2="134" stroke="#00ff88" stroke-width="0.4" opacity="0.10"/>
-      <line x1="85" y1="140" x2="115" y2="140" stroke="#00ff88" stroke-width="0.4" opacity="0.08"/>
-      <line x1="87" y1="146" x2="113" y2="146" stroke="#00ff88" stroke-width="0.4" opacity="0.06"/>
-      <!-- Ghost-like eye suggestions -->
-      <ellipse cx="91" cy="121" rx="4" ry="2.5" fill="none" stroke="#00ff88" stroke-width="0.4" opacity="0.17"/>
-      <ellipse cx="109" cy="121" rx="4" ry="2.5" fill="none" stroke="#00ff88" stroke-width="0.4" opacity="0.17"/>
-      <!-- CLOAK body — floor-length, heavy fabric -->
-      <path d="M 58,180 C 50,200 40,228 38,258 L 162,258 C 160,228 150,200 142,180 Z"
-            fill="#0a1410" stroke="#00ff88" stroke-width="1.8" filter="url(#satSoft)"/>
-      <!-- Cloak fabric fold lines -->
-      <path d="M 70,192 C 65,216 62,240 60,258" fill="none" stroke="#00ff88" stroke-width="0.5" opacity="0.24"/>
-      <path d="M 83,186 C 80,212 78,242 77,258" fill="none" stroke="#00ff88" stroke-width="0.4" opacity="0.18"/>
-      <path d="M 117,186 C 120,212 122,242 123,258" fill="none" stroke="#00ff88" stroke-width="0.4" opacity="0.18"/>
-      <path d="M 130,192 C 135,216 138,240 140,258" fill="none" stroke="#00ff88" stroke-width="0.5" opacity="0.24"/>
-      <line x1="100" y1="180" x2="100" y2="258" stroke="#00ff88" stroke-width="0.4" opacity="0.18"/>
-      <!-- BITCOIN ₿ ON CHEST — glowing medallion -->
-      <circle cx="100" cy="220" r="16" fill="url(#chestAura)"/>
-      <circle cx="100" cy="220" r="14" fill="none" stroke="#00ff88" stroke-width="0.9" opacity="0.72"/>
-      <text x="100" y="225" font-size="16" fill="#00ff88" text-anchor="middle" font-family="serif" font-weight="bold" filter="url(#satGlow)">₿</text>
-      <!-- PEDESTAL -->
-      <rect x="42" y="258" width="116" height="9" fill="#0a1410" stroke="#00ff88" stroke-width="1" opacity="0.82" rx="1"/>
-      <rect x="55" y="267" width="90" height="5" fill="#0a1410" stroke="#00ff88" stroke-width="0.7" opacity="0.52" rx="1"/>
-      <line x1="62" y1="272" x2="138" y2="272" stroke="#00ff88" stroke-width="0.4" opacity="0.2"/>
-      <!-- SATOSHI NAKAMOTO text -->
-      <text x="100" y="288" font-size="8.5" fill="#00ff88" text-anchor="middle"
-            font-family="'Courier New', Courier, monospace" font-weight="700" letter-spacing="3.5"
-            filter="url(#satSoft)">SATOSHI NAKAMOTO</text>
-      <text x="100" y="302" font-size="6.5" fill="#00ff88" text-anchor="middle"
-            font-family="'Courier New', Courier, monospace" letter-spacing="1.5" opacity="0.5">Bitcoin  ·  2009  ·  Anonymous</text>
-      <!-- Decorative dashes -->
-      <line x1="58" y1="312" x2="82" y2="312" stroke="#00ff88" stroke-width="0.5" opacity="0.28"/>
-      <circle cx="100" cy="312" r="1.5" fill="#00ff88" opacity="0.28"/>
-      <line x1="118" y1="312" x2="142" y2="312" stroke="#00ff88" stroke-width="0.5" opacity="0.28"/>
-      <!-- Scanlines overlay -->
-      <rect width="200" height="320" fill="url(#satLines)" rx="3" pointer-events="none"/>
-    </svg>
-  </div>
   <div class="kpi-grid">
     <div class="kpi blue">
       <div class="kpi-label">BTC Price</div>
@@ -2625,7 +2509,6 @@
       <div class="kpi-sub">wins/losses</div>
     </div>
   </div>
-  </div><!-- /.satoshi-kpi-wrapper -->
 
   <!-- ═══════════════════════════════════════════
        CUMULATIVE EQUITY CURVE
