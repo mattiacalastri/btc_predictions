@@ -11,10 +11,10 @@ SUPABASE_URL = "https://oimlamjilivrcnhztwvj.supabase.co"
 SUPABASE_KEY = "REDACTED_SUPABASE_ANON_KEY"
 
 # n8n config
-N8N_API_URL = "https://mattiacalastri.app.n8n.cloud"
+N8N_API_URL = "https://n8n.srv1432354.hstgr.cloud"
 N8N_API_KEY = "REDACTED_N8N_API_KEY"
 
-WORKFLOW_ID = "vallzU6ceD5gPwSP"
+WORKFLOW_ID = "NnjfpzgdIyleMVBO"  # wf02 BTC_Trade_Checker VPS
 ALERTS_FILE = "/Users/mattiacalastri/.claude/projects/-Users-mattiacalastri-btc-predictions/memory/alerts.md"
 ORPHAN_THRESHOLD_HOURS = 2
 

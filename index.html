@@ -1486,6 +1486,166 @@
   .mobile-bet-list { display: none; }
 
   /* TASK 5 — Bet list card layout su mobile */
+  /* ── CARD CSS global (sempre definito; container è display:none fuori media query) ── */
+  .mbet-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    background: rgba(255,255,255,0.025);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-left: 3px solid var(--muted);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .mbet-card.win  {
+    border-left-color: var(--accent);
+    background: rgba(0,255,136,0.04);
+    border-color: rgba(0,255,136,0.12);
+  }
+  .mbet-card.loss {
+    border-left-color: var(--danger);
+    background: rgba(255,60,60,0.04);
+    border-color: rgba(255,60,60,0.1);
+  }
+  .mbet-card.open-bet {
+    border-left-color: var(--warn);
+    background: rgba(255,170,0,0.04);
+    border-color: rgba(255,170,0,0.12);
+  }
+  .mbet-card.nobet {
+    border-left-color: rgba(100,120,140,0.4);
+    opacity: 0.72;
+  }
+  .mbet-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 11px 5px;
+  }
+  .mbet-dir {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+  }
+  .mbet-dir.up   { color: var(--accent); }
+  .mbet-dir.down { color: var(--danger); }
+  .mbet-dir.neutral { color: var(--muted); }
+  .mbet-id {
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+  }
+  .mbet-time {
+    font-size: 9px;
+    color: rgba(255,255,255,0.35);
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .mbet-status-chip {
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 10px;
+    flex-shrink: 0;
+  }
+  .mbet-status-chip.win  { background: rgba(0,255,136,0.15); color: var(--accent); }
+  .mbet-status-chip.loss { background: rgba(255,60,60,0.15); color: var(--danger); }
+  .mbet-status-chip.open { background: rgba(255,170,0,0.15); color: var(--warn); }
+  .mbet-status-chip.skip { background: rgba(100,120,140,0.12); color: var(--muted); }
+  .mbet-status-chip.alert { background: rgba(0,170,255,0.12); color: var(--blue); }
+  .mbet-conf-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 11px 7px;
+  }
+  .mbet-conf-track {
+    flex: 1;
+    height: 4px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .mbet-conf-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.4s ease;
+  }
+  .mbet-conf-fill.up   { background: linear-gradient(90deg, rgba(0,255,136,0.5), var(--accent)); }
+  .mbet-conf-fill.down { background: linear-gradient(90deg, rgba(255,60,60,0.5), var(--danger)); }
+  .mbet-conf-fill.neutral { background: var(--muted); }
+  .mbet-conf-pct {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text);
+    flex-shrink: 0;
+    width: 32px;
+    text-align: right;
+  }
+  .mbet-details {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 6px 11px 8px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    background: rgba(0,0,0,0.12);
+  }
+  .mbet-detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    flex: 1;
+  }
+  .mbet-detail-item + .mbet-detail-item {
+    border-left: 1px solid rgba(255,255,255,0.05);
+    padding-left: 10px;
+    margin-left: 10px;
+  }
+  .mbet-detail-label {
+    font-size: 7px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+  }
+  .mbet-detail-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .mbet-detail-val.pos { color: var(--accent); }
+  .mbet-detail-val.neg { color: var(--danger); }
+  .mbet-detail-val.muted { color: var(--muted); font-size: 10px; }
+  .mbet-chips {
+    display: flex;
+    gap: 5px;
+    padding: 0 11px 8px;
+    flex-wrap: wrap;
+  }
+  .mbet-chip {
+    font-size: 7px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.45);
+  }
+  .mbet-chip.agree  { border-color: rgba(0,255,136,0.25); color: rgba(0,255,136,0.7); }
+  .mbet-chip.disagree { border-color: rgba(255,60,60,0.2); color: rgba(255,60,60,0.6); }
+  .mbet-chip.bull { border-color: rgba(0,255,136,0.2); color: rgba(0,255,136,0.6); }
+  .mbet-chip.bear { border-color: rgba(255,60,60,0.2); color: rgba(255,60,60,0.6); }
+  .mbet-chip.pyra { border-color: rgba(168,85,247,0.3); color: rgba(168,85,247,0.8); }
+
   @media (max-width: 600px) {
     .table-wrap { overflow-x: hidden; }
     .table-wrap table { display: none; }
@@ -1497,174 +1657,6 @@
       overflow-y: auto;
       padding: 2px 0 4px;
     }
-
-    /* ── CARD BASE ─────────────────────────────── */
-    .mbet-card {
-      display: flex;
-      flex-direction: column;
-      gap: 0;
-      background: rgba(255,255,255,0.025);
-      border: 1px solid rgba(255,255,255,0.06);
-      border-left: 3px solid var(--muted);
-      border-radius: 8px;
-      overflow: hidden;
-      transition: border-color 0.15s, background 0.15s;
-    }
-    .mbet-card.win  {
-      border-left-color: var(--accent);
-      background: rgba(0,255,136,0.04);
-      border-color: rgba(0,255,136,0.12);
-    }
-    .mbet-card.loss {
-      border-left-color: var(--danger);
-      background: rgba(255,60,60,0.04);
-      border-color: rgba(255,60,60,0.1);
-    }
-    .mbet-card.open-bet {
-      border-left-color: var(--warn);
-      background: rgba(255,170,0,0.04);
-      border-color: rgba(255,170,0,0.12);
-    }
-    .mbet-card.nobet {
-      border-left-color: rgba(100,120,140,0.4);
-      opacity: 0.72;
-    }
-
-    /* ── ROW 1: header ─────────────────────────── */
-    .mbet-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 9px 11px 5px;
-    }
-    .mbet-dir {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 12px;
-      font-weight: 900;
-      letter-spacing: 0.5px;
-      flex-shrink: 0;
-    }
-    .mbet-dir.up   { color: var(--accent); }
-    .mbet-dir.down { color: var(--danger); }
-    .mbet-dir.neutral { color: var(--muted); }
-    .mbet-id {
-      font-size: 9px;
-      color: var(--muted);
-      letter-spacing: 0.5px;
-      flex-shrink: 0;
-    }
-    .mbet-time {
-      font-size: 9px;
-      color: rgba(255,255,255,0.35);
-      margin-left: auto;
-      flex-shrink: 0;
-    }
-    .mbet-status-chip {
-      font-size: 8px;
-      font-weight: 700;
-      letter-spacing: 1.2px;
-      text-transform: uppercase;
-      padding: 2px 7px;
-      border-radius: 10px;
-      flex-shrink: 0;
-    }
-    .mbet-status-chip.win  { background: rgba(0,255,136,0.15); color: var(--accent); }
-    .mbet-status-chip.loss { background: rgba(255,60,60,0.15); color: var(--danger); }
-    .mbet-status-chip.open { background: rgba(255,170,0,0.15); color: var(--warn); }
-    .mbet-status-chip.skip { background: rgba(100,120,140,0.12); color: var(--muted); }
-    .mbet-status-chip.alert { background: rgba(0,170,255,0.12); color: var(--blue); }
-
-    /* ── ROW 2: confidence bar ─────────────────── */
-    .mbet-conf-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 0 11px 7px;
-    }
-    .mbet-conf-track {
-      flex: 1;
-      height: 4px;
-      background: rgba(255,255,255,0.07);
-      border-radius: 3px;
-      overflow: hidden;
-    }
-    .mbet-conf-fill {
-      height: 100%;
-      border-radius: 3px;
-      transition: width 0.4s ease;
-    }
-    .mbet-conf-fill.up   { background: linear-gradient(90deg, rgba(0,255,136,0.5), var(--accent)); }
-    .mbet-conf-fill.down { background: linear-gradient(90deg, rgba(255,60,60,0.5), var(--danger)); }
-    .mbet-conf-fill.neutral { background: var(--muted); }
-    .mbet-conf-pct {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 10px;
-      font-weight: 700;
-      color: var(--text);
-      flex-shrink: 0;
-      width: 32px;
-      text-align: right;
-    }
-
-    /* ── ROW 3: extra data (bets only) ─────────── */
-    .mbet-details {
-      display: flex;
-      align-items: center;
-      gap: 0;
-      padding: 6px 11px 8px;
-      border-top: 1px solid rgba(255,255,255,0.05);
-      background: rgba(0,0,0,0.12);
-    }
-    .mbet-detail-item {
-      display: flex;
-      flex-direction: column;
-      gap: 1px;
-      flex: 1;
-    }
-    .mbet-detail-item + .mbet-detail-item {
-      border-left: 1px solid rgba(255,255,255,0.05);
-      padding-left: 10px;
-      margin-left: 10px;
-    }
-    .mbet-detail-label {
-      font-size: 7px;
-      font-weight: 700;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      color: rgba(255,255,255,0.3);
-    }
-    .mbet-detail-val {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--text);
-    }
-    .mbet-detail-val.pos { color: var(--accent); }
-    .mbet-detail-val.neg { color: var(--danger); }
-    .mbet-detail-val.muted { color: var(--muted); font-size: 10px; }
-
-    /* ── CHIPS row (XGB + MTF alignment) ───────── */
-    .mbet-chips {
-      display: flex;
-      gap: 5px;
-      padding: 0 11px 8px;
-      flex-wrap: wrap;
-    }
-    .mbet-chip {
-      font-size: 7px;
-      font-weight: 700;
-      letter-spacing: 0.8px;
-      text-transform: uppercase;
-      padding: 2px 6px;
-      border-radius: 4px;
-      border: 1px solid rgba(255,255,255,0.08);
-      color: rgba(255,255,255,0.45);
-    }
-    .mbet-chip.agree  { border-color: rgba(0,255,136,0.25); color: rgba(0,255,136,0.7); }
-    .mbet-chip.disagree { border-color: rgba(255,60,60,0.2); color: rgba(255,60,60,0.6); }
-    .mbet-chip.bull { border-color: rgba(0,255,136,0.2); color: rgba(0,255,136,0.6); }
-    .mbet-chip.bear { border-color: rgba(255,60,60,0.2); color: rgba(255,60,60,0.6); }
-    .mbet-chip.pyra { border-color: rgba(168,85,247,0.3); color: rgba(168,85,247,0.8); }
   }
 
   /* TASK 6 — Stats row compatta su mobile */
