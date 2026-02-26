@@ -16,10 +16,7 @@ LOG_FILE = "/tmp/btcbot_n8n_backup.log"
 BACKUP_DIR = os.path.expanduser("~/btcbot_backups/n8n-workflows/btc-bot-n8n-backup")
 
 N8N_API_URL = "https://mattiacalastri.app.n8n.cloud"
-N8N_API_KEY = os.environ.get(
-    "N8N_API_KEY",
-    "REDACTED_N8N_CLOUD_API_KEY"
-)
+N8N_API_KEY = os.environ.get("N8N_API_KEY", "")
 
 # Lista workflow: (id, nome_file)
 WORKFLOWS = [
