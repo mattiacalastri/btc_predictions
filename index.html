@@ -5315,9 +5315,19 @@ function renderCosts(d) {
   document.getElementById('costKpiClaudeApiSub').textContent   = `${ca.monthly_calls ?? 0} call · ${ca.model ?? '—'}`.replace('claude-','').replace('-20251001','');
   document.getElementById('costKpiClaudeCodeVal').textContent  = cc.cost_usd > 0 ? fmtUsd(cc.cost_usd) : '—';
   document.getElementById('costKpiClaudeCodeSub').textContent  = cc.cost_usd > 0 ? 'impostato manualmente' : 'set CLAUDE_CODE_MONTHLY_USD';
-  const daysLeft = d.railway?.days_left ?? null;
   document.getElementById('costKpiRailwayVal').textContent     = fmtUsd(d.railway?.cost_usd);
-  document.getElementById('costKpiRailwaySub').textContent     = daysLeft != null ? `piano ${d.railway?.plan ?? '—'} · ${daysLeft}d left` : `piano ${d.railway?.plan ?? '—'}`;
+  document.getElementById('costKpiRailwaySub').textContent     = `piano ${d.railway?.plan ?? '—'} · auto-renew`;
+
+  // Email expiry warning (⚠️ if < 30 days)
+  const em = d.hostinger_email || {};
+  const emailExpiry = em.expires ? new Date(em.expires) : null;
+  const emailDaysLeft = emailExpiry ? Math.ceil((emailExpiry - new Date()) / 86400000) : null;
+  const emailWarning = emailDaysLeft !== null && emailDaysLeft < 30 ? ` ⚠️ ${emailDaysLeft}d` : '';
+
+  // Domain expiry info
+  const domExpiry = d.domain?.expires ? new Date(d.domain.expires) : null;
+  const domDaysLeft = domExpiry ? Math.ceil((domExpiry - new Date()) / 86400000) : null;
+  const domSub = domDaysLeft !== null ? `Hostinger · scade in ${domDaysLeft}d` : 'Hostinger · 1 year';
 
   // Breakdown table
   const total = d.total_usd || 1;
@@ -5326,13 +5336,15 @@ function renderCosts(d) {
       usd: d.kraken_fees?.total_usd ?? 0, type: 'REALE', color: '#ffaa00' },
     { name: 'Hostinger VPS', logo: 'HST', sub: `${d.hostinger_vps?.plan ?? 'KVM1'} · n8n self-hosted · unlimited exec`,
       usd: d.hostinger_vps?.cost_usd ?? 0, type: 'PIANO', color: '#ff6b35' },
-    { name: 'btcpredictor.io', logo: '.io', sub: `${d.domain?.registrar ?? 'Hostinger'} · ${d.domain?.period ?? '1 year'}`,
+    { name: 'btcpredictor.io', logo: '.io', sub: domSub,
       usd: d.domain?.cost_usd ?? 0,        type: 'PIANO', color: '#00aaff' },
+    { name: `Email signal@${emailWarning}`, logo: '✉', sub: `${em.plan ?? 'Starter Email'} · ${em.expires ?? ''}`,
+      usd: em.cost_usd ?? 0,               type: 'PIANO', color: emailDaysLeft !== null && emailDaysLeft < 30 ? '#ff4444' : '#00cccc' },
     { name: 'Claude API',     logo: 'CLA', sub: `${ca.monthly_calls ?? 0} call · ${(ca.avg_input_tokens ?? 0)/1000}k in + ${ca.avg_output_tokens ?? 0} out token`,
       usd: ca.cost_usd ?? 0,              type: 'REALE', color: '#aa66ff' },
     { name: 'Claude Code',    logo: 'CLI', sub: cc.cost_usd > 0 ? 'spese sviluppo (sessioni CLI)' : 'aggiungi env CLAUDE_CODE_MONTHLY_USD',
       usd: cc.cost_usd ?? 0,              type: cc.cost_usd > 0 ? 'REALE' : 'ND',    color: '#e5251b' },
-    { name: 'Railway',        logo: 'RLY', sub: daysLeft != null ? `piano ${d.railway?.plan ?? '—'} · ${daysLeft}d left` : `piano ${d.railway?.plan ?? '—'}`,
+    { name: 'Railway',        logo: 'RLY', sub: `piano ${d.railway?.plan ?? '—'} · auto-renew mensile`,
       usd: d.railway?.cost_usd ?? 0,      type: 'PIANO', color: '#8866ff' },
     { name: 'Supabase',       logo: 'SB',  sub: `${d.supabase?.row_count ?? 0} righe · piano free`,
       usd: d.supabase?.cost_usd ?? 0,     type: 'PIANO', color: '#3ecf8e' },

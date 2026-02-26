@@ -1834,22 +1834,27 @@ def costs():
         claude_code_cost   = 0.0
         claude_code_source = "set ANTHROPIC_TOTAL_SPEND_USD or CLAUDE_CODE_MONTHLY_USD"
 
-    # ── 6. Railway (Hobby $5/mo) ──────────────────────────────────────────────
+    # ── 6. Railway (Hobby $5/mo, auto-renew monthly) ──────────────────────────
     railway_plan = os.environ.get("RAILWAY_PLAN", "hobby").lower()
     railway_cost = 5.0 if railway_plan == "hobby" else 0.0
-    railway_days_left = int(os.environ.get("RAILWAY_DAYS_LEFT", "0"))
 
     # ── 7. Hostinger VPS (n8n self-hosted) ───────────────────────────────────
     hostinger_vps_eur = float(os.environ.get("HOSTINGER_VPS_MONTHLY_EUR", "4.99"))
     hostinger_vps_usd = round(hostinger_vps_eur * 1.08, 2)  # EUR→USD approx
 
-    # ── 8. Dominio btcpredictor.io ────────────────────────────────────────────
-    domain_yearly_eur = float(os.environ.get("DOMAIN_YEARLY_EUR", "29.99"))
+    # ── 8. Dominio btcpredictor.io (.io renewal incl. taxes) ─────────────────
+    # Renewal 2027-02-25: €63.99 + €14.08 taxes = €78.07/yr
+    domain_yearly_eur = float(os.environ.get("DOMAIN_YEARLY_EUR", "78.07"))
     domain_monthly_usd = round(domain_yearly_eur / 12 * 1.08, 2)
+
+    # ── 9. Hostinger Business Email (signal@btcpredictor.io) ─────────────────
+    # Trial expiry 2026-03-27: €5.40 + €1.19 taxes = €6.59/yr
+    email_yearly_eur = float(os.environ.get("HOSTINGER_EMAIL_YEARLY_EUR", "6.59"))
+    email_monthly_usd = round(email_yearly_eur / 12 * 1.08, 2)
 
     total = round(
         kraken_fees_total + n8n_cost + claude_api_cost + claude_code_cost
-        + railway_cost + hostinger_vps_usd + domain_monthly_usd,
+        + railway_cost + hostinger_vps_usd + domain_monthly_usd + email_monthly_usd,
         4
     )
 
@@ -1886,6 +1891,14 @@ def costs():
             "name": "btcpredictor.io",
             "yearly_eur": domain_yearly_eur,
             "cost_usd": domain_monthly_usd,
+            "expires": "2027-02-25",
+        },
+        "hostinger_email": {
+            "plan": "Starter Business Email",
+            "yearly_eur": email_yearly_eur,
+            "cost_usd": email_monthly_usd,
+            "expires": "2026-03-27",
+            "note": "signal@btcpredictor.io · trial expiring soon",
         },
         "claude_api": {
             "model": claude_model,
@@ -1904,7 +1917,6 @@ def costs():
         "railway": {
             "plan": railway_plan,
             "cost_usd": railway_cost,
-            "days_left": railway_days_left,
         },
         "total_usd": total,
         "cached": cached,
