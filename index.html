@@ -1,13 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-K2E2B4FVQ5"></script>
+<!-- Google Analytics 4 — consent-based (GDPR) -->
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-K2E2B4FVQ5');
+  // Default: deny analytics until user consents
+  gtag('consent', 'default', {
+    'analytics_storage': 'denied'
+  });
+  // If user already consented in a previous session, activate immediately
+  (function(){
+    if (localStorage.getItem('btcp_ga_consent') === 'granted') {
+      gtag('consent', 'update', { 'analytics_storage': 'granted' });
+      var s = document.createElement('script');
+      s.async = true;
+      s.src = 'https://www.googletagmanager.com/gtag/js?id=G-K2E2B4FVQ5';
+      document.head.appendChild(s);
+      gtag('js', new Date());
+      gtag('config', 'G-K2E2B4FVQ5');
+    }
+  })();
 </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1931,6 +1944,198 @@
   body.war-room .filter-btn { border-color: #333; color: #555; }
   body.war-room .filter-btn.active { background: #00ff41; color: #000; border-color: #00ff41; }
   body.war-room #signal-search { background: #050505; border-color: #333; color: #00ff41; }
+/* ── MULTI-POSITION TABS ── */
+.lp-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: -1px;
+  position: relative;
+  z-index: 2;
+}
+.lp-tab-btn {
+  padding: 6px 16px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Space Mono', monospace;
+}
+.lp-tab-btn:first-child { border-radius: 4px 0 0 0; }
+.lp-tab-btn:last-child  { border-radius: 0 4px 0 0; }
+.lp-tab-btn.active {
+  color: var(--accent);
+  border-color: rgba(0,255,136,0.4);
+  border-bottom-color: var(--card);
+  background: var(--card);
+}
+.lp-tab-btn .lp-tab-pnl { font-size: 8px; margin-left: 6px; }
+.lp-tab-btn .lp-tab-pnl.pos { color: var(--accent); }
+.lp-tab-btn .lp-tab-pnl.neg { color: var(--danger); }
+/* ── SATOSHI SCULPTURE ───────────────────────────────────────────────── */
+.satoshi-kpi-wrapper {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.satoshi-kpi-wrapper .kpi-grid {
+  flex: 1;
+  margin-bottom: 0;
+}
+.satoshi-sculpture {
+  flex: 0 0 180px;
+  background: var(--card);
+  border: 1px solid rgba(0,255,136,0.2);
+  box-shadow: 0 0 32px rgba(0,255,136,0.06), inset 0 0 40px rgba(0,255,136,0.03);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 16px;
+  position: relative;
+  overflow: hidden;
+  min-height: 200px;
+}
+.satoshi-sculpture::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0,255,136,0.6), transparent);
+  animation: shimmer 3s linear infinite;
+}
+.satoshi-bust-svg {
+  width: 100px;
+  height: 110px;
+  filter: drop-shadow(0 0 8px rgba(0,255,136,0.5));
+  animation: satoshi-float 4s ease-in-out infinite;
+}
+@keyframes satoshi-float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-6px); }
+}
+.satoshi-scanlines {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0,255,136,0.015) 3px,
+    rgba(0,255,136,0.015) 4px
+  );
+  pointer-events: none;
+}
+.satoshi-name {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-top: 10px;
+  text-align: center;
+  font-family: 'Space Mono', monospace;
+}
+.satoshi-sub {
+  font-size: 7px;
+  letter-spacing: 1px;
+  color: var(--muted);
+  margin-top: 4px;
+  text-align: center;
+  font-family: 'Space Mono', monospace;
+}
+.satoshi-btc-glow {
+  font-size: 22px;
+  color: var(--accent);
+  text-shadow: 0 0 20px rgba(0,255,136,0.8), 0 0 40px rgba(0,255,136,0.4);
+  margin-bottom: 4px;
+  animation: pulse 2s ease-in-out infinite;
+  font-family: 'Syne', sans-serif;
+}
+@media (max-width: 900px) {
+  .satoshi-kpi-wrapper { flex-direction: column; }
+  .satoshi-sculpture { flex: none; width: 100%; min-height: 100px; flex-direction: row; gap: 16px; padding: 12px 16px; }
+  .satoshi-bust-svg { width: 60px; height: 66px; }
+  .satoshi-btc-glow { margin-bottom: 0; font-size: 16px; }
+}
+/* ── GDPR COOKIE BANNER ─────────────────────────────────────────────── */
+#cookieBanner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  background: rgba(10,14,26,0.97);
+  border-top: 1px solid rgba(0,255,136,0.2);
+  box-shadow: 0 -4px 32px rgba(0,255,136,0.06);
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  backdrop-filter: blur(8px);
+  animation: slideUpBanner 0.4s ease;
+  flex-wrap: wrap;
+}
+@keyframes slideUpBanner {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+#cookieBanner.hidden { display: none; }
+.cookie-text {
+  font-size: 9px;
+  color: var(--muted);
+  font-family: 'Space Mono', monospace;
+  letter-spacing: 0.5px;
+  line-height: 1.6;
+  flex: 1;
+  min-width: 200px;
+}
+.cookie-text a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 700;
+}
+.cookie-text a:hover { text-decoration: underline; }
+.cookie-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.btn-cookie-accept {
+  padding: 7px 18px;
+  background: var(--accent);
+  color: #000;
+  border: none;
+  font-family: 'Space Mono', monospace;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.btn-cookie-accept:hover { opacity: 0.85; }
+.btn-cookie-decline {
+  padding: 7px 14px;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  font-family: 'Space Mono', monospace;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+.btn-cookie-decline:hover { color: var(--text); border-color: var(--muted); }
 </style>
 </head>
 <body>
@@ -2213,6 +2418,7 @@
 
   <!-- ⬡ LIVE POSITION WIDGET -->
   <div id="livePositionWidget" style="display:none;margin-bottom:16px">
+    <div class="lp-tabs" id="lpTabs" style="display:none"></div>
     <div class="live-pos-card">
       <!-- LEFT: position info -->
       <div class="lp-left">
@@ -2326,7 +2532,47 @@
     </div>
   </div>
 
-  <!-- 9 KPI tiles -->
+  <!-- 9 KPI tiles + Satoshi Sculpture -->
+  <div class="satoshi-kpi-wrapper">
+  <div class="satoshi-sculpture" id="satoshiSculpture">
+    <div class="satoshi-scanlines"></div>
+    <div class="satoshi-btc-glow">₿</div>
+    <svg class="satoshi-bust-svg" viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Scanlines overlay -->
+      <line x1="0" y1="20" x2="100" y2="20" stroke="#00ff88" stroke-width="0.3" opacity="0.15"/>
+      <line x1="0" y1="30" x2="100" y2="30" stroke="#00ff88" stroke-width="0.3" opacity="0.15"/>
+      <line x1="0" y1="40" x2="100" y2="40" stroke="#00ff88" stroke-width="0.3" opacity="0.15"/>
+      <line x1="0" y1="50" x2="100" y2="50" stroke="#00ff88" stroke-width="0.3" opacity="0.15"/>
+      <line x1="0" y1="60" x2="100" y2="60" stroke="#00ff88" stroke-width="0.3" opacity="0.15"/>
+      <line x1="0" y1="70" x2="100" y2="70" stroke="#00ff88" stroke-width="0.3" opacity="0.15"/>
+      <line x1="0" y1="80" x2="100" y2="80" stroke="#00ff88" stroke-width="0.3" opacity="0.15"/>
+      <line x1="0" y1="90" x2="100" y2="90" stroke="#00ff88" stroke-width="0.3" opacity="0.15"/>
+      <!-- Head (ellipse) -->
+      <ellipse cx="50" cy="25" rx="17" ry="19" stroke="#00ff88" stroke-width="1.2" fill="none" opacity="0.85"/>
+      <!-- Face details: eyes -->
+      <ellipse cx="43" cy="22" rx="2.5" ry="2" stroke="#00ff88" stroke-width="0.8" fill="none" opacity="0.6"/>
+      <ellipse cx="57" cy="22" rx="2.5" ry="2" stroke="#00ff88" stroke-width="0.8" fill="none" opacity="0.6"/>
+      <!-- Mouth (neutral line) -->
+      <line x1="44" y1="30" x2="56" y2="30" stroke="#00ff88" stroke-width="0.8" opacity="0.4"/>
+      <!-- Neck -->
+      <line x1="45" y1="44" x2="43" y2="52" stroke="#00ff88" stroke-width="1" opacity="0.5"/>
+      <line x1="55" y1="44" x2="57" y2="52" stroke="#00ff88" stroke-width="1" opacity="0.5"/>
+      <!-- Shoulder line (suit) -->
+      <path d="M15 75 Q15 58 30 52 Q40 48 50 48 Q60 48 70 52 Q85 58 85 75" stroke="#00ff88" stroke-width="1.2" fill="none" opacity="0.75"/>
+      <!-- Jacket lapels -->
+      <path d="M50 52 L44 68 L38 60" stroke="#00ff88" stroke-width="0.8" fill="none" opacity="0.5"/>
+      <path d="M50 52 L56 68 L62 60" stroke="#00ff88" stroke-width="0.8" fill="none" opacity="0.5"/>
+      <!-- Tie/center line -->
+      <line x1="50" y1="52" x2="50" y2="80" stroke="#00ff88" stroke-width="0.6" opacity="0.35"/>
+      <!-- Question mark on face (anonymous Satoshi) -->
+      <text x="50" y="35" font-size="10" fill="#00ff88" text-anchor="middle" font-family="monospace" opacity="0.45" font-weight="700">?</text>
+      <!-- Base pedestal -->
+      <rect x="30" y="105" width="40" height="4" rx="1" stroke="#00ff88" stroke-width="0.8" fill="none" opacity="0.4"/>
+      <line x1="50" y1="100" x2="50" y2="105" stroke="#00ff88" stroke-width="1" opacity="0.3"/>
+    </svg>
+    <div class="satoshi-name">Satoshi Nakamoto</div>
+    <div class="satoshi-sub">Bitcoin · 2009 · Anonymous</div>
+  </div>
   <div class="kpi-grid">
     <div class="kpi blue">
       <div class="kpi-label">BTC Price</div>
@@ -2395,6 +2641,7 @@
       <div class="kpi-sub">wins/losses</div>
     </div>
   </div>
+  </div><!-- /.satoshi-kpi-wrapper -->
 
   <!-- ═══════════════════════════════════════════
        CUMULATIVE EQUITY CURVE
@@ -3859,11 +4106,39 @@ let _liveOpenBet = null;
 
 function renderLivePosition() {
   if (!allData || !allData.length) return;
-  const openBet = allData.find(d => d.bet_taken === true && d.correct === null);
-  const widget  = document.getElementById('livePositionWidget');
-  if (!openBet) { widget.style.display = 'none'; _liveOpenBet = null; return; }
-  _liveOpenBet = openBet;
+  const openBets = allData.filter(d => d.bet_taken === true && d.correct === null);
+  const widget   = document.getElementById('livePositionWidget');
+  const lpTabs   = document.getElementById('lpTabs');
+  if (!openBets.length) { widget.style.display = 'none'; _liveOpenBet = null; if(lpTabs) lpTabs.style.display='none'; return; }
+
+  // Select which bet to display (track via dataset)
+  let activeIdx = parseInt(widget.dataset.activeTab || '0');
+  if (activeIdx >= openBets.length) activeIdx = 0;
+  const openBet = openBets[activeIdx];
+  _liveOpenBet  = openBet;
   widget.style.display = 'block';
+
+  // Tabs: show only if 2+ open bets
+  if (lpTabs) {
+    if (openBets.length > 1) {
+      lpTabs.style.display = 'flex';
+      lpTabs.innerHTML = openBets.map(function(bet, i) {
+        const cur2  = lastBtcPrice || parseFloat(bet.entry_fill_price || bet.btc_price_entry || 0);
+        const entry2 = parseFloat(bet.entry_fill_price || bet.btc_price_entry || 0);
+        const dir2   = bet.direction || 'UP';
+        const pnl2   = cur2 && entry2 ? (dir2==='UP' ? (cur2-entry2)*parseFloat(bet.bet_size||0) : (entry2-cur2)*parseFloat(bet.bet_size||0)) : 0;
+        const pnlStr = (pnl2>=0?'+':'')+pnl2.toFixed(2);
+        const pnlClass = pnl2>=0?'pos':'neg';
+        return '<button class="lp-tab-btn'+(i===activeIdx?' active':'')
+          +'" onclick="window._switchLpTab('+i+')">'
+          +'#'+bet.id+' '+(dir2==='UP'?'↑':'↓')
+          +'<span class="lp-tab-pnl '+pnlClass+'">$'+pnlStr+'</span>'
+          +'</button>';
+      }).join('');
+    } else {
+      lpTabs.style.display = 'none';
+    }
+  }
 
   const entry   = parseFloat(openBet.entry_fill_price || openBet.btc_price_entry || 0);
   const sl      = parseFloat(openBet.sl_price || 0);
@@ -3926,6 +4201,12 @@ function renderLivePosition() {
   else if (pos) aiText.textContent = 'In profit — HOLD?';
   else          aiText.textContent = 'In loss — evaluating';
 }
+
+window._switchLpTab = function(idx) {
+  const widget = document.getElementById('livePositionWidget');
+  if (widget) widget.dataset.activeTab = idx;
+  renderLivePosition();
+};
 
 // ── SIGNALS ──────────────────────────────────────────────────────────────────
 
@@ -7332,5 +7613,48 @@ window.addEventListener('load', function() {
 </div>
 <!-- KPI TOOLTIP -->
 <div id="kpiTooltip"></div>
+
+  <!-- GDPR Cookie Banner -->
+  <div id="cookieBanner" class="hidden">
+    <div class="cookie-text">
+      ⚡ BTCPREDICTOR.IO usa Google Analytics per misurare le performance del sistema. Nessun dato di trading o finanziario viene condiviso.
+      <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Privacy Policy</a>
+    </div>
+    <div class="cookie-actions">
+      <button class="btn-cookie-decline" onclick="cookieDecline()">DECLINE</button>
+      <button class="btn-cookie-accept" onclick="cookieAccept()">ACCEPT ANALYTICS</button>
+    </div>
+  </div>
+
+  <script>
+  (function() {
+    var consent = localStorage.getItem('btcp_ga_consent');
+    if (!consent) {
+      // Show banner after 1.5s (non-invasive)
+      setTimeout(function() {
+        var b = document.getElementById('cookieBanner');
+        if (b) b.classList.remove('hidden');
+      }, 1500);
+    }
+  })();
+
+  window.cookieAccept = function() {
+    localStorage.setItem('btcp_ga_consent', 'granted');
+    document.getElementById('cookieBanner').classList.add('hidden');
+    // Load GA4 now
+    gtag('consent', 'update', { 'analytics_storage': 'granted' });
+    var s = document.createElement('script');
+    s.async = true;
+    s.src = 'https://www.googletagmanager.com/gtag/js?id=G-K2E2B4FVQ5';
+    document.head.appendChild(s);
+    gtag('js', new Date());
+    gtag('config', 'G-K2E2B4FVQ5');
+  };
+
+  window.cookieDecline = function() {
+    localStorage.setItem('btcp_ga_consent', 'denied');
+    document.getElementById('cookieBanner').classList.add('hidden');
+  };
+  </script>
 </body>
 </html>
