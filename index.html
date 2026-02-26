@@ -1611,58 +1611,94 @@
   <div class="sources-strip">
     <div class="sources-label">AI FEEDS<br><em>13</em> SOURCES</div>
     <div class="sources-list">
-      <div class="src-chip" style="--src-color:#00aaff" title="BTC/USD spot price — Kraken Futures">
+      <div class="src-chip" style="--src-color:#00aaff" onclick="showSrcModal(this)"
+           data-src-modal-title="KRAKEN FUTURES — Price"
+           data-src-modal-desc="Source: Kraken Futures (PF_XBTUSD)&lt;br&gt;Provides: BTC/USD perpetual futures mark price, margin balance, available equity, wallet value.&lt;br&gt;Used for: account summary, position monitoring, SL/TP checks, trade execution.">
         <div class="src-dot"></div>
         <div class="src-info"><span class="src-name">KRAKEN</span><span class="src-cat">PRICE</span></div>
       </div>
-      <div class="src-chip" style="--src-color:#3399ee" title="BTC OHLCV candlesticks 5m — Binance">
+      <div class="src-chip" style="--src-color:#3399ee" onclick="showSrcModal(this)"
+           data-src-modal-title="BINANCE FUTURES — Klines"
+           data-src-modal-desc="Source: Binance Futures API (fapi.binance.com)&lt;br&gt;Provides: 300 OHLCV candlesticks at 5-minute resolution.&lt;br&gt;Used for: EMA9/EMA21/RSI14 calculation, ATR/ADX volatility, pattern analysis, XGBoost features.">
         <div class="src-dot"></div>
         <div class="src-info"><span class="src-name">BINANCE</span><span class="src-cat">KLINES</span></div>
       </div>
-      <div class="src-chip" style="--src-color:#00d4aa" title="Market cap, volume, dominance — CoinGecko">
+      <div class="src-chip" style="--src-color:#00d4aa" onclick="showSrcModal(this)"
+           data-src-modal-title="COINGECKO — Market Data"
+           data-src-modal-desc="Source: CoinGecko API (api.coingecko.com)&lt;br&gt;Provides: BTC market cap, 24h volume, price change %, market dominance, ATH distance.&lt;br&gt;Used for: macro market context in the AI prompt.">
         <div class="src-dot"></div>
         <div class="src-info"><span class="src-name">COINGECKO</span><span class="src-cat">MARKET</span></div>
       </div>
-      <div class="src-chip" style="--src-color:#aa66ff" title="Perpetual funding rate — Kraken Futures">
+      <div class="src-chip" style="--src-color:#aa66ff" onclick="showSrcModal(this)"
+           data-src-modal-title="BINANCE — Funding Rate"
+           data-src-modal-desc="Source: Binance Futures premiumIndex (fapi.binance.com)&lt;br&gt;Provides: perpetual futures funding rate (refreshed every 8h).&lt;br&gt;Signal: EXTREME_POSITIVE = over-leveraged longs (bearish bias), NEGATIVE = shorts dominant (bullish bias).">
         <div class="src-dot"></div>
         <div class="src-info"><span class="src-name">FUNDING RATE</span><span class="src-cat">DERIVATIVES</span></div>
       </div>
-      <div class="src-chip" style="--src-color:#cc88ff" title="Long/Short ratio — market positioning">
+      <div class="src-chip" style="--src-color:#cc88ff" onclick="showSrcModal(this)"
+           data-src-modal-title="BINANCE — Long/Short Ratio"
+           data-src-modal-desc="Source: Binance Futures globalLongShortAccountRatio (5m period)&lt;br&gt;Provides: ratio of accounts holding long vs short positions.&lt;br&gt;Signal: EXTREME_LONG (&gt;0.7) = crowded longs, potential reversal; EXTREME_SHORT (&lt;0.3) = crowded shorts.">
         <div class="src-dot"></div>
         <div class="src-info"><span class="src-name">L/S RATIO</span><span class="src-cat">DERIVATIVES</span></div>
       </div>
-      <div class="src-chip" style="--src-color:#00ff88" title="Crypto Fear &amp; Greed Index (0–100)">
+      <div class="src-chip" style="--src-color:#00ff88" onclick="showSrcModal(this)"
+           data-src-modal-title="ALTERNATIVE.ME — Fear &amp; Greed"
+           data-src-modal-desc="Source: Alternative.me Crypto Fear &amp; Greed Index (api.alternative.me)&lt;br&gt;Provides: daily sentiment index 0–100 combining volatility, volume, social media, dominance.&lt;br&gt;Signal: &lt;25 = Extreme Fear (contrarian buy), &gt;75 = Extreme Greed (contrarian sell).">
         <div class="src-dot"></div>
         <div class="src-info"><span class="src-name">FEAR &amp; GREED</span><span class="src-cat">SENTIMENT</span></div>
       </div>
-      <div class="src-chip" style="--src-color:#ff9500" title="Latest crypto news feed — CryptoCompare">
+      <div class="src-chip" style="--src-color:#ff9500" onclick="showSrcModal(this)"
+           data-src-modal-title="CRYPTOCOMPARE — News"
+           data-src-modal-desc="Source: CryptoCompare News API (min-api.cryptocompare.com)&lt;br&gt;Provides: 2 most recent crypto news articles with title, body, sentiment score.&lt;br&gt;Used for: news sentiment analysis in AI prompt, real-time market narrative.">
         <div class="src-dot"></div>
         <div class="src-info"><span class="src-name">CRYPTOCMP</span><span class="src-cat">NEWS</span></div>
       </div>
-      <div class="src-chip" style="--src-color:#ffcc00" title="Latest articles RSS — CoinDesk">
+      <div class="src-chip" style="--src-color:#ffcc00" onclick="showSrcModal(this)"
+           data-src-modal-title="COINDESK — News RSS"
+           data-src-modal-desc="Source: CoinDesk RSS feed (feeds.feedburner.com/CoinDesk)&lt;br&gt;Provides: 3 most recent articles from the leading crypto journalism outlet.&lt;br&gt;Used for: institutional narrative, regulatory news, market-moving events.">
         <div class="src-dot"></div>
         <div class="src-info"><span class="src-name">COINDESK</span><span class="src-cat">NEWS</span></div>
       </div>
-      <div class="src-chip" style="--src-color:#ff6b35" title="Italian financial news RSS — Sole24Ore">
+      <div class="src-chip" style="--src-color:#ff6b35" onclick="showSrcModal(this)"
+           data-src-modal-title="IL SOLE 24 ORE — News RSS"
+           data-src-modal-desc="Source: Il Sole 24 Ore RSS — Italian financial newspaper&lt;br&gt;Provides: 2 most recent financial news articles (broader macro context: ECB, rates, economy).&lt;br&gt;Used for: European macro sentiment that impacts risk assets including BTC.">
         <div class="src-dot"></div>
         <div class="src-info"><span class="src-name">SOLE24ORE</span><span class="src-cat">NEWS</span></div>
       </div>
-      <div class="src-chip" style="--src-color:#ff44aa" title="Historical signal patterns — Supabase Memory">
+      <div class="src-chip" style="--src-color:#ff44aa" onclick="showSrcModal(this)"
+           data-src-modal-title="PATTERN MEMORY — Supabase"
+           data-src-modal-desc="Source: Supabase btc_predictions table (internal)&lt;br&gt;Provides: last 3 similar market conditions from the bot's history — direction, confidence, outcome.&lt;br&gt;Used for: self-calibration. The bot learns from its own past decisions (Behavioral Data Engine).">
         <div class="src-dot"></div>
         <div class="src-info"><span class="src-name">PATTERNS</span><span class="src-cat">MEMORY</span></div>
       </div>
-      <div class="src-chip" style="--src-color:#e5251b" title="US financial &amp; markets news — CNBC Finance">
+      <div class="src-chip" style="--src-color:#e5251b" onclick="showSrcModal(this)"
+           data-src-modal-title="CNBC — Finance RSS"
+           data-src-modal-desc="Source: CNBC Finance RSS feed (cnbc.com)&lt;br&gt;Provides: 2 most recent US financial market headlines (equities, Fed, macro data).&lt;br&gt;Used for: cross-asset risk sentiment — US market moves often precede BTC moves.">
         <div class="src-dot"></div>
         <div class="src-info"><span class="src-name">CNBC</span><span class="src-cat">NEWS</span></div>
       </div>
-      <div class="src-chip" style="--src-color:#00ccff" title="Order book imbalance 5 livelli bid/ask — Kraken Futures">
+      <div class="src-chip" style="--src-color:#00ccff" onclick="showSrcModal(this)"
+           data-src-modal-title="BINANCE — Order Book Imbalance"
+           data-src-modal-desc="Source: Binance Futures /fapi/v1/depth (5 levels)&lt;br&gt;Provides: bid/ask volume imbalance at ±0.3% from mid-price.&lt;br&gt;Signal: imbalance &gt;0.6 = buy-side pressure (bullish), &lt;0.4 = sell-side pressure (bearish). High-frequency microstructure signal.">
         <div class="src-dot"></div>
         <div class="src-info"><span class="src-name">ORDER BOOK</span><span class="src-cat">MICROSTRUCTURE</span></div>
       </div>
-      <div class="src-chip" style="--src-color:#88ddff" title="EMA+RSI multi-timeframe 15m e 4h — Binance">
+      <div class="src-chip" style="--src-color:#88ddff" onclick="showSrcModal(this)"
+           data-src-modal-title="BINANCE — Multi-Timeframe Technical"
+           data-src-modal-desc="Source: Binance Futures klines (aggregated from 300 candles at 5m)&lt;br&gt;Provides: EMA9/EMA21/RSI14 on 15-minute and 4-hour timeframes. Consensus: STRONG_UP / BULLISH / NEUTRAL / BEARISH / STRONG_DOWN.&lt;br&gt;Used for: multi-timeframe trend alignment — confirms or weakens the 5m signal.">
         <div class="src-dot"></div>
         <div class="src-info"><span class="src-name">MULTI-TF</span><span class="src-cat">TECHNICAL</span></div>
       </div>
+    </div>
+  </div>
+
+  <!-- Source modal -->
+  <div id="srcModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;" onclick="closeSrcModal(event)">
+    <div style="background:var(--card);border:1px solid var(--border);padding:22px 26px;max-width:380px;width:90%;position:relative;border-radius:2px;">
+      <div id="srcModalColor" style="position:absolute;top:0;left:0;right:0;height:2px;"></div>
+      <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--accent);margin-bottom:8px;padding-right:24px;" id="srcModalTitle"></div>
+      <div style="font-size:11px;color:var(--text);line-height:1.7;" id="srcModalDesc"></div>
+      <button onclick="document.getElementById('srcModal').style.display='none'" style="position:absolute;top:12px;right:14px;background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;line-height:1;">✕</button>
     </div>
   </div>
 
@@ -1893,23 +1929,23 @@
   </div>
 
   <div class="stats-row">
-    <div class="stat-cell">
+    <div class="stat-cell" data-tip-title="Avg Confidence" data-tip="Media della confidence (probabilità stimata) assegnata dall AI a tutte le previsioni nel periodo selezionato. Valori >65% indicano segnali ad alta convinzione.">
       <div class="stat-cell-label">Avg Confidence</div>
       <div class="stat-cell-val" id="statConf" style="color:var(--blue)">—</div>
     </div>
-    <div class="stat-cell">
+    <div class="stat-cell" data-tip-title="Best Trade PnL" data-tip="Il singolo trade con il guadagno più alto in USD nel periodo. Misura il potenziale massimo del bot in una singola operazione.">
       <div class="stat-cell-label">Best Trade PnL</div>
       <div class="stat-cell-val" id="statBest" style="color:var(--accent)">—</div>
     </div>
-    <div class="stat-cell">
+    <div class="stat-cell" data-tip-title="Current Streak" data-tip="Streak attiva: numero di vittorie (W) o sconfitte (L) consecutive partendo dall ultima bet chiusa. Una lunga W-streak indica momentum positivo del modello.">
       <div class="stat-cell-label">Current Streak</div>
       <div class="stat-cell-val" id="statStreak" style="color:var(--text)">—</div>
     </div>
-    <div class="stat-cell">
+    <div class="stat-cell" data-tip-title="Avg Entry Slippage" data-tip="Differenza media tra il prezzo previsto e il prezzo di esecuzione reale. Slippage negativo = eseguito a prezzo peggiore del previsto. Valori <$5 sono accettabili.">
       <div class="stat-cell-label">Avg Entry Slippage</div>
       <div class="stat-cell-val" id="statSlippage" style="color:var(--warn)">—</div>
     </div>
-    <div class="stat-cell">
+    <div class="stat-cell" data-tip-title="Avg RR Ratio" data-tip="Risk/Reward medio: rapporto tra il guadagno atteso (TP) e la perdita rischiata (SL). Un valore >=2.0x significa che ogni dollaro rischiato punta a guadagnarne 2+.">
       <div class="stat-cell-label">Avg RR Ratio</div>
       <div class="stat-cell-val" id="statRR" style="color:var(--accent)">—</div>
     </div>
@@ -2782,8 +2818,18 @@
     <a href="https://polygonscan.com/address/0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;letter-spacing:1px" title="BTCBotAudit.sol — immutable prediction audit trail">0xe4661F…833a55 ↗</a>
   </div>
   <div class="config-hint">Table: <code>btc_predictions</code> · Capital: <code id="footerCapital">$20 USDC</code> · Refresh <code>60s</code></div>
-  <div class="footer-text" style="font-size:11px">
-    <span style="font-size:16px">✉</span> <a href="mailto:signal@btcpredictor.io" style="color:var(--accent);text-decoration:none;letter-spacing:1px">signal@btcpredictor.io</a>
+  <div class="footer-text" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+    <span><span style="font-size:16px">✉</span> <a href="mailto:signal@btcpredictor.io" style="color:var(--accent);text-decoration:none;letter-spacing:1px">signal@btcpredictor.io</a></span>
+    <span>
+      <a href="https://github.com/mattiacalastri/btc_predictions" target="_blank" rel="noopener" style="color:var(--muted);text-decoration:none;letter-spacing:1px;font-size:9px" title="Open source on GitHub">⬡ GITHUB ↗</a>
+    </span>
+    <span style="font-size:9px;color:var(--muted)">
+      <a href="/legal" style="color:var(--muted);text-decoration:none;letter-spacing:1px">LEGAL &amp; PRIVACY</a>
+    </span>
+  </div>
+  <div class="footer-text" style="font-size:8px;color:var(--muted);max-width:600px;line-height:1.6">
+    ⚠ NOT FINANCIAL ADVICE. This is an experimental algorithmic trading system for research purposes only.
+    Past performance does not guarantee future results. Trading involves substantial risk of loss. Use at your own risk.
   </div>
 </footer>
 
@@ -3471,6 +3517,7 @@ function render(data) {
   syncStoryHighlights();
   syncMobilePrimary();
   initTooltips();
+  repositionSignalLog();
   // renderMobileBetList already called inside renderTable() — no duplicate needed
 }
 
@@ -3567,6 +3614,45 @@ function renderTable(data) {
   }).join('');
   renderMobileBetList(data);
 }
+
+/* ── Source chip modal ── */
+function showSrcModal(chip) {
+  const modal = document.getElementById('srcModal');
+  const color = getComputedStyle(chip).getPropertyValue('--src-color').trim() || '#00ff88';
+  document.getElementById('srcModalTitle').textContent = chip.dataset.srcModalTitle || '';
+  document.getElementById('srcModalDesc').innerHTML  = chip.dataset.srcModalDesc  || '';
+  document.getElementById('srcModalColor').style.background = color;
+  modal.style.display = 'flex';
+}
+function closeSrcModal(e) {
+  if (e.target === document.getElementById('srcModal')) document.getElementById('srcModal').style.display = 'none';
+}
+
+/* ── Signal log mobile repositioning ── */
+function repositionSignalLog() {
+  const panel    = document.getElementById('signalLogPanel');
+  const kpiGrid  = document.querySelector('.kpi-grid');
+  const statsRow = document.querySelector('.stats-row');
+  const dashMain = document.getElementById('dashboardMain');
+  if (!panel || !kpiGrid || !statsRow || !dashMain) return;
+  if (window.innerWidth <= 900) {
+    // Move before stats-row (between kpi-grid and stats-row)
+    if (panel.parentElement !== kpiGrid.parentElement || panel.nextElementSibling !== statsRow) {
+      kpiGrid.parentElement.insertBefore(panel, statsRow);
+    }
+  } else {
+    // Restore inside dashboardMain after charts-grid
+    const chartsGrid = dashMain.querySelector('.charts-grid');
+    if (panel.parentElement !== dashMain) {
+      if (chartsGrid && chartsGrid.nextSibling) {
+        dashMain.insertBefore(panel, chartsGrid.nextSibling);
+      } else {
+        dashMain.appendChild(panel);
+      }
+    }
+  }
+}
+window.addEventListener('resize', repositionSignalLog);
 
 function initTooltips() {
   let tip = document.getElementById('globalTip');
@@ -3797,23 +3883,47 @@ function renderEquityCurve(chronoBets, totalPnl) {
     eqTip.style.cssText = 'position:fixed;background:rgba(8,12,25,0.95);border:1px solid rgba(0,255,136,0.3);color:#eee;font-size:10px;font-family:JetBrains Mono,monospace;padding:5px 10px;border-radius:2px;pointer-events:none;display:none;z-index:9999;white-space:nowrap;';
     document.body.appendChild(eqTip);
   }
-  svg.addEventListener('mousemove', e => {
+  // Create hover dot element in SVG (reuse or create)
+  let eqDot = svg.querySelector('.eq-hover-dot');
+  if (!eqDot) {
+    eqDot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    eqDot.setAttribute('class', 'eq-hover-dot');
+    eqDot.setAttribute('r', '5');
+    eqDot.setAttribute('stroke', 'rgba(0,0,0,0.6)');
+    eqDot.setAttribute('stroke-width', '1.5');
+    eqDot.style.display = 'none';
+    eqDot.style.pointerEvents = 'none';
+    svg.appendChild(eqDot);
+  }
+  function eqHandlePointer(clientX, clientY) {
     const rect = svg.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
+    const mx = clientX - rect.left;
     const pct = Math.max(0, Math.min(1, mx / rect.width));
     const idx = Math.round(pct * (points.length - 1));
     const pt  = points[idx];
     if (!pt) return;
+    const svgX = toX(idx);
+    const svgY = toY(pt.cum);
+    const dotColor = pt.cum >= 0 ? '#00ff88' : '#ff4466';
+    eqDot.setAttribute('cx', svgX.toFixed(1));
+    eqDot.setAttribute('cy', svgY.toFixed(1));
+    eqDot.setAttribute('fill', dotColor);
+    eqDot.style.display = '';
     const pnlSign = pt.cum >= 0 ? '+' : '';
     const pnlPct  = CAPITAL > 0 ? (pt.cum / CAPITAL * 100).toFixed(1) : '—';
     const pctSign = pt.cum >= 0 ? '+' : '';
-    eqTip.innerHTML = `Bet #${idx} &nbsp;|&nbsp; <span style="color:${pt.cum >= 0 ? '#00ff88' : '#ff4466'}">${pnlSign}$${pt.cum.toFixed(2)}</span> <span style="color:#888">(${pctSign}${pnlPct}%)</span>`;
+    eqTip.innerHTML = `Bet #${idx} &nbsp;|&nbsp; <span style="color:${dotColor}">${pnlSign}$${pt.cum.toFixed(2)}</span> <span style="color:#888">(${pctSign}${pnlPct}%)</span>`;
     eqTip.style.display = 'block';
-    eqTip.style.left = Math.min(e.clientX + 14, window.innerWidth - 220) + 'px';
-    eqTip.style.top  = (e.clientY - 36) + 'px';
-  });
-  svg.addEventListener('mouseleave', () => { eqTip.style.display = 'none'; });
+    eqTip.style.left = Math.min(clientX + 14, window.innerWidth - 220) + 'px';
+    eqTip.style.top  = Math.max(10, clientY - 56) + 'px';
+  }
+  svg.addEventListener('mousemove', e => eqHandlePointer(e.clientX, e.clientY));
+  svg.addEventListener('touchstart', e => { e.preventDefault(); eqHandlePointer(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
+  svg.addEventListener('touchmove',  e => { e.preventDefault(); eqHandlePointer(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
+  svg.addEventListener('touchend',   () => { eqTip.style.display = 'none'; eqDot.style.display = 'none'; });
+  svg.addEventListener('mouseleave', () => { eqTip.style.display = 'none'; eqDot.style.display = 'none'; });
   svg.style.cursor = 'crosshair';
+  svg.style.touchAction = 'none';
 }
 
 // ── CHARTS GRID FUNCTIONS ────────────────────────────────────────────────────
@@ -3857,12 +3967,15 @@ function renderRollingWinRate(chronoBets) {
   const W = 600, H = 100;
   const toX = i => (i / Math.max(closed.length - 1, 1)) * W;
   const toY = pct => H - (pct / 100) * (H - 10) - 5;
-  const wr10pts = [], wr20pts = [];
+  const wr10vals = [], wr20vals = [], wr10pts = [], wr20pts = [];
   closed.forEach((d, i) => {
     const s10 = closed.slice(Math.max(0, i - 9), i + 1);
     const s20 = closed.slice(Math.max(0, i - 19), i + 1);
-    wr10pts.push(`${toX(i).toFixed(1)},${toY(s10.filter(x => x.correct).length / s10.length * 100).toFixed(1)}`);
-    wr20pts.push(`${toX(i).toFixed(1)},${toY(s20.filter(x => x.correct).length / s20.length * 100).toFixed(1)}`);
+    const v10 = s10.filter(x => x.correct).length / s10.length * 100;
+    const v20 = s20.filter(x => x.correct).length / s20.length * 100;
+    wr10vals.push(v10); wr20vals.push(v20);
+    wr10pts.push(`${toX(i).toFixed(1)},${toY(v10).toFixed(1)}`);
+    wr20pts.push(`${toX(i).toFixed(1)},${toY(v20).toFixed(1)}`);
   });
   const line50Y = toY(50);
   svg.innerHTML = `
@@ -3871,6 +3984,49 @@ function renderRollingWinRate(chronoBets) {
     <polyline points="${wr20pts.join(' ')}" fill="none" stroke="var(--blue)" stroke-width="1.2" stroke-linejoin="round" opacity="0.6"/>
     <polyline points="${wr10pts.join(' ')}" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linejoin="round"/>
     <circle cx="${toX(closed.length-1).toFixed(1)}" cy="${wr10pts[wr10pts.length-1].split(',')[1]}" r="3" fill="var(--accent)"/>`;
+
+  // Add hover dot to SVG
+  const wrDot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  wrDot.setAttribute('r', '5');
+  wrDot.setAttribute('stroke', 'rgba(0,0,0,0.6)');
+  wrDot.setAttribute('stroke-width', '1.5');
+  wrDot.style.display = 'none';
+  wrDot.style.pointerEvents = 'none';
+  svg.appendChild(wrDot);
+
+  // Tooltip (reuse or create)
+  let wrTip = document.getElementById('wrTip');
+  if (!wrTip) {
+    wrTip = document.createElement('div');
+    wrTip.id = 'wrTip';
+    wrTip.style.cssText = 'position:fixed;background:rgba(8,12,25,0.95);border:1px solid rgba(0,255,136,0.3);color:#eee;font-size:10px;font-family:JetBrains Mono,monospace;padding:5px 10px;border-radius:2px;pointer-events:none;display:none;z-index:9999;white-space:nowrap;';
+    document.body.appendChild(wrTip);
+  }
+  function wrHandlePointer(clientX, clientY) {
+    const rect = svg.getBoundingClientRect();
+    const mx = clientX - rect.left;
+    const pct = Math.max(0, Math.min(1, mx / rect.width));
+    const idx = Math.round(pct * (closed.length - 1));
+    const v10 = wr10vals[idx], v20 = wr20vals[idx];
+    if (v10 === undefined) return;
+    const x = toX(idx), y = toY(v10);
+    const dotColor = v10 >= 50 ? 'var(--accent)' : 'var(--danger)';
+    wrDot.setAttribute('cx', x.toFixed(1));
+    wrDot.setAttribute('cy', y.toFixed(1));
+    wrDot.setAttribute('fill', dotColor);
+    wrDot.style.display = '';
+    wrTip.innerHTML = `Bet #${idx+1} &nbsp;|&nbsp; WR10: <span style="color:${dotColor}">${v10.toFixed(1)}%</span> &nbsp; WR20: <span style="color:var(--blue)">${v20.toFixed(1)}%</span>`;
+    wrTip.style.display = 'block';
+    wrTip.style.left = Math.min(clientX + 14, window.innerWidth - 240) + 'px';
+    wrTip.style.top  = Math.max(10, clientY - 56) + 'px';
+  }
+  svg.addEventListener('mousemove', e => wrHandlePointer(e.clientX, e.clientY));
+  svg.addEventListener('touchstart', e => { e.preventDefault(); wrHandlePointer(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
+  svg.addEventListener('touchmove',  e => { e.preventDefault(); wrHandlePointer(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
+  svg.addEventListener('touchend',   () => { wrTip.style.display = 'none'; wrDot.style.display = 'none'; });
+  svg.addEventListener('mouseleave', () => { wrTip.style.display = 'none'; wrDot.style.display = 'none'; });
+  svg.style.cursor = 'crosshair';
+  svg.style.touchAction = 'none';
 }
 
 function renderPnlBarsLarge(chronoBets) {
@@ -3914,7 +4070,14 @@ function renderBtcPredictionsOverlay(chronoAll) {
     const tri = isUp
       ? `${x.toFixed(1)},${(y-9).toFixed(1)} ${(x-4).toFixed(1)},${(y-1).toFixed(1)} ${(x+4).toFixed(1)},${(y-1).toFixed(1)}`
       : `${x.toFixed(1)},${(y+9).toFixed(1)} ${(x-4).toFixed(1)},${(y+1).toFixed(1)} ${(x+4).toFixed(1)},${(y+1).toFixed(1)}`;
-    return `<polygon points="${tri}" fill="${color}" opacity="0.9"/>`;
+    const pnl = parseFloat(d.pnl_usd || 0);
+    const pnlStr = (pnl >= 0 ? '+' : '') + '$' + pnl.toFixed(2);
+    const conf = d.confidence ? (parseFloat(d.confidence) * 100).toFixed(0) + '%' : '—';
+    const escDir = d.direction || '—';
+    const outcome = d.correct ? '✓ WIN' : '✗ LOSS';
+    const dataAttrs = `data-btc-x="${x.toFixed(1)}" data-btc-y="${y.toFixed(1)}" data-btc-color="${color}" data-btc-label="${escDir} ${conf} · ${pnlStr} · ${outcome}"`;
+    return `<polygon points="${tri}" fill="${color}" opacity="0.9"/>
+<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="10" fill="transparent" class="btc-hit" ${dataAttrs}/>`;
   }).join('');
   svg.innerHTML = `
     <defs>
@@ -3926,6 +4089,31 @@ function renderBtcPredictionsOverlay(chronoAll) {
     <polygon points="${pricePts} ${W},${H} 0,${H}" fill="url(#btcG)"/>
     <polyline points="${pricePts}" fill="none" stroke="var(--muted)" stroke-width="1.2" stroke-linejoin="round" opacity="0.6"/>
     ${markers}`;
+
+  // Tooltip (reuse or create)
+  let btcTip = document.getElementById('btcTip');
+  if (\!btcTip) {
+    btcTip = document.createElement('div');
+    btcTip.id = 'btcTip';
+    btcTip.style.cssText = 'position:fixed;background:rgba(8,12,25,0.95);border:1px solid rgba(0,255,136,0.3);color:#eee;font-size:10px;font-family:JetBrains Mono,monospace;padding:5px 10px;border-radius:2px;pointer-events:none;display:none;z-index:9999;white-space:nowrap;';
+    document.body.appendChild(btcTip);
+  }
+  svg.querySelectorAll('.btc-hit').forEach(el => {
+    function btcShowTip(clientX, clientY) {
+      const label = el.getAttribute('data-btc-label');
+      const col   = el.getAttribute('data-btc-color');
+      btcTip.innerHTML = `<span style="color:${col}">${label}</span>`;
+      btcTip.style.display = 'block';
+      btcTip.style.left = Math.min(clientX + 14, window.innerWidth - 240) + 'px';
+      btcTip.style.top  = Math.max(10, clientY - 56) + 'px';
+    }
+    el.addEventListener('mouseenter', e => btcShowTip(e.clientX, e.clientY));
+    el.addEventListener('mousemove',  e => btcShowTip(e.clientX, e.clientY));
+    el.addEventListener('mouseleave', () => { btcTip.style.display = 'none'; });
+    el.addEventListener('touchstart', e => { e.preventDefault(); btcShowTip(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
+    el.addEventListener('touchend',   () => setTimeout(() => { btcTip.style.display = 'none'; }, 1500));
+  });
+  svg.style.touchAction = 'none';
 }
 
 // ── INIT ─────────────────────────────────────────────────────────────────────

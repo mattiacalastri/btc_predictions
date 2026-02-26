@@ -3,7 +3,7 @@ import json
 import time
 import pickle
 import requests
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, redirect
 from kraken.futures import Trade, User
 
 app = Flask(__name__)
@@ -376,6 +376,9 @@ def health():
 
 @app.route("/balance", methods=["GET"])
 def balance():
+    err = _check_api_key()
+    if err:
+        return err
     try:
         user = get_user_client()
         result = user.get_wallets()
@@ -397,6 +400,9 @@ def balance():
 
 @app.route("/position", methods=["GET"])
 def position():
+    err = _check_api_key()
+    if err:
+        return err
     symbol = request.args.get("symbol", DEFAULT_SYMBOL)
     try:
         pos = get_open_position(symbol)
@@ -1276,6 +1282,9 @@ def predict_xgb():
             signal_technical, signal_sentiment, signal_fear_greed, signal_volume
     Returns: { xgb_direction, xgb_prob_up, xgb_prob_down, claude_direction, agree }
     """
+    err = _check_api_key()
+    if err:
+        return err
     claude_dir = request.args.get("claude_direction", "")
 
     # Fail-open: se modello non disponibile, non bloccare il trade
@@ -2096,13 +2105,17 @@ def n8n_status():
 
     # IDs fissi — più robusti dei tag che l'API n8n azzera ad ogni updateNode
     BTC_WORKFLOW_IDS = [
-        "kaevyOIbHpm8vJmF",  # 01_BTC_Prediction_Bot
+        "9oyKlb64lZIJfZYs",  # 00_Error_Notifier
+        "CARzC6ABuXmz7NHr",  # 01A_BTC_AI_Inputs
+        "kaevyOIbHpm8vJmF",  # 01B_BTC_Prediction_Bot
         "vallzU6ceD5gPwSP",  # 02_BTC_Trade_Checker
         "KITZHsfVSMtVTpfx",  # 03_BTC_Wallet_Checker
         "eLmZ6d8t9slAx5pj",  # 04_BTC_Talker
         "xCwf53UGBq1SyP0c",  # 05_BTC_Prediction_Verifier
         "O2ilssVhSFs9jsMF",  # 06_Nightly_Maintenance
         "Ei1eeVdA4ZYuc4o6",  # 07_BTC_Commander
+        "Z78ywAmykIW73lDB",  # 08_BTC_Position_Monitor
+        "KWtBSHht9kbvHovG",  # 09_BTC_Social_Media_Manager
     ]
 
     headers = {"X-N8N-API-KEY": n8n_key}
@@ -2720,9 +2733,93 @@ def sitemap_xml():
         '    <changefreq>hourly</changefreq>\n'
         '    <priority>1.0</priority>\n'
         '  </url>\n'
+        '  <url>\n'
+        '    <loc>https://btcpredictor.io/legal</loc>\n'
+        '    <changefreq>monthly</changefreq>\n'
+        '    <priority>0.3</priority>\n'
+        '  </url>\n'
         '</urlset>\n'
     )
     return xml, 200, {"Content-Type": "application/xml"}
+
+@app.route("/legal", methods=["GET"])
+def legal():
+    """Legal Notice, Financial Disclaimer & Privacy Policy page."""
+    html = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Legal Notice &amp; Privacy Policy — BTC Predictor</title>
+<meta name="robots" content="index, follow">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body { background: #080c19; color: #c8d0e0; font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 13px; line-height: 1.7; margin: 0; padding: 0; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 48px 24px 80px; }
+  h1 { color: #00ff88; font-size: 20px; letter-spacing: 2px; margin-bottom: 8px; }
+  h2 { color: #7eb8f7; font-size: 13px; letter-spacing: 1.5px; margin: 36px 0 10px; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 6px; }
+  p, li { color: rgba(200,208,224,0.8); margin: 0 0 10px; }
+  ul { padding-left: 20px; }
+  a { color: #00ff88; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .meta { font-size: 10px; color: rgba(255,255,255,0.3); margin-bottom: 40px; letter-spacing: 1px; }
+  .back { display: inline-block; margin-bottom: 32px; font-size: 11px; color: rgba(255,255,255,0.4); letter-spacing: 1px; border: 1px solid rgba(255,255,255,0.1); padding: 5px 14px; border-radius: 2px; }
+  .back:hover { color: #00ff88; border-color: rgba(0,255,136,0.3); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a href="/dashboard" class="back">← BACK TO DASHBOARD</a>
+  <h1>LEGAL NOTICE &amp; PRIVACY POLICY</h1>
+  <div class="meta">BTC Predictor · btcpredictor.io · Last updated: 2026-02-26</div>
+
+  <h2>1. LEGAL NOTICE (AVVISO LEGALE)</h2>
+  <p>This website and its services are operated by <strong>Astra Digital Marketing</strong> (hereinafter "we", "us", "the operator").<br>
+  Contact: <a href="mailto:signal@btcpredictor.io">signal@btcpredictor.io</a></p>
+  <p>The BTC Predictor dashboard and all associated software is published as open-source under the MIT License. The source code is publicly available at <a href="https://github.com/mattiacalastri/btc_predictions" target="_blank" rel="noopener">github.com/mattiacalastri/btc_predictions</a>.</p>
+
+  <h2>2. FINANCIAL DISCLAIMER</h2>
+  <p><strong>This website, dashboard, and all associated content is for informational and educational purposes only. Nothing on this site constitutes financial advice, investment advice, trading advice, or any other form of advice.</strong></p>
+  <ul>
+    <li>The performance metrics, win rates, PnL figures, and backtesting results displayed are historical data and are <strong>not indicative of future results</strong>.</li>
+    <li>Cryptocurrency and cryptocurrency futures trading involves <strong>substantial risk of loss</strong>. You may lose some or all of your capital.</li>
+    <li>The operator is <strong>not a licensed financial advisor</strong>, broker, or investment firm in any jurisdiction.</li>
+    <li>Any automated trading system — including this one — can malfunction, produce erroneous signals, or fail to execute orders correctly. Technical failures, API outages, or exchange issues may result in losses beyond those modeled.</li>
+    <li>By accessing this dashboard or deploying any code from this repository, you <strong>accept full personal responsibility</strong> for any and all trading decisions, outcomes, and financial losses.</li>
+    <li>This system is subject to applicable laws and regulations in your jurisdiction, including but not limited to MiCA / ESMA (EU), SEC (US), and other local financial regulations. It is your responsibility to ensure compliance.</li>
+  </ul>
+  <p>The operator expressly disclaims all liability for any direct, indirect, incidental, or consequential damages arising from use of or reliance on this service.</p>
+
+  <h2>3. PRIVACY POLICY</h2>
+  <p><strong>We do not collect, store, or process any personal data from visitors to this dashboard.</strong></p>
+  <ul>
+    <li><strong>No cookies</strong> are set by this website (no analytics, no tracking, no advertising cookies).</li>
+    <li><strong>No registration or login</strong> is required to view the dashboard. No user accounts exist.</li>
+    <li><strong>No third-party analytics</strong> scripts (Google Analytics, Meta Pixel, etc.) are loaded by this page.</li>
+    <li>The dashboard fetches live data from our own backend API (Railway) and from on-chain public data (Polygon PoS). No personal data is transmitted in these requests.</li>
+    <li>If you contact us by email at <a href="mailto:signal@btcpredictor.io">signal@btcpredictor.io</a>, your email address and message content will be stored only for the purpose of responding to your enquiry and will not be shared with third parties.</li>
+  </ul>
+  <p>This policy is compliant with EU GDPR requirements for websites that do not process personal data. For questions about data privacy, contact: <a href="mailto:signal@btcpredictor.io">signal@btcpredictor.io</a>.</p>
+
+  <h2>4. INTELLECTUAL PROPERTY</h2>
+  <p>The source code of BTC Predictor is released under the <strong>MIT License</strong>. You are free to use, modify, and distribute it subject to the license terms. The "BTC Predictor" name, "Astra Digital Marketing" name, and associated branding remain the property of the operator.</p>
+
+  <h2>5. GOVERNING LAW</h2>
+  <p>This legal notice is governed by Italian law. Any disputes arising from the use of this service shall be subject to the exclusive jurisdiction of the competent Italian courts.</p>
+
+  <div style="margin-top:48px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.06);font-size:10px;color:rgba(255,255,255,0.25);letter-spacing:0.5px">
+    BTC Predictor · <a href="https://btcpredictor.io/dashboard">btcpredictor.io</a> · Open source on <a href="https://github.com/mattiacalastri/btc_predictions" target="_blank" rel="noopener">GitHub</a> · On-chain audit: <a href="https://polygonscan.com/address/0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55" target="_blank" rel="noopener">Polygon PoS ↗</a>
+  </div>
+</div>
+</body>
+</html>"""
+    return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+
+
+@app.route("/", methods=["GET"])
+def index():
+    return redirect("/dashboard", code=301)
+
 
 @app.route("/dashboard", methods=["GET"])
 def dashboard():
