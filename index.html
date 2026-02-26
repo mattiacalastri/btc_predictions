@@ -3537,13 +3537,17 @@ function render(data) {
   const sessionPnl  = sessionBets.reduce((s, d) => s + parseFloat(d.pnl_usd || 0), 0);
   lastSessionPnl = sessionPnl;
   const roiPct      = (sessionPnl / capitalBase) * 100;
+  // APR: always computed from full dataset (allData), independent of period chip
+  const allRealBets    = allData.filter(d => d.bet_taken && d.pnl_usd !== null);
+  const allSessionBets = allRealBets.filter(d => d.created_at && d.created_at.slice(0, 10) >= CONFIG.SESSION_START);
+  const sessionPnlFull = allSessionBets.reduce((s, d) => s + parseFloat(d.pnl_usd || 0), 0);
   const daysActive  = Math.max(1, (Date.now() - new Date(CONFIG.SESSION_START + 'T00:00:00Z')) / 86400000);
-  const aprTotal    = (sessionPnl / CONFIG.CAPITAL) / daysActive * 365 * 100;
+  const aprTotal    = (sessionPnlFull / CONFIG.CAPITAL) / daysActive * 365 * 100;
   const todayStr    = new Date().toISOString().slice(0, 10);
-  const pnlToday    = realBets.filter(d => (d.created_at || '').slice(0, 10) === todayStr).reduce((s, d) => s + parseFloat(d.pnl_usd || 0), 0);
+  const pnlToday    = allRealBets.filter(d => (d.created_at || '').slice(0, 10) === todayStr).reduce((s, d) => s + parseFloat(d.pnl_usd || 0), 0);
   const aprToday    = (pnlToday / CONFIG.CAPITAL) * 365 * 100;
   const cutoff7d    = new Date(Date.now() - 7 * 86400000);
-  const pnl7d       = realBets.filter(d => new Date(d.created_at) >= cutoff7d).reduce((s, d) => s + parseFloat(d.pnl_usd || 0), 0);
+  const pnl7d       = allRealBets.filter(d => new Date(d.created_at) >= cutoff7d).reduce((s, d) => s + parseFloat(d.pnl_usd || 0), 0);
   const apr7d       = (pnl7d / CONFIG.CAPITAL) / 7 * 365 * 100;
   const avgConf  = data.length ? data.reduce((s, d) => s + parseFloat(d.confidence || 0), 0) / data.length : 0;
   const pnlVals  = realBets.map(d => parseFloat(d.pnl_usd || 0));
