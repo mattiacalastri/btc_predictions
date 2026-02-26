@@ -3455,6 +3455,11 @@ async function fetchLiveBtcPrice() {
       const last = allData.find(d => d.btc_price_entry);
       if (last) priceEl.textContent = '$' + Number(last.btc_price_entry).toLocaleString('it-IT', { maximumFractionDigits: 0 });
     }
+    if (priceEl.textContent === '—') {
+      priceEl.textContent = 'ERR';
+      priceEl.className = 'btc-live-price down';
+    }
+    setTimeout(fetchLiveBtcPrice, 30000);
   }
 }
 

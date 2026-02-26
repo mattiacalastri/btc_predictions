@@ -1,0 +1,24 @@
+title = "BTC Prediction Bot — Gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+  description = "Valori dummy CI, documentazione, dataset"
+  paths = [
+    '''.github/workflows/ci\.yml''',
+    '''.*\.md$''',
+    '''datasets/.*''',
+    '''.*_report\.txt$''',
+    '''.*\.log$''',
+    '''contracts/.*\.sol$''',
+  ]
+  regexes = [
+    '''dummy_key''',
+    '''dummy_secret''',
+    '''dummy_supabase_service_key''',
+    '''dummy_supabase_anon_key''',
+    '''dummy_n8n_key''',
+    '''https://dummy\.supabase\.co''',
+    '''https://dummy\.n8n\.cloud''',
+  ]
