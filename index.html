@@ -1931,37 +1931,38 @@
     <div class="intro-inner">
       <div class="intro-left">
         <div>
-          <div class="intro-badge">WHAT IS THIS?</div>
-          <div class="intro-headline">An AI bot that trades Bitcoin — with real money.</div>
+          <div class="intro-badge" data-i18n="badge">WHAT IS THIS?</div>
+          <div class="intro-headline" data-i18n="headline">An AI bot that trades Bitcoin — with real money.</div>
         </div>
-        <div class="intro-desc">
+        <div class="intro-desc" data-i18n-html="desc">
           Every 10 minutes, the bot analyses BTC price, news, order flow and sentiment using
           <strong>XGBoost ML + Claude AI</strong>. If both agree on the direction, it opens a real trade on the
           <strong>Kraken</strong> exchange — then closes it automatically. No human intervention.
         </div>
         <div class="intro-bullets">
-          <div class="intro-bullet">Started in February 2026 with <strong>$100 USDC</strong> — this is real capital, not a simulation</div>
-          <div class="intro-bullet">Every prediction is permanently committed to the <strong>Polygon blockchain</strong> — fully verifiable</div>
-          <div class="intro-bullet">Fully <strong>open source</strong> — code on GitHub, workflow logic documented</div>
+          <div class="intro-bullet" data-i18n-html="bullet1">Started in February 2026 with <strong>$100 USDC</strong> — this is real capital, not a simulation</div>
+          <div class="intro-bullet" data-i18n-html="bullet2">Every prediction is permanently committed to the <strong>Polygon blockchain</strong> — fully verifiable</div>
+          <div class="intro-bullet" data-i18n-html="bullet3">Fully <strong>open source</strong> — code on GitHub, workflow logic documented</div>
         </div>
         <div class="intro-kpis">
           <div class="intro-kpi">
             <div class="intro-kpi-val" id="introWR">—</div>
-            <div class="intro-kpi-lbl">Win Rate</div>
+            <div class="intro-kpi-lbl" data-i18n="lbl_wr">Win Rate</div>
           </div>
           <div class="intro-kpi">
             <div class="intro-kpi-val" id="introPnL">—</div>
-            <div class="intro-kpi-lbl">Total PnL</div>
+            <div class="intro-kpi-lbl" data-i18n="lbl_pnl">Total PnL</div>
           </div>
           <div class="intro-kpi">
             <div class="intro-kpi-val" id="introTrades">—</div>
-            <div class="intro-kpi-lbl">Closed Trades</div>
+            <div class="intro-kpi-lbl" data-i18n="lbl_trades">Closed Trades</div>
           </div>
         </div>
         <div class="intro-dismiss-row">
-          <button class="intro-dismiss-btn" onclick="dismissIntro()">Got it, let me explore →</button>
-          <span class="intro-dismiss-hint">You can re-open this anytime with the <strong>?</strong> button in the header</span>
+          <button class="intro-dismiss-btn" onclick="dismissIntro()" data-i18n="cta">Got it, let me explore →</button>
+          <span class="intro-dismiss-hint" data-i18n-html="hint">You can re-open this anytime with the <strong>?</strong> button in the header</span>
         </div>
+        <div id="introLangSwitcher" style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap"></div>
       </div>
       <button class="intro-close" onclick="dismissIntro()" title="Close">✕</button>
     </div>
@@ -3401,6 +3402,143 @@
 </footer>
 
 <script>
+// ── INTRO I18N — auto-detect language, apply to welcome intro only ────────────
+const INTRO_I18N = {
+  en: {
+    badge:     'WHAT IS THIS?',
+    headline:  'An AI bot that trades Bitcoin \u2014 with real money.',
+    desc:      'Every 10 minutes, the bot analyses BTC price, news, order flow and sentiment using <strong>XGBoost ML + Claude AI</strong>. If both agree on the direction, it opens a real trade on the <strong>Kraken</strong> exchange \u2014 then closes it automatically. No human intervention.',
+    bullet1:   'Started in February 2026 with <strong>$100 USDC</strong> \u2014 this is real capital, not a simulation',
+    bullet2:   'Every prediction is permanently committed to the <strong>Polygon blockchain</strong> \u2014 fully verifiable',
+    bullet3:   'Fully <strong>open source</strong> \u2014 code on GitHub, workflow logic documented',
+    lbl_wr:    'Win Rate', lbl_pnl: 'Total PnL', lbl_trades: 'Closed Trades',
+    cta:       'Got it, let me explore \u2192',
+    hint:      'You can re-open this anytime with the <strong>?</strong> button in the header',
+  },
+  it: {
+    badge:     'COSA \u00c8?',
+    headline:  'Un bot AI che fa trading su Bitcoin \u2014 con soldi veri.',
+    desc:      'Ogni 10 minuti, il bot analizza prezzo BTC, notizie, flusso ordini e sentiment con <strong>XGBoost ML + Claude AI</strong>. Se entrambi concordano sulla direzione, apre un trade reale su <strong>Kraken</strong> \u2014 poi si chiude automaticamente. Nessun intervento umano.',
+    bullet1:   'Partito a febbraio 2026 con <strong>$100 USDC</strong> \u2014 capitale reale, non una simulazione',
+    bullet2:   'Ogni previsione \u00e8 registrata permanentemente sulla <strong>blockchain Polygon</strong> \u2014 verificabile',
+    bullet3:   'Completamente <strong>open source</strong> \u2014 codice su GitHub, logica documentata',
+    lbl_wr:    'Win Rate', lbl_pnl: 'PnL Totale', lbl_trades: 'Trade Chiusi',
+    cta:       'Capito, voglio esplorare \u2192',
+    hint:      'Puoi riaprire questa schermata con il bottone <strong>?</strong> in alto',
+  },
+  de: {
+    badge:     'WAS IST DAS?',
+    headline:  'Ein KI-Bot, der Bitcoin handelt \u2014 mit echtem Geld.',
+    desc:      'Alle 10 Minuten analysiert der Bot BTC-Preis, Nachrichten, Orderflow und Sentiment mit <strong>XGBoost ML + Claude AI</strong>. Wenn beide \u00fcbereinstimmen, \u00f6ffnet er einen echten Trade auf <strong>Kraken</strong> \u2014 und schlie\u00dft ihn automatisch. Kein menschliches Eingreifen.',
+    bullet1:   'Gestartet im Februar 2026 mit <strong>100\u00a0$\u00a0USDC</strong> \u2014 echtes Kapital, keine Simulation',
+    bullet2:   'Jede Vorhersage wird dauerhaft auf der <strong>Polygon-Blockchain</strong> gespeichert \u2014 vollst\u00e4ndig verifizierbar',
+    bullet3:   'Vollst\u00e4ndig <strong>Open Source</strong> \u2014 Code auf GitHub, Workflow dokumentiert',
+    lbl_wr:    'Trefferquote', lbl_pnl: 'Gesamt-PnL', lbl_trades: 'Geschl. Trades',
+    cta:       'Verstanden, erkunden \u2192',
+    hint:      'Sie k\u00f6nnen dies jederzeit \u00fcber den <strong>?</strong>-Button im Header \u00f6ffnen',
+  },
+  fr: {
+    badge:     'QU\u2019EST-CE QUE C\u2019EST\u00a0?',
+    headline:  'Un bot IA qui trade Bitcoin \u2014 avec de l\u2019argent r\u00e9el.',
+    desc:      'Toutes les 10 minutes, le bot analyse le prix BTC, les nouvelles, le flux d\u2019ordres et le sentiment avec <strong>XGBoost ML + Claude AI</strong>. S\u2019ils s\u2019accordent, il ouvre un vrai trade sur <strong>Kraken</strong> \u2014 puis le ferme automatiquement. Aucune intervention humaine.',
+    bullet1:   'Lanc\u00e9 en f\u00e9vrier 2026 avec <strong>100\u00a0$ USDC</strong> \u2014 capital r\u00e9el, pas une simulation',
+    bullet2:   'Chaque pr\u00e9diction est enregistr\u00e9e sur la <strong>blockchain Polygon</strong> \u2014 enti\u00e8rement v\u00e9rifiable',
+    bullet3:   'Enti\u00e8rement <strong>open source</strong> \u2014 code sur GitHub, logique document\u00e9e',
+    lbl_wr:    'Taux de R\u00e9ussite', lbl_pnl: 'PnL Total', lbl_trades: 'Trades Ferm\u00e9s',
+    cta:       'Compris, j\u2019explore \u2192',
+    hint:      'Vous pouvez rouvrir ceci avec le bouton <strong>?</strong> dans l\u2019en-t\u00eate',
+  },
+  es: {
+    badge:     '\u00bfQU\u00c9 ES ESTO?',
+    headline:  'Un bot de IA que opera en Bitcoin \u2014 con dinero real.',
+    desc:      'Cada 10 minutos, el bot analiza precio BTC, noticias, flujo de \u00f3rdenes y sentimiento con <strong>XGBoost ML + Claude AI</strong>. Si ambos coinciden, abre una operaci\u00f3n real en <strong>Kraken</strong> \u2014 luego la cierra autom\u00e1ticamente. Sin intervenci\u00f3n humana.',
+    bullet1:   'Iniciado en febrero de 2026 con <strong>100\u00a0$ USDC</strong> \u2014 capital real, no una simulaci\u00f3n',
+    bullet2:   'Cada predicci\u00f3n se registra permanentemente en la <strong>blockchain de Polygon</strong> \u2014 totalmente verificable',
+    bullet3:   'Completamente <strong>open source</strong> \u2014 c\u00f3digo en GitHub, l\u00f3gica documentada',
+    lbl_wr:    'Tasa de \u00c9xito', lbl_pnl: 'PnL Total', lbl_trades: 'Oper. Cerradas',
+    cta:       'Entendido, explorar \u2192',
+    hint:      'Puedes reabrir esto con el bot\u00f3n <strong>?</strong> en el encabezado',
+  },
+  pt: {
+    badge:     'O QUE \u00c9 ISSO?',
+    headline:  'Um bot de IA que opera Bitcoin \u2014 com dinheiro real.',
+    desc:      'A cada 10 minutos, o bot analisa pre\u00e7o do BTC, not\u00edcias, fluxo de ordens e sentimento com <strong>XGBoost ML + Claude AI</strong>. Se ambos concordam, abre uma opera\u00e7\u00e3o real na <strong>Kraken</strong> \u2014 depois fecha automaticamente. Sem interven\u00e7\u00e3o humana.',
+    bullet1:   'Iniciado em fevereiro de 2026 com <strong>100\u00a0$ USDC</strong> \u2014 capital real, n\u00e3o uma simula\u00e7\u00e3o',
+    bullet2:   'Cada previs\u00e3o \u00e9 registrada permanentemente na <strong>blockchain Polygon</strong> \u2014 totalmente verific\u00e1vel',
+    bullet3:   'Completamente <strong>open source</strong> \u2014 c\u00f3digo no GitHub, l\u00f3gica documentada',
+    lbl_wr:    'Taxa de Acerto', lbl_pnl: 'PnL Total', lbl_trades: 'Oper. Fechadas',
+    cta:       'Entendido, explorar \u2192',
+    hint:      'Voc\u00ea pode reabrir isso com o bot\u00e3o <strong>?</strong> no cabe\u00e7alho',
+  },
+  zh: {
+    badge:     '\u8fd9\u662f\u4ec0\u4e48\uff1f',
+    headline:  '\u4e00\u4e2a\u7528\u771f\u5b9e\u8d44\u91d1\u4ea4\u6613\u6bd4\u7279\u5e01\u7684AI\u673a\u5668\u4eba\u3002',
+    desc:      '\u6bcf10\u5206\u949f\uff0c\u673a\u5668\u4eba\u4f7f\u7528 <strong>XGBoost ML + Claude AI</strong> \u5206\u6790BTC\u4ef7\u683c\u3001\u65b0\u95fb\u3001\u8ba2\u5355\u6d41\u548c\u5e02\u573a\u60c5\u7eea\u3002\u5982\u679c\u4e24\u8005\u5bf9\u65b9\u5411\u8fbe\u6210\u4e00\u81f4\uff0c\u5c31\u5728 <strong>Kraken</strong> \u5f00\u4ed3\u2014\u2014\u7136\u540e\u81ea\u52a8\u5e73\u4ed3\u3002\u65e0\u9700\u4eba\u5de5\u5e72\u9884\u3002',
+    bullet1:   '2026\u5e742\u6708\u4ee5 <strong>100 USDC</strong> \u542f\u52a8 \u2014 \u771f\u5b9e\u8d44\u91d1\uff0c\u975e\u6a21\u62df',
+    bullet2:   '\u6bcf\u4e2a\u9884\u6d4b\u90fd\u6c38\u4e45\u8bb0\u5f55\u5728 <strong>Polygon\u533a\u5757\u94fe</strong> \u4e0a \u2014 \u5b8c\u5168\u53ef\u9a8c\u8bc1',
+    bullet3:   '\u5b8c\u5168 <strong>\u5f00\u6e90</strong> \u2014 \u4ee3\u7801\u5728GitHub\uff0c\u5de5\u4f5c\u6d41\u7a0b\u5df1\u8bb0\u5f55',
+    lbl_wr:    '\u80dc\u7387', lbl_pnl: '\u603b PnL', lbl_trades: '\u5df2\u5173\u95ed\u4ea4\u6613',
+    cta:       '\u660e\u767d\u4e86\uff0c\u53bb\u63a2\u7d22 \u2192',
+    hint:      '\u968f\u65f6\u70b9\u51fb\u6807\u9898\u680f\u7684 <strong>?</strong> \u6309\u9215\u91cd\u65b0\u6253\u5f00\u6b64\u9875\u9762',
+  },
+  ja: {
+    badge:     '\u3053\u308c\u306f\u4f55\uff1f',
+    headline:  '\u672c\u7269\u306e\u8cc7\u91d1\u3067Bitcoin\u3092\u53d6\u5f15\u3059\u308bAI\u30dc\u30c3\u30c8\u3002',
+    desc:      '10\u5206\u3054\u3068\u306b\u3001\u30dc\u30c3\u30c8\u306f <strong>XGBoost ML + Claude AI</strong> \u3092\u4f7f\u7528\u3057\u3066BTC\u4fa1\u683c\u3001\u30cb\u30e5\u30fc\u30b9\u3001\u6ce8\u6587\u30d5\u30ed\u30fc\u3001\u30bb\u30f3\u30c1\u30e1\u30f3\u30c8\u3092\u5206\u6790\u3057\u307e\u3059\u3002\u4e21\u8005\u304c\u5408\u610f\u3059\u308b\u3068\u3001<strong>Kraken</strong> \u3067\u30ea\u30a2\u30eb\u30c8\u30ec\u30fc\u30c9\u3092\u958b\u304d\u2014\u81ea\u52d5\u30af\u30ed\u30fc\u30ba\u3002\u4eba\u9593\u306e\u4ecb\u5165\u306f\u4e0d\u8981\u3002',
+    bullet1:   '2026\u5e742\u6708\u306b <strong>100 USDC</strong> \u3067\u30b9\u30bf\u30fc\u30c8 \u2014 \u30b7\u30df\u30e5\u30ec\u30fc\u30b7\u30e7\u30f3\u3067\u306f\u306a\u304f\u5b9f\u969b\u306e\u8cc7\u91d1',
+    bullet2:   '\u3059\u3079\u3066\u306e\u4e88\u6e2c\u306f <strong>Polygon\u30d6\u30ed\u30c3\u30af\u30c1\u30a7\u30fc\u30f3</strong> \u306b\u6c38\u4e45\u8a18\u9332 \u2014 \u5b8c\u5168\u306b\u691c\u8a3c\u53ef\u80fd',
+    bullet3:   '\u5b8c\u5168 <strong>\u30aa\u30fc\u30d7\u30f3\u30bd\u30fc\u30b9</strong> \u2014 GitHub\u306b\u30b3\u30fc\u30c9\u516c\u958b\u3001\u30ef\u30fc\u30af\u30d5\u30ed\u30fc\u6587\u66f8\u5316\u6e08',
+    lbl_wr:    '\u52dd\u7387', lbl_pnl: '\u7dcf PnL', lbl_trades: '\u30af\u30ed\u30fc\u30ba\u6e08',
+    cta:       '\u308f\u304b\u308a\u307e\u3057\u305f\u3001\u63a2\u7d22\u3059\u308b \u2192',
+    hint:      '\u30d8\u30c3\u30c0\u30fc\u306e <strong>?</strong> \u30dc\u30bf\u30f3\u3067\u3044\u3064\u3067\u3082\u518d\u8868\u793a\u3067\u304d\u307e\u3059',
+  },
+};
+
+const _INTRO_LANG_LABELS = { en:'EN', it:'IT', de:'DE', fr:'FR', es:'ES', pt:'PT', zh:'中文', ja:'日本語' };
+let _introCurrentLang = 'en';
+
+function applyIntroLang(lang) {
+  const t = INTRO_I18N[lang] || INTRO_I18N['en'];
+  _introCurrentLang = lang;
+  document.querySelectorAll('#introHero [data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (t[key] !== undefined) el.textContent = t[key];
+  });
+  document.querySelectorAll('#introHero [data-i18n-html]').forEach(el => {
+    const key = el.getAttribute('data-i18n-html');
+    if (t[key] !== undefined) el.innerHTML = t[key];
+  });
+  // Update switcher active state
+  document.querySelectorAll('#introLangSwitcher .ilng-btn').forEach(btn => {
+    btn.style.color     = btn.dataset.lang === lang ? 'var(--accent)' : 'var(--muted)';
+    btn.style.borderColor = btn.dataset.lang === lang ? 'rgba(0,255,136,0.4)' : 'rgba(255,255,255,0.08)';
+  });
+}
+
+function initIntroI18n() {
+  const raw   = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
+  const lang  = raw.split('-')[0];
+  const avail = Object.keys(INTRO_I18N);
+  const pick  = avail.includes(lang) ? lang : 'en';
+
+  // Build language switcher buttons
+  const sw = document.getElementById('introLangSwitcher');
+  if (sw) {
+    sw.innerHTML = Object.entries(_INTRO_LANG_LABELS).map(([l, lbl]) =>
+      `<button class="ilng-btn" data-lang="${l}" onclick="applyIntroLang('${l}')"
+        style="font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;letter-spacing:1px;
+               background:none;border:1px solid rgba(255,255,255,0.08);color:var(--muted);
+               padding:2px 6px;border-radius:2px;cursor:pointer;transition:color 0.15s,border-color 0.15s;"
+       >${lbl}</button>`
+    ).join('');
+  }
+
+  applyIntroLang(pick);
+}
+
+// Run immediately (DOM is ready — script is deferred inline, elements already parsed)
+document.addEventListener('DOMContentLoaded', initIntroI18n);
+
 function escapeHtml(s) {
   if (s == null) return '';
   return String(s)
