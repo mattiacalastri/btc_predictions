@@ -3239,6 +3239,13 @@ def index():
     return redirect("/dashboard", code=301)
 
 
+@app.route("/manifesto", methods=["GET"])
+def manifesto():
+    with open("manifesto.html", "r") as f:
+        html = f.read()
+    return html, 200, {"Content-Type": "text/html"}
+
+
 @app.route("/dashboard", methods=["GET"])
 def dashboard():
     # Use the actual request host so API calls always go same-origin.
