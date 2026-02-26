@@ -1069,9 +1069,7 @@ def get_execution_fees():
 
 @app.route("/account-summary", methods=["GET"])
 def account_summary():
-    auth_err = _check_api_key()
-    if auth_err:
-        return auth_err
+    # Public endpoint — dashboard needs it client-side (F-04: build in public read-only)
     symbol = request.args.get("symbol", DEFAULT_SYMBOL)
     try:
         trade = get_trade_client()
