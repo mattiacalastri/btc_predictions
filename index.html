@@ -603,18 +603,22 @@
 
   /* MINI STATUS BAR */
   .mini-status-bar {
-    display: flex; align-items: center; gap: 10px;
+    display: flex; align-items: center; gap: 8px;
     background: rgba(255,255,255,0.01); border-bottom: 1px solid rgba(255,255,255,0.04);
-    padding: 5px 24px; height: 24px;
+    padding: 5px 24px; height: 28px;
+    overflow-x: auto; scrollbar-width: none;
   }
-  .mini-status-bar .msb-label { font-size:8px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-right:4px; }
-  .mini-status-bar .msb-item { display:flex; align-items:center; gap:4px; font-size:8px; color:var(--muted); letter-spacing:0.5px; cursor:default; }
+  .mini-status-bar::-webkit-scrollbar { display: none; }
+  .mini-status-bar .msb-label { font-size:7px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.25); margin-right:2px; white-space:nowrap; }
+  .mini-status-bar .msb-item { display:flex; align-items:center; gap:4px; font-size:8px; color:var(--muted); letter-spacing:0.5px; cursor:default; white-space:nowrap; flex-shrink:0; }
   .mini-status-bar .msb-item:hover { color:var(--text); }
-  .status-dot { width:6px; height:6px; border-radius:50%; background:var(--muted); display:inline-block; transition:background 0.3s; flex-shrink:0; }
+  .mini-status-bar .msb-item.msb-highlight { color:var(--text); font-weight:600; }
+  .status-dot { width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,0.2); display:inline-block; transition:background 0.3s; flex-shrink:0; }
   .status-dot.green  { background:var(--accent); box-shadow:0 0 4px rgba(0,255,136,0.6); animation:pulse 2s infinite; }
   .status-dot.red    { background:var(--danger);  box-shadow:0 0 4px rgba(255,68,102,0.6); }
   .status-dot.yellow { background:var(--warn);    box-shadow:0 0 4px rgba(255,170,0,0.6); animation:pulse 2.5s infinite; }
-  .msb-sep { width:1px; height:12px; background:var(--border); margin:0 2px; }
+  .msb-sep { width:1px; height:12px; background:var(--border); margin:0 1px; flex-shrink:0; }
+  .msb-bigsep { width:1px; height:16px; background:rgba(255,255,255,0.1); margin:0 8px; flex-shrink:0; }
 
   /* APPLE WALLET POSITION STACK */
   .position-stack { position:relative; padding-bottom:24px; cursor:pointer; user-select:none; }
@@ -1702,22 +1706,31 @@
 
   <!-- MINI STATUS BAR -->
   <div class="mini-status-bar" id="miniStatusBar">
+    <!-- AGENTS -->
     <span class="msb-label">Agents</span>
-    <span class="msb-item" title="Prediction Bot (wf01A/01B)">
-      <span class="status-dot" id="statusWf01"></span>wf01
-    </span>
+    <span class="msb-item" title="Prediction Bot (wf01A/01B)"><span class="status-dot" id="statusWf01"></span>wf01</span>
     <span class="msb-sep"></span>
-    <span class="msb-item" title="Trade Checker (wf02)">
-      <span class="status-dot" id="statusWf02"></span>wf02
-    </span>
+    <span class="msb-item" title="Trade Checker (wf02)"><span class="status-dot" id="statusWf02"></span>wf02</span>
     <span class="msb-sep"></span>
-    <span class="msb-item" title="Commander (wf07)">
-      <span class="status-dot" id="statusWf07"></span>wf07
-    </span>
+    <span class="msb-item" title="Commander (wf07)"><span class="status-dot" id="statusWf07"></span>wf07</span>
     <span class="msb-sep"></span>
-    <span class="msb-item" title="Railway API">
-      <span class="status-dot" id="statusRailway"></span>API
-    </span>
+    <span class="msb-item" title="Railway API"><span class="status-dot" id="statusRailway"></span>API</span>
+    <!-- BOT -->
+    <span class="msb-bigsep"></span>
+    <span class="msb-label">Bot</span>
+    <span class="msb-item msb-highlight" title="Bot status (running / paused)"><span class="status-dot" id="statusBot"></span><span id="msbBotLabel">—</span></span>
+    <span class="msb-sep"></span>
+    <span class="msb-item" title="Wallet equity on Kraken">💰 <span id="msbEquityVal">—</span></span>
+    <span class="msb-sep"></span>
+    <span class="msb-item" title="Kraken exchange reachability"><span class="status-dot" id="statusKraken"></span>Kraken</span>
+    <!-- LIVE -->
+    <span class="msb-bigsep"></span>
+    <span class="msb-label">Live</span>
+    <span class="msb-item" title="Time since last prediction signal"><span class="status-dot" id="statusSignalAge"></span>⏱ <span id="msbLastSignal">—</span></span>
+    <span class="msb-sep"></span>
+    <span class="msb-item" title="Open positions currently monitored"><span class="status-dot" id="statusOpenPos"></span><span id="msbOpenPosVal">— open</span></span>
+    <span class="msb-sep"></span>
+    <span class="msb-item" title="Dry-run mode active?"><span class="status-dot" id="statusDryRun"></span><span id="msbDryRunLabel">—</span></span>
   </div>
 
   <div id="dry-run-banner" style="display:none; background:#f59e0b; color:#000; text-align:center; padding:10px; font-weight:bold; font-size:14px; letter-spacing:1px;">
@@ -6372,13 +6385,13 @@ function populateIntroHero(data) {
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
-   FIX 3 — MINI STATUS BAR
+   MINI STATUS BAR — Agents + Bot + Live
    ────────────────────────────────────────────────────────────────────────── */
+var _msbLastSignalTs = null;
+
 function updateMiniStatusBar(agentsData, railwayOk) {
   var dotRailway = document.getElementById('statusRailway');
-  if (dotRailway) {
-    dotRailway.className = 'status-dot ' + (railwayOk ? 'green' : 'red');
-  }
+  if (dotRailway) dotRailway.className = 'status-dot ' + (railwayOk ? 'green' : 'red');
   if (!agentsData || agentsData.status !== 'ok') {
     ['statusWf01','statusWf02','statusWf07'].forEach(function(id) {
       var el = document.getElementById(id);
@@ -6403,6 +6416,101 @@ function updateMiniStatusBar(agentsData, railwayOk) {
     else if (lastStatus === 'crashed' || lastStatus === 'error') { dotEl.className = 'status-dot red'; }
     else { dotEl.className = 'status-dot yellow'; }
   });
+}
+
+function tickSignalAge() {
+  if (!_msbLastSignalTs) return;
+  var el = document.getElementById('msbLastSignal');
+  var dot = document.getElementById('statusSignalAge');
+  if (!el) return;
+  var diffMs = Date.now() - _msbLastSignalTs.getTime();
+  var diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) { el.textContent = 'just now'; }
+  else if (diffMin < 60) { el.textContent = diffMin + 'm ago'; }
+  else { el.textContent = Math.floor(diffMin / 60) + 'h ago'; }
+  if (dot) {
+    dot.className = 'status-dot ' + (diffMin < 15 ? 'green' : diffMin < 30 ? 'yellow' : 'red');
+  }
+}
+
+function refreshMiniStatusBarLive() {
+  /* ── /health: bot status, equity, dry-run, Kraken ── */
+  fetch(CONFIG.RAILWAY_URL + '/health', { signal: AbortSignal.timeout(8000) })
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(h) {
+      if (!h) return;
+      var botDot   = document.getElementById('statusBot');
+      var botLabel = document.getElementById('msbBotLabel');
+      var krakenDot = document.getElementById('statusKraken');
+      var equityEl  = document.getElementById('msbEquityVal');
+      var dryDot   = document.getElementById('statusDryRun');
+      var dryLabel = document.getElementById('msbDryRunLabel');
+      if (botDot && botLabel) {
+        if (h.bot_paused) {
+          botDot.className = 'status-dot yellow';
+          botLabel.textContent = 'PAUSED';
+          botLabel.style.color = 'var(--warn)';
+        } else {
+          botDot.className = 'status-dot green';
+          botLabel.textContent = 'RUNNING';
+          botLabel.style.color = 'var(--accent)';
+        }
+      }
+      if (equityEl && h.wallet_equity != null) {
+        var eq = Number(h.wallet_equity);
+        equityEl.textContent = '$' + eq.toFixed(2);
+        equityEl.style.color = eq >= 100 ? 'var(--accent)' : 'var(--danger)';
+      }
+      if (krakenDot) {
+        krakenDot.className = (h.wallet_equity > 0) ? 'status-dot green' : 'status-dot yellow';
+      }
+      if (dryDot && dryLabel) {
+        if (h.dry_run) {
+          dryDot.className = 'status-dot yellow';
+          dryLabel.textContent = 'DRY RUN';
+          dryLabel.style.color = 'var(--warn)';
+        } else {
+          dryDot.className = 'status-dot green';
+          dryLabel.textContent = 'LIVE';
+          dryLabel.style.color = 'var(--accent)';
+        }
+      }
+    })
+    .catch(function() {
+      var d = document.getElementById('statusBot');
+      if (d) d.className = 'status-dot red';
+      var k = document.getElementById('statusKraken');
+      if (k) k.className = 'status-dot red';
+    });
+
+  /* ── /signals?limit=1: last prediction age ── */
+  fetch(CONFIG.RAILWAY_URL + '/signals?limit=1', { signal: AbortSignal.timeout(8000) })
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(data) {
+      var signals = (data && data.data) ? data.data : (Array.isArray(data) ? data : null);
+      if (signals && signals.length > 0 && signals[0].created_at) {
+        _msbLastSignalTs = new Date(signals[0].created_at);
+        tickSignalAge();
+      }
+    })
+    .catch(function() {});
+
+  /* ── /account-summary: open positions ── */
+  fetch(CONFIG.RAILWAY_URL + '/account-summary', { signal: AbortSignal.timeout(8000) })
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(data) {
+      if (!data) return;
+      var openBets = data.open_bets || [];
+      var n = openBets.length;
+      var posLabel = document.getElementById('msbOpenPosVal');
+      var posDot   = document.getElementById('statusOpenPos');
+      if (posLabel) posLabel.textContent = n + ' open';
+      if (posDot) {
+        posDot.className = n > 0 ? 'status-dot green' : 'status-dot';
+        if (n > 1) posDot.className = 'status-dot yellow';
+      }
+    })
+    .catch(function() {});
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
@@ -6509,16 +6617,26 @@ if (typeof renderAgents === 'function') {
   // We'll set Railway dot green after health fetch succeeds (done in health fetch block below)
 })();
 
-// After page load, attempt n8n status for mini bar (lazy, low priority)
+// After page load: populate all status bar sections
 window.addEventListener('load', function() {
+  // Railway dot: green immediately (page loaded = API reachable)
   var dotRailway = document.getElementById('statusRailway');
-  // Railway dot: green if we got here (page loaded = API reachable)
   if (dotRailway) dotRailway.className = 'status-dot green';
-  // Try n8n status endpoint for wf01/02/07 dots (best effort, no spinner)
+
+  // Agents section: n8n workflow status
   fetch(CONFIG.RAILWAY_URL + '/n8n-status', { signal: AbortSignal.timeout(12000) })
     .then(function(r) { return r.ok ? r.json() : null; })
     .then(function(data) { updateMiniStatusBar(data, true); })
     .catch(function() { updateMiniStatusBar(null, true); });
+
+  // Bot + Live sections: health + signals + positions
+  refreshMiniStatusBarLive();
+
+  // Refresh live section every 30s
+  setInterval(refreshMiniStatusBarLive, 30000);
+
+  // Tick signal age every 10s
+  setInterval(tickSignalAge, 10000);
 });
 </script>
 <div id="infoModal">
