@@ -15,22 +15,23 @@ from datetime import datetime
 LOG_FILE = "/tmp/btcbot_n8n_backup.log"
 BACKUP_DIR = os.path.expanduser("~/btcbot_backups/n8n-workflows/btc-bot-n8n-backup")
 
-N8N_API_URL = "https://mattiacalastri.app.n8n.cloud"
+N8N_API_URL = os.environ.get("N8N_URL", "https://n8n.srv1432354.hstgr.cloud")
 N8N_API_KEY = os.environ.get("N8N_API_KEY", "")
 
-# Lista workflow: (id, nome_file)
+# Lista workflow: (id, nome_file) — IDs VPS Hostinger (migrati 2026-02-26)
 WORKFLOWS = [
-    ("9oyKlb64lZIJfZYs", "00_Error_Notifier"),
-    ("CARzC6ABuXmz7NHr", "01A_BTC_AI_Inputs"),
-    ("kaevyOIbHpm8vJmF", "01B_BTC_Prediction_Bot"),
-    ("vallzU6ceD5gPwSP", "02_BTC_Trade_Checker"),
-    ("KITZHsfVSMtVTpfx", "03_BTC_Wallet_Checker"),
-    ("eLmZ6d8t9slAx5pj", "04_BTC_Talker"),
-    ("xCwf53UGBq1SyP0c", "05_BTC_Prediction_Verifier"),
-    ("O2ilssVhSFs9jsMF", "06_Nightly_Maintenance"),
-    ("Ei1eeVdA4ZYuc4o6", "07_BTC_Telegram_Commander"),
-    ("Z78ywAmykIW73lDB", "08_BTC_Position_Monitor"),
-    ("KWtBSHht9kbvHovG", "09_BTC_Social_Media_Manager"),
+    ("Yg0o2MaBZBHYq7Wc", "00_Error_Notifier"),
+    ("E2LdFbQHKfMTVPOI", "01A_BTC_AI_Inputs"),
+    ("OMgFa9Min4qXRnhq", "01B_BTC_Prediction_Bot"),
+    ("NnjfpzgdIyleMVBO", "02_BTC_Trade_Checker"),
+    ("K4pzVU0SCc7apPKh", "03_BTC_Wallet_Checker"),
+    ("my8xac5Vs2q3wN4G", "04_BTC_Talker"),
+    ("3YSec3NytjxfbG08", "05_BTC_Prediction_Verifier"),
+    ("O1JlHp7tgVFBfrwm", "06_Nightly_Maintenance"),
+    ("nzMMmMC6Q9eysUBP", "07_BTC_Telegram_Commander"),
+    ("Fjk7M3cOEcL1aAVf", "08_BTC_Position_Monitor"),
+    ("EQ5AuKbbM9DNWWXw", "09A_BTC_Social_Media_Manager"),
+    ("l1t7NAtR9BiF80Bi", "09B_BTC_Social_Publisher"),
 ]
 
 _SSL_CTX = ssl.create_default_context()

@@ -1572,7 +1572,7 @@ def rescue_orphaned():
     if err:
         return err
     n8n_key = os.environ.get("N8N_API_KEY", "")
-    n8n_url = os.environ.get("N8N_URL", "https://mattiacalastri.app.n8n.cloud")
+    n8n_url = os.environ.get("N8N_URL", "https://n8n.srv1432354.hstgr.cloud")
     supabase_url = os.environ.get("SUPABASE_URL", "")
     supabase_key = os.environ.get("SUPABASE_KEY", "")
 
@@ -1748,10 +1748,10 @@ def costs():
     else:
         try:
             n8n_key = os.environ.get("N8N_API_KEY", "")
-            n8n_url_base = os.environ.get("N8N_URL", "https://mattiacalastri.app.n8n.cloud")
+            n8n_url_base = os.environ.get("N8N_URL", "https://n8n.srv1432354.hstgr.cloud")
             if n8n_key:
                 r = requests.get(
-                    f"{n8n_url_base}/api/v1/executions?workflowId=kaevyOIbHpm8vJmF&limit=100",
+                    f"{n8n_url_base}/api/v1/executions?workflowId=OMgFa9Min4qXRnhq&limit=100",
                     headers={"X-N8N-API-KEY": n8n_key},
                     timeout=8,
                 )
@@ -1763,9 +1763,9 @@ def costs():
         _costs_cache["data"] = {"n8n_exec_est": n8n_exec_est}
         _costs_cache["ts"] = now
 
-    n8n_limit = int(os.environ.get("N8N_EXECUTION_LIMIT", 2500))
+    n8n_limit = int(os.environ.get("N8N_EXECUTION_LIMIT", 999999))  # VPS = illimitato
     n8n_pct = round(n8n_exec_est / n8n_limit * 100, 1) if n8n_limit > 0 else 0.0
-    n8n_cost = 20.0  # piano Starter
+    n8n_cost = 0.0  # self-hosted su VPS Hostinger
 
     # ── 4. Claude API (reale: conta predizioni questo mese da Supabase) ─────────
     import datetime as _dt
@@ -1819,12 +1819,22 @@ def costs():
         claude_code_cost   = 0.0
         claude_code_source = "set ANTHROPIC_TOTAL_SPEND_USD or CLAUDE_CODE_MONTHLY_USD"
 
-    # ── 6. Railway (statico) ──────────────────────────────────────────────────
+    # ── 6. Railway (Hobby $5/mo) ──────────────────────────────────────────────
     railway_plan = os.environ.get("RAILWAY_PLAN", "hobby").lower()
     railway_cost = 5.0 if railway_plan == "hobby" else 0.0
+    railway_days_left = int(os.environ.get("RAILWAY_DAYS_LEFT", "0"))
+
+    # ── 7. Hostinger VPS (n8n self-hosted) ───────────────────────────────────
+    hostinger_vps_eur = float(os.environ.get("HOSTINGER_VPS_MONTHLY_EUR", "4.99"))
+    hostinger_vps_usd = round(hostinger_vps_eur * 1.08, 2)  # EUR→USD approx
+
+    # ── 8. Dominio btcpredictor.io ────────────────────────────────────────────
+    domain_yearly_eur = float(os.environ.get("DOMAIN_YEARLY_EUR", "29.99"))
+    domain_monthly_usd = round(domain_yearly_eur / 12 * 1.08, 2)
 
     total = round(
-        kraken_fees_total + 0.0 + n8n_cost + claude_api_cost + claude_code_cost + railway_cost,
+        kraken_fees_total + n8n_cost + claude_api_cost + claude_code_cost
+        + railway_cost + hostinger_vps_usd + domain_monthly_usd,
         4
     )
 
@@ -1845,10 +1855,22 @@ def costs():
             "cost_usd": 0.0,
         },
         "n8n": {
+            "plan": "self-hosted (VPS)",
             "executions_est": n8n_exec_est,
-            "limit": n8n_limit,
-            "pct_used": n8n_pct,
-            "cost_usd": n8n_cost,
+            "limit": "unlimited",
+            "pct_used": 0.0,
+            "cost_usd": 0.0,
+        },
+        "hostinger_vps": {
+            "plan": "KVM1",
+            "monthly_eur": hostinger_vps_eur,
+            "cost_usd": hostinger_vps_usd,
+            "note": "n8n self-hosted + email signal@btcpredictor.io",
+        },
+        "domain": {
+            "name": "btcpredictor.io",
+            "yearly_eur": domain_yearly_eur,
+            "cost_usd": domain_monthly_usd,
         },
         "claude_api": {
             "model": claude_model,
@@ -1867,6 +1889,7 @@ def costs():
         "railway": {
             "plan": railway_plan,
             "cost_usd": railway_cost,
+            "days_left": railway_days_left,
         },
         "total_usd": total,
         "cached": cached,
@@ -2006,14 +2029,14 @@ def wf_status():
     sb_key = os.environ.get("SUPABASE_KEY", "")
     sb_headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
     n8n_key = os.environ.get("N8N_API_KEY", "")
-    n8n_url_base = os.environ.get("N8N_URL", "https://mattiacalastri.app.n8n.cloud")
+    n8n_url_base = os.environ.get("N8N_URL", "https://n8n.srv1432354.hstgr.cloud")
 
     wf02_active = False
     wf02_last_execution = None
     if n8n_key:
         try:
             r = requests.get(
-                f"{n8n_url_base}/api/v1/executions?workflowId=vallzU6ceD5gPwSP&limit=5",
+                f"{n8n_url_base}/api/v1/executions?workflowId=NnjfpzgdIyleMVBO&limit=5",
                 headers={"X-N8N-API-KEY": n8n_key},
                 timeout=8,
             )
@@ -2200,23 +2223,24 @@ def n8n_status():
     Fetch per ID diretto (non per tag, che vengono azzerati dall'API n8n ad ogni update).
     """
     n8n_key = os.environ.get("N8N_API_KEY", "")
-    n8n_url = os.environ.get("N8N_URL", "https://mattiacalastri.app.n8n.cloud")
+    n8n_url = os.environ.get("N8N_URL", "https://n8n.srv1432354.hstgr.cloud")
     if not n8n_key:
         return jsonify({"status": "error", "error": "N8N_API_KEY not configured on Railway"}), 200
 
-    # IDs fissi — più robusti dei tag che l'API n8n azzera ad ogni updateNode
+    # IDs VPS Hostinger (migrati 2026-02-26)
     BTC_WORKFLOW_IDS = [
-        "9oyKlb64lZIJfZYs",  # 00_Error_Notifier
-        "CARzC6ABuXmz7NHr",  # 01A_BTC_AI_Inputs
-        "kaevyOIbHpm8vJmF",  # 01B_BTC_Prediction_Bot
-        "vallzU6ceD5gPwSP",  # 02_BTC_Trade_Checker
-        "KITZHsfVSMtVTpfx",  # 03_BTC_Wallet_Checker
-        "eLmZ6d8t9slAx5pj",  # 04_BTC_Talker
-        "xCwf53UGBq1SyP0c",  # 05_BTC_Prediction_Verifier
-        "O2ilssVhSFs9jsMF",  # 06_Nightly_Maintenance
-        "Ei1eeVdA4ZYuc4o6",  # 07_BTC_Commander
-        "Z78ywAmykIW73lDB",  # 08_BTC_Position_Monitor
-        "KWtBSHht9kbvHovG",  # 09_BTC_Social_Media_Manager
+        "Yg0o2MaBZBHYq7Wc",  # 00_Error_Notifier
+        "E2LdFbQHKfMTVPOI",  # 01A_BTC_AI_Inputs
+        "OMgFa9Min4qXRnhq",  # 01B_BTC_Prediction_Bot
+        "NnjfpzgdIyleMVBO",  # 02_BTC_Trade_Checker
+        "K4pzVU0SCc7apPKh",  # 03_BTC_Wallet_Checker
+        "my8xac5Vs2q3wN4G",  # 04_BTC_Talker
+        "3YSec3NytjxfbG08",  # 05_BTC_Prediction_Verifier
+        "O1JlHp7tgVFBfrwm",  # 06_Nightly_Maintenance
+        "nzMMmMC6Q9eysUBP",  # 07_BTC_Commander
+        "Fjk7M3cOEcL1aAVf",  # 08_BTC_Position_Monitor
+        "EQ5AuKbbM9DNWWXw",  # 09A_BTC_Social_Media_Manager
+        "l1t7NAtR9BiF80Bi",  # 09B_BTC_Social_Publisher
     ]
 
     headers = {"X-N8N-API-KEY": n8n_key}
