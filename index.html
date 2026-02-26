@@ -598,7 +598,7 @@
   .intro-badge { display:inline-flex; align-items:center; gap:6px; font-size:9px; font-weight:700;
     letter-spacing:2px; color:var(--accent); text-transform:uppercase; margin-bottom:2px; }
   .intro-badge::before { content:''; display:inline-block; width:6px; height:6px; border-radius:50%;
-    background:var(--accent); box-shadow:0 0 6px var(--accent); animation:pulseDot 2s ease-in-out infinite; }
+    background:var(--accent); box-shadow:0 0 6px var(--accent); animation:pulse 2s ease-in-out infinite; }
   .intro-headline { font-family:'Syne',sans-serif; font-size:15px; font-weight:800; color:var(--text);
     letter-spacing:-0.4px; line-height:1.3; }
   .intro-desc { font-size:11px; color:rgba(255,255,255,0.6); line-height:1.6; max-width:560px; }
@@ -1461,7 +1461,6 @@
   /* MOBILE DASHBOARD REORDER — signal list before analytics charts */
   #dashboardMain { display: flex; flex-direction: column; }
   @media (max-width: 900px) {
-    #equityCurvePanel { order: 1; }
     .charts-grid      { order: 2; }
     #signalLogPanel   { order: 3; }
     #dashSmallPanels  { order: 4; grid-template-columns: 1fr !important; }
@@ -2184,6 +2183,19 @@
   </div>
 
   <!-- ═══════════════════════════════════════════
+       CUMULATIVE EQUITY CURVE
+  ═══════════════════════════════════════════ -->
+  <div class="panel" id="equityCurvePanel" style="margin-bottom:14px;">
+    <div class="panel-header">
+      <div class="panel-title">Cumulative Equity Curve (Real Bets)</div>
+      <div class="panel-tag tag-green" id="equityTag" data-tip-title="Equity Curve" data-tip="Capital curve over time based on real PnL from every closed bet. Includes trading fees.">LOADING</div>
+    </div>
+    <div style="padding:16px 18px 10px;">
+      <svg id="equitySvg" class="equity-svg" height="110" viewBox="0 0 1000 110" preserveAspectRatio="none"></svg>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
        ACCOUNT SUMMARY SECTION — above the fold (Ops #17)
   ═══════════════════════════════════════════ -->
   <div class="section-divider" style="margin-bottom:12px;">
@@ -2315,19 +2327,6 @@
   </div>
 
   <div id="dashboardMain">
-
-  <!-- ═══════════════════════════════════════════
-       CUMULATIVE EQUITY CURVE
-  ═══════════════════════════════════════════ -->
-  <div class="panel" id="equityCurvePanel" style="margin-bottom:14px;">
-    <div class="panel-header">
-      <div class="panel-title">Cumulative Equity Curve (Real Bets)</div>
-      <div class="panel-tag tag-green" id="equityTag" data-tip-title="Equity Curve" data-tip="Capital curve over time based on real PnL from every closed bet. Includes trading fees.">LOADING</div>
-    </div>
-    <div style="padding:16px 18px 10px;">
-      <svg id="equitySvg" class="equity-svg" height="110" viewBox="0 0 1000 110" preserveAspectRatio="none"></svg>
-    </div>
-  </div>
 
   <!-- ═══════════════════════════════════════════
        CHARTS GRID — 4 temporal charts
