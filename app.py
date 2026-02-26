@@ -69,8 +69,9 @@ def get_calibrated_wr(conf):
     return 0.50
 
 # ── Auto-calibration: ore morti (aggiornato da /reload-calibration) ───────────
-# Default conservativo: solo ore con n>=8 e WR<45% confermato da dati storici
-DEAD_HOURS_UTC: set = {12, 22}
+# Default conservativo: ore con WR<45% confermato da dati storici live
+# 10h aggiunta 2026-02-26: 40% WR, -$1.68 PnL su 10 bets — worst unblocked hour
+DEAD_HOURS_UTC: set = {10, 12, 22}
 
 def refresh_calibration():
     """Aggiorna CONF_CALIBRATION da WR reale Supabase per bucket di confidence."""
@@ -1785,6 +1786,37 @@ def reload_calibration():
         "dead_hours":       dead_result,
         "conf_calibration": {f"{k[0]:.2f}-{k[1]:.2f}": v for k, v in CONF_CALIBRATION.items()},
         "dead_hours_utc":   sorted(DEAD_HOURS_UTC),
+    })
+
+
+_force_retrain_last: float = 0.0
+
+@app.route("/force-retrain", methods=["POST"])
+def force_retrain():
+    """
+    Public endpoint — anyone can trigger calibration refresh when bets >= 30.
+    Rate limited: 1 request per hour. Does NOT run XGBoost training.
+    Only refreshes in-memory confidence thresholds + dead hours from live Supabase data.
+    """
+    global _force_retrain_last
+    import time as _time
+    now = _time.time()
+    cooldown = 3600  # 1 hour
+    if now - _force_retrain_last < cooldown:
+        remaining = int(cooldown - (now - _force_retrain_last))
+        return jsonify({
+            "status": "cooldown",
+            "message": f"Rate limited. Try again in {remaining // 60}m {remaining % 60}s.",
+            "next_allowed_in_seconds": remaining,
+        }), 429
+    _force_retrain_last = now
+    cal_result  = refresh_calibration()
+    dead_result = refresh_dead_hours()
+    return jsonify({
+        "status": "ok",
+        "message": "Calibration thresholds refreshed from live data.",
+        "dead_hours_utc": sorted(DEAD_HOURS_UTC),
+        "note": "Full XGBoost retrain runs automatically every Sunday 03:00 UTC via launchd.",
     })
 
 
