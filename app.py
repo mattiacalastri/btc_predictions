@@ -1947,8 +1947,9 @@ def costs():
 
     polygon_gas_usd = float(os.environ.get("POLYGON_GAS_MONTHLY_USD", "0.0"))
 
+    # slip_total is in price-level points (not USD) — excluded from USD total
     total = round(
-        kraken_fees_total + slip_total + n8n_cost + claude_api_cost + claude_code_cost
+        kraken_fees_total + n8n_cost + claude_api_cost + claude_code_cost
         + railway_cost + hostinger_vps_usd + domain_monthly_usd + email_monthly_usd
         + polygon_gas_usd,
         4

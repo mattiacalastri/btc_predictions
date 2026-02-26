@@ -2387,7 +2387,7 @@
         <div class="panel-tag tag-blue" id="galaxyTag">CONF × PnL</div>
       </div>
       <div style="padding:8px 12px 4px;position:relative;">
-        <svg id="galaxySvg" width="100%" height="112" viewBox="0 0 320 112" style="overflow:visible;"></svg>
+        <svg id="galaxySvg" width="100%" height="124" viewBox="-8 -8 336 128" style="overflow:hidden;"></svg>
         <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:1px;">
           <span>← low conf</span><span>confidence</span><span>high conf →</span>
         </div>
@@ -2776,11 +2776,11 @@
       </div>
       <div style="display:flex;gap:28px;align-items:baseline;flex-wrap:wrap">
         <div>
-          <div style="font-size:24px;font-weight:800;font-family:'Syne',sans-serif;color:#8866ff" id="rlyCredits">$4.87</div>
+          <div style="font-size:24px;font-weight:800;font-family:'Syne',sans-serif;color:#8866ff" id="rlyCredits" data-credits-base="4.87" data-credits-updated="2026-02-26" data-burn-per-day="0.04">$4.87</div>
           <div style="font-size:8px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px">CREDITS LEFT</div>
         </div>
         <div>
-          <div style="font-size:24px;font-weight:800;font-family:'Syne',sans-serif;color:var(--text)" id="rlyDays">27</div>
+          <div style="font-size:24px;font-weight:800;font-family:'Syne',sans-serif;color:var(--text)" id="rlyDays" data-next-billing="2026-03-25">—</div>
           <div style="font-size:8px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px">DAYS LEFT</div>
         </div>
         <div>
@@ -2832,22 +2832,22 @@
 
     <!-- KPI row -->
     <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
-      <div class="kpi green">
+      <div class="kpi green" data-tip-title="EXPECTANCY / TRADE" data-tip="Expected profit per closed bet.<br>Formula: E = WR × avgWin − (1−WR) × avgLoss<br>Positive = statistically proven edge.<br>$0.08 = on average each bet earns $0.08.">
         <div class="kpi-label">Expectancy / Trade</div>
         <div class="kpi-value green" id="exp-expectancy">—</div>
         <div class="kpi-sub">E = WR x avgWin - (1-WR) x avgLoss</div>
       </div>
-      <div class="kpi yellow">
+      <div class="kpi yellow" data-tip-title="PROFIT FACTOR" data-tip="Gross wins ÷ gross losses.<br>= 1.0 → break even<br>&gt; 1.5 → good edge<br>&gt; 2.0 → excellent (top-tier systems)">
         <div class="kpi-label">Profit Factor</div>
         <div class="kpi-value yellow" id="exp-profitFactor">—</div>
         <div class="kpi-sub">gross wins / gross losses</div>
       </div>
-      <div class="kpi blue">
+      <div class="kpi blue" data-tip-title="KELLY CRITERION" data-tip="Optimal fraction of capital to risk per bet.<br>Formula: K% = WR − (1−WR) / (avgWin/avgLoss)<br>Use ½ Kelly in practice for lower variance.<br>Shown as theoretical maximum.">
         <div class="kpi-label">Kelly %</div>
         <div class="kpi-value blue" id="exp-kelly">—</div>
         <div class="kpi-sub">optimal fraction</div>
       </div>
-      <div class="kpi purple">
+      <div class="kpi purple" data-tip-title="WIN RATE" data-tip="% of closed bets with correct direction prediction.<br>&gt;55% needed for profitability after fees at avg R/R.<br>Rolling L20 shows whether edge is stable or drifting.">
         <div class="kpi-label">Win Rate</div>
         <div class="kpi-value purple" id="exp-winRate">—</div>
         <div class="kpi-sub" id="exp-winRateSub">executed bets</div>
@@ -4154,8 +4154,10 @@ function renderGalaxy(data) {
     const los = d.correct === false;
     const opn = d.correct === null;
 
-    const fill   = opn ? '#888' : win ? '#00ff88' : '#ff4d4d';
-    const glow   = opn ? 'none' : win ? `drop-shadow(0 0 ${r+1}px #00ff8866)` : `drop-shadow(0 0 ${r+1}px #ff4d4d66)`;
+    const fill    = opn ? '#888' : win ? '#00ff88' : '#ff4d4d';
+    // Use SVG stroke instead of CSS drop-shadow — drop-shadow with overflow:visible caused full-page red flicker
+    const strokeC = opn ? 'none' : win ? '#00ff8855' : '#ff4d4d55';
+    const strokeW = opn ? 0 : (r * 0.8).toFixed(1);
     const opacity = opn ? 0.5 : 0.82;
     const pnlV  = parseFloat(d.pnl_usd);
     const conf  = parseFloat(d.confidence);
@@ -4168,7 +4170,8 @@ function renderGalaxy(data) {
     html += `<circle
       cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}"
       fill="${fill}" opacity="${opacity}"
-      style="filter:${glow};cursor:pointer;"
+      stroke="${strokeC}" stroke-width="${strokeW}"
+      style="cursor:pointer;"
       data-gtip="${tip.replace(/"/g, '&quot;')}"
     />`;
   });
@@ -6248,6 +6251,33 @@ function dismissTgCta() {
   if (el) el.style.display = 'none';
   localStorage.setItem('tgCtaDismissed', '1');
 }
+
+// ── RAILWAY BUDGET — dynamic days left & credits ─────────────────────────────
+(function() {
+  var daysEl    = document.getElementById('rlyDays');
+  var creditsEl = document.getElementById('rlyCredits');
+  var today     = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (daysEl && daysEl.dataset.nextBilling) {
+    var billing   = new Date(daysEl.dataset.nextBilling + 'T00:00:00');
+    var daysLeft  = Math.ceil((billing - today) / 86400000);
+    daysEl.textContent = daysLeft > 0 ? daysLeft : '—';
+    if (daysLeft <= 3)       daysEl.style.color = 'var(--danger)';
+    else if (daysLeft <= 7)  daysEl.style.color = 'var(--warn)';
+  }
+
+  if (creditsEl && creditsEl.dataset.creditsBase) {
+    var base      = parseFloat(creditsEl.dataset.creditsBase);
+    var updated   = new Date(creditsEl.dataset.creditsUpdated + 'T00:00:00');
+    var burn      = parseFloat(creditsEl.dataset.burnPerDay || '0.04');
+    var elapsed   = Math.max(0, Math.floor((today - updated) / 86400000));
+    var remaining = Math.max(0, base - elapsed * burn).toFixed(2);
+    creditsEl.textContent = '$' + remaining;
+    if (parseFloat(remaining) < 1.0) creditsEl.style.color = 'var(--danger)';
+    else if (parseFloat(remaining) < 2.0) creditsEl.style.color = 'var(--warn)';
+  }
+})();
 
 /* ═══════════════════════════════════════
    SIGNAL LOG FILTERS
