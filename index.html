@@ -115,6 +115,9 @@
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
+  /* iOS Safari: overflow-x:hidden on body alone is ignored — must set on html too */
+  html { overflow-x: hidden; max-width: 100%; }
+
   body {
     background: var(--bg);
     color: var(--text);
@@ -4427,6 +4430,8 @@ function renderAll(data) {
     : `Signal Log · ${filtered.length} signals (${currentPeriod})`;
   render(filtered);
   renderLivePosition(); // mostra widget se c'è posizione aperta
+  // Populate intro hero KPIs (populateIntroHero is hoisted — safe to call here)
+  if (typeof populateIntroHero === 'function') populateIntroHero(data);
 }
 
 // ── Next Signal countdown timer ───────────────────────────────────────────────
