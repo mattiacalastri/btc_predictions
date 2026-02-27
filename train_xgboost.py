@@ -20,6 +20,7 @@ import math
 import pickle
 import os
 import csv
+import requests as _requests
 from datetime import datetime
 
 import pandas as pd
@@ -358,6 +359,52 @@ def main():
     print(f"  {dir_path}")
     print(f"  {corr_path}")
     print(f"  {rep_path}")
+
+    # ── Notifica Telegram channel ──────────────────────────────────────────────
+    _notify_channel_retrain(
+        n_samples=len(df_clean),
+        win_rate=y_label.mean(),
+        dir_cv_acc=res_dir["cv_acc"].mean(),
+        dir_cv_auc=res_dir["cv_auc"].mean(),
+        corr_cv_acc=res_corr["cv_acc"].mean(),
+        corr_cv_auc=res_corr["cv_auc"].mean(),
+    )
+
+
+def _notify_channel_retrain(n_samples, win_rate, dir_cv_acc, dir_cv_auc,
+                             corr_cv_acc, corr_cv_auc):
+    """Invia un riepilogo del retrain al channel Telegram @BTCPredictorBot."""
+    bot_token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    if not bot_token:
+        print("[retrain-notify] TELEGRAM_BOT_TOKEN non impostata — skip notifica")
+        return
+
+    dir_emoji  = "✅" if dir_cv_acc  > 0.55 else "⚠️"
+    corr_emoji = "✅" if corr_cv_acc > 0.55 else "⚠️"
+
+    text = (
+        "🧠 <b>XGBoost — Auto-Retrain completato</b>\n\n"
+        f"📊 <b>Dataset:</b> {n_samples} segnali storici\n"
+        f"🏆 <b>Win rate storico:</b> {win_rate*100:.1f}%\n\n"
+        f"{dir_emoji} <b>Direction model</b>\n"
+        f"   Accuracy: <code>{dir_cv_acc:.1%}</code> | AUC: <code>{dir_cv_auc:.3f}</code>\n\n"
+        f"{corr_emoji} <b>Correctness model</b>\n"
+        f"   Accuracy: <code>{corr_cv_acc:.1%}</code> | AUC: <code>{corr_cv_auc:.3f}</code>\n\n"
+        "🔄 Modelli aggiornati e deployati su Railway.\n"
+        "Il dual-gate LLM+XGB è ora più preciso."
+    )
+
+    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+    try:
+        _requests.post(url, json={
+            "chat_id": "@BTCPredictorBot",
+            "text": text,
+            "parse_mode": "HTML",
+        }, timeout=15)
+        print("[retrain-notify] Notifica channel inviata ✅")
+    except Exception as e:
+        print(f"[retrain-notify] Errore invio Telegram: {e}")
+
 
 if __name__ == "__main__":
     main()
