@@ -1736,7 +1736,7 @@ def rescue_orphaned():
         r = requests.get(
             f"{supabase_url}/rest/v1/{SUPABASE_TABLE}"
             "?select=id,direction,created_at,entry_fill_price"
-            "&bet_taken=eq.true&correct=is.null&entry_fill_price=not.is.null&order=id.desc",
+            "&bet_taken=eq.true&correct=is.null&entry_fill_price=not.is.null&order=created_at.asc",
             headers={
                 "apikey": supabase_key,
                 "Authorization": f"Bearer {supabase_key}",
@@ -1783,11 +1783,77 @@ def rescue_orphaned():
 
     # 3. Triggera wf02 via rescue webhook per bet orfane
     #    (wf02 ha ora un Webhook Rescue Trigger su /webhook/rescue-wf02)
-    max_concurrent = 2  # evita flood: al massimo 2 rescue simultanei
+    #    Per bet stale (>MAX_BET_DURATION_HOURS), risolve direttamente senza wf02.
+    max_concurrent = 5
     triggered_count = 0
     RESCUE_WEBHOOK_URL = f"{n8n_url}/webhook/rescue-wf02"
+    MAX_BET_HOURS = float(os.environ.get("MAX_BET_DURATION_HOURS", "4"))
     for bet in orphaned:
+        import datetime
         bet_id = bet.get("id")
+
+        # ── Stale bet path: risoluzione diretta senza wf02 ──────────────────
+        bet_created = bet.get("created_at", "")
+        try:
+            created_dt = datetime.datetime.fromisoformat(
+                bet_created.replace("Z", "").split("+")[0]
+            )
+            age_hours = (datetime.datetime.utcnow() - created_dt).total_seconds() / 3600
+        except Exception:
+            age_hours = 0
+
+        if age_hours >= MAX_BET_HOURS:
+            try:
+                # Chiudi posizione Kraken se ancora aperta
+                pos = get_open_position(DEFAULT_SYMBOL)
+                if pos:
+                    trade = get_trade_client()
+                    close_side = "sell" if pos["side"] == "long" else "buy"
+                    trade.create_order(
+                        orderType="mkt",
+                        symbol=DEFAULT_SYMBOL,
+                        side=close_side,
+                        size=pos["size"],
+                        reduceOnly=True,
+                    )
+                # Prezzo attuale da Binance
+                pr = requests.get(
+                    "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT",
+                    timeout=4,
+                )
+                exit_price = float(pr.json()["price"]) if pr.ok else float(bet.get("entry_fill_price") or 0)
+                entry = float(bet.get("entry_fill_price") or 0)
+                direction = bet.get("direction", "UP")
+                gross_delta = exit_price - entry
+                if direction == "DOWN":
+                    gross_delta = -gross_delta
+                correct = gross_delta > 0
+                pnl = round((exit_price - entry) / entry * 100, 4) if entry else 0
+                # Aggiorna Supabase
+                upd = requests.patch(
+                    f"{supabase_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{bet_id}",
+                    headers={
+                        "apikey": supabase_key,
+                        "Authorization": f"Bearer {supabase_key}",
+                        "Content-Type": "application/json",
+                        "Prefer": "return=minimal",
+                    },
+                    json={"exit_fill_price": exit_price, "correct": correct, "pnl_pct": pnl},
+                    timeout=6,
+                )
+                if upd.ok:
+                    app.logger.warning(
+                        f"[rescue_orphaned] STALE bet #{bet_id} auto-resolved "
+                        f"age={age_hours:.1f}h exit={exit_price} correct={correct}"
+                    )
+                    rescued.append(bet_id)
+                    continue
+            except Exception as e:
+                app.logger.error(f"[rescue_orphaned] stale resolve error bet#{bet_id}: {e}")
+            skipped.append(bet_id)
+            continue
+
+        # ── Normal path: trigger wf02 webhook ───────────────────────────────
         if len(active_execs) + triggered_count >= max_concurrent:
             skipped.append(bet_id)
             continue
