@@ -2174,6 +2174,204 @@
   transition: color 0.2s, border-color 0.2s;
 }
 .btn-cookie-decline:hover { color: var(--text); border-color: var(--muted); }
+
+  /* ── SIGNAL CARD MOBILE FIX ──────────────────────────────── */
+  @media (max-width: 480px) {
+    .container { padding: 14px 12px; }
+    .mbet-card { width: 100%; box-sizing: border-box; }
+    .mobile-bet-list { width: 100%; min-width: 0; }
+  }
+
+  /* ── TRON/MATRIX BURGER MENU ─────────────────────────────── */
+  .tron-menu-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px;
+    background: rgba(0,170,255,0.06);
+    border: 1px solid rgba(0,170,255,0.25);
+    border-radius: 3px; cursor: pointer;
+    position: relative; overflow: hidden;
+    transition: all 0.2s; flex-shrink: 0;
+  }
+  .tron-menu-btn:hover {
+    background: rgba(0,170,255,0.14);
+    border-color: rgba(0,170,255,0.55);
+    box-shadow: 0 0 14px rgba(0,170,255,0.25), inset 0 0 8px rgba(0,170,255,0.05);
+  }
+  .tron-menu-btn::after {
+    content: '';
+    position: absolute; top: -100%; left: -100%;
+    width: 80%; height: 80%;
+    background: linear-gradient(135deg, transparent, rgba(0,170,255,0.1), transparent);
+    animation: tronBtnSweep 2.5s infinite;
+    pointer-events: none;
+  }
+  @keyframes tronBtnSweep { 0%{top:-100%;left:-100%} 100%{top:200%;left:200%} }
+
+  /* Backdrop */
+  #tronMenuBackdrop {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 4999;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.3s;
+    backdrop-filter: blur(3px);
+  }
+  #tronMenuBackdrop.open { opacity: 1; pointer-events: all; }
+
+  /* Drawer */
+  #tronMenuDrawer {
+    position: fixed; top: 0; left: -310px;
+    width: 288px; height: 100vh;
+    z-index: 5000;
+    background: #04060d;
+    border-right: 1px solid rgba(0,170,255,0.18);
+    box-shadow: 4px 0 40px rgba(0,0,0,0.8), 0 0 60px rgba(0,170,255,0.06);
+    transition: left 0.34s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  #tronMenuDrawer.open { left: 0; }
+
+  /* Scanlines overlay */
+  #tronMenuDrawer::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 3px,
+      rgba(0,170,255,0.012) 3px, rgba(0,170,255,0.012) 4px
+    );
+    pointer-events: none; z-index: 1;
+  }
+
+  /* Bottom grid glow */
+  #tronMenuDrawer::after {
+    content: '';
+    position: absolute; bottom: 0; left: 0; right: 0; height: 180px;
+    background-image:
+      linear-gradient(rgba(0,170,255,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,170,255,0.05) 1px, transparent 1px);
+    background-size: 24px 24px;
+    mask-image: linear-gradient(transparent, rgba(0,0,0,0.8));
+    pointer-events: none; z-index: 0;
+  }
+
+  .tron-menu-content {
+    position: relative; z-index: 2;
+    display: flex; flex-direction: column; height: 100%;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0,170,255,0.15) transparent;
+  }
+
+  .tron-menu-header {
+    padding: 22px 20px 16px;
+    border-bottom: 1px solid rgba(0,170,255,0.1);
+    display: flex; align-items: center; justify-content: space-between;
+    background: rgba(0,170,255,0.025);
+  }
+  .tron-menu-logo {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; font-weight: 700; letter-spacing: 2px;
+    color: rgba(0,170,255,0.9); line-height: 1.5;
+  }
+  .tron-menu-logo span { color: #f7931a; display: block; font-size: 7.5px; letter-spacing: 3px; opacity: 0.7; margin-top: 1px; }
+  .tron-menu-close {
+    width: 28px; height: 28px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 2px; color: var(--muted);
+    font-size: 14px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s; flex-shrink: 0;
+  }
+  .tron-menu-close:hover { color: var(--text); border-color: rgba(255,255,255,0.3); }
+
+  .tron-menu-section { padding: 14px 18px 4px; }
+  .tron-menu-section-label {
+    font-size: 7.5px; font-weight: 700; letter-spacing: 3px;
+    text-transform: uppercase; color: rgba(0,170,255,0.35);
+    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .tron-menu-section-label::after {
+    content: ''; flex: 1; height: 1px;
+    background: linear-gradient(90deg, rgba(0,170,255,0.15), transparent);
+  }
+
+  .tron-menu-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; margin-bottom: 2px;
+    border: 1px solid transparent; border-radius: 3px;
+    cursor: pointer; text-decoration: none;
+    color: rgba(255,255,255,0.6);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px; font-weight: 600; letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: all 0.15s; position: relative; overflow: hidden;
+  }
+  .tron-menu-item:hover {
+    background: rgba(0,170,255,0.06);
+    border-color: rgba(0,170,255,0.18);
+    color: rgba(0,212,255,0.9);
+  }
+  .tron-menu-item.active {
+    background: rgba(0,170,255,0.09);
+    border-color: rgba(0,170,255,0.3);
+    color: #00aaff;
+  }
+  .tron-menu-item::before {
+    content: ''; position: absolute;
+    left: 0; top: 0; bottom: 0; width: 2px;
+    background: rgba(0,170,255,0.6);
+    transform: scaleY(0); transition: transform 0.15s; transform-origin: center;
+  }
+  .tron-menu-item:hover::before, .tron-menu-item.active::before { transform: scaleY(1); }
+  .tron-menu-item-emoji { font-size: 13px; flex-shrink: 0; }
+  .tron-menu-item-text { flex: 1; }
+  .tron-menu-item-badge {
+    font-size: 6.5px; font-weight: 700; letter-spacing: 1px;
+    text-transform: uppercase; padding: 2px 5px; border-radius: 2px;
+    background: rgba(0,170,255,0.1); color: rgba(0,170,255,0.55);
+    border: 1px solid rgba(0,170,255,0.18); flex-shrink: 0;
+  }
+  .tron-menu-item-badge.live {
+    background: rgba(0,255,136,0.1); color: rgba(0,255,136,0.65);
+    border-color: rgba(0,255,136,0.22); animation: pulse 2s infinite;
+  }
+  .tron-menu-item-badge.ext {
+    background: rgba(247,147,26,0.1); color: rgba(247,147,26,0.65);
+    border-color: rgba(247,147,26,0.22);
+  }
+
+  /* Badge chips */
+  .tron-badges-grid { display: flex; flex-wrap: wrap; gap: 5px; padding: 4px 0 8px; }
+  .tron-badge-chip {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 6.5px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+    padding: 4px 7px; border-radius: 2px; border: 1px solid;
+    transition: all 0.2s; cursor: default; position: relative; overflow: hidden;
+    white-space: nowrap;
+  }
+  .tron-badge-chip:hover { transform: translateY(-1px); filter: brightness(1.3); }
+  .tron-badge-chip.c-cyan   { color:rgba(0,212,255,.85); border-color:rgba(0,212,255,.22); background:rgba(0,212,255,.06); }
+  .tron-badge-chip.c-orange { color:rgba(247,147,26,.85); border-color:rgba(247,147,26,.22); background:rgba(247,147,26,.06); }
+  .tron-badge-chip.c-green  { color:rgba(0,255,136,.85); border-color:rgba(0,255,136,.22); background:rgba(0,255,136,.06); }
+  .tron-badge-chip.c-purple { color:rgba(170,102,255,.85); border-color:rgba(170,102,255,.22); background:rgba(170,102,255,.06); }
+  .tron-badge-chip.c-red    { color:rgba(255,68,102,.85); border-color:rgba(255,68,102,.22); background:rgba(255,68,102,.06); }
+
+  .tron-menu-footer {
+    margin-top: auto; padding: 14px 20px;
+    border-top: 1px solid rgba(0,170,255,0.07);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 7.5px; color: rgba(255,255,255,0.18); letter-spacing: 1px;
+    line-height: 1.8;
+  }
+  .tron-menu-footer a { color: rgba(0,170,255,0.35); text-decoration: none; transition: color 0.15s; }
+  .tron-menu-footer a:hover { color: rgba(0,170,255,0.75); }
+
+  /* On mobile: drawer wider */
+  @media (max-width: 480px) {
+    #tronMenuDrawer { width: min(288px, 88vw); }
+  }
 </style>
 </head>
 <body>
@@ -2292,6 +2490,9 @@
         </div>
       </div>
       <button class="intro-reopen-btn" id="introReopenBtn" onclick="showIntro()" title="What is this? — Info for new visitors" style="display:none">? ABOUT</button>
+      <button class="tron-menu-btn" id="tronMenuBtn" onclick="toggleTronMenu()" title="Navigation Menu" aria-label="Open navigation menu">
+        <svg width="16" height="14" viewBox="0 0 16 14" fill="none"><path d="M0 1h16M0 7h16M0 13h16" stroke="#00aaff" stroke-width="1.5" stroke-linecap="square"/></svg>
+      </button>
     </div>
   </header>
 
@@ -2436,7 +2637,7 @@
     <button class="time-pill"        data-period="24H"   onclick="setTimePeriod(this)">24H</button>
     <button class="time-pill active" data-period="TODAY" onclick="setTimePeriod(this)">TODAY</button>
     <div style="flex:1;min-width:4px;"></div>
-    <button class="war-room-btn" id="warRoomToggleMobile" onclick="toggleWarRoom(document.getElementById('warRoomToggle'))" style="font-size:8px;padding:5px 8px;white-space:nowrap;">&#9876;&#65039; WR</button>
+    <button class="war-room-btn" id="warRoomToggleMobile" onclick="toggleWarRoom(document.getElementById('warRoomToggle'))" style="font-size:8px;padding:5px 8px;white-space:nowrap;">&#9876;&#65039; WAR ROOM</button>
   </div>
 
   <!-- DASHBOARD TAB -->
@@ -2519,8 +2720,8 @@
       <div class="story-label">WIN RATE</div>
       <div class="story-val" id="storyWR">—</div>
     </div>
-    <div class="story-item" data-source="kpiRoi">
-      <div class="story-ring story-ring-purple" style="color:#aa66ff">ROI</div>
+    <div class="story-item" data-source="kpiPnl">
+      <div class="story-ring story-ring-purple" style="color:#aa66ff">P&L</div>
       <div class="story-label">P&amp;L</div>
       <div class="story-val" id="storyROI">—</div>
     </div>
@@ -2618,9 +2819,9 @@
       <div class="kpi-sub">Executed trades</div>
     </div>
     <div class="kpi yellow">
-      <div class="kpi-label">WR NoBet</div>
+      <div class="kpi-label">Signal WR</div>
       <div class="kpi-value yellow" id="kpiWrNoBet">—</div>
-      <div class="kpi-sub">Theoretical pred.</div>
+      <div class="kpi-sub">All signals incl. skipped</div>
     </div>
     <div class="kpi blue">
       <div class="kpi-label">Fear &amp; Greed</div>
@@ -3801,9 +4002,53 @@ const INTRO_I18N = {
     cta:       '\u308f\u304b\u308a\u307e\u3057\u305f\u3001\u63a2\u7d22\u3059\u308b \u2192',
     hint:      '\u30d8\u30c3\u30c0\u30fc\u306e <strong>?</strong> \u30dc\u30bf\u30f3\u3067\u3044\u3064\u3067\u3082\u518d\u8868\u793a\u3067\u304d\u307e\u3059',
   },
+  ko: {
+    badge:     '\uc774\uac8c \ub079\uc778\uac00\uc694?',
+    headline:  '\uc2e4\uc81c \ub3c8\uc73c\ub85c \ube44\ud2b8\ucf54\uc778\uc744 \uac70\ub798\ud558\ub294 AI \ubd07.',
+    desc:      '10\ubd84\ub9c8\ub2e4 \ubd07\uc774 <strong>XGBoost ML + Claude AI</strong>\ub97c \uc0ac\uc6a9\ud574 BTC \uac00\uaca9, \ub274\uc2a4, \uc8fc\ubb38 \ud750\ub984, \uc2dc\uc7a5 \uc2ec\ub9ac\ub97c \ubd84\uc11d\ud569\ub2c8\ub2e4. \ub458 \ub2e4 \ubc29\ud5a5\uc5d0 \ub3d9\uc758\ud558\uba74 <strong>Kraken</strong>\uc5d0\uc11c \uc2e4\uc81c \uac70\ub798\ub97c \uac1c\uc2dc\ud558\uace0 \uc790\ub3d9\uc73c\ub85c \uc885\ub8cc\ud569\ub2c8\ub2e4. \uc778\uac04 \uac1c\uc785 \uc5c6\uc74c.',
+    bullet1:   '2026\ub144 2\uc6d4 <strong>$100 USDC</strong>\ub85c \uc2dc\uc791 \u2014 \uc2dc\ubbac\ub808\uc774\uc158\uc774 \uc544\ub2cc \uc2e4\uc81c \uc790\ubcf8',
+    bullet2:   '\ubaa8\ub4e0 \uc608\uce21\uc740 <strong>Polygon \ube14\ub85d\uccb4\uc778</strong>\uc5d0 \uc601\uad6c\uc801\uc73c\ub85c \uae30\ub85d \u2014 \uc644\uc804\ud788 \uac80\uc99d \uac00\ub2a5',
+    bullet3:   '\uc644\uc804 <strong>\uc624\ud508 \uc18c\uc2a4</strong> \u2014 GitHub\uc5d0 \ucf54\ub4dc, \uc6cc\ud06c\ud50c\ub85c \ubb38\uc11c\ud654',
+    lbl_wr:    '\uc2b9\ub960', lbl_pnl: '\uc694 PnL', lbl_trades: '\uc885\ub8cc\ub41c \uac70\ub798',
+    cta:       '\uc54c\uaca0\uc2b5\ub2c8\ub2e4, \ud0d0\uc0c9\ud558\uae30 \u2192',
+    hint:      '\ud5e4\ub354\uc758 <strong>?</strong> \ubc84\ud2bc\uc73c\ub85c \uc5b8\uc81c\ub4e0\uc9c0 \ub2e4\uc2dc \uc5f4 \uc218 \uc788\uc2b5\ub2c8\ub2e4',
+  },
+  ru: {
+    badge:     '\u0427\u0422\u041e \u042d\u0422\u041e?',
+    headline:  'AI-\u0431\u043e\u0442, \u0442\u043e\u0440\u0433\u0443\u044e\u0449\u0438\u0439 Bitcoin \u0441 \u0440\u0435\u0430\u043b\u044c\u043d\u044b\u043c\u0438 \u0434\u0435\u043d\u044c\u0433\u0430\u043c\u0438.',
+    desc:      '\u041a\u0430\u0436\u0434\u044b\u0435 10 \u043c\u0438\u043d\u0443\u0442 \u0431\u043e\u0442 \u0430\u043d\u0430\u043b\u0438\u0437\u0438\u0440\u0443\u0435\u0442 \u0446\u0435\u043d\u0443 BTC, \u043d\u043e\u0432\u043e\u0441\u0442\u0438, \u043f\u043e\u0442\u043e\u043a \u043e\u0440\u0434\u0435\u0440\u043e\u0432 \u0438 \u043d\u0430\u0441\u0442\u0440\u043e\u0435\u043d\u0438\u044f \u0441 \u043f\u043e\u043c\u043e\u0449\u044c\u044e <strong>XGBoost ML + Claude AI</strong>. \u0415\u0441\u043b\u0438 \u043e\u0431\u0430 \u0441\u043e\u0433\u043b\u0430\u0441\u043d\u044b \u2014 \u043e\u0442\u043a\u0440\u044b\u0432\u0430\u0435\u0442 \u0440\u0435\u0430\u043b\u044c\u043d\u0443\u044e \u0441\u0434\u0435\u043b\u043a\u0443 \u043d\u0430 <strong>Kraken</strong> \u0438 \u0430\u0432\u0442\u043e\u043c\u0430\u0442\u0438\u0447\u0435\u0441\u043a\u0438 \u0437\u0430\u043a\u0440\u044b\u0432\u0430\u0435\u0442 \u0435\u0451. \u0411\u0435\u0437 \u0443\u0447\u0430\u0441\u0442\u0438\u044f \u0447\u0435\u043b\u043e\u0432\u0435\u043a\u0430.',
+    bullet1:   '\u0417\u0430\u043f\u0443\u0449\u0435\u043d \u0432 \u0444\u0435\u0432\u0440\u0430\u043b\u0435 2026 \u0441 <strong>$100 USDC</strong> \u2014 \u0440\u0435\u0430\u043b\u044c\u043d\u044b\u0439 \u043a\u0430\u043f\u0438\u0442\u0430\u043b, \u043d\u0435 \u0441\u0438\u043c\u0443\u043b\u044f\u0446\u0438\u044f',
+    bullet2:   '\u041a\u0430\u0436\u0434\u044b\u0439 \u043f\u0440\u043e\u0433\u043d\u043e\u0437 \u043d\u0430\u0432\u0441\u0435\u0433\u0434\u0430 \u0437\u0430\u043f\u0438\u0441\u0430\u043d \u0432 <strong>\u0431\u043b\u043e\u043a\u0447\u0435\u0439\u043d Polygon</strong> \u2014 \u043f\u043e\u043b\u043d\u043e\u0441\u0442\u044c\u044e \u043f\u0440\u043e\u0432\u0435\u0440\u044f\u0435\u043c',
+    bullet3:   '\u041f\u043e\u043b\u043d\u043e\u0441\u0442\u044c\u044e <strong>open source</strong> \u2014 \u043a\u043e\u0434 \u043d\u0430 GitHub, \u043b\u043e\u0433\u0438\u043a\u0430 \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u0438\u0440\u043e\u0432\u0430\u043d\u0430',
+    lbl_wr:    '\u041f\u0440\u043e\u0446\u0435\u043d\u0442 \u043f\u043e\u0431\u0435\u0434', lbl_pnl: '\u041e\u0431\u0449\u0438\u0439 PnL', lbl_trades: '\u0417\u0430\u043a\u0440\u044b\u0442\u044b\u0435 \u0441\u0434\u0435\u043b\u043a\u0438',
+    cta:       '\u041f\u043e\u043d\u044f\u043b, \u0438\u0441\u0441\u043b\u0435\u0434\u043e\u0432\u0430\u0442\u044c \u2192',
+    hint:      '\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u0441\u043d\u043e\u0432\u0430: \u043a\u043d\u043e\u043f\u043a\u0430 <strong>?</strong> \u0432 \u0448\u0430\u043f\u043a\u0435',
+  },
+  hi: {
+    badge:     '\u092f\u0939 \u0915\u094d\u092f\u093e \u0939\u0948?',
+    headline:  '\u090f\u0915 AI \u092c\u094b\u091f \u091c\u094b \u0905\u0938\u0932\u0940 \u092a\u0948\u0938\u094b\u0902 \u0938\u0947 Bitcoin \u091f\u094d\u0930\u0947\u0921 \u0915\u0930\u0924\u093e \u0939\u0948\u0964',
+    desc:      '\u0939\u0930 10 \u092e\u093f\u0928\u091f \u092e\u0947\u0902, \u092c\u094b\u091f <strong>XGBoost ML + Claude AI</strong> \u0915\u093e \u0909\u092a\u092f\u094b\u0917 \u0915\u0930\u0915\u0947 BTC \u092e\u0942\u0932\u094d\u092f, \u0938\u092e\u093e\u091a\u093e\u0930, \u0911\u0930\u094d\u0921\u0930 \u092b\u094d\u0932\u094b \u0914\u0930 \u092c\u093e\u091c\u093e\u0930 \u092d\u093e\u0935\u0928\u093e \u0915\u093e \u0935\u093f\u0936\u094d\u0932\u0947\u0937\u0923 \u0915\u0930\u0924\u093e \u0939\u0948\u0964 \u0905\u0917\u0930 \u0926\u094b\u0928\u094b\u0902 \u0938\u0939\u092e\u0924 \u0939\u0908\u0902, \u0924\u094b <strong>Kraken</strong> \u092a\u0930 \u0930\u093f\u092f\u0932 \u091f\u094d\u0930\u0947\u0921 \u0916\u094b\u0932\u0924\u093e \u0939\u0948 \u2014 \u092b\u093f\u0930 \u0938\u094d\u0935\u091a\u093e\u0932\u093f\u0924 \u0930\u0942\u092a \u0938\u0947 \u092c\u0902\u0926 \u0915\u0930\u0924\u093e \u0939\u0948\u0964 \u0915\u094b\u0908 \u092e\u093e\u0928\u0935\u0940\u092f \u0939\u0938\u094d\u0924\u0915\u094d\u0937\u0947\u092a \u0928\u0939\u0940\u0902\u0964',
+    bullet1:   '\u092b\u0930\u0935\u0930\u0940 2026 \u092e\u0947\u0902 <strong>$100 USDC</strong> \u0938\u0947 \u0936\u0941\u0930\u0942 \u2014 \u0935\u093e\u0938\u094d\u0924\u0935\u093f\u0915 \u092a\u0942\u0902\u091c\u0940, \u0938\u093f\u092e\u0941\u0932\u0947\u0936\u0928 \u0928\u0939\u0940\u0902',
+    bullet2:   '\u0939\u0930 \u092d\u0935\u093f\u0937\u094d\u092f\u0935\u093e\u0923\u0940 <strong>Polygon \u092c\u094d\u0932\u0949\u0915\u091a\u0947\u0928</strong> \u092a\u0930 \u0938\u094d\u0925\u093e\u092f\u0940 \u0930\u0942\u092a \u0938\u0947 \u0926\u0930\u094d\u091c \u2014 \u092a\u0942\u0930\u0940 \u0924\u0930\u0939 \u0938\u0924\u094d\u092f\u093e\u092a\u093f\u0924',
+    bullet3:   '\u092a\u0942\u0930\u0940 \u0924\u0930\u0939 <strong>open source</strong> \u2014 GitHub \u092a\u0930 \u0915\u094b\u0921, \u0935\u0930\u094d\u0915\u092b\u093c\u094d\u0932\u094b \u0926\u0938\u094d\u0924\u093e\u0935\u0947\u091c\u093c\u0940\u0915\u0943\u0924',
+    lbl_wr:    '\u091c\u0940\u0924 \u0926\u0930', lbl_pnl: '\u0915\u0941\u0932 PnL', lbl_trades: '\u092c\u0902\u0926 \u091f\u094d\u0930\u0947\u0921',
+    cta:       '\u0938\u092e\u091d \u0917\u092f\u093e, \u090f\u0915\u094d\u0938\u094d\u092a\u094d\u0932\u094b\u0930 \u0915\u0930\u0947\u0902 \u2192',
+    hint:      '\u0939\u0947\u0921\u0930 \u092e\u0947\u0902 <strong>?</strong> \u092c\u091f\u0928 \u0938\u0947 \u0915\u092d\u0940 \u092d\u0940 \u092b\u093f\u0930 \u0938\u0947 \u0916\u094b\u0932\u0947\u0902',
+  },
+  si: {
+    badge:     '\u0db8\u0dda \u0db8\u0d9a\u0dda\u0daf?',
+    headline:  '\u0dc3\u0dd0\u0db6\u0dcf \u0db8\u0dd4\u0daf\u0dbd\u0dca \u0dc3\u0db8\u0d9c Bitcoin \u0d9c\u0db1\u0dd4\u0daf\u0dd9\u0db1\u0dd4 \u0d9a\u0dbb\u0db1 AI \u0d89\u0dbb\u0dd2\u0dba\u0dd0\u0d9a\u0dca.',
+    desc:      '\u0dc3\u0dba\u0dda\u0d9a\u0dca \u0db8\u0dd2\u0db1\u0dd2\u0dad\u0dca\u0dad\u0dd4 10 \u0d9a\u0da7, \u0d89\u0dbb\u0dd2\u0dba \u0db6\u0d9c\u0dd2\u0db4\u0dad\u0dca <strong>XGBoost ML + Claude AI</strong> \u0db6\u0dcf\u0dc5\u0dca\u0dc0\u0dd3\u0db8\u0dda\u0db1\u0dca BTC \u0db8\u0dd2\u0dbd, \u0db4\u0dca\u200d\u0dbb\u0dc0\u0dd3\u0dae\u0dd4, \u0d87\u0dab\u0dc0\u0dd4\u0db8\u0dca \u0db4\u0dca\u200d\u0dbb\u0dc0\u0dcf\u0dc4\u0dba \u0dc4\u0dcf \u0dc4\u0dda\u0dc5\u0dd3\u0db8\u0dca \u0dc0\u0dd2\u0dc2\u0dca\u0dbd\u0dda\u0dc2\u0db1\u0dba \u0d9a\u0dbb\u0dba\u0dd2. \u0daf\u0dd9\u0d9a\u0dda\u0db8\u0dca \u0d91\u0d9a\u0d9c\u0dc2\u0dca \u0dc0\u0dd3\u0dba\u0dcf \u0db1\u0db8\u0dca, <strong>Kraken</strong> \u0dc4\u0dd2\u0daf\u0dd3 \u0dc3\u0dd0\u0db6\u0dcf \u0d9c\u0db1\u0dd4\u0daf\u0dd9\u0db1\u0dd4\u0dc0\u0d9a\u0dca \u0d87\u0dbb\u0db9\u0dca\u0db8\u0dca \u0d9a\u0dbb\u0dcf \u0dc3\u0dca\u0dc0\u0dba\u0d82\u0d9a\u0dca\u200d\u0dbb\u0dd3\u0dba\u0dc0 \u0dc0\u0dc4\u0da7 \u0d9a\u0dbb\u0dba\u0dd2. \u0db8\u0db1\u0dd4\u0dc2\u0dca\u0dc1 \u0db8\u0dd0\u0daf\u0dd2\u0dc4\u0dad\u0dca\u0dc0\u0dd3\u0db8\u0d9a\u0dca \u0db1\u0dd2\u0dba\u0dc1\u0dba\u0dd2.',
+    bullet1:   '2026 \u0db4\u0dd9\u0db6\u0dbb\u0dc0\u0dcf\u0dbb\u0dd2\u0dba\u0dda <strong>$100 USDC</strong> \u0dc3\u0db8\u0d9c \u0d87\u0dbb\u0dd9\u0db1\u0dca\u0db6\u0dd3\u0dc4\u0dd2 \u2014 \u0d89\u0dbb\u0dd2\u0dba\u0dca, \u0db4\u0dbb\u0dd3\u0d9a\u0dca\u0dc2\u0dba\u0d9a\u0dca \u0db1\u0d85',
+    bullet2:   '\u0dc3\u0dba\u0dda\u0d9a\u0dca \u0d85\u0db1\u0dcf\u0dc0\u0dd9\u0d9a\u0dd2\u0dba\u0d9a\u0dca\u0db8\u0dca <strong>Polygon \u0db6\u0dca\u200d\u0dbd\u0ddd\u0d9a\u0dca\u0da0\u0dba\u0dd2\u0db1\u0dca</strong> \u0dc4\u0dd2 \u0dc3\u0ddc\u0dba \u0dc3\u0dbe\u0daf\u0dba\u0d9a\u0dca\u0d9a\u0dbb\u0dd1 \u2014 \u0dc3\u0db8\u0dca\u0db4\u0dd6\u0dbb\u0dca\u0dab\u0dba\u0dda\u0db1\u0dca \u0dc4\u0dd3\u0dba\u0dbd\u0dca \u0d9a\u0dbb\u0dba \u0dc4\u0dd0\u0d9a\u0dd2\u0dba\u0dd2',
+    bullet3:   '\u0dc3\u0db8\u0dca\u0db4\u0dd6\u0dbb\u0dca\u0dab\u0dba\u0dda\u0db1\u0dca <strong>open source</strong> \u2014 GitHub \u0dc4\u0dd2 \u0d9a\u0ddd\u0da9\u0dba, workflow \u0dbd\u0dda\u0d9b\u0db1\u0d9c\u0dad\u0dba\u0dd2',
+    lbl_wr:    '\u0da2\u0dba\u0d9c\u0dca\u200d\u0dbb\u0dcf\u0dc4\u0dd3 \u0d85\u0db1\u0dd4\u0db4\u0dcf\u0dad\u0dba', lbl_pnl: '\u0db8\u0dd4\u0dbd\u0dd4 PnL', lbl_trades: '\u0dc0\u0dc3\u0dcf \u0d9c\u0db1\u0dd4\u0daf\u0dd9\u0db1\u0dd4',
+    cta:       '\u0dc4\u0dbb\u0dd2, \u0d9c\u0dc0\u0dda\u0dc2\u0db1\u0dcf \u0d9a\u0dbb\u0db8\u0dd4 \u2192',
+    hint:      '\u0dc4\u0dd3\u0dc0\u0dcf\u0dbd\u0dea \u0d9a\u0ddc\u0da7\u0dc3\u0dd2\u0db1\u0dca <strong>?</strong> \u0d9a\u0dd2\u0dba\u0dad\u0dca\u0dad\u0db8 \u0db6\u0da7\u0db1\u0dca \u0db8\u0d9f\u0dd2\u0db1\u0dca \u0db1\u0dd0\u0dc5\u0dc5\u0dad \u0dc0\u0dd2\u0dc0\u0dbb\u0dca\u0dad \u0d9a\u0dbd \u0dc4\u0dd0\u0d9a\u0dd2\u0dba\u0dd2',
+  },
 };
 
-const _INTRO_LANG_LABELS = { en:'EN', it:'IT', de:'DE', fr:'FR', es:'ES', pt:'PT', zh:'中文', ja:'日本語' };
+const _INTRO_LANG_LABELS = { en:'EN', it:'IT', de:'DE', fr:'FR', es:'ES', pt:'PT', zh:'中文', ja:'日本語', ko:'한국어', ru:'RU', hi:'हिन्दी', si:'සිංහල' };
 let _introCurrentLang = 'en';
 
 function applyIntroLang(lang) {
@@ -6990,7 +7235,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function syncStoryHighlights() {
   const map = [
     { src: 'kpiWinRate',  dst: 'storyWR' },
-    { src: 'kpiRoi',      dst: 'storyROI' },
+    { src: 'kpiPnl',      dst: 'storyROI' },
     { src: 'kpiFG',       dst: 'storyFG' },
     { src: 'kpiBets',     dst: 'storyBets' },
     { src: 'kpiDrawdown', dst: 'storyDD' },
@@ -7911,6 +8156,149 @@ window.addEventListener('load', function() {
     localStorage.setItem('btcp_ga_consent', 'denied');
     document.getElementById('cookieBanner').classList.add('hidden');
   };
+  </script>
+
+  <!-- ══════════════════════════════════════════
+       TRON/MATRIX NAVIGATION DRAWER
+  ══════════════════════════════════════════ -->
+  <div id="tronMenuBackdrop" onclick="toggleTronMenu(false)"></div>
+  <div id="tronMenuDrawer" role="navigation" aria-label="Main navigation">
+    <div class="tron-menu-content">
+
+      <!-- Header -->
+      <div class="tron-menu-header">
+        <div class="tron-menu-logo">
+          BTCPREDICTOR.IO
+          <span>AUTONOMOUS TRADING ENGINE</span>
+        </div>
+        <button class="tron-menu-close" onclick="toggleTronMenu(false)" aria-label="Close menu">✕</button>
+      </div>
+
+      <!-- Dashboard Views (tabs) -->
+      <div class="tron-menu-section">
+        <div class="tron-menu-section-label">DASHBOARD VIEWS</div>
+        <div class="tron-menu-item" data-tab="dashboard" onclick="tronMenuSwitchTab('dashboard')">
+          <span class="tron-menu-item-emoji">📊</span>
+          <span class="tron-menu-item-text">Dashboard</span>
+          <span class="tron-menu-item-badge live">LIVE</span>
+        </div>
+        <div class="tron-menu-item" data-tab="agents" onclick="tronMenuSwitchTab('agents')">
+          <span class="tron-menu-item-emoji">🤖</span>
+          <span class="tron-menu-item-text">Agents</span>
+        </div>
+        <div class="tron-menu-item" data-tab="costs" onclick="tronMenuSwitchTab('costs')">
+          <span class="tron-menu-item-emoji">💰</span>
+          <span class="tron-menu-item-text">Costs &amp; Fees</span>
+        </div>
+        <div class="tron-menu-item" data-tab="training" onclick="tronMenuSwitchTab('training')">
+          <span class="tron-menu-item-emoji">🧠</span>
+          <span class="tron-menu-item-text">ML Training</span>
+        </div>
+        <div class="tron-menu-item" data-tab="expectancy" onclick="tronMenuSwitchTab('expectancy')">
+          <span class="tron-menu-item-emoji">📈</span>
+          <span class="tron-menu-item-text">Expectancy</span>
+        </div>
+        <div class="tron-menu-item" data-tab="backtest" onclick="tronMenuSwitchTab('backtest')">
+          <span class="tron-menu-item-emoji">🔁</span>
+          <span class="tron-menu-item-text">Backtest</span>
+        </div>
+      </div>
+
+      <!-- External Pages -->
+      <div class="tron-menu-section">
+        <div class="tron-menu-section-label">PAGES</div>
+        <a class="tron-menu-item" href="/xgboost-spiegato">
+          <span class="tron-menu-item-emoji">⚡</span>
+          <span class="tron-menu-item-text">Dual-Gate AI</span>
+          <span class="tron-menu-item-badge ext">↗</span>
+        </a>
+        <a class="tron-menu-item" href="/contributors">
+          <span class="tron-menu-item-emoji">🎩</span>
+          <span class="tron-menu-item-text">I Tanti Padri</span>
+          <span class="tron-menu-item-badge ext">↗</span>
+        </a>
+        <a class="tron-menu-item" href="/manifesto">
+          <span class="tron-menu-item-emoji">📜</span>
+          <span class="tron-menu-item-text">Manifesto</span>
+          <span class="tron-menu-item-badge ext">↗</span>
+        </a>
+        <a class="tron-menu-item" href="/prevedibilita-perfetta">
+          <span class="tron-menu-item-emoji">🎯</span>
+          <span class="tron-menu-item-text">Prevedibilità Perfetta</span>
+          <span class="tron-menu-item-badge ext">↗</span>
+        </a>
+      </div>
+
+      <!-- Tech Stack Badges -->
+      <div class="tron-menu-section">
+        <div class="tron-menu-section-label">TECH STACK</div>
+        <div class="tron-badges-grid">
+          <div class="tron-badge-chip c-orange">₿ BITCOIN</div>
+          <div class="tron-badge-chip c-cyan">AI · LLM</div>
+          <div class="tron-badge-chip c-purple">XGBOOST ML</div>
+          <div class="tron-badge-chip c-green">ON-CHAIN ✓</div>
+          <div class="tron-badge-chip c-cyan">POLYGON PoS</div>
+          <div class="tron-badge-chip c-orange">KRAKEN</div>
+          <div class="tron-badge-chip c-green">OPEN SOURCE</div>
+          <div class="tron-badge-chip c-purple">SUPABASE</div>
+          <div class="tron-badge-chip c-cyan">n8n FLOWS</div>
+          <div class="tron-badge-chip c-red">REAL MONEY</div>
+          <div class="tron-badge-chip c-orange">TELEGRAM BOT</div>
+          <div class="tron-badge-chip c-green">DUAL-GATE</div>
+          <div class="tron-badge-chip c-cyan">WEB3</div>
+          <div class="tron-badge-chip c-purple">BEHAVIORAL ENGINE</div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="tron-menu-footer">
+        <div>BTCPREDICTOR.IO &nbsp;·&nbsp; v2.0 &nbsp;·&nbsp; $100 USDC LIVE</div>
+        <div>
+          <a href="https://github.com/mattiacalastri/btc_predictions" target="_blank" rel="noopener">GITHUB</a>
+          &nbsp;·&nbsp;
+          <a href="https://polygonscan.com/address/0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55" target="_blank" rel="noopener">POLYGON</a>
+          &nbsp;·&nbsp;
+          <a href="https://t.me/BTCPredictorBot" target="_blank" rel="noopener">TELEGRAM</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+  // ── TRON MENU ──────────────────────────────────────────────────────────────
+  function toggleTronMenu(forceOpen) {
+    var drawer   = document.getElementById('tronMenuDrawer');
+    var backdrop = document.getElementById('tronMenuBackdrop');
+    var isOpen   = (forceOpen !== undefined) ? forceOpen : !drawer.classList.contains('open');
+    drawer.classList.toggle('open', isOpen);
+    backdrop.classList.toggle('open', isOpen);
+    document.body.style.overflow = isOpen ? 'hidden' : '';
+
+    if (isOpen) {
+      // Sync active tab highlight
+      var activeTabBtn = document.querySelector('.tab-btn.active');
+      if (activeTabBtn) {
+        var activeTabName = activeTabBtn.getAttribute('data-tab');
+        document.querySelectorAll('#tronMenuDrawer .tron-menu-item[data-tab]').forEach(function(el) {
+          el.classList.toggle('active', el.getAttribute('data-tab') === activeTabName);
+        });
+      }
+    }
+  }
+
+  function tronMenuSwitchTab(tabName) {
+    toggleTronMenu(false);
+    var btn = document.querySelector('.tab-btn[data-tab="' + tabName + '"]');
+    if (btn) {
+      btn.click();
+      btn.scrollIntoView({ inline: 'center', behavior: 'smooth' });
+    }
+  }
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') toggleTronMenu(false);
+  });
   </script>
 </body>
 </html>
