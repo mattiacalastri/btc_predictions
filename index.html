@@ -3117,6 +3117,100 @@
     </div>
   </div>
 
+  <!-- TRADING STATS ROW -->
+  <div class="stats-row">
+    <div class="stat-cell" data-tip-title="Avg Confidence" data-tip="Average confidence (estimated probability) assigned by the AI across all predictions in the selected period. Values >75% indicate high-conviction signals." onclick="showStatExplain(event,'Avg Confidence','% of AI confidence averaged across all bets in the period. The bot only executes trades at ≥75% confidence.')">
+      <div class="stat-cell-label">Avg Confidence <span class="stat-info-icon">ⓘ</span></div>
+      <div class="stat-cell-val" id="statConf" style="color:var(--blue)">—</div>
+    </div>
+    <div class="stat-cell" data-tip-title="Best Trade PnL" data-tip="The single trade with the highest gain in USD for the period. Measures the bot&apos;s maximum upside in a single operation." onclick="showStatExplain(event,'Best Trade','Highest single trade profit in USD in the selected period.')">
+      <div class="stat-cell-label">Best Trade PnL <span class="stat-info-icon">ⓘ</span></div>
+      <div class="stat-cell-val" id="statBest" style="color:var(--accent)">—</div>
+    </div>
+    <div class="stat-cell" data-tip-title="Current Streak" data-tip="Active streak: consecutive wins (W) or losses (L) from the last closed bet. A long W-streak signals positive model momentum." onclick="showStatExplain(event,'Current Streak','Consecutive wins (W) or losses (L) from the last closed bet. A long W-streak signals model momentum.')">
+      <div class="stat-cell-label">Current Streak <span class="stat-info-icon">ⓘ</span></div>
+      <div class="stat-cell-val" id="statStreak" style="color:var(--text)">—</div>
+    </div>
+    <div class="stat-cell" data-tip-title="Avg Entry Slippage" data-tip="Average difference between expected and actual execution price. Negative slippage = filled at a worse price than expected. Values &lt;$5 are acceptable." onclick="showStatExplain(event,'Avg Entry Slippage','Average difference between signal price and actual fill. Negative = filled worse than expected. Values under $5 are normal.')">
+      <div class="stat-cell-label">Avg Entry Slippage <span class="stat-info-icon">ⓘ</span></div>
+      <div class="stat-cell-val" id="statSlippage" style="color:var(--warn)">—</div>
+    </div>
+    <div class="stat-cell" data-tip-title="Avg RR Ratio" data-tip="Average Risk/Reward: ratio of expected gain (TP) to risked loss (SL). A value ≥2.0x means every $1 risked targets $2+ in return." onclick="showStatExplain(event,'Avg RR Ratio','Average Risk/Reward: TP distance / SL distance. A value ≥2.0x means every $1 risked targets $2+ in return.')">
+      <div class="stat-cell-label">Avg RR Ratio <span class="stat-info-icon">ⓘ</span></div>
+      <div class="stat-cell-val" id="statRR" style="color:var(--accent)">—</div>
+    </div>
+    <div class="stat-cell" data-tip-title="Total Fees Paid" data-tip="Total trading fees paid to Kraken across all closed bets. Each trade costs 0.005% × size × (entry+exit price). Lower is better — fees erode PnL over time." onclick="showStatExplain(event,'Total Fees','Total Kraken trading fees: 0.005% × size × (entry+exit price) per trade. Fees erode PnL — track closely.')">
+      <div class="stat-cell-label">Total Fees <span class="stat-info-icon">ⓘ</span></div>
+      <div class="stat-cell-val" id="statTotalFees" style="color:var(--warn)">—</div>
+    </div>
+    <div class="stat-cell" data-tip-title="Total Entry Slippage" data-tip="Cumulative difference between expected signal price and actual fill price across all bets. Negative = filled worse than expected. This is raw price difference (pts), not dollar cost." onclick="showStatExplain(event,'Total Slippage','Cumulative price slippage across all bets (in USD points). Negative = consistently filled worse than expected.')">
+      <div class="stat-cell-label">Total Slippage <span class="stat-info-icon">ⓘ</span></div>
+      <div class="stat-cell-val" id="statTotalSlippage" style="color:var(--warn)">—</div>
+    </div>
+    <div class="stat-cell stat-cell-apr" data-tip-title="APR Today" data-tip="Today's PnL annualized: (Today's PnL / Capital) × 365. Daily pulse of performance vs expected annual return." onclick="showStatExplain(event,'APR Today','Today\'s PnL annualized: (today PnL / capital) × 365. Daily pulse — volatile but useful for trend detection.')">
+      <div class="stat-cell-label">APR Today <span class="stat-info-icon">ⓘ</span></div>
+      <div class="stat-cell-val" id="statAprToday" style="color:var(--purple)">—</div>
+    </div>
+    <div class="stat-cell stat-cell-apr" data-tip-title="APR 7d" data-tip="Last 7-day PnL annualized: (7d PnL / Capital) / 7 × 365. Rolling window to smooth daily variance and detect medium-term performance trends." onclick="showStatExplain(event,'APR 7d','Last 7-day PnL annualized. Rolling window smooths daily noise — a better estimate of sustained performance than APR Today.')">
+      <div class="stat-cell-label">APR 7d <span class="stat-info-icon">ⓘ</span></div>
+      <div class="stat-cell-val" id="statApr7d" style="color:var(--purple)">—</div>
+    </div>
+    <!-- Mobile-only: fills empty slot in 3-col row 2 -->
+    <div class="stat-cell mobile-only" data-tip-title="Best Win Streak" data-tip="Maximum consecutive wins across the entire bet history. Indicates model consistency.">
+      <div class="stat-cell-label">Best Streak</div>
+      <div class="stat-cell-val" id="statBestStreak" style="color:var(--accent)">—</div>
+    </div>
+    <div class="stat-cell mobile-only" data-tip-title="Hit Rate 7d" data-tip="Win rate on bets closed in the last 7 days. Fresh performance indicator — detects recent model decay or improvement.">
+      <div class="stat-cell-label">Hit Rate 7d</div>
+      <div class="stat-cell-val" id="statHitRate7d" style="color:var(--blue)">—</div>
+    </div>
+    <div class="stat-cell mobile-only" data-tip-title="Conf: WIN / LOSS" data-tip="Average confidence on winning vs losing bets. A gap > 10% means the AI correctly assigns higher confidence to winning trades — good model calibration.">
+      <div class="stat-cell-label">Conf: WIN/LOSS</div>
+      <div class="stat-cell-val" id="statConfGap" style="color:var(--purple)">—</div>
+    </div>
+  </div>
+
+  <!-- CHARTS GRID — BTC Price vs Predictions + Rolling Win Rate -->
+  <div class="charts-grid">
+
+    <!-- Chart 1: BTC Price + Predictions Overlay -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">BTC Price vs Predictions</div>
+        <div style="display:flex;gap:8px;font-size:9px;">
+          <span style="color:var(--accent);">● correct</span>
+          <span style="color:var(--danger);">● wrong</span>
+          <span style="color:var(--muted);">▲▼ = direction</span>
+        </div>
+      </div>
+      <div style="padding:12px 16px 8px;">
+        <svg id="btcOverlaySvg" width="100%" height="110" viewBox="0 0 600 110" preserveAspectRatio="none"></svg>
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:2px;">
+          <span>oldest</span><span>newest</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart 2: Rolling Win Rate -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Rolling Win Rate (BETs)</div>
+        <div style="display:flex;gap:8px;font-size:9px;color:var(--muted);">
+          <span style="color:var(--accent);">— WR-10</span>
+          <span style="color:var(--blue);">— WR-20</span>
+          <span style="color:var(--muted);">— 50%</span>
+        </div>
+      </div>
+      <div style="padding:12px 16px 8px;">
+        <svg id="wrSvg" width="100%" height="110" viewBox="0 0 600 110" preserveAspectRatio="none"></svg>
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:2px;">
+          <span>oldest bet</span><span>newest bet</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /.charts-grid top -->
+
   <!-- ROLLING WIN RATE FULL-WIDTH -->
   <div class="panel" id="rollingWrFullPanel" style="margin-bottom:14px;">
     <div class="panel-header">
@@ -3217,59 +3311,6 @@
   </div>
   <!-- END ACCOUNT SUMMARY -->
 
-  <!-- TRADING STATS ROW -->
-  <div class="stats-row">
-    <div class="stat-cell" data-tip-title="Avg Confidence" data-tip="Average confidence (estimated probability) assigned by the AI across all predictions in the selected period. Values >75% indicate high-conviction signals." onclick="showStatExplain(event,'Avg Confidence','% of AI confidence averaged across all bets in the period. The bot only executes trades at ≥75% confidence.')">
-      <div class="stat-cell-label">Avg Confidence <span class="stat-info-icon">ⓘ</span></div>
-      <div class="stat-cell-val" id="statConf" style="color:var(--blue)">—</div>
-    </div>
-    <div class="stat-cell" data-tip-title="Best Trade PnL" data-tip="The single trade with the highest gain in USD for the period. Measures the bot&apos;s maximum upside in a single operation." onclick="showStatExplain(event,'Best Trade','Highest single trade profit in USD in the selected period.')">
-      <div class="stat-cell-label">Best Trade PnL <span class="stat-info-icon">ⓘ</span></div>
-      <div class="stat-cell-val" id="statBest" style="color:var(--accent)">—</div>
-    </div>
-    <div class="stat-cell" data-tip-title="Current Streak" data-tip="Active streak: consecutive wins (W) or losses (L) from the last closed bet. A long W-streak signals positive model momentum." onclick="showStatExplain(event,'Current Streak','Consecutive wins (W) or losses (L) from the last closed bet. A long W-streak signals model momentum.')">
-      <div class="stat-cell-label">Current Streak <span class="stat-info-icon">ⓘ</span></div>
-      <div class="stat-cell-val" id="statStreak" style="color:var(--text)">—</div>
-    </div>
-    <div class="stat-cell" data-tip-title="Avg Entry Slippage" data-tip="Average difference between expected and actual execution price. Negative slippage = filled at a worse price than expected. Values &lt;$5 are acceptable." onclick="showStatExplain(event,'Avg Entry Slippage','Average difference between signal price and actual fill. Negative = filled worse than expected. Values under $5 are normal.')">
-      <div class="stat-cell-label">Avg Entry Slippage <span class="stat-info-icon">ⓘ</span></div>
-      <div class="stat-cell-val" id="statSlippage" style="color:var(--warn)">—</div>
-    </div>
-    <div class="stat-cell" data-tip-title="Avg RR Ratio" data-tip="Average Risk/Reward: ratio of expected gain (TP) to risked loss (SL). A value ≥2.0x means every $1 risked targets $2+ in return." onclick="showStatExplain(event,'Avg RR Ratio','Average Risk/Reward: TP distance / SL distance. A value ≥2.0x means every $1 risked targets $2+ in return.')">
-      <div class="stat-cell-label">Avg RR Ratio <span class="stat-info-icon">ⓘ</span></div>
-      <div class="stat-cell-val" id="statRR" style="color:var(--accent)">—</div>
-    </div>
-    <div class="stat-cell" data-tip-title="Total Fees Paid" data-tip="Total trading fees paid to Kraken across all closed bets. Each trade costs 0.005% × size × (entry+exit price). Lower is better — fees erode PnL over time." onclick="showStatExplain(event,'Total Fees','Total Kraken trading fees: 0.005% × size × (entry+exit price) per trade. Fees erode PnL — track closely.')">
-      <div class="stat-cell-label">Total Fees <span class="stat-info-icon">ⓘ</span></div>
-      <div class="stat-cell-val" id="statTotalFees" style="color:var(--warn)">—</div>
-    </div>
-    <div class="stat-cell" data-tip-title="Total Entry Slippage" data-tip="Cumulative difference between expected signal price and actual fill price across all bets. Negative = filled worse than expected. This is raw price difference (pts), not dollar cost." onclick="showStatExplain(event,'Total Slippage','Cumulative price slippage across all bets (in USD points). Negative = consistently filled worse than expected.')">
-      <div class="stat-cell-label">Total Slippage <span class="stat-info-icon">ⓘ</span></div>
-      <div class="stat-cell-val" id="statTotalSlippage" style="color:var(--warn)">—</div>
-    </div>
-    <div class="stat-cell stat-cell-apr" data-tip-title="APR Today" data-tip="Today's PnL annualized: (Today's PnL / Capital) × 365. Daily pulse of performance vs expected annual return." onclick="showStatExplain(event,'APR Today','Today\'s PnL annualized: (today PnL / capital) × 365. Daily pulse — volatile but useful for trend detection.')">
-      <div class="stat-cell-label">APR Today <span class="stat-info-icon">ⓘ</span></div>
-      <div class="stat-cell-val" id="statAprToday" style="color:var(--purple)">—</div>
-    </div>
-    <div class="stat-cell stat-cell-apr" data-tip-title="APR 7d" data-tip="Last 7-day PnL annualized: (7d PnL / Capital) / 7 × 365. Rolling window to smooth daily variance and detect medium-term performance trends." onclick="showStatExplain(event,'APR 7d','Last 7-day PnL annualized. Rolling window smooths daily noise — a better estimate of sustained performance than APR Today.')">
-      <div class="stat-cell-label">APR 7d <span class="stat-info-icon">ⓘ</span></div>
-      <div class="stat-cell-val" id="statApr7d" style="color:var(--purple)">—</div>
-    </div>
-    <!-- Mobile-only: fills empty slot in 3-col row 2 -->
-    <div class="stat-cell mobile-only" data-tip-title="Best Win Streak" data-tip="Maximum consecutive wins across the entire bet history. Indicates model consistency.">
-      <div class="stat-cell-label">Best Streak</div>
-      <div class="stat-cell-val" id="statBestStreak" style="color:var(--accent)">—</div>
-    </div>
-    <div class="stat-cell mobile-only" data-tip-title="Hit Rate 7d" data-tip="Win rate on bets closed in the last 7 days. Fresh performance indicator — detects recent model decay or improvement.">
-      <div class="stat-cell-label">Hit Rate 7d</div>
-      <div class="stat-cell-val" id="statHitRate7d" style="color:var(--blue)">—</div>
-    </div>
-    <div class="stat-cell mobile-only" data-tip-title="Conf: WIN / LOSS" data-tip="Average confidence on winning vs losing bets. A gap > 10% means the AI correctly assigns higher confidence to winning trades — good model calibration.">
-      <div class="stat-cell-label">Conf: WIN/LOSS</div>
-      <div class="stat-cell-val" id="statConfGap" style="color:var(--purple)">—</div>
-    </div>
-  </div>
-
   <div id="dashboardMain">
 
   <!-- PAGE BANNERS — Row 1: Contributors + Manifesto -->
@@ -3308,55 +3349,13 @@
 
   </div>
 
-  <!-- ═══════════════════════════════════════════
-       CHARTS GRID — BTC Price vs Predictions + Rolling Win Rate
-  ═══════════════════════════════════════════ -->
-  <div class="charts-grid">
-
-    <!-- Chart 1: BTC Price + Predictions Overlay -->
-    <div class="panel">
-      <div class="panel-header">
-        <div class="panel-title">BTC Price vs Predictions</div>
-        <div style="display:flex;gap:8px;font-size:9px;">
-          <span style="color:var(--accent);">● correct</span>
-          <span style="color:var(--danger);">● wrong</span>
-          <span style="color:var(--muted);">▲▼ = direction</span>
-        </div>
-      </div>
-      <div style="padding:12px 16px 8px;">
-        <svg id="btcOverlaySvg" width="100%" height="110" viewBox="0 0 600 110" preserveAspectRatio="none"></svg>
-        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:2px;">
-          <span>oldest</span><span>newest</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Chart 2: Rolling Win Rate -->
-    <div class="panel">
-      <div class="panel-header">
-        <div class="panel-title">Rolling Win Rate (BETs)</div>
-        <div style="display:flex;gap:8px;font-size:9px;color:var(--muted);">
-          <span style="color:var(--accent);">— WR-10</span>
-          <span style="color:var(--blue);">— WR-20</span>
-          <span style="color:var(--muted);">— 50%</span>
-        </div>
-      </div>
-      <div style="padding:12px 16px 8px;">
-        <svg id="wrSvg" width="100%" height="110" viewBox="0 0 600 110" preserveAspectRatio="none"></svg>
-        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:2px;">
-          <span>oldest bet</span><span>newest bet</span>
-        </div>
-      </div>
-    </div>
-
-  </div><!-- /.charts-grid top -->
-
   <!-- PAGE BANNERS — Row 2: Dual-Gate AI + Prevedibilità Perfetta -->
   <div class="page-banners-grid">
 
     <!-- Dual Gate AI -->
     <div class="page-banner green">
       <div class="ban-scan"></div>
+      <div class="page-banner-ghost">⚡</div>
       <div class="page-banner-body">
         <div class="page-banner-title">Il Dual-Gate AI</div>
         <div class="page-banner-sub">Claude LLM + XGBoost · Due cancelli</div>
@@ -3372,6 +3371,7 @@
     <!-- Prevedibilità Perfetta -->
     <div class="page-banner purple">
       <div class="ban-scan" style="animation-delay:2.5s"></div>
+      <div class="page-banner-ghost">🔮</div>
       <div class="page-banner-body">
         <div class="page-banner-title">Prevedibilità Perfetta</div>
         <div class="page-banner-sub">Regime di abbondanza · Il percorso</div>
