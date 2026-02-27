@@ -8576,39 +8576,37 @@ window.addEventListener('load', function() {
     var nextBtn = document.getElementById('tutNextBtn');
     nextBtn.textContent = (n === TUT_STEPS.length - 1) ? 'DONE \u2713' : 'NEXT \u2192';
 
-    // Scroll target into view, then position spotlight after scroll settles
-    target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    // Instant scroll so getBoundingClientRect is accurate on next frame
+    target.scrollIntoView({ block: 'center', behavior: 'instant' });
 
-    // Use requestAnimationFrame x2 to wait for scroll + layout
+    // Single rAF is enough after instant scroll
     requestAnimationFrame(function() {
-      requestAnimationFrame(function() {
-        var r = target.getBoundingClientRect();
-        var pad = 6;
-        var sp = document.getElementById('tutorialSpotlight');
-        sp.style.left   = (r.left - pad) + 'px';
-        sp.style.top    = (r.top  - pad) + 'px';
-        sp.style.width  = (r.width  + pad*2) + 'px';
-        sp.style.height = (r.height + pad*2) + 'px';
+      var r = target.getBoundingClientRect();
+      var padX = 6, padY = 10;
+      var sp = document.getElementById('tutorialSpotlight');
+      sp.style.left   = (r.left - padX) + 'px';
+      sp.style.top    = (r.top  - padY) + 'px';
+      sp.style.width  = (r.width  + padX*2) + 'px';
+      sp.style.height = (r.height + padY*2) + 'px';
 
-        // Callout positioning (ignored on mobile via CSS bottom-sheet override)
-        var cal = document.getElementById('tutorialCallout');
-        var calW = parseInt(cal.style.width) || 300;
-        var calH = cal.offsetHeight || 140;
-        var vw = window.innerWidth, vh = window.innerHeight;
-        var left, top;
-        if (step.pos === 'below') {
-          top  = Math.min(r.bottom + pad + 14, vh - calH - 16);
-          left = Math.max(8, Math.min(r.left, vw - calW - 8));
-        } else {
-          top  = Math.max(8, r.top - calH - pad - 14);
-          left = Math.max(8, Math.min(r.left, vw - calW - 8));
-        }
-        cal.style.left = left + 'px';
-        cal.style.top  = top  + 'px';
-        cal.style.animation = 'none';
-        cal.offsetHeight; // reflow
-        cal.style.animation = '';
-      });
+      // Callout positioning (ignored on mobile via CSS bottom-sheet override)
+      var cal = document.getElementById('tutorialCallout');
+      var calW = parseInt(cal.style.width) || 300;
+      var calH = cal.offsetHeight || 140;
+      var vw = window.innerWidth, vh = window.innerHeight;
+      var left, top;
+      if (step.pos === 'below') {
+        top  = Math.min(r.bottom + padY + 14, vh - calH - 16);
+        left = Math.max(8, Math.min(r.left, vw - calW - 8));
+      } else {
+        top  = Math.max(8, r.top - calH - padY - 14);
+        left = Math.max(8, Math.min(r.left, vw - calW - 8));
+      }
+      cal.style.left = left + 'px';
+      cal.style.top  = top  + 'px';
+      cal.style.animation = 'none';
+      cal.offsetHeight; // reflow
+      cal.style.animation = '';
     });
   }
 
