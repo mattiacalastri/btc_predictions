@@ -1075,11 +1075,13 @@
 <!-- ── LIVE STATUS BAR ──────────────────────────────────────────── -->
 <div class="lsb" id="liveStatusBar">
   <span class="lsb-label">Agents</span>
-  <span class="lsb-item" title="Prediction Bot (wf01)"><span class="lsb-dot" id="lsbWf01"></span>wf01</span>
+  <span class="lsb-item" title="01A — Input Fetcher (dati mercato)"><span class="lsb-robot">🤖</span><span class="lsb-dot" id="lsbWf01a"></span>FEEDS</span>
   <span class="lsb-sep"></span>
-  <span class="lsb-item" title="Trade Checker (wf02)"><span class="lsb-dot" id="lsbWf02"></span>wf02</span>
+  <span class="lsb-item" title="01B — AI Prediction Engine"><span class="lsb-robot">🤖</span><span class="lsb-dot" id="lsbWf01b"></span>BRAIN</span>
   <span class="lsb-sep"></span>
-  <span class="lsb-item" title="Commander (wf07)"><span class="lsb-dot" id="lsbWf07"></span>wf07</span>
+  <span class="lsb-item" title="02 — Trade Desk (exit manager)"><span class="lsb-robot">🤖</span><span class="lsb-dot" id="lsbWf02"></span>DESK</span>
+  <span class="lsb-sep"></span>
+  <span class="lsb-item" title="07 — Commander (Telegram bot)"><span class="lsb-robot">🤖</span><span class="lsb-dot" id="lsbWf07"></span>CMD</span>
   <span class="lsb-sep"></span>
   <span class="lsb-item" title="Railway API"><span class="lsb-dot" id="lsbApi"></span>API</span>
   <span class="lsb-bigsep"></span>
@@ -1718,6 +1720,7 @@
 .lsb::-webkit-scrollbar{display:none;}
 .lsb-label{font-size:7px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.22);margin-right:1px;white-space:nowrap;font-family:'JetBrains Mono',monospace;}
 .lsb-item{display:flex;align-items:center;gap:4px;font-size:8px;color:rgba(255,255,255,0.4);letter-spacing:0.5px;white-space:nowrap;flex-shrink:0;font-family:'JetBrains Mono',monospace;}
+.lsb-robot{font-size:9px;line-height:1;filter:grayscale(0.3);}
 .lsb-item.lsb-hi{color:rgba(255,255,255,0.85);font-weight:600;}
 .lsb-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.15);display:inline-block;flex-shrink:0;}
 .lsb-dot.g{background:#00ff88;box-shadow:0 0 4px rgba(0,255,136,0.6);animation:lsbPulse 2s infinite;}
@@ -1762,13 +1765,13 @@
       .then(function(d){
         var wfs=d.workflows||{};
         var keys=Object.keys(wfs);
-        function wfDot(dotId,num){
-          var found=keys.find(function(k){return wfs[k].name&&wfs[k].name.indexOf("0"+num)>-1;});
+        function wfDot(dotId,search){
+          var found=keys.find(function(k){return wfs[k].name&&wfs[k].name.indexOf(search)>-1;});
           dot(dotId,found&&wfs[found].active?"g":"r");
         }
-        wfDot("lsbWf01","1");wfDot("lsbWf02","2");wfDot("lsbWf07","7");
+        wfDot("lsbWf01a","01A");wfDot("lsbWf01b","01B");wfDot("lsbWf02","02");wfDot("lsbWf07","07");
       })
-      .catch(function(){dot("lsbWf01","r");dot("lsbWf02","r");dot("lsbWf07","r");});
+      .catch(function(){dot("lsbWf01a","r");dot("lsbWf01b","r");dot("lsbWf02","r");dot("lsbWf07","r");});
   }
   fetchLSB();
   setInterval(fetchLSB,60000);
