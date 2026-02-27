@@ -121,6 +121,8 @@
     font-family: 'JetBrains Mono', monospace;
     min-height: 100vh;
     overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
   }
 
   body::before {
@@ -135,7 +137,7 @@
     z-index: 0;
   }
 
-  .container { position: relative; z-index: 1; max-width: 1600px; margin: 0 auto; padding: 20px 24px; }
+  .container { position: relative; z-index: 1; max-width: 1600px; margin: 0 auto; padding: 20px 24px; flex: 1; }
 
   /* HEADER */
   header {

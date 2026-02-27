@@ -2752,6 +2752,14 @@ def training_status():
     else:
         status = "ON_TRACK"
 
+    # Calibration info (in-memory, resets on restart)
+    last_cal_iso = None
+    cal_remaining_secs = None
+    if _force_retrain_last > 0:
+        last_cal_iso = _dt.datetime.utcfromtimestamp(_force_retrain_last).strftime("%Y-%m-%d %H:%M UTC")
+        elapsed = _dt.datetime.utcnow().timestamp() - _force_retrain_last
+        cal_remaining_secs = max(0, int(3600 - elapsed))
+
     return jsonify({
         "last_retrain_iso": last_retrain_iso,
         "last_retrain_ts": last_retrain_ts.isoformat() if last_retrain_ts else None,
@@ -2763,6 +2771,9 @@ def training_status():
         "retrain_threshold": retrain_threshold,
         "days_since_retrain": days_since,
         "status": status,
+        # Calibration (force-retrain, in-memory)
+        "last_calibrated_iso": last_cal_iso,
+        "calibration_cooldown_remaining_secs": cal_remaining_secs,
         # Bot configuration & model status (for Training Tab in dashboard)
         "dead_hours": sorted(list(DEAD_HOURS_UTC)),
         "confidence_threshold": float(os.environ.get("CONF_THRESHOLD", "0.65")),
