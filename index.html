@@ -2371,8 +2371,10 @@
     border-color: rgba(0,255,136,0.22); animation: pulse 2s infinite;
   }
   .tron-menu-item-badge.ext {
-    background: rgba(247,147,26,0.1); color: rgba(247,147,26,0.65);
-    border-color: rgba(247,147,26,0.22);
+    background: rgba(247,147,26,0.12); color: rgba(247,147,26,0.85);
+    border-color: rgba(247,147,26,0.35);
+    font-size: 13px; padding: 4px 7px; border-radius: 5px;
+    line-height: 1;
   }
 
   /* Badge chips */
@@ -2393,13 +2395,28 @@
 
   .tron-menu-footer {
     margin-top: auto; padding: 14px 20px;
-    border-top: 1px solid rgba(0,170,255,0.07);
+    border-top: 1px solid rgba(0,170,255,0.1);
     font-family: 'JetBrains Mono', monospace;
-    font-size: 7.5px; color: rgba(255,255,255,0.18); letter-spacing: 1px;
+    font-size: 8px; color: rgba(255,255,255,0.25); letter-spacing: 1px;
     line-height: 1.8;
   }
-  .tron-menu-footer a { color: rgba(0,170,255,0.35); text-decoration: none; transition: color 0.15s; }
-  .tron-menu-footer a:hover { color: rgba(0,170,255,0.75); }
+  .tron-menu-footer-links {
+    display: flex; gap: 8px; margin-top: 8px;
+  }
+  .tron-menu-footer-link {
+    display: flex; align-items: center; gap: 5px;
+    text-decoration: none; color: rgba(255,255,255,0.35);
+    font-size: 8.5px; letter-spacing: .12em; font-weight: 600;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+    padding: 5px 8px; border-radius: 4px;
+    transition: color 0.15s, background 0.15s, border-color 0.15s;
+    flex: 1; justify-content: center;
+  }
+  .tron-menu-footer-link:hover { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.18); }
+  .tron-menu-footer-link.gh:hover { color: #fff; border-color: rgba(255,255,255,0.3); }
+  .tron-menu-footer-link.poly:hover { color: #8247e5; border-color: rgba(130,71,229,0.4); background: rgba(130,71,229,0.08); }
+  .tron-menu-footer-link.tg:hover { color: #29b6f6; border-color: rgba(41,182,246,0.4); background: rgba(41,182,246,0.08); }
+  .tron-menu-footer-link svg { flex-shrink: 0; }
 
   /* On mobile: drawer wider */
   @media (max-width: 480px) {
@@ -8490,12 +8507,19 @@ window.addEventListener('load', function() {
       <!-- Footer -->
       <div class="tron-menu-footer">
         <div>BTCPREDICTOR.IO &nbsp;·&nbsp; v2.0 &nbsp;·&nbsp; $100 USDC LIVE</div>
-        <div>
-          <a href="https://github.com/mattiacalastri/btc_predictions" target="_blank" rel="noopener">GITHUB</a>
-          &nbsp;·&nbsp;
-          <a href="https://polygonscan.com/address/0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55" target="_blank" rel="noopener">POLYGON</a>
-          &nbsp;·&nbsp;
-          <a href="https://t.me/BTCPredictorBot" target="_blank" rel="noopener">TELEGRAM</a>
+        <div class="tron-menu-footer-links">
+          <a href="https://github.com/mattiacalastri/btc_predictions" target="_blank" rel="noopener" class="tron-menu-footer-link gh" title="Open source on GitHub">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+            GITHUB
+          </a>
+          <a href="https://polygonscan.com/address/0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55" target="_blank" rel="noopener" class="tron-menu-footer-link poly" title="On-chain audit — Polygon PoS">
+            <svg width="11" height="11" viewBox="0 0 38.4 33.5" fill="currentColor"><path d="M29 10.2a2.7 2.7 0 00-2.7 0L21 13.4l-3.7 2.1-5.3 3.2a2.7 2.7 0 01-2.7 0L5.5 16a2.7 2.7 0 01-1.3-2.3v-5.2A2.7 2.7 0 015.5 6l3.6-2.1a2.7 2.7 0 012.7 0L15.4 6a2.7 2.7 0 011.3 2.3v3.2l3.7-2.2V6a2.7 2.7 0 00-1.3-2.3L12.2.5a2.7 2.7 0 00-2.7 0L2.6 4a2.7 2.7 0 00-1.3 2.3v7.1A2.7 2.7 0 002.6 16l7 4a2.7 2.7 0 002.7 0l5.3-3 3.7-2.2 5.3-3a2.7 2.7 0 012.7 0l3.6 2.1a2.7 2.7 0 011.3 2.3v5.2a2.7 2.7 0 01-1.3 2.3l-3.5 2a2.7 2.7 0 01-2.7 0L23 23.5a2.7 2.7 0 01-1.3-2.3v-3.2l-3.7 2.2v3.2a2.7 2.7 0 001.3 2.3l7 4a2.7 2.7 0 002.7 0l7-4a2.7 2.7 0 001.3-2.3v-7.1a2.7 2.7 0 00-1.3-2.3z"/></svg>
+            POLYGON
+          </a>
+          <a href="https://t.me/BTCPredictorBot" target="_blank" rel="noopener" class="tron-menu-footer-link tg" title="Telegram Bot — live signals">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.26 13.746l-2.956-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.884.813z"/></svg>
+            TELEGRAM
+          </a>
         </div>
       </div>
 
