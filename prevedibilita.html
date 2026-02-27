@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prevedibilità Perfetta e Regime di Abbondanza — btcpredictor.io</title>
+<meta name="description" content="Cos'è la Prevedibilità Perfetta nel trading algoritmico e perché l'intelligenza artificiale ci permette quasi certamente di raggiungerla. Il percorso dal caos al segnale — e cosa significa per il futuro della ricchezza individuale.">
+<meta name="keywords" content="prevedibilità perfetta, trading algoritmico, intelligenza artificiale, regime di abbondanza, bitcoin trading bot, machine learning finanza, AI trading, btcpredictor">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://btcpredictor.io/prevedibilita-perfetta">
+
+<!-- Open Graph -->
+<meta property="og:type"        content="article">
+<meta property="og:title"       content="Prevedibilità Perfetta — btcpredictor.io">
+<meta property="og:description" content="Il percorso dal caos al segnale. Cos'è la Prevedibilità Perfetta e perché l'AI ci porta quasi certamente ad essa.">
+<meta property="og:url"         content="https://btcpredictor.io/prevedibilita-perfetta">
+<meta property="og:image"       content="https://btcpredictor.io/og-image.png">
+<meta property="og:site_name"   content="btcpredictor.io">
+<meta property="article:author" content="Mattia Calastri">
+<meta property="article:published_time" content="2026-02-27">
+
+<!-- Twitter Card -->
+<meta name="twitter:card"        content="summary_large_image">
+<meta name="twitter:title"       content="Prevedibilità Perfetta — btcpredictor.io">
+<meta name="twitter:description" content="Il percorso dal caos al segnale nel trading algoritmico con AI.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:     #020509;
+  --bg2:    #060d14;
+  --cyan:   #00d4ff;
+  --orange: #f7931a;
+  --green:  #00ff88;
+  --muted:  #1a3a4a;
+  --text:   #9ecfdf;
+  --white:  #e8f4f8;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  line-height: 1.7;
+  font-size: 16px;
+}
+
+/* ── GRID BACKGROUND ── */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background-image:
+    linear-gradient(rgba(0,212,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,212,255,0.025) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none;
+}
+
+/* ── NAV ── */
+nav {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(2,5,9,0.95);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--muted);
+  padding: 14px 32px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.nav-brand { font-family: 'Share Tech Mono', monospace; font-size: 12px; color: var(--cyan); text-decoration: none; letter-spacing: 2px; }
+.nav-links  { display: flex; gap: 20px; }
+.nav-link   { font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: 2px; color: var(--muted); text-decoration: none; text-transform: uppercase; transition: color 0.2s; }
+.nav-link:hover { color: var(--cyan); }
+
+/* ── HERO ── */
+.hero {
+  position: relative; z-index: 1;
+  max-width: 880px; margin: 0 auto;
+  padding: 80px 32px 60px;
+}
+.hero-eyebrow {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px; letter-spacing: 5px; color: var(--orange);
+  text-transform: uppercase; margin-bottom: 24px;
+}
+.hero-eyebrow::before { content: '> '; opacity: 0.5; }
+
+h1 {
+  font-size: clamp(36px, 7vw, 72px);
+  font-weight: 900; line-height: 1.05;
+  color: var(--white);
+  margin-bottom: 24px;
+}
+h1 span { color: var(--cyan); }
+
+.hero-subtitle {
+  font-size: 17px; color: var(--text); max-width: 620px;
+  border-left: 2px solid var(--orange); padding-left: 16px;
+  margin-bottom: 40px; line-height: 1.8;
+}
+
+.hero-meta {
+  font-family: 'Share Tech Mono', monospace; font-size: 10px;
+  color: var(--muted); letter-spacing: 2px; text-transform: uppercase;
+}
+
+/* ── CONTENT ── */
+.content {
+  position: relative; z-index: 1;
+  max-width: 760px; margin: 0 auto;
+  padding: 0 32px 80px;
+}
+
+section { margin-bottom: 64px; }
+
+h2 {
+  font-size: 28px; font-weight: 700;
+  color: var(--white); margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--muted);
+}
+h2 .accent { color: var(--cyan); }
+h2 .orange { color: var(--orange); }
+
+p { margin-bottom: 18px; color: var(--text); line-height: 1.85; }
+p strong { color: var(--white); }
+p em { color: var(--cyan); font-style: normal; font-weight: 600; }
+
+/* ── CALLOUT BOX ── */
+.callout {
+  background: rgba(0,212,255,0.04);
+  border: 1px solid rgba(0,212,255,0.15);
+  border-left: 3px solid var(--cyan);
+  border-radius: 2px;
+  padding: 20px 24px;
+  margin: 24px 0;
+  font-size: 15px;
+  line-height: 1.8;
+}
+.callout.orange {
+  background: rgba(247,147,26,0.04);
+  border-color: rgba(247,147,26,0.15);
+  border-left-color: var(--orange);
+}
+.callout.green {
+  background: rgba(0,255,136,0.04);
+  border-color: rgba(0,255,136,0.15);
+  border-left-color: var(--green);
+}
+.callout-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px; letter-spacing: 3px; color: var(--cyan);
+  text-transform: uppercase; margin-bottom: 10px; opacity: 0.7;
+}
+.callout.orange .callout-label { color: var(--orange); }
+.callout.green  .callout-label { color: var(--green); }
+
+/* ── FORMULA BOX ── */
+.formula {
+  background: #060d14;
+  border: 1px solid var(--muted);
+  border-radius: 2px;
+  padding: 16px 20px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  color: var(--green);
+  margin: 20px 0;
+  overflow-x: auto;
+}
+
+/* ── PROGRESS ── */
+.progress-block {
+  margin: 28px 0;
+}
+.progress-row {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 10px;
+}
+.progress-label {
+  font-family: 'Share Tech Mono', monospace; font-size: 10px;
+  color: var(--muted); width: 120px; flex-shrink: 0; letter-spacing: 1px;
+}
+.progress-bar-wrap {
+  flex: 1; background: var(--muted); border-radius: 1px; height: 4px;
+}
+.progress-bar {
+  height: 4px; border-radius: 1px;
+  background: var(--cyan);
+  transition: width 1s ease;
+}
+.progress-bar.orange { background: var(--orange); }
+.progress-bar.green  { background: var(--green); }
+.progress-val {
+  font-family: 'Share Tech Mono', monospace; font-size: 11px;
+  color: var(--white); width: 50px; text-align: right; flex-shrink: 0;
+}
+
+/* ── BIVIO SECTION ── */
+.bivio-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+  margin: 28px 0;
+}
+.bivio-path {
+  border: 1px solid var(--muted); border-radius: 2px; padding: 20px;
+}
+.bivio-path.abundance { border-color: rgba(0,255,136,0.3); }
+.bivio-path.scarcity  { border-color: rgba(255,80,80,0.2); }
+.bivio-path-label {
+  font-family: 'Share Tech Mono', monospace; font-size: 9px;
+  letter-spacing: 3px; text-transform: uppercase; margin-bottom: 12px;
+}
+.bivio-path.abundance .bivio-path-label { color: var(--green); }
+.bivio-path.scarcity  .bivio-path-label { color: #ff5050; }
+.bivio-path ul { list-style: none; padding: 0; }
+.bivio-path ul li { font-size: 13px; color: var(--text); padding: 4px 0; }
+.bivio-path ul li::before { content: '→ '; opacity: 0.4; }
+.bivio-path.abundance ul li::before { color: var(--green); }
+.bivio-path.scarcity  ul li::before { color: #ff5050; }
+
+@media (max-width: 600px) { .bivio-grid { grid-template-columns: 1fr; } }
+
+/* ── QUOTE ── */
+blockquote {
+  border-left: 2px solid var(--orange);
+  padding-left: 20px; margin: 28px 0;
+  font-size: 17px; color: var(--white);
+  font-style: italic; line-height: 1.7;
+}
+blockquote cite {
+  display: block; margin-top: 10px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px; color: var(--muted); font-style: normal; letter-spacing: 2px;
+}
+
+/* ── FOOTER ── */
+footer {
+  position: relative; z-index: 1;
+  border-top: 1px solid var(--muted);
+  padding: 32px;
+  text-align: center;
+  font-family: 'Share Tech Mono', monospace; font-size: 10px;
+  color: var(--muted); letter-spacing: 2px;
+}
+footer a { color: var(--cyan); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+
+/* ── SCROLL REVEAL ── */
+.reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
+.reveal.visible { opacity: 1; transform: none; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand">btcpredictor.io</a>
+  <div class="nav-links">
+    <a href="/dashboard"  class="nav-link">Dashboard</a>
+    <a href="/manifesto"  class="nav-link">Manifesto</a>
+    <a href="/contributors" class="nav-link">Contributors</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="hero-eyebrow">btcpredictor.io — teoria del sistema</div>
+  <h1>La <span>Prevedibilità</span><br>Perfetta</h1>
+  <p class="hero-subtitle">
+    Perché i profitti attuali sono nell'ordine dei centesimi, cosa significa
+    Prevedibilità Perfetta, e perché il percorso verso di essa è quasi certo —
+    non per ottimismo, ma per la matematica dell'apprendimento.
+  </p>
+  <div class="hero-meta">Mattia Calastri · Febbraio 2026 · btcpredictor.io</div>
+</div>
+
+<div class="content">
+
+  <!-- 1. PERCHÉ ORA I PROFITTI SONO PICCOLI -->
+  <section class="reveal">
+    <h2><span class="orange">01.</span> Perché ora i profitti sono piccoli</h2>
+
+    <p>
+      Il bot attualmente opera con <strong>$100 di capitale</strong>. Ogni trade apre una posizione
+      di ~$5–15 con leva moderata. Un segnale corretto genera qualche centesimo di profitto netto,
+      dopo commissioni Kraken (0.005% maker/taker) e costo dell'inferenza AI.
+    </p>
+
+    <p>
+      Non è un errore di calibrazione. È il design deliberato della <strong>Fase 1</strong>:
+      raccogliere dati reali con capitale minimo, senza mettere a rischio budget significativo
+      mentre il modello non ha ancora abbastanza storia per essere pienamente attendibile.
+    </p>
+
+    <div class="callout orange">
+      <div class="callout-label">Logica operativa</div>
+      Il modello XGBoost è addestrato sui segnali chiusi. Ogni bet conclusa — vincente o perdente —
+      è un campione di training. Con 50 campioni il modello è rumore. Con 500 inizia a vedere pattern.
+      Con 5.000 converge verso una stima stabile della distribuzione reale dei movimenti BTC.
+      <br><br>
+      <strong>Siamo in fase di accumulo dati. I centesimi di oggi finanziano i risultati di domani.</strong>
+    </div>
+
+    <p>
+      Il bot non scala il capitale finché il win rate non supera una soglia stabile su un periodo
+      rappresentativo. È la stessa logica dei trial clinici: prima sicurezza, poi scala.
+    </p>
+  </section>
+
+  <!-- 2. COS'È LA PREVEDIBILITÀ PERFETTA -->
+  <section class="reveal">
+    <h2><span class="accent">02.</span> Cos'è la Prevedibilità Perfetta</h2>
+
+    <p>
+      <em>Prevedibilità Perfetta</em> non significa predire ogni singolo movimento BTC con
+      certezza assoluta. Questo è impossibile — i mercati finanziari contengono rumore irriducibile,
+      eventi macro imprevedibili, comportamenti irrazionali di massa.
+    </p>
+
+    <p>
+      Prevedibilità Perfetta significa qualcosa di più preciso e raggiungibile:
+      <strong>massimizzare l'edge atteso su ogni segnale</strong> fino al punto in cui
+      l'expected value di ogni trade sia positivo, stabile e calibrato.
+    </p>
+
+    <div class="formula">
+E[trade] = P(win) × avgWin − P(loss) × avgLoss &gt; 0
+<br>
+PP = stato in cui E[trade] converge verso il massimo teorico dato il set informativo disponibile
+    </div>
+
+    <p>
+      In termini di teoria dell'informazione: ogni mercato ha una <strong>entropia di Shannon</strong>
+      — una quantità di incertezza irriducibile. La Prevedibilità Perfetta è lo stato in cui
+      il modello ha estratto tutto il segnale estraibile da quell'entropia, e opera al limite
+      di Cramér-Rao: non si può fare meglio con le informazioni disponibili.
+    </p>
+
+    <div class="callout">
+      <div class="callout-label">Definizione operativa</div>
+      Prevedibilità Perfetta ≠ win rate 100%.<br>
+      Prevedibilità Perfetta = win rate stabile × risk-reward ratio ottimale × calibrazione
+      perfetta della confidence — il tutto replicabile su time frame e condizioni di mercato diverse.
+      <br><br>
+      Un sistema con WR 60% e R:R 2:1 ha expected value +20% per trade. Questo è già
+      straordinariamente vicino alla Prevedibilità Perfetta dal punto di vista pratico.
+    </div>
+
+    <p>
+      Il bot attuale usa un <strong>dual-gate LLM + XGBoost</strong>: il trade avviene solo quando
+      entrambi i modelli concordano sulla direzione. Questo riduce la frequenza ma aumenta la precisione.
+      È già una forma primitiva di convergenza verso la PP.
+    </p>
+  </section>
+
+  <!-- 3. PERCORSO DI CONVERGENZA -->
+  <section class="reveal">
+    <h2><span class="orange">03.</span> Il percorso di convergenza — perché ci arriveremo</h2>
+
+    <p>
+      La domanda critica: la Prevedibilità Perfetta è un limite asintotico irraggiungibile,
+      o un traguardo concreto?
+    </p>
+
+    <p>
+      La risposta è nella natura stessa dell'apprendimento automatico applicato a serie temporali
+      finanziarie. Tre forze convergono verso di essa:
+    </p>
+
+    <p>
+      <strong>1. L'accumulo di dati.</strong> Ogni segnale chiuso aggiunge un campione al dataset
+      di training. La legge dei grandi numeri garantisce che, con campioni sufficienti, la stima
+      delle probabilità condizionate converge alla distribuzione vera. Non è un'ipotesi — è teorema.
+    </p>
+
+    <p>
+      <strong>2. La ricchezza dei segnali.</strong> Il bot oggi usa 12+ fonti di input: price action,
+      orderbook depth, sentiment, ratio long/short, funding rate, dominance, macro indicators.
+      Ogni fonte aggiunge dimensioni al feature space. Più dimensioni = più pattern estraibili.
+      Il modello non ha ancora visto abbastanza combinazioni di questi segnali per generalizzare
+      perfettamente — ma sta imparando.
+    </p>
+
+    <p>
+      <strong>3. L'architettura adattiva.</strong> Il sistema è progettato per il retraining
+      continuo. Ogni N segnali chiusi, il modello viene riaddeestrato sui dati più recenti.
+      I mercati cambiano — il modello cambia con loro. Non è un sistema statico ma un organismo
+      che si adatta.
+    </p>
+
+    <div class="progress-block">
+      <div class="callout-label" style="margin-bottom:16px;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;">Traiettoria stimata del sistema</div>
+      <div class="progress-row">
+        <div class="progress-label">Dati raccolti</div>
+        <div class="progress-bar-wrap"><div class="progress-bar orange" style="width:8%"></div></div>
+        <div class="progress-val">~8%</div>
+      </div>
+      <div class="progress-row">
+        <div class="progress-label">Calibrazione LLM</div>
+        <div class="progress-bar-wrap"><div class="progress-bar" style="width:42%"></div></div>
+        <div class="progress-val">~42%</div>
+      </div>
+      <div class="progress-row">
+        <div class="progress-label">Feature coverage</div>
+        <div class="progress-bar-wrap"><div class="progress-bar" style="width:65%"></div></div>
+        <div class="progress-val">~65%</div>
+      </div>
+      <div class="progress-row">
+        <div class="progress-label">Target PP</div>
+        <div class="progress-bar-wrap"><div class="progress-bar green" style="width:0%"></div></div>
+        <div class="progress-val">∞</div>
+      </div>
+    </div>
+
+    <p>
+      La convergenza è quasi certa non perché siamo ottimisti — ma perché i mercati finanziari,
+      a differenza di altri sistemi complessi, sono <strong>stazionari su scala statisticamente
+      rilevante</strong>: i pattern di panic selling, i livelli di supporto/resistenza, la ciclicità
+      di funding rate — si ripetono. Un modello che li impara ha edge reale.
+    </p>
+
+    <blockquote>
+      "Tutti i modelli sono sbagliati. Alcuni sono utili."
+      <cite>— George E.P. Box</cite>
+    </blockquote>
+
+    <p>
+      Non stiamo cercando il modello perfetto. Stiamo cercando il modello <em>abbastanza utile
+      da avere expected value positivo e stabile</em>. Questo è raggiungibile. Non è un sogno.
+      È ingegneria.
+    </p>
+  </section>
+
+  <!-- 4. REGIME DI ABBONDANZA -->
+  <section class="reveal">
+    <h2><span class="accent">04.</span> Il Regime di Abbondanza</h2>
+
+    <p>
+      La Prevedibilità Perfetta ha implicazioni che vanno ben oltre il P&amp;L di un trading bot.
+    </p>
+
+    <p>
+      Per la maggior parte della storia umana, la capacità di generare rendimenti finanziari
+      consistenti era riservata a chi aveva accesso a capitale enorme, infrastruttura
+      istituzionale, team di ricercatori, latenza HFT. Un individuo singolo non poteva competere.
+    </p>
+
+    <p>
+      L'AI sta cambiando questa equazione. Non gradualmente — <strong>radicalmente</strong>.
+      Un individuo con un laptop e una API key ha accesso agli stessi modelli linguistici
+      che usano i grandi fondi. La differenza di scala si riduce. L'accesso si democratizza.
+    </p>
+
+    <div class="callout green">
+      <div class="callout-label">Il regime di abbondanza</div>
+      Quando la Prevedibilità Perfetta diventa accessibile a chiunque — non solo ai fondi
+      con miliardi — la concentrazione di ricchezza generata dai mercati finanziari si inverte.
+      Non più un trasferimento dai retail agli istituzionali. Ma un livellamento del campo.
+      <br><br>
+      Questo è il Regime di Abbondanza: non una promessa utopica, ma la conseguenza logica
+      della democratizzazione degli strumenti cognitivi.
+    </div>
+
+    <p>
+      btcpredictor.io non è solo un bot di trading. È una <strong>prova empirica in corso</strong>
+      che questa transizione è possibile. Ogni trade pubblico, ogni metrica verificabile,
+      ogni riga di codice open source è un dato a favore dell'ipotesi: <em>un individuo può
+      competere.</em>
+    </p>
+  </section>
+
+  <!-- 5. IL BIVIO -->
+  <section class="reveal">
+    <h2><span class="orange">05.</span> Il Bivio — la scelta che conta</h2>
+
+    <p>
+      Il Financial Times ha pubblicato una rappresentazione grafica che mostra due possibili
+      traiettorie post-AI per la società: <strong>abbondanza</strong> e <strong>scarsità</strong>.
+    </p>
+
+    <p>
+      La tecnologia da sola non determina quale percorso prendiamo. Lo determina come
+      ogni individuo sceglie di usarla.
+    </p>
+
+    <div class="bivio-grid">
+      <div class="bivio-path abundance">
+        <div class="bivio-path-label">Percorso A — Abbondanza</div>
+        <ul>
+          <li>AI democratizzata, accesso individuale</li>
+          <li>Mercati più efficienti, edge distribuito</li>
+          <li>Ricchezza generata da capacità, non da accesso</li>
+          <li>Build in public, algoritmi trasparenti</li>
+          <li>Individui che competono ad armi pari</li>
+        </ul>
+      </div>
+      <div class="bivio-path scarcity">
+        <div class="bivio-path-label">Percorso B — Scarsità</div>
+        <ul>
+          <li>AI centralizzata, black box istituzionali</li>
+          <li>Vantaggio asimmetrico per i pochi</li>
+          <li>Concentrazione di ricchezza accelerata</li>
+          <li>Algoritmi opachi, non verificabili</li>
+          <li>I retail sempre più esclusi</li>
+        </ul>
+      </div>
+    </div>
+
+    <p>
+      btcpredictor.io è una scelta esplicita per il Percorso A. Ogni trade è pubblico.
+      Ogni algoritmo è documentato. Ogni metrica è verificabile on-chain.
+      Non è solo trasparenza tecnica — è una posizione filosofica.
+    </p>
+
+    <blockquote>
+      "L'AI può portare scarsità o abbondanza. Non lo decide la tecnologia.
+      Lo decide il singolo individuo cosciente che sceglie come usarla."
+      <cite>— Mattia Calastri, fondatore btcpredictor.io</cite>
+    </blockquote>
+
+    <p>
+      Questo bot è il mio voto per il percorso dell'abbondanza. I centesimi di oggi
+      sono la dimostrazione che si può partire da zero, costruire in pubblico,
+      e avvicinarsi alla Prevedibilità Perfetta senza un hedge fund alle spalle.
+    </p>
+
+    <div class="callout">
+      <div class="callout-label">Segui il percorso live</div>
+      Tutti i trade sono pubblici. Il P&amp;L è in tempo reale. Il codice è open source.
+      Ogni segnale viene committato on-chain su Polygon per audit immutabile.
+      <br><br>
+      <a href="/dashboard" style="color:var(--cyan);font-weight:600;">→ Vedi la dashboard live</a>
+      &nbsp;&nbsp;
+      <a href="/manifesto"  style="color:var(--orange);font-weight:600;">→ Leggi il manifesto</a>
+      &nbsp;&nbsp;
+      <a href="/contributors" style="color:var(--text);font-weight:600;">→ I Tanti Padri</a>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  btcpredictor.io // Behavioral Data Engine // Build in Public<br><br>
+  <a href="/dashboard">Dashboard</a> · <a href="/manifesto">Manifesto</a> · <a href="/contributors">Contributors</a> · <a href="/">Home</a>
+</footer>
+
+<!-- JSON-LD Schema -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Prevedibilità Perfetta e Regime di Abbondanza",
+  "description": "Cos'è la Prevedibilità Perfetta nel trading algoritmico e perché l'intelligenza artificiale ci permette di raggiungerla.",
+  "author": {
+    "@type": "Person",
+    "name": "Mattia Calastri",
+    "url": "https://btcpredictor.io"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "btcpredictor.io",
+    "logo": { "@type": "ImageObject", "url": "https://btcpredictor.io/og-image.png" }
+  },
+  "datePublished": "2026-02-27",
+  "url": "https://btcpredictor.io/prevedibilita-perfetta",
+  "inLanguage": "it"
+}
+</script>
+
+<script>
+// Scroll reveal
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); } });
+}, { threshold: 0.08 });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>

@@ -3492,6 +3492,16 @@ def sitemap_xml():
         '    <priority>0.8</priority>\n'
         '  </url>\n'
         '  <url>\n'
+        '    <loc>https://btcpredictor.io/contributors</loc>\n'
+        '    <changefreq>weekly</changefreq>\n'
+        '    <priority>0.7</priority>\n'
+        '  </url>\n'
+        '  <url>\n'
+        '    <loc>https://btcpredictor.io/prevedibilita-perfetta</loc>\n'
+        '    <changefreq>monthly</changefreq>\n'
+        '    <priority>0.9</priority>\n'
+        '  </url>\n'
+        '  <url>\n'
         '    <loc>https://btcpredictor.io/legal</loc>\n'
         '    <changefreq>monthly</changefreq>\n'
         '    <priority>0.3</priority>\n'
@@ -3584,6 +3594,13 @@ def index():
 @app.route("/manifesto", methods=["GET"])
 def manifesto():
     with open("manifesto.html", "r") as f:
+        html = f.read()
+    return html, 200, {"Content-Type": "text/html"}
+
+
+@app.route("/prevedibilita-perfetta", methods=["GET"])
+def prevedibilita():
+    with open("prevedibilita.html", "r") as f:
         html = f.read()
     return html, 200, {"Content-Type": "text/html"}
 
