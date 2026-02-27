@@ -3127,6 +3127,17 @@ def llms_txt():
         content = "# BTC Predictor\nhttps://btcpredictor.io\n"
     return content, 200, {"Content-Type": "text/plain; charset=utf-8"}
 
+@app.route("/og-image.png", methods=["GET"])
+def og_image():
+    """Serve the Open Graph image for social sharing."""
+    import os as _os
+    img_path = _os.path.join(_os.path.dirname(__file__), "og-image.png")
+    if not _os.path.exists(img_path):
+        return "", 404
+    with open(img_path, "rb") as f:
+        data = f.read()
+    return data, 200, {"Content-Type": "image/png", "Cache-Control": "public, max-age=86400"}
+
 @app.route("/robots.txt", methods=["GET"])
 def robots_txt():
     """robots.txt — allow all crawlers, point to llms.txt."""
@@ -3158,9 +3169,19 @@ def sitemap_xml():
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
         '  <url>\n'
+        '    <loc>https://btcpredictor.io</loc>\n'
+        '    <changefreq>daily</changefreq>\n'
+        '    <priority>1.0</priority>\n'
+        '  </url>\n'
+        '  <url>\n'
         '    <loc>https://btcpredictor.io/dashboard</loc>\n'
         '    <changefreq>hourly</changefreq>\n'
         '    <priority>1.0</priority>\n'
+        '  </url>\n'
+        '  <url>\n'
+        '    <loc>https://btcpredictor.io/manifesto</loc>\n'
+        '    <changefreq>monthly</changefreq>\n'
+        '    <priority>0.8</priority>\n'
         '  </url>\n'
         '  <url>\n'
         '    <loc>https://btcpredictor.io/legal</loc>\n'
