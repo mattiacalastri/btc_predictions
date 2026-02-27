@@ -7352,18 +7352,18 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 
-// ── AI Cube: touch rotation (mobile only) ─────────────────────────────────────
+// ── AI Cube: touch + mouse rotation ───────────────────────────────────────────
 (function() {
-  if (!window.matchMedia('(max-width: 600px)').matches) return;
   const cube  = document.getElementById('aiCube');
   const scene = document.getElementById('cubeScene');
   if (!cube || !scene) return;
 
   // Prendi controllo: disabilita CSS animation, usiamo RAF
   cube.style.animation = 'none';
+  scene.style.cursor = 'grab';
 
   let rotX = 15, rotY = 0;   // rotazione corrente in gradi
-  let touching  = false;
+  let dragging  = false;
   let startX    = 0, startY = 0;
   let baseRX    = 15, baseRY = 0;
 
@@ -7371,7 +7371,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const AUTO_SPEED = 40 / 60; // gradi per frame a 60fps
 
   function tick() {
-    if (!touching) {
+    if (!dragging) {
       rotX += AUTO_SPEED;
       rotY += AUTO_SPEED;
     }
@@ -7379,8 +7379,9 @@ document.addEventListener('DOMContentLoaded', function() {
     requestAnimationFrame(tick);
   }
 
+  // ── Touch (mobile) ──
   scene.addEventListener('touchstart', function(e) {
-    touching = true;
+    dragging = true;
     startX   = e.touches[0].clientX;
     startY   = e.touches[0].clientY;
     baseRX   = rotX;
@@ -7395,8 +7396,33 @@ document.addEventListener('DOMContentLoaded', function() {
   }, { passive: true });
 
   scene.addEventListener('touchend', function() {
-    touching = false; // riprende auto-rotate da rotX/rotY correnti
+    dragging = false;
   }, { passive: true });
+
+  // ── Mouse (desktop) ──
+  scene.addEventListener('mousedown', function(e) {
+    dragging = true;
+    startX   = e.clientX;
+    startY   = e.clientY;
+    baseRX   = rotX;
+    baseRY   = rotY;
+    scene.style.cursor = 'grabbing';
+    e.preventDefault();
+  });
+
+  window.addEventListener('mousemove', function(e) {
+    if (!dragging) return;
+    var dx = e.clientX - startX;
+    var dy = e.clientY - startY;
+    rotX = baseRX - dy * 0.6;
+    rotY = baseRY + dx * 0.6;
+  });
+
+  window.addEventListener('mouseup', function() {
+    if (!dragging) return;
+    dragging = false;
+    scene.style.cursor = 'grab';
+  });
 
   requestAnimationFrame(tick);
 })();
