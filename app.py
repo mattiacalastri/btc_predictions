@@ -3603,6 +3603,34 @@ def _supabase_update(bet_id: int, fields: dict):
 
 # ── DASHBOARD ────────────────────────────────────────────────────────────────
 
+@app.route("/agent.json", methods=["GET"])
+@app.route("/.well-known/agent.json", methods=["GET"])
+def agent_json():
+    """Machine-readable identity file for AI agents (agent.json standard)."""
+    try:
+        with open("static/agent.json", "r") as f:
+            content = f.read()
+    except FileNotFoundError:
+        content = '{"name":"BTC Predictor","url":"https://btcpredictor.io"}'
+    return content, 200, {
+        "Content-Type": "application/json; charset=utf-8",
+        "Access-Control-Allow-Origin": "*",
+        "Cache-Control": "public, max-age=3600",
+    }
+
+@app.route("/AGENTS.md", methods=["GET"])
+def agents_md():
+    """AGENTS.md — guide for AI agents and contributors."""
+    try:
+        with open("AGENTS.md", "r") as f:
+            content = f.read()
+    except FileNotFoundError:
+        content = "# AGENTS.md\nhttps://github.com/mattiacalastri/btc_predictions/blob/main/AGENTS.md\n"
+    return content, 200, {
+        "Content-Type": "text/markdown; charset=utf-8",
+        "Access-Control-Allow-Origin": "*",
+    }
+
 @app.route("/llms.txt", methods=["GET"])
 def llms_txt():
     """AI crawler context file (llms.txt standard)."""
@@ -3645,6 +3673,8 @@ def robots_txt():
         "\n"
         "Sitemap: https://btcpredictor.io/sitemap.xml\n"
         "LLMs: https://btcpredictor.io/llms.txt\n"
+        "AgentProfile: https://btcpredictor.io/agent.json\n"
+        "AgentGuide: https://btcpredictor.io/AGENTS.md\n"
     )
     return content, 200, {"Content-Type": "text/plain; charset=utf-8"}
 
