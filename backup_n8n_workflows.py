@@ -34,8 +34,9 @@ WORKFLOWS = [
     ("l1t7NAtR9BiF80Bi", "09B_BTC_Social_Publisher"),
 ]
 
-_SSL_CTX = ssl.create_default_context()
-# SSL verification enabled — Hostinger VPS has valid Let's Encrypt cert
+import certifi as _certifi
+_SSL_CTX = ssl.create_default_context(cafile=_certifi.where())
+# SSL verification enabled — uses certifi CA bundle (macOS Python fix)
 
 
 def log(msg):
