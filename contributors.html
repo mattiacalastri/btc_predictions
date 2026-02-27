@@ -254,6 +254,40 @@ if(localStorage.getItem('btcp_ga_consent')==='granted'){
     padding: 80px 24px 40px;
   }
 
+  /* ── CONTRIB INTRO ── */
+  .contrib-intro {
+    border-left: 2px solid var(--accent);
+    padding: 32px 0 32px 32px;
+    margin-bottom: 80px;
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .contrib-intro.visible { opacity: 1; transform: translateY(0); }
+  .contrib-intro-label {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 20px;
+  }
+  .contrib-intro-text {
+    font-family: var(--serif);
+    font-size: clamp(1.4rem, 3vw, 1.9rem);
+    line-height: 1.3;
+    color: var(--fg);
+    margin: 0 0 24px;
+  }
+  .contrib-intro-body {
+    font-size: 1rem;
+    line-height: 1.8;
+    color: var(--fg-muted);
+    max-width: 620px;
+    margin: 0 0 16px;
+  }
+  .contrib-intro-body:last-child { margin-bottom: 0; }
+
   /* ── ENTRY BASE ── */
   .entry {
     margin-bottom: 100px;
@@ -1185,6 +1219,29 @@ if(localStorage.getItem('btcp_ga_consent')==='granted'){
 
 <!-- ── CONTRIBUTORS ── -->
 <main class="contributors">
+
+  <!-- INTRO FILOSOFIA -->
+  <div class="contrib-intro" data-entry>
+    <div class="contrib-intro-label">perché questa pagina esiste</div>
+    <p class="contrib-intro-text">
+      Su GitHub i contributor si misurano in commit.<br>
+      Qui si misurano in <strong>frasi</strong>.
+    </p>
+    <p class="contrib-intro-body">
+      Mattia non è un developer. Ha costruito questo progetto come fa un'AI:
+      raccogliendo intuizioni in linguaggio naturale, traducendole in decisioni,
+      trasmettendole alla macchina.
+      Una domanda di Riccardo è diventata la verifica on-chain.
+      Un'obiezione della mamma è diventata la missione di AUREO.
+      Una notte di Alessandro è diventata il whiteboard da cui è partito tutto.
+    </p>
+    <p class="contrib-intro-body">
+      La maggior parte dei sistemi AI è addestrata su dati anonimi.
+      Questo è stato plasmato da persone con nome, cognome,
+      e una frase precisa in un momento preciso.
+      <strong>Queste sono quelle persone.</strong>
+    </p>
+  </div>
 
   <!-- 01 — Mattia Calastri -->
   <div class="entry entry-founder" data-entry>
