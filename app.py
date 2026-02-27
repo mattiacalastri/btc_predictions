@@ -3503,6 +3503,11 @@ def sitemap_xml():
         '    <priority>0.9</priority>\n'
         '  </url>\n'
         '  <url>\n'
+        '    <loc>https://btcpredictor.io/xgboost-spiegato</loc>\n'
+        '    <changefreq>monthly</changefreq>\n'
+        '    <priority>0.8</priority>\n'
+        '  </url>\n'
+        '  <url>\n'
         '    <loc>https://btcpredictor.io/legal</loc>\n'
         '    <changefreq>monthly</changefreq>\n'
         '    <priority>0.3</priority>\n'
@@ -3609,6 +3614,13 @@ def prevedibilita():
 @app.route("/contributors", methods=["GET"])
 def contributors():
     with open("contributors.html", "r") as f:
+        html = f.read()
+    return html, 200, {"Content-Type": "text/html"}
+
+
+@app.route("/xgboost-spiegato", methods=["GET"])
+def xgboost_spiegato():
+    with open("xgboost.html", "r") as f:
         html = f.read()
     return html, 200, {"Content-Type": "text/html"}
 

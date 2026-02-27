@@ -52,7 +52,7 @@
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:site_name" content="BTC Predictor">
-<meta property="og:locale" content="en_US">
+<meta property="og:locale" content="it_IT">
 
 <!-- ── Twitter / X Card ──────────────────────────────────────────── -->
 <meta name="twitter:card" content="summary_large_image">
@@ -140,7 +140,7 @@
     z-index: 0;
   }
 
-  .container { position: relative; z-index: 1; max-width: 1600px; margin: 0 auto; padding: 20px 24px; flex: 1; }
+  .container { position: relative; z-index: 1; max-width: 1600px; width: 100%; min-width: 0; margin: 0 auto; padding: 20px 24px; flex: 1; }
 
   /* HEADER */
   header {
@@ -232,11 +232,12 @@
   /* KPI GRID */
   .kpi-grid {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 10px;
     margin-bottom: 16px;
   }
-  @media (max-width: 700px) { .kpi-grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 900px) { .kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 480px) { .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
   .kpi { background: var(--card); border: 1px solid var(--border); padding: 14px 16px; position: relative; overflow: hidden; transition: border-color 0.2s; min-width: 0; cursor: pointer; }
   .kpi:hover { border-color: rgba(255,255,255,0.12); }
@@ -830,6 +831,11 @@
     transition: color 0.2s;
   }
   .training-banner-close:hover { color: var(--text); }
+  .training-banner-detail { } /* visible by default */
+  @media (max-width: 700px) {
+    .training-banner { font-size: 10px; padding: 10px 12px; }
+    .training-banner-detail { display: none; } /* hide long copy on mobile */
+  }
   @keyframes fadeInDown {
     from { opacity: 0; transform: translateY(-6px); }
     to   { opacity: 1; transform: none; }
@@ -2569,11 +2575,12 @@
   <!-- TRAINING PHASE BANNER -->
   <div class="training-banner" id="trainingBanner">
     <div class="training-banner-text">
-      <strong>📡 Fase di addestramento in corso</strong> — I profitti attuali sono nell'ordine dei centesimi.
-      Non è un limite del sistema: è la raccolta dati che alimenta il modello verso la
+      <strong>📡 Fase di addestramento in corso</strong> — I profitti sono nell'ordine dei centesimi.
+      <span class="training-banner-detail">Non è un limite del sistema: è la raccolta dati che alimenta il modello verso la
       <strong>Prevedibilità Perfetta</strong> — lo stato in cui ogni segnale converge verso
-      la certezza matematica. Ci stiamo arrivando.
-      <a href="/prevedibilita-perfetta" target="_blank">→ Cos'è e perché siamo quasi certi di raggiungerla</a>
+      la certezza matematica.</span>
+      Ci stiamo arrivando.
+      <a href="/prevedibilita-perfetta" target="_blank">→ Cos'è e perché</a>
     </div>
     <button class="training-banner-close" onclick="dismissTrainingBanner()" title="Chiudi">✕</button>
   </div>
@@ -7553,7 +7560,7 @@ function showIntro() {
   h.style.transition = 'opacity 0.35s';
   h.style.opacity = '1';
   h.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  if (window.allData && window.allData.length) populateIntroHero(window.allData);
+  if (allData && allData.length) populateIntroHero(allData);
 }
 
 function populateIntroHero(data) {
@@ -7800,9 +7807,9 @@ function togglePositionStack(el) {
     window.refresh = async function() {
       await _origRefreshFn.apply(this, arguments);
       // After render, populate intro hero + apple wallet
-      if (window.allData && window.allData.length) {
-        populateIntroHero(window.allData);
-        var openBets = window.allData.filter(function(d) {
+      if (allData && allData.length) {
+        populateIntroHero(allData);
+        var openBets = allData.filter(function(d) {
           return d.bet_taken && !d.actual_direction && (d.pnl_usd === null || d.pnl_usd === undefined);
         });
         if (openBets.length >= 2) renderPositionStack(openBets);

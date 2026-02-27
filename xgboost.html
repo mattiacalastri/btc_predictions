@@ -1,0 +1,1724 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Il Dual-Gate AI — btcpredictor.io</title>
+  <meta name="description" content="Come Claude LLM e XGBoost decidono insieme ogni singolo trade BTC. Due cancelli indipendenti. Entrambi devono aprirsi." />
+  <link rel="canonical" href="https://btcpredictor.io/xgboost-spiegato" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+
+  <style>
+    /* =============================================
+       RESET & BASE
+    ============================================= */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0a0a0f;
+      --bg2:       #0d0d15;
+      --bg3:       #111120;
+      --orange:    #f7931a;
+      --cyan:      #00d4ff;
+      --green:     #00ff41;
+      --white:     #e8e8f0;
+      --dim:       #5a5a7a;
+      --orange-glow: 0 0 20px rgba(247,147,26,0.6), 0 0 60px rgba(247,147,26,0.2);
+      --cyan-glow:   0 0 20px rgba(0,212,255,0.6), 0 0 60px rgba(0,212,255,0.2);
+      --green-glow:  0 0 12px rgba(0,255,65,0.5);
+      --border-orange: 1px solid rgba(247,147,26,0.4);
+      --border-cyan:   1px solid rgba(0,212,255,0.4);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--white);
+      font-family: 'Space Mono', monospace;
+      font-size: 15px;
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    /* =============================================
+       MATRIX RAIN CANVAS
+    ============================================= */
+    #matrix-canvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.06;
+    }
+
+    /* =============================================
+       TRON GRID FLOOR
+    ============================================= */
+    .tron-grid {
+      position: fixed;
+      bottom: 0; left: 0;
+      width: 100%; height: 60vh;
+      z-index: 0;
+      pointer-events: none;
+      perspective: 800px;
+      overflow: hidden;
+    }
+
+    .tron-grid-inner {
+      position: absolute;
+      bottom: 0;
+      left: -50%;
+      width: 200%;
+      height: 100%;
+      background-image:
+        linear-gradient(rgba(0,212,255,0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,212,255,0.08) 1px, transparent 1px);
+      background-size: 60px 60px;
+      transform: rotateX(75deg);
+      transform-origin: bottom center;
+    }
+
+    /* =============================================
+       SCANLINES OVERLAY
+    ============================================= */
+    .scanlines {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 1;
+      pointer-events: none;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.07) 2px,
+        rgba(0,0,0,0.07) 4px
+      );
+    }
+
+    /* =============================================
+       LAYOUT
+    ============================================= */
+    .page-wrapper {
+      position: relative;
+      z-index: 2;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* =============================================
+       NAV BAR
+    ============================================= */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      background: rgba(10,10,15,0.88);
+      backdrop-filter: blur(12px);
+      border-bottom: var(--border-cyan);
+      padding: 0 24px;
+    }
+
+    .nav-inner {
+      max-width: 960px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+    }
+
+    .nav-logo {
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 900;
+      font-size: 14px;
+      color: var(--orange);
+      text-decoration: none;
+      letter-spacing: 2px;
+      text-shadow: var(--orange-glow);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 24px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--dim);
+      text-decoration: none;
+      font-size: 12px;
+      letter-spacing: 1px;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--cyan); }
+
+    /* =============================================
+       HERO
+    ============================================= */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 100px 24px 60px;
+      position: relative;
+    }
+
+    .hero-content { max-width: 720px; }
+
+    .hero-eyebrow {
+      font-size: 11px;
+      letter-spacing: 4px;
+      color: var(--cyan);
+      text-transform: uppercase;
+      margin-bottom: 24px;
+      opacity: 0.8;
+    }
+
+    .hero-title {
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 900;
+      font-size: clamp(2.4rem, 8vw, 5.5rem);
+      line-height: 1.05;
+      letter-spacing: -1px;
+      margin-bottom: 20px;
+      background: linear-gradient(135deg, var(--orange) 0%, #ffd080 50%, var(--orange) 100%);
+      background-size: 200% 200%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: shimmer 4s ease-in-out infinite;
+    }
+
+    @keyframes shimmer {
+      0%, 100% { background-position: 0% 50%; }
+      50%       { background-position: 100% 50%; }
+    }
+
+    .hero-subtitle {
+      font-size: clamp(1rem, 2.5vw, 1.25rem);
+      color: var(--white);
+      opacity: 0.75;
+      margin-bottom: 40px;
+      font-style: italic;
+    }
+
+    .hero-stats {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 48px;
+    }
+
+    .stat-pill {
+      background: rgba(0,212,255,0.07);
+      border: var(--border-cyan);
+      border-radius: 2px;
+      padding: 6px 16px;
+      font-size: 12px;
+      color: var(--cyan);
+      letter-spacing: 1px;
+    }
+
+    .hero-cta {
+      display: inline-block;
+      padding: 14px 36px;
+      background: transparent;
+      border: 2px solid var(--orange);
+      border-radius: 2px;
+      color: var(--orange);
+      font-family: 'Orbitron', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-decoration: none;
+      text-transform: uppercase;
+      transition: all 0.3s;
+      box-shadow: 0 0 20px rgba(247,147,26,0.2);
+    }
+
+    .hero-cta:hover {
+      background: var(--orange);
+      color: var(--bg);
+      box-shadow: var(--orange-glow);
+    }
+
+    .scroll-indicator {
+      position: absolute;
+      bottom: 36px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      opacity: 0.4;
+    }
+
+    .scroll-indicator span {
+      font-size: 10px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+    }
+
+    .scroll-arrow {
+      width: 20px;
+      height: 20px;
+      border-right: 2px solid var(--cyan);
+      border-bottom: 2px solid var(--cyan);
+      transform: rotate(45deg);
+      animation: bounce 1.6s ease-in-out infinite;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: rotate(45deg) translateY(0); }
+      50%       { transform: rotate(45deg) translateY(6px); }
+    }
+
+    /* =============================================
+       SECTIONS
+    ============================================= */
+    section {
+      padding: 100px 0;
+      position: relative;
+    }
+
+    .section-label {
+      font-size: 10px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--dim);
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 700;
+      font-size: clamp(1.5rem, 4vw, 2.4rem);
+      margin-bottom: 32px;
+      line-height: 1.2;
+    }
+
+    .section-title.orange { color: var(--orange); text-shadow: var(--orange-glow); }
+    .section-title.cyan   { color: var(--cyan);   text-shadow: var(--cyan-glow); }
+
+    .section-body {
+      color: var(--white);
+      opacity: 0.82;
+      font-size: 15px;
+      max-width: 680px;
+    }
+
+    .section-body p { margin-bottom: 16px; }
+
+    /* =============================================
+       REVEAL ANIMATION
+    ============================================= */
+    .reveal {
+      opacity: 0;
+      transform: translateY(40px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* stagger children */
+    .reveal-stagger > * {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .reveal-stagger.visible > *:nth-child(1) { opacity: 1; transform: translateY(0); transition-delay: 0.05s; }
+    .reveal-stagger.visible > *:nth-child(2) { opacity: 1; transform: translateY(0); transition-delay: 0.15s; }
+    .reveal-stagger.visible > *:nth-child(3) { opacity: 1; transform: translateY(0); transition-delay: 0.25s; }
+    .reveal-stagger.visible > *:nth-child(4) { opacity: 1; transform: translateY(0); transition-delay: 0.35s; }
+    .reveal-stagger.visible > *:nth-child(5) { opacity: 1; transform: translateY(0); transition-delay: 0.45s; }
+    .reveal-stagger.visible > *:nth-child(6) { opacity: 1; transform: translateY(0); transition-delay: 0.55s; }
+
+    /* =============================================
+       NEON CARD
+    ============================================= */
+    .neon-card {
+      background: var(--bg2);
+      border-radius: 2px;
+      padding: 32px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .neon-card.orange-border {
+      border: var(--border-orange);
+      box-shadow: inset 0 0 60px rgba(247,147,26,0.04), 0 0 30px rgba(247,147,26,0.08);
+    }
+
+    .neon-card.cyan-border {
+      border: var(--border-cyan);
+      box-shadow: inset 0 0 60px rgba(0,212,255,0.04), 0 0 30px rgba(0,212,255,0.08);
+    }
+
+    .neon-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 2px;
+    }
+
+    .neon-card.orange-border::before {
+      background: linear-gradient(90deg, transparent, var(--orange), transparent);
+    }
+
+    .neon-card.cyan-border::before {
+      background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+    }
+
+    /* light trail corner */
+    .neon-card::after {
+      content: '';
+      position: absolute;
+      top: 0; right: 0;
+      width: 80px; height: 80px;
+      opacity: 0.15;
+      border-radius: 0 2px 0 0;
+    }
+
+    .neon-card.orange-border::after {
+      background: radial-gradient(circle at top right, var(--orange), transparent 70%);
+    }
+
+    .neon-card.cyan-border::after {
+      background: radial-gradient(circle at top right, var(--cyan), transparent 70%);
+    }
+
+    /* =============================================
+       TERMINAL / CODE BLOCKS
+    ============================================= */
+    .terminal {
+      background: #06060e;
+      border: 1px solid rgba(0,255,65,0.2);
+      border-radius: 2px;
+      padding: 24px;
+      margin-top: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .terminal::before {
+      content: '● ● ●';
+      display: block;
+      font-size: 10px;
+      color: rgba(0,255,65,0.4);
+      margin-bottom: 16px;
+      letter-spacing: 3px;
+    }
+
+    .terminal pre {
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      color: var(--green);
+      line-height: 1.8;
+      white-space: pre;
+      overflow-x: auto;
+      text-shadow: var(--green-glow);
+    }
+
+    .terminal .comment { color: rgba(0,255,65,0.35); }
+    .terminal .key     { color: var(--cyan); }
+    .terminal .val     { color: var(--orange); }
+
+    /* =============================================
+       SECTION 1 — IL PROBLEMA
+    ============================================= */
+    .problema-quotes {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      margin-top: 40px;
+    }
+
+    .quote-block {
+      padding: 20px 28px;
+      border-left: 3px solid;
+      background: rgba(255,255,255,0.02);
+    }
+
+    .quote-block:nth-child(1) { border-color: var(--dim); }
+    .quote-block:nth-child(2) { border-color: var(--orange); }
+    .quote-block:nth-child(3) { border-color: var(--cyan); box-shadow: -3px 0 20px rgba(0,212,255,0.15); }
+
+    .quote-block p {
+      font-size: 16px;
+      font-style: italic;
+      margin: 0;
+    }
+
+    .quote-block:nth-child(3) p { color: var(--cyan); }
+
+    /* =============================================
+       GATE VISUAL
+    ============================================= */
+    .gate-visual {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 40px 0;
+    }
+
+    .gate-door {
+      width: 120px;
+      height: 180px;
+      border-radius: 60px 60px 0 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 900;
+      font-size: 11px;
+      letter-spacing: 2px;
+    }
+
+    .gate-door.orange {
+      border: 3px solid var(--orange);
+      box-shadow: 0 0 30px rgba(247,147,26,0.4), inset 0 0 30px rgba(247,147,26,0.08);
+      color: var(--orange);
+    }
+
+    .gate-door.cyan {
+      border: 3px solid var(--cyan);
+      box-shadow: 0 0 30px rgba(0,212,255,0.4), inset 0 0 30px rgba(0,212,255,0.08);
+      color: var(--cyan);
+    }
+
+    .gate-door-text {
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+    }
+
+    .gate-glow-bar {
+      width: 4px;
+      height: 180px;
+      margin: 0 40px;
+      display: flex;
+      align-items: center;
+    }
+
+    .gate-arrow {
+      font-size: 28px;
+      color: var(--dim);
+    }
+
+    /* =============================================
+       DATA SOURCES LIST
+    ============================================= */
+    .data-sources {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      margin-top: 24px;
+    }
+
+    @media (max-width: 600px) {
+      .data-sources { grid-template-columns: 1fr; }
+    }
+
+    .data-source-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.04);
+      border-radius: 1px;
+      transition: background 0.2s, border-color 0.2s;
+      cursor: default;
+    }
+
+    .data-source-row:hover {
+      background: rgba(247,147,26,0.06);
+      border-color: rgba(247,147,26,0.25);
+    }
+
+    .ds-num {
+      font-size: 10px;
+      color: var(--dim);
+      min-width: 20px;
+      font-family: 'Space Mono', monospace;
+    }
+
+    .ds-name {
+      font-size: 11px;
+      color: var(--orange);
+      font-family: 'Space Mono', monospace;
+      flex: 1;
+      letter-spacing: 0.5px;
+    }
+
+    .ds-desc {
+      font-size: 10px;
+      color: var(--dim);
+      font-family: 'Space Mono', monospace;
+      text-align: right;
+    }
+
+    /* =============================================
+       XGBOOST — DECISION TREE SVG ART
+    ============================================= */
+    .tree-container {
+      margin: 40px 0;
+      display: flex;
+      justify-content: center;
+    }
+
+    .tree-svg {
+      width: 100%;
+      max-width: 560px;
+      height: auto;
+    }
+
+    /* =============================================
+       FEATURE PILLS
+    ============================================= */
+    .feature-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 20px;
+    }
+
+    .feature-pill {
+      padding: 5px 14px;
+      background: rgba(0,212,255,0.05);
+      border: 1px solid rgba(0,212,255,0.2);
+      border-radius: 2px;
+      font-size: 11px;
+      color: var(--cyan);
+      font-family: 'Space Mono', monospace;
+      transition: all 0.2s;
+    }
+
+    .feature-pill:hover {
+      background: rgba(0,212,255,0.12);
+      box-shadow: 0 0 12px rgba(0,212,255,0.2);
+    }
+
+    /* =============================================
+       GATE 2 STATS
+    ============================================= */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 32px;
+    }
+
+    @media (max-width: 600px) {
+      .stats-grid { grid-template-columns: 1fr; }
+    }
+
+    .stat-card {
+      text-align: center;
+      padding: 28px 16px;
+      background: var(--bg3);
+      border: var(--border-cyan);
+      border-radius: 2px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0;
+      width: 100%; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+    }
+
+    .stat-number {
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 900;
+      font-size: clamp(1.6rem, 4vw, 2.2rem);
+      color: var(--cyan);
+      text-shadow: var(--cyan-glow);
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--dim);
+      letter-spacing: 1px;
+    }
+
+    /* =============================================
+       ON-CHAIN SECTION
+    ============================================= */
+    .chain-links {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin: 32px 0;
+      overflow: hidden;
+    }
+
+    .chain-link-item {
+      display: flex;
+      align-items: center;
+      gap: 0;
+    }
+
+    .chain-node {
+      width: 48px;
+      height: 48px;
+      border: 2px solid var(--cyan);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: var(--cyan);
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-align: center;
+      line-height: 1.2;
+      box-shadow: 0 0 14px rgba(0,212,255,0.25);
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .chain-connector {
+      width: 32px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--cyan), rgba(0,212,255,0.3));
+      position: relative;
+    }
+
+    .chain-connector::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      right: 0;
+      transform: translateY(-50%);
+      width: 6px;
+      height: 6px;
+      background: var(--cyan);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--cyan);
+    }
+
+    .contract-box {
+      background: #06060e;
+      border: var(--border-cyan);
+      border-radius: 2px;
+      padding: 20px 24px;
+      margin-top: 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .contract-label {
+      font-size: 10px;
+      letter-spacing: 3px;
+      color: var(--dim);
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .contract-address {
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      color: var(--cyan);
+      text-shadow: var(--cyan-glow);
+      word-break: break-all;
+    }
+
+    /* =============================================
+       FLOW DIAGRAM
+    ============================================= */
+    .flow-diagram {
+      margin-top: 48px;
+    }
+
+    .flow-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+    }
+
+    .flow-node {
+      padding: 14px 32px;
+      text-align: center;
+      font-family: 'Space Mono', monospace;
+      font-size: 13px;
+      border-radius: 2px;
+      min-width: 240px;
+      position: relative;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.5s, transform 0.5s;
+    }
+
+    .flow-node.flow-animated {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .flow-node.start     { background: rgba(255,255,255,0.05); border: 1px solid var(--dim); color: var(--white); }
+    .flow-node.data      { background: rgba(247,147,26,0.08); border: var(--border-orange); color: var(--orange); }
+    .flow-node.llm       { background: rgba(247,147,26,0.12); border: 2px solid var(--orange); color: var(--orange); font-weight: 700; box-shadow: var(--orange-glow); }
+    .flow-node.gate      { background: rgba(0,212,255,0.08); border: var(--border-cyan); color: var(--cyan); font-style: italic; }
+    .flow-node.xgb       { background: rgba(0,212,255,0.12); border: 2px solid var(--cyan); color: var(--cyan); font-weight: 700; box-shadow: var(--cyan-glow); }
+    .flow-node.trade     { background: rgba(0,255,65,0.08); border: 1px solid rgba(0,255,65,0.4); color: var(--green); font-weight: 700; }
+    .flow-node.onchain   { background: rgba(247,147,26,0.06); border: 1px solid rgba(247,147,26,0.3); color: var(--orange); }
+    .flow-node.skip      { background: rgba(255,50,50,0.06); border: 1px solid rgba(255,50,50,0.25); color: #ff5555; }
+
+    .flow-arrow {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      padding: 4px 0;
+      opacity: 0;
+      transition: opacity 0.5s;
+    }
+
+    .flow-arrow.flow-animated { opacity: 1; }
+
+    .flow-arrow-line {
+      width: 2px;
+      height: 20px;
+      background: linear-gradient(180deg, var(--dim), rgba(0,212,255,0.5));
+    }
+
+    .flow-arrow-head {
+      width: 0; height: 0;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 8px solid rgba(0,212,255,0.6);
+    }
+
+    .flow-label {
+      font-size: 10px;
+      color: var(--green);
+      letter-spacing: 1px;
+      font-family: 'Space Mono', monospace;
+      padding: 2px 8px;
+      border: 1px solid rgba(0,255,65,0.3);
+      border-radius: 2px;
+      background: rgba(0,255,65,0.05);
+      margin: 4px 0;
+    }
+
+    .flow-label.no { color: #ff5555; border-color: rgba(255,85,85,0.3); background: rgba(255,85,85,0.05); }
+
+    .flow-branch {
+      display: flex;
+      gap: 40px;
+      align-items: flex-start;
+    }
+
+    .flow-branch-path {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* =============================================
+       FOOTER / CTA
+    ============================================= */
+    .cta-section {
+      padding: 80px 0;
+      text-align: center;
+      border-top: var(--border-orange);
+      position: relative;
+    }
+
+    .cta-section::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 200px; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--orange), transparent);
+      box-shadow: 0 0 20px var(--orange);
+    }
+
+    .cta-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: 12px;
+    }
+
+    .cta-sub {
+      color: var(--dim);
+      font-size: 13px;
+      margin-bottom: 40px;
+    }
+
+    .cta-buttons {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      padding: 14px 36px;
+      background: var(--orange);
+      border: none;
+      border-radius: 2px;
+      color: var(--bg);
+      font-family: 'Orbitron', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-decoration: none;
+      text-transform: uppercase;
+      transition: all 0.3s;
+      box-shadow: 0 0 20px rgba(247,147,26,0.3);
+    }
+
+    .btn-primary:hover { box-shadow: var(--orange-glow); transform: translateY(-2px); }
+
+    .btn-secondary {
+      padding: 14px 36px;
+      background: transparent;
+      border: 2px solid var(--cyan);
+      border-radius: 2px;
+      color: var(--cyan);
+      font-family: 'Orbitron', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-decoration: none;
+      text-transform: uppercase;
+      transition: all 0.3s;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(0,212,255,0.1);
+      box-shadow: var(--cyan-glow);
+      transform: translateY(-2px);
+    }
+
+    /* =============================================
+       DISCLAIMER
+    ============================================= */
+    .disclaimer {
+      background: rgba(255,50,50,0.04);
+      border: 1px solid rgba(255,50,50,0.2);
+      border-radius: 2px;
+      padding: 24px 28px;
+      margin: 60px 0 40px;
+    }
+
+    .disclaimer-title {
+      font-size: 10px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #ff5555;
+      margin-bottom: 12px;
+    }
+
+    .disclaimer p {
+      font-size: 12px;
+      color: var(--dim);
+      line-height: 1.7;
+      margin-bottom: 8px;
+    }
+
+    .disclaimer p:last-child { margin-bottom: 0; }
+
+    /* =============================================
+       FOOTER
+    ============================================= */
+    footer {
+      border-top: 1px solid rgba(255,255,255,0.06);
+      padding: 32px 24px;
+      text-align: center;
+    }
+
+    .footer-inner {
+      max-width: 960px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .footer-brand {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--orange);
+      letter-spacing: 2px;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 20px;
+      list-style: none;
+    }
+
+    .footer-links a {
+      font-size: 11px;
+      color: var(--dim);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: var(--cyan); }
+
+    .footer-copy {
+      font-size: 11px;
+      color: rgba(90,90,122,0.6);
+      width: 100%;
+      text-align: center;
+      margin-top: 16px;
+    }
+
+    /* =============================================
+       SEPARATOR
+    ============================================= */
+    .sep {
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0,212,255,0.2), transparent);
+      margin: 0;
+    }
+
+    /* =============================================
+       RESPONSIVE
+    ============================================= */
+    @media (max-width: 640px) {
+      .nav-links { display: none; }
+      .neon-card { padding: 20px; }
+      .terminal pre { font-size: 10px; }
+      .chain-links { flex-wrap: wrap; justify-content: center; }
+      .flow-branch { flex-direction: column; gap: 0; align-items: center; }
+    }
+
+    /* =============================================
+       SECTION DIVIDERS (TRON style)
+    ============================================= */
+    .tron-divider {
+      position: relative;
+      height: 2px;
+      margin: 0;
+      background: transparent;
+      overflow: visible;
+    }
+
+    .tron-divider::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 40%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, var(--orange));
+    }
+
+    .tron-divider::after {
+      content: '';
+      position: absolute;
+      top: 0; right: 0;
+      width: 40%;
+      height: 100%;
+      background: linear-gradient(270deg, transparent, var(--cyan));
+    }
+
+    /* =============================================
+       COUNTER ANIMATION
+    ============================================= */
+    .count-up { display: inline; }
+
+    /* =============================================
+       PULSE BADGE
+    ============================================= */
+    .pulse-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: rgba(0,255,65,0.06);
+      border: 1px solid rgba(0,255,65,0.25);
+      border-radius: 2px;
+      font-size: 11px;
+      color: var(--green);
+      letter-spacing: 1px;
+    }
+
+    .pulse-dot {
+      width: 7px;
+      height: 7px;
+      background: var(--green);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--green);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.5; transform: scale(1.3); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- =====================================
+     BACKGROUND LAYERS
+===================================== -->
+<canvas id="matrix-canvas"></canvas>
+<div class="tron-grid"><div class="tron-grid-inner"></div></div>
+<div class="scanlines"></div>
+
+<!-- =====================================
+     NAV
+===================================== -->
+<nav>
+  <div class="nav-inner">
+    <a href="https://btcpredictor.io" class="nav-logo">BTC∙PREDICTOR</a>
+    <ul class="nav-links">
+      <li><a href="https://btcpredictor.io/dashboard">Dashboard</a></li>
+      <li><a href="https://btcpredictor.io/manifesto">Manifesto</a></li>
+      <li><a href="https://btcpredictor.io/contributors">Contributors</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- =====================================
+     HERO
+===================================== -->
+<div class="hero">
+  <div class="hero-content">
+    <p class="hero-eyebrow">btcpredictor.io &mdash; Architettura AI</p>
+    <h1 class="hero-title">IL DUAL-GATE AI</h1>
+    <p class="hero-subtitle">Come Claude LLM + XGBoost decidono ogni trade Bitcoin</p>
+
+    <div class="hero-stats">
+      <span class="stat-pill">1.070+ segnali analizzati</span>
+      <span class="stat-pill">54% win rate</span>
+      <span class="stat-pill">86% direction accuracy</span>
+    </div>
+
+    <a href="#problema" class="hero-cta">Scopri il sistema</a>
+  </div>
+
+  <div class="scroll-indicator">
+    <span>Scorri</span>
+    <div class="scroll-arrow"></div>
+  </div>
+</div>
+
+<!-- =====================================
+     MAIN CONTENT
+===================================== -->
+<main>
+
+  <!-- SEZIONE 1: IL PROBLEMA -->
+  <section id="problema">
+    <div class="page-wrapper">
+      <div class="reveal">
+        <p class="section-label">// sezione 01</p>
+        <h2 class="section-title orange">Il Problema</h2>
+      </div>
+
+      <div class="problema-quotes reveal-stagger">
+        <div class="quote-block">
+          <p>"I mercati finanziari generano segnali in continuazione. La maggior parte &egrave; rumore."</p>
+        </div>
+        <div class="quote-block">
+          <p>"Un modello AI che non distingue il segnale dal rumore perde denaro — anche se &egrave; &laquo;intelligente&raquo;."</p>
+        </div>
+        <div class="quote-block">
+          <p>"La soluzione: due cancelli indipendenti. Entrambi devono aprirsi. Solo allora si esegue il trade."</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="tron-divider"></div>
+
+  <!-- SEZIONE 2: GATE 1 — CLAUDE LLM -->
+  <section id="gate1">
+    <div class="page-wrapper">
+
+      <div class="reveal">
+        <p class="section-label">// sezione 02 — gate 01</p>
+        <h2 class="section-title orange">Gate 1: Claude LLM</h2>
+        <div class="pulse-badge" style="margin-bottom: 24px;">
+          <div class="pulse-dot"></div>
+          LIVE su ogni segnale orario
+        </div>
+      </div>
+
+      <div class="gate-visual reveal">
+        <div class="gate-door orange">
+          <span class="gate-door-text">CLAUDE</span>
+        </div>
+        <div style="margin: 0 32px; text-align: center; color: var(--orange); font-family: 'Orbitron', sans-serif; font-size: 11px; letter-spacing: 2px;">
+          <div style="font-size: 2rem; margin-bottom: 4px;">&#9650;</div>
+          GATE 1
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div style="padding: 10px 20px; border: var(--border-orange); font-size: 12px; color: var(--orange); border-radius: 2px;">
+            conf &ge; 0.65 &rarr; PASS
+          </div>
+          <div style="padding: 10px 20px; border: 1px solid rgba(255,85,85,0.3); font-size: 12px; color: #ff5555; border-radius: 2px;">
+            conf &lt; 0.65 &rarr; SKIP
+          </div>
+        </div>
+      </div>
+
+      <div class="neon-card orange-border reveal">
+        <div class="section-body">
+          <p>Claude analizza <strong style="color:var(--orange)">13 fonti di dati</strong> in linguaggio naturale — non solo numeri, ma contesto, narrative e correlazioni cross-asset.</p>
+          <p>Output: una <strong>direzione</strong> (UP o DOWN) e un <strong>confidence score</strong> tra 0.0 e 1.0. Solo i segnali con confidence &ge; 0.65 accedono al secondo cancello.</p>
+          <p>Il confidence score non &egrave; arbitrario: viene scalato in un moltiplicatore di position sizing. Pi&ugrave; &egrave; alto, pi&ugrave; &egrave; grande la scommessa — entro un range clampato tra 0.8x e 1.2x del capitale base.</p>
+        </div>
+
+        <div class="terminal">
+          <pre><span class="comment">// 13 INPUT SOURCES — analizzate da Claude ad ogni ciclo</span>
+
+<span class="key">01</span>  FEAR_GREED_INDEX      <span class="comment">→</span> <span class="val">sentiment 0-100</span>
+<span class="key">02</span>  RSI_14                <span class="comment">→</span> <span class="val">momentum indicator</span>
+<span class="key">03</span>  TECHNICAL_BIAS        <span class="comment">→</span> <span class="val">bullish / bearish score</span>
+<span class="key">04</span>  MACRO_NEWS            <span class="comment">→</span> <span class="val">geopolitical events</span>
+<span class="key">05</span>  VOLUME_ANALYSIS       <span class="comment">→</span> <span class="val">market depth</span>
+<span class="key">06</span>  MARKET_STRUCTURE      <span class="comment">→</span> <span class="val">support / resistance</span>
+<span class="key">07</span>  FUNDING_RATE          <span class="comment">→</span> <span class="val">perpetual futures signal</span>
+<span class="key">08</span>  OPEN_INTEREST         <span class="comment">→</span> <span class="val">leveraged positions</span>
+<span class="key">09</span>  BTC_DOMINANCE         <span class="comment">→</span> <span class="val">BTC market cap share</span>
+<span class="key">10</span>  ON_CHAIN_FLOWS        <span class="comment">→</span> <span class="val">exchange inflow / outflow</span>
+<span class="key">11</span>  LIQUIDATION_MAP       <span class="comment">→</span> <span class="val">leverage imbalance</span>
+<span class="key">12</span>  STABLECOIN_FLOWS      <span class="comment">→</span> <span class="val">smart money movement</span>
+<span class="key">13</span>  CORRELATION_INDEX     <span class="comment">→</span> <span class="val">cross-asset momentum</span></pre>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <div class="sep"></div>
+
+  <!-- SEZIONE 3: XGBOOST -->
+  <section id="xgboost">
+    <div class="page-wrapper">
+
+      <div class="reveal">
+        <p class="section-label">// sezione 03 — il verificatore</p>
+        <h2 class="section-title cyan">XGBoost — Il Verificatore</h2>
+      </div>
+
+      <!-- SVG Decision Tree art -->
+      <div class="tree-container reveal">
+        <svg class="tree-svg" viewBox="0 0 560 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Connecting lines -->
+          <line x1="280" y1="56" x2="280" y2="100" stroke="rgba(0,212,255,0.5)" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <line x1="280" y1="128" x2="160" y2="172" stroke="rgba(0,212,255,0.4)" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <line x1="280" y1="128" x2="400" y2="172" stroke="rgba(0,212,255,0.4)" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <line x1="160" y1="200" x2="100" y2="248" stroke="rgba(0,212,255,0.3)" stroke-width="1" stroke-dasharray="4 3"/>
+          <line x1="160" y1="200" x2="220" y2="248" stroke="rgba(0,212,255,0.3)" stroke-width="1" stroke-dasharray="4 3"/>
+          <line x1="400" y1="200" x2="340" y2="248" stroke="rgba(0,212,255,0.3)" stroke-width="1" stroke-dasharray="4 3"/>
+          <line x1="400" y1="200" x2="460" y2="248" stroke="rgba(0,212,255,0.3)" stroke-width="1" stroke-dasharray="4 3"/>
+
+          <!-- Root node -->
+          <rect x="200" y="10" width="160" height="46" rx="2" fill="rgba(0,212,255,0.08)" stroke="rgba(0,212,255,0.7)" stroke-width="1.5"/>
+          <text x="280" y="29" text-anchor="middle" fill="#00d4ff" font-family="Space Mono, monospace" font-size="10" letter-spacing="0.5">XGBOOST ROOT</text>
+          <text x="280" y="45" text-anchor="middle" fill="rgba(0,212,255,0.5)" font-family="Space Mono, monospace" font-size="9">n_estimators: 200</text>
+
+          <!-- Level 1 nodes -->
+          <rect x="200" y="100" width="160" height="28" rx="2" fill="rgba(0,212,255,0.05)" stroke="rgba(0,212,255,0.4)" stroke-width="1"/>
+          <text x="280" y="119" text-anchor="middle" fill="#00d4ff" font-family="Space Mono, monospace" font-size="9" letter-spacing="0.5">conf &gt; threshold?</text>
+
+          <!-- Level 2 nodes -->
+          <rect x="82" y="172" width="156" height="28" rx="2" fill="rgba(0,212,255,0.05)" stroke="rgba(0,212,255,0.3)" stroke-width="1"/>
+          <text x="160" y="191" text-anchor="middle" fill="rgba(0,212,255,0.8)" font-family="Space Mono, monospace" font-size="9">fear_greed &lt; 50?</text>
+
+          <rect x="322" y="172" width="156" height="28" rx="2" fill="rgba(0,212,255,0.05)" stroke="rgba(0,212,255,0.3)" stroke-width="1"/>
+          <text x="400" y="191" text-anchor="middle" fill="rgba(0,212,255,0.8)" font-family="Space Mono, monospace" font-size="9">rsi14 &gt; 60?</text>
+
+          <!-- Level 3 leaf nodes -->
+          <rect x="40" y="248" width="120" height="28" rx="2" fill="rgba(247,147,26,0.08)" stroke="rgba(247,147,26,0.4)" stroke-width="1"/>
+          <text x="100" y="267" text-anchor="middle" fill="#f7931a" font-family="Space Mono, monospace" font-size="9">LEAF: LONG</text>
+
+          <rect x="170" y="248" width="100" height="28" rx="2" fill="rgba(255,85,85,0.06)" stroke="rgba(255,85,85,0.3)" stroke-width="1"/>
+          <text x="220" y="267" text-anchor="middle" fill="#ff5555" font-family="Space Mono, monospace" font-size="9">LEAF: SHORT</text>
+
+          <rect x="282" y="248" width="100" height="28" rx="2" fill="rgba(0,255,65,0.06)" stroke="rgba(0,255,65,0.3)" stroke-width="1"/>
+          <text x="332" y="267" text-anchor="middle" fill="#00ff41" font-family="Space Mono, monospace" font-size="9">LEAF: LONG</text>
+
+          <rect x="400" y="248" width="120" height="28" rx="2" fill="rgba(255,85,85,0.06)" stroke="rgba(255,85,85,0.3)" stroke-width="1"/>
+          <text x="460" y="267" text-anchor="middle" fill="#ff5555" font-family="Space Mono, monospace" font-size="9">LEAF: SHORT</text>
+
+          <!-- YES/NO labels -->
+          <text x="220" y="148" text-anchor="middle" fill="rgba(0,255,65,0.7)" font-family="Space Mono, monospace" font-size="9">YES</text>
+          <text x="340" y="148" text-anchor="middle" fill="rgba(255,85,85,0.7)" font-family="Space Mono, monospace" font-size="9">NO</text>
+
+          <!-- Glow effects -->
+          <rect x="200" y="10" width="160" height="46" rx="2" fill="none" stroke="rgba(0,212,255,0.2)" stroke-width="8" filter="url(#blur)"/>
+          <defs>
+            <filter id="blur" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="4"/>
+            </filter>
+          </defs>
+        </svg>
+      </div>
+
+      <div class="neon-card cyan-border reveal">
+        <div class="section-body">
+          <p>XGBoost (eXtreme Gradient Boosting) &egrave; un algoritmo di machine learning che impara dai pattern storici — non dalle regole scritte a mano.</p>
+          <p>Il modello &egrave; stato addestrato su <strong style="color:var(--cyan)">1.000+ segnali passati</strong> con la loro correttezza reale come label di training. Ogni nuova previsione di Claude viene valutata contro i pattern che hanno storicamente funzionato.</p>
+          <p>La validazione usa <strong>TimeSeriesSplit</strong> — non un train/test split casuale, perch&eacute; il futuro non pu&ograve; mai informare il passato.</p>
+        </div>
+
+        <div class="terminal">
+          <pre><span class="comment">// MODEL CONFIGURATION</span>
+
+<span class="key">Model         </span>  <span class="val">XGBClassifier</span>
+<span class="key">n_estimators  </span>  <span class="val">200</span>
+<span class="key">max_depth     </span>  <span class="val">4</span>
+<span class="key">learning_rate </span>  <span class="val">0.05</span>
+<span class="key">Features      </span>  <span class="val">11  (temporal + technical)</span>
+<span class="key">Validation    </span>  <span class="val">TimeSeriesSplit(n_splits=5)</span>
+<span class="key">Retrain       </span>  <span class="val">on demand (ogni ~500 segnali)</span></pre>
+        </div>
+
+        <div style="margin-top: 24px;">
+          <p style="font-size: 11px; letter-spacing: 2px; color: var(--dim); text-transform: uppercase; margin-bottom: 12px;">// Features utilizzate</p>
+          <div class="feature-pills">
+            <span class="feature-pill">confidence</span>
+            <span class="feature-pill">fear_greed_value</span>
+            <span class="feature-pill">rsi14</span>
+            <span class="feature-pill">technical_score</span>
+            <span class="feature-pill">hour_sin</span>
+            <span class="feature-pill">hour_cos</span>
+            <span class="feature-pill">technical_bias_bullish</span>
+            <span class="feature-pill">signal_fg_fear</span>
+            <span class="feature-pill">dow_sin</span>
+            <span class="feature-pill">dow_cos</span>
+            <span class="feature-pill">session</span>
+          </div>
+          <p style="font-size: 11px; color: var(--dim); margin-top: 12px;">
+            hour_sin/cos e dow_sin/cos codificano la ciclicit&agrave; temporale senza discontinuit&agrave;.<br>
+            session: Asia=0, Londra=1, New York=2.
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <div class="tron-divider"></div>
+
+  <!-- SEZIONE 4: GATE 2 -->
+  <section id="gate2">
+    <div class="page-wrapper">
+
+      <div class="reveal">
+        <p class="section-label">// sezione 04 — gate 02</p>
+        <h2 class="section-title cyan">Gate 2: il Voto XGBoost</h2>
+      </div>
+
+      <div class="gate-visual reveal">
+        <div style="display: flex; flex-direction: column; gap: 12px; margin-right: 32px;">
+          <div style="padding: 10px 20px; border: var(--border-cyan); font-size: 12px; color: var(--cyan); border-radius: 2px;">
+            LLM dir = XGB dir &rarr; TRADE
+          </div>
+          <div style="padding: 10px 20px; border: 1px solid rgba(255,85,85,0.3); font-size: 12px; color: #ff5555; border-radius: 2px;">
+            LLM dir &ne; XGB dir &rarr; SKIP
+          </div>
+        </div>
+        <div style="margin: 0 0 0 0; text-align: center; color: var(--cyan); font-family: 'Orbitron', sans-serif; font-size: 11px; letter-spacing: 2px;">
+          <div style="font-size: 2rem; margin-bottom: 4px;">&#9650;</div>
+          GATE 2
+        </div>
+        <div class="gate-door cyan" style="margin-left: 32px;">
+          <span class="gate-door-text">XGBOOST</span>
+        </div>
+      </div>
+
+      <div class="neon-card cyan-border reveal">
+        <div class="section-body">
+          <p>XGBoost vota: la direzione prevista da Claude coincide con i pattern storici di successo?</p>
+          <p>Se <strong style="color:var(--green)">s&igrave;</strong> &rarr; il trade viene eseguito su Kraken Futures (PF_XBTUSD).</p>
+          <p>Se <strong style="color:#ff5555">no</strong> &rarr; il segnale viene scartato silenziosamente (SKIP). Nessun trade, nessun rischio.</p>
+          <p>Questa alta selettivit&agrave; — circa il <strong style="color:var(--cyan)">7% dei segnali</strong> supera entrambi i gate — &egrave; intenzionale. &Egrave; meglio non fare nulla che fare la cosa sbagliata.</p>
+        </div>
+      </div>
+
+      <div class="stats-grid reveal-stagger">
+        <div class="stat-card">
+          <span class="stat-number"><span id="counter-signals">0</span>+</span>
+          <span class="stat-label">segnali analizzati</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number">~7%</span>
+          <span class="stat-label">superano entrambi i gate</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number"><span id="counter-accuracy">0</span>%</span>
+          <span class="stat-label">direction accuracy</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <div class="sep"></div>
+
+  <!-- SEZIONE 5: ON-CHAIN AUDIT -->
+  <section id="onchain">
+    <div class="page-wrapper">
+
+      <div class="reveal">
+        <p class="section-label">// sezione 05 — immutabilit&agrave;</p>
+        <h2 class="section-title orange">On-Chain Audit</h2>
+      </div>
+
+      <div class="chain-links reveal" style="flex-wrap: wrap; gap: 0; justify-content: flex-start;">
+        <div class="chain-link-item">
+          <div class="chain-node" style="width:56px;height:56px;font-size:9px;">SIGNAL<br>PASS</div>
+          <div class="chain-connector"></div>
+        </div>
+        <div class="chain-link-item">
+          <div class="chain-node" style="width:56px;height:56px;font-size:9px;">DUAL<br>GATE</div>
+          <div class="chain-connector"></div>
+        </div>
+        <div class="chain-link-item">
+          <div class="chain-node" style="width:56px;height:56px;font-size:9px;">TX<br>SIGN</div>
+          <div class="chain-connector"></div>
+        </div>
+        <div class="chain-link-item">
+          <div class="chain-node" style="width:56px;height:56px;font-size:9px;border-color:var(--orange);box-shadow:0 0 14px rgba(247,147,26,0.3);color:var(--orange);">POLYGON<br>PoS</div>
+          <div class="chain-connector" style="background:linear-gradient(90deg,var(--orange),rgba(247,147,26,0.3));"></div>
+        </div>
+        <div class="chain-link-item">
+          <div class="chain-node" style="width:56px;height:56px;font-size:9px;border-color:var(--green);color:var(--green);box-shadow:0 0 14px rgba(0,255,65,0.2);">ON<br>CHAIN</div>
+        </div>
+      </div>
+
+      <div class="neon-card orange-border reveal">
+        <div class="section-body">
+          <p>Ogni segnale che supera entrambi i gate viene scritto permanentemente sulla <strong style="color:var(--orange)">blockchain Polygon PoS</strong> prima che il trade venga eseguito.</p>
+          <p><strong>Immutabile. Verificabile. Non manipolabile.</strong></p>
+          <p>Questo &egrave; l'audit trail definitivo: nessuno pu&ograve; rivendicare previsioni retroattive o modificare la storia dei segnali. Il timestamp on-chain precede sempre l'esecuzione del trade.</p>
+        </div>
+
+        <div class="contract-box">
+          <span class="contract-label">Smart Contract</span>
+          <span class="contract-address">0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55</span>
+          <span style="font-size: 10px; color: var(--dim);">Polygon PoS Mainnet</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <div class="tron-divider"></div>
+
+  <!-- SEZIONE 6: FLOW DIAGRAM -->
+  <section id="flow">
+    <div class="page-wrapper">
+
+      <div class="reveal">
+        <p class="section-label">// sezione 06 — flusso completo</p>
+        <h2 class="section-title cyan">Il Flusso del Dual-Gate</h2>
+        <p style="color:var(--dim); font-size:13px; margin-bottom: 40px;">Dalla fonte dati al trade — ogni passo, in ordine.</p>
+      </div>
+
+      <div class="flow-diagram">
+        <div class="flow-container" id="flow-container">
+
+          <div class="flow-node start" data-flow="0">MERCATO BTC (Kraken Futures)</div>
+          <div class="flow-arrow" data-flow="1"><div class="flow-arrow-line"></div><div class="flow-arrow-head"></div></div>
+
+          <div class="flow-node data" data-flow="2">RACCOLTA DATI — 13 fonti in parallelo</div>
+          <div class="flow-arrow" data-flow="3"><div class="flow-arrow-line"></div><div class="flow-arrow-head"></div></div>
+
+          <div class="flow-node llm" data-flow="4">CLAUDE LLM — Analisi &amp; Confidence Score</div>
+          <div class="flow-arrow" data-flow="5">
+            <div class="flow-arrow-line"></div>
+            <div class="flow-label">conf &ge; 0.65?</div>
+            <div class="flow-arrow-head"></div>
+          </div>
+
+          <div class="flow-branch" data-flow="6" style="opacity:0; transition: opacity 0.5s;">
+            <div class="flow-branch-path">
+              <div style="padding: 6px 16px; border: 1px solid rgba(0,255,65,0.4); font-size: 11px; color: var(--green); font-family: 'Space Mono', monospace; border-radius: 2px; margin-bottom: 8px;">YES</div>
+              <div class="flow-node xgb" style="min-width:180px;">XGBOOST<br>VERIFICA</div>
+              <div class="flow-arrow" style="opacity:1;">
+                <div class="flow-arrow-line"></div>
+                <div class="flow-label">LLM dir = XGB dir?</div>
+                <div class="flow-arrow-head"></div>
+              </div>
+              <div class="flow-branch" style="gap: 24px;">
+                <div class="flow-branch-path">
+                  <div style="padding: 4px 12px; border: 1px solid rgba(0,255,65,0.4); font-size: 10px; color: var(--green); font-family: 'Space Mono', monospace; border-radius: 2px; margin-bottom: 6px;">YES</div>
+                  <div class="flow-node trade" style="min-width: 150px;">TRADE<br>ESEGUITO</div>
+                  <div class="flow-arrow" style="opacity:1;"><div class="flow-arrow-line"></div><div class="flow-arrow-head"></div></div>
+                  <div class="flow-node onchain" style="min-width: 150px; font-size: 11px;">ON-CHAIN<br>COMMIT (Polygon)</div>
+                </div>
+                <div class="flow-branch-path">
+                  <div style="padding: 4px 12px; border: 1px solid rgba(255,85,85,0.3); font-size: 10px; color: #ff5555; font-family: 'Space Mono', monospace; border-radius: 2px; margin-bottom: 6px;">NO</div>
+                  <div class="flow-node skip" style="min-width: 120px;">SKIP</div>
+                </div>
+              </div>
+            </div>
+            <div class="flow-branch-path">
+              <div style="padding: 6px 16px; border: 1px solid rgba(255,85,85,0.3); font-size: 11px; color: #ff5555; font-family: 'Space Mono', monospace; border-radius: 2px; margin-bottom: 8px;">NO</div>
+              <div class="flow-node skip" style="min-width: 180px;">SEGNALE SCARTATO</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section">
+    <div class="page-wrapper">
+      <div class="reveal">
+        <h2 class="cta-title">Guarda il sistema in azione</h2>
+        <p class="cta-sub">Dashboard live — segnali in tempo reale, storico completo, metriche.</p>
+        <div class="cta-buttons">
+          <a href="https://btcpredictor.io/dashboard" class="btn-primary">Vai alla Dashboard</a>
+          <a href="https://btcpredictor.io/manifesto" class="btn-secondary">Leggi il Manifesto</a>
+        </div>
+      </div>
+
+      <!-- DISCLAIMER -->
+      <div class="disclaimer reveal" style="text-align: left; margin-top: 60px;">
+        <div class="disclaimer-title">// Disclaimer Legale — Leggere Prima di Procedere</div>
+        <p>Questo sito non fornisce consulenza finanziaria. Le previsioni sono sperimentali e non garantite. I risultati passati non sono indicativi di rendimenti futuri.</p>
+        <p>Il trading su strumenti derivati (futures, perpetual contracts) comporta rischi significativi di perdita del capitale, inclusa la perdita totale dell'investimento. L'uso della leva finanziaria amplifica sia i guadagni che le perdite.</p>
+        <p>btcpredictor.io &egrave; un progetto di ricerca e sviluppo sperimentale. Non &egrave; registrato come consulente finanziario, gestore di fondi o fornitore di segnali ai sensi della direttiva MiFID II o di qualsiasi altra normativa finanziaria applicabile. Qualsiasi decisione di investimento &egrave; di esclusiva responsabilit&agrave; dell'utente.</p>
+        <p style="color: rgba(90,90,122,0.7); font-size: 11px;">Aggiornato: Febbraio 2026 &mdash; Versione 1.0</p>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <span class="footer-brand">BTC∙PREDICTOR</span>
+    <ul class="footer-links">
+      <li><a href="https://btcpredictor.io/dashboard">Dashboard</a></li>
+      <li><a href="https://btcpredictor.io/manifesto">Manifesto</a></li>
+      <li><a href="https://btcpredictor.io/contributors">Contributors</a></li>
+      <li><a href="https://btcpredictor.io/legal">Legal</a></li>
+    </ul>
+    <p class="footer-copy">&copy; 2026 btcpredictor.io &mdash; Sistema AI sperimentale. Non consulenza finanziaria.</p>
+  </div>
+</footer>
+
+<!-- =====================================
+     JAVASCRIPT
+===================================== -->
+<script>
+(function() {
+  'use strict';
+
+  /* =============================================
+     MATRIX RAIN
+  ============================================= */
+  (function initMatrix() {
+    var canvas = document.getElementById('matrix-canvas');
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+    var W, H, cols, drops;
+    var chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノ';
+
+    function resize() {
+      W = canvas.width = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+      cols = Math.floor(W / 18);
+      drops = [];
+      for (var i = 0; i < cols; i++) {
+        drops[i] = Math.random() * -100;
+      }
+    }
+
+    var lastTime = 0;
+    var interval = 80;
+
+    function draw(ts) {
+      if (ts - lastTime < interval) {
+        requestAnimationFrame(draw);
+        return;
+      }
+      lastTime = ts;
+
+      ctx.fillStyle = 'rgba(10,10,15,0.05)';
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = '#00ff41';
+      ctx.font = '14px Space Mono, monospace';
+
+      for (var i = 0; i < drops.length; i++) {
+        var char = chars[Math.floor(Math.random() * chars.length)];
+        ctx.fillText(char, i * 18, drops[i] * 18);
+        if (drops[i] * 18 > H && Math.random() > 0.975) {
+          drops[i] = 0;
+        }
+        drops[i]++;
+      }
+      requestAnimationFrame(draw);
+    }
+
+    resize();
+    window.addEventListener('resize', resize);
+    requestAnimationFrame(draw);
+  })();
+
+  /* =============================================
+     INTERSECTION OBSERVER — REVEALS
+  ============================================= */
+  (function initReveals() {
+    var elements = document.querySelectorAll('.reveal, .reveal-stagger');
+    if (!('IntersectionObserver' in window)) {
+      elements.forEach(function(el) {
+        el.classList.add('visible');
+      });
+      return;
+    }
+
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -60px 0px' });
+
+    elements.forEach(function(el) { observer.observe(el); });
+  })();
+
+  /* =============================================
+     FLOW DIAGRAM — TYPEWRITER ANIMATION
+  ============================================= */
+  (function initFlowAnimation() {
+    var container = document.getElementById('flow-container');
+    if (!container) return;
+
+    var observed = false;
+    var observer = new IntersectionObserver(function(entries) {
+      if (entries[0].isIntersecting && !observed) {
+        observed = true;
+        animateFlow();
+        observer.disconnect();
+      }
+    }, { threshold: 0.2 });
+
+    observer.observe(container);
+
+    function animateFlow() {
+      var nodes = container.querySelectorAll('[data-flow]');
+      var sortedNodes = [];
+      nodes.forEach(function(n) { sortedNodes.push(n); });
+      sortedNodes.sort(function(a, b) {
+        return parseInt(a.dataset.flow) - parseInt(b.dataset.flow);
+      });
+
+      sortedNodes.forEach(function(node, idx) {
+        setTimeout(function() {
+          node.classList.add('flow-animated');
+          if (node.style.opacity === '0') {
+            node.style.opacity = '1';
+          }
+        }, idx * 280);
+      });
+    }
+  })();
+
+  /* =============================================
+     COUNTER ANIMATION
+  ============================================= */
+  (function initCounters() {
+    var counters = [
+      { id: 'counter-signals', target: 1070, duration: 1800 },
+      { id: 'counter-accuracy', target: 86, duration: 1400 }
+    ];
+
+    function animateCounter(el, target, duration) {
+      var start = 0;
+      var startTime = null;
+
+      function step(ts) {
+        if (!startTime) startTime = ts;
+        var progress = Math.min((ts - startTime) / duration, 1);
+        var eased = 1 - Math.pow(1 - progress, 3);
+        el.textContent = Math.floor(eased * target);
+        if (progress < 1) requestAnimationFrame(step);
+        else el.textContent = target;
+      }
+      requestAnimationFrame(step);
+    }
+
+    if (!('IntersectionObserver' in window)) {
+      counters.forEach(function(c) {
+        var el = document.getElementById(c.id);
+        if (el) el.textContent = c.target;
+      });
+      return;
+    }
+
+    counters.forEach(function(c) {
+      var el = document.getElementById(c.id);
+      if (!el) return;
+
+      var triggered = false;
+      var observer = new IntersectionObserver(function(entries) {
+        if (entries[0].isIntersecting && !triggered) {
+          triggered = true;
+          animateCounter(el, c.target, c.duration);
+          observer.disconnect();
+        }
+      }, { threshold: 0.5 });
+
+      observer.observe(el.closest('.stats-grid') || el);
+    });
+  })();
+
+  /* =============================================
+     SMOOTH NAV LINK SCROLL
+  ============================================= */
+  document.querySelectorAll('a[href^="#"]').forEach(function(link) {
+    link.addEventListener('click', function(e) {
+      var target = document.querySelector(this.getAttribute('href'));
+      if (target) {
+        e.preventDefault();
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+
+})();
+</script>
+
+</body>
+</html>
