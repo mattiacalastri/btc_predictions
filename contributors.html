@@ -1134,15 +1134,17 @@ if(localStorage.getItem('btcp_ga_consent')==='granted'){
 <!-- GLOBAL NAV -->
 <nav class="gnav">
   <a href="https://btcpredictor.io" class="gnav-logo"><span class="gnav-pulse"></span>BTCPREDICTOR.IO</a>
-  <ul class="gnav-links" id="gnavLinks">
-    <li><a href="https://btcpredictor.io/dashboard">Dashboard</a></li>
-    <li><a href="https://btcpredictor.io/xgboost-spiegato">How It Works</a></li>
-    <li><a href="https://btcpredictor.io/investors" class="gnav-investors">Investors</a></li>
-    <li><a href="https://btcpredictor.io/contributors" class="gnav-active">Contributors</a></li>
-    <li><a href="https://btcpredictor.io/aureo" style="color:#C9A84C;border:1px solid rgba(201,168,76,.3);padding:5px 14px;border-radius:3px;">AUREO</a></li>
-  </ul>
-  <button class="gnav-burger" onclick="const l=document.getElementById('gnavLinks');l.classList.toggle('gnav-open');this.textContent=l.classList.contains('gnav-open')?'✕':'☰'" aria-label="Menu">☰</button>
+  <button class="gnav-burger" id="gnavBurger" onclick="toggleGnav()" aria-label="Menu">☰</button>
 </nav>
+<!-- Drawer OUTSIDE <nav> — fix Safari backdrop-filter clipping -->
+<ul class="gnav-links" id="gnavLinks">
+  <li><a href="https://btcpredictor.io/dashboard">Dashboard</a></li>
+  <li><a href="https://btcpredictor.io/xgboost-spiegato">How It Works</a></li>
+  <li><a href="https://btcpredictor.io/investors" class="gnav-investors">Investors</a></li>
+  <li><a href="https://btcpredictor.io/contributors" class="gnav-active">Contributors</a></li>
+  <li><a href="https://btcpredictor.io/aureo" style="color:#C9A84C;border:1px solid rgba(201,168,76,.3);padding:5px 14px;border-radius:3px;">AUREO</a></li>
+</ul>
+<div id="gnavBackdrop" onclick="toggleGnav()" style="display:none;position:fixed;inset:0;z-index:998;background:rgba(0,0,0,0.45);"></div>
 <!-- ── LIVE STATUS BAR ──────────────────────────────────────────── -->
 <div class="lsb" id="liveStatusBar">
   <span class="lsb-label">Agents</span>
@@ -1893,6 +1895,8 @@ function trackEvent(n,p){if(typeof gtag!=='undefined'&&localStorage.getItem('btc
 // Track contribution form submit
 var form=document.querySelector('form');
 if(form)form.addEventListener('submit',function(){trackEvent('contribution_submitted',{});});
+function toggleGnav(){var l=document.getElementById('gnavLinks');var b=document.getElementById('gnavBackdrop');var btn=document.getElementById('gnavBurger');var open=l.classList.toggle('gnav-open');b.style.display=open?'block':'none';btn.textContent=open?'✕':'☰';}
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){var l=document.getElementById('gnavLinks');if(l&&l.classList.contains('gnav-open'))toggleGnav();}});
 </script>
 <style>
 .lsb{display:flex;align-items:center;gap:8px;background:#070710;border-bottom:1px solid rgba(255,255,255,0.06);padding:4px 24px;height:26px;overflow-x:auto;scrollbar-width:none;position:fixed;top:52px;left:0;right:0;z-index:99;}

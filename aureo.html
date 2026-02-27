@@ -788,7 +788,8 @@
       display: flex;
       align-items: flex-start;
       gap: 10px;
-      margin-top: 14px;
+      max-width: 440px;
+      margin: 14px auto 0;
       cursor: pointer;
     }
     .newsletter-gdpr input[type="checkbox"] {
@@ -1298,21 +1299,11 @@
       <p class="cta-sub">Costa zero. Richiede un minuto. Cambia prospettiva.</p>
     </div>
 
-    <div class="social-row reveal reveal-delay-1">
-      <a href="https://instagram.com/aureo.io" target="_blank" rel="noopener" class="social-btn">
-        📸 Instagram @aureo.io
-      </a>
-      <a href="https://tiktok.com/@aureo.io" target="_blank" rel="noopener" class="social-btn">
-        🎵 TikTok @aureo.io
-      </a>
-      <a href="https://youtube.com/@aureo.io" target="_blank" rel="noopener" class="social-btn">
-        ▶ YouTube @aureo.io
-      </a>
-    </div>
+    <!-- social-row: profili non ancora attivi, da aggiungere in seguito -->
 
     <div class="reveal reveal-delay-2">
       <p style="font-family:var(--font-display);font-size:1rem;color:var(--muted);margin-bottom:1.25rem;font-style:italic">
-        Oppure ricevi una lezione settimanale nella tua casella email:
+        Ricevi una lezione settimanale nella tua casella email:
       </p>
       <form class="newsletter-form" onsubmit="handleSubscribe(event)">
         <input type="email" placeholder="la.tua@email.com" required autocomplete="email">
