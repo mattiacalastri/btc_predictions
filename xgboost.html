@@ -1181,10 +1181,10 @@
         </div>
         <div style="display: flex; flex-direction: column; gap: 12px;">
           <div style="padding: 10px 20px; border: var(--border-orange); font-size: 12px; color: var(--orange); border-radius: 2px;">
-            conf &ge; 0.65 &rarr; PASS
+            conf &ge; 0.75 &rarr; PASS
           </div>
           <div style="padding: 10px 20px; border: 1px solid rgba(255,85,85,0.3); font-size: 12px; color: #ff5555; border-radius: 2px;">
-            conf &lt; 0.65 &rarr; SKIP
+            conf &lt; 0.75 &rarr; SKIP
           </div>
         </div>
       </div>
@@ -1192,7 +1192,7 @@
       <div class="neon-card orange-border reveal">
         <div class="section-body">
           <p>Claude analizza <strong style="color:var(--orange)">13 fonti di dati</strong> in linguaggio naturale — non solo numeri, ma contesto, narrative e correlazioni cross-asset.</p>
-          <p>Output: una <strong>direzione</strong> (UP o DOWN) e un <strong>confidence score</strong> tra 0.0 e 1.0. Solo i segnali con confidence &ge; 0.65 accedono al secondo cancello.</p>
+          <p>Output: una <strong>direzione</strong> (UP o DOWN) e un <strong>confidence score</strong> tra 0.0 e 1.0. Solo i segnali con confidence &ge; 0.75 accedono al secondo cancello.</p>
           <p>Il confidence score non &egrave; arbitrario: viene scalato in un moltiplicatore di position sizing. Pi&ugrave; &egrave; alto, pi&ugrave; &egrave; grande la scommessa — entro un range clampato tra 0.8x e 1.2x del capitale base.</p>
         </div>
 
@@ -1458,7 +1458,7 @@
           <div class="flow-node llm" data-flow="4">CLAUDE LLM — Analisi &amp; Confidence Score</div>
           <div class="flow-arrow" data-flow="5">
             <div class="flow-arrow-line"></div>
-            <div class="flow-label">conf &ge; 0.65?</div>
+            <div class="flow-label">conf &ge; 0.75?</div>
             <div class="flow-arrow-head"></div>
           </div>
 
