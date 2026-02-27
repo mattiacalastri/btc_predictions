@@ -1933,6 +1933,132 @@ def rescue_orphaned():
     })
 
 
+@app.route("/ghost-evaluate", methods=["POST"])
+def ghost_evaluate():
+    """
+    Valuta l'outcome fantasma dei segnali SKIP/ALERT per training data XGBoost.
+    Per ogni segnale con bet_taken=false, ghost_evaluated_at IS NULL, signal_price non null,
+    creato tra 18 minuti e 6 ore fa: valuta se direction era corretta vs prezzo attuale BTC.
+    Chiamare da wf02 ad ogni ciclo (continueOnFail=true).
+    """
+    err = _check_api_key()
+    if err:
+        return err
+
+    import datetime as _dt
+
+    supabase_url = os.environ.get("SUPABASE_URL", "")
+    supabase_key = os.environ.get("SUPABASE_KEY", "")
+
+    if not supabase_url or not supabase_key:
+        return jsonify({"status": "error", "error": "Supabase not configured"}), 503
+
+    # 1. Prezzo BTC attuale da Binance
+    try:
+        pr = requests.get(
+            "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT",
+            timeout=5,
+        )
+        pr.raise_for_status()
+        current_price = float(pr.json()["price"])
+    except Exception as e:
+        return jsonify({"status": "error", "error": f"Binance price fetch: {e}"}), 503
+
+    # 2. Fetch candidati: bet_taken=false, ghost_evaluated_at IS NULL,
+    #    signal_price non null, creati tra 18min e 6h fa
+    now = _dt.datetime.now(_dt.timezone.utc)
+    cutoff_min = (now - _dt.timedelta(minutes=18)).isoformat()
+    cutoff_max = (now - _dt.timedelta(hours=6)).isoformat()
+
+    try:
+        resp = requests.get(
+            f"{supabase_url}/rest/v1/{SUPABASE_TABLE}"
+            "?select=id,direction,signal_price"
+            "&bet_taken=eq.false"
+            "&ghost_evaluated_at=is.null"
+            "&signal_price=not.is.null"
+            f"&created_at=lte.{cutoff_min}"
+            f"&created_at=gte.{cutoff_max}"
+            "&order=created_at.asc"
+            "&limit=50",
+            headers={
+                "apikey": supabase_key,
+                "Authorization": f"Bearer {supabase_key}",
+            },
+            timeout=6,
+        )
+        candidates = resp.json() if resp.ok else []
+    except Exception as e:
+        return jsonify({"status": "error", "error": f"Supabase fetch: {e}"}), 503
+
+    if not candidates:
+        return jsonify({
+            "status": "ok",
+            "evaluated": 0,
+            "current_price": current_price,
+            "message": "No pending ghost signals",
+        })
+
+    # 3. Valuta e aggiorna ciascun segnale
+    evaluated = []
+    errors = []
+    ghost_ts = now.isoformat()
+
+    for row in candidates:
+        row_id = row.get("id")
+        direction = row.get("direction", "").upper()
+        signal_price = row.get("signal_price")
+        if not row_id or not direction or signal_price is None:
+            continue
+        try:
+            sp = float(signal_price)
+        except (TypeError, ValueError):
+            continue
+
+        # Ghost correct: prezzo si è mosso nella direzione predetta
+        if direction == "UP":
+            ghost_correct = current_price > sp
+        elif direction == "DOWN":
+            ghost_correct = current_price < sp
+        else:
+            continue
+
+        try:
+            upd = requests.patch(
+                f"{supabase_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{row_id}",
+                headers={
+                    "apikey": supabase_key,
+                    "Authorization": f"Bearer {supabase_key}",
+                    "Content-Type": "application/json",
+                    "Prefer": "return=minimal",
+                },
+                json={
+                    "ghost_exit_price": current_price,
+                    "ghost_correct": ghost_correct,
+                    "ghost_evaluated_at": ghost_ts,
+                },
+                timeout=5,
+            )
+            if upd.ok:
+                evaluated.append({"id": row_id, "ghost_correct": ghost_correct})
+            else:
+                errors.append({"id": row_id, "error": upd.text[:100]})
+        except Exception as e:
+            errors.append({"id": row_id, "error": str(e)})
+
+    app.logger.info(
+        f"[ghost_evaluate] evaluated={len(evaluated)} errors={len(errors)} "
+        f"price={current_price}"
+    )
+    return jsonify({
+        "status": "ok",
+        "evaluated": len(evaluated),
+        "errors": len(errors),
+        "current_price": current_price,
+        "results": evaluated,
+    })
+
+
 @app.route("/reload-calibration", methods=["POST"])
 def reload_calibration():
     """

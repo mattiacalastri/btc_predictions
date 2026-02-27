@@ -5134,9 +5134,15 @@ function renderTable(data) {
           ? '<span class="badge badge-wrong">✗ LOSS</span>'
           : '<span class="badge badge-wrong" style="opacity:0.75">✗ WRONG</span>';
     } else {
-      resultBadge = isBet
-        ? '<span style="color:var(--warn);font-size:9px;letter-spacing:1px">⏳ OPEN</span>'
-        : '<span style="color:var(--muted);font-size:10px;">—</span>';
+      if (isBet) {
+        resultBadge = '<span style="color:var(--warn);font-size:9px;letter-spacing:1px">⏳ OPEN</span>';
+      } else if (d.ghost_correct === true) {
+        resultBadge = '<span title="Ghost outcome: correct (not traded)" style="color:rgba(0,255,136,0.55);font-size:10px;letter-spacing:0.5px;font-family:monospace">(✓)</span>';
+      } else if (d.ghost_correct === false) {
+        resultBadge = '<span title="Ghost outcome: wrong (not traded)" style="color:rgba(255,68,102,0.55);font-size:10px;letter-spacing:0.5px;font-family:monospace">(✗)</span>';
+      } else {
+        resultBadge = '<span style="color:var(--muted);font-size:10px;">—</span>';
+      }
     }
     const pnlCls    = d.pnl_usd === null ? 'pnl-null' : parseFloat(d.pnl_usd) >= 0 ? 'pnl-pos' : 'pnl-neg';
     const score     = (d.technical_score !== null && d.technical_score !== undefined) ? parseFloat(d.technical_score).toFixed(1) : '—';
