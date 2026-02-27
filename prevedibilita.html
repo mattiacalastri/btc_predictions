@@ -2,6 +2,20 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
+<!-- Google Analytics 4 — consent mode GDPR -->
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('consent','default',{'analytics_storage':'denied'});
+if(localStorage.getItem('btcp_ga_consent')==='granted'){
+  var s=document.createElement('script');
+  s.async=true;
+  s.src='https://www.googletagmanager.com/gtag/js?id=G-K2E2B4FVQ5';
+  document.head.appendChild(s);
+  gtag('js',new Date());
+  gtag('config','G-K2E2B4FVQ5');
+}
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Prevedibilità Perfetta e Regime di Abbondanza — btcpredictor.io</title>
 <meta name="description" content="Cos'è la Prevedibilità Perfetta nel trading algoritmico e perché l'intelligenza artificiale ci permette quasi certamente di raggiungerla. Il percorso dal caos al segnale — e cosa significa per il futuro della ricchezza individuale.">
@@ -573,6 +587,10 @@ const observer = new IntersectionObserver(entries => {
   entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); } });
 }, { threshold: 0.08 });
 document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+<script>
+function trackEvent(n,p){if(typeof gtag!=='undefined'&&localStorage.getItem('btcp_ga_consent')==='granted')gtag('event',n,p||{});}
+(function(){var f={};var T=[25,50,75,100];window.addEventListener('scroll',function(){var pct=Math.round((window.scrollY+window.innerHeight)/document.body.scrollHeight*100);T.forEach(function(t){if(!f[t]&&pct>=t){f[t]=true;trackEvent('scroll_depth',{depth_pct:t,page:'prevedibilita'});}});},{passive:true});})();
 </script>
 </body>
 </html>
