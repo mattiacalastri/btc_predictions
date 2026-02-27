@@ -3885,7 +3885,7 @@ def satoshi_lead():
             "apikey": sb_key,
             "Authorization": f"Bearer {sb_key}",
             "Content-Type": "application/json",
-            "Prefer": "resolution=merge-duplicates,return=minimal",
+            "Prefer": "return=minimal",
         }
         payload = {"email": email, "source": source, "metadata": metadata}
         resp = requests.post(
@@ -3894,10 +3894,11 @@ def satoshi_lead():
             headers=headers,
             timeout=8,
         )
-        if resp.status_code not in (200, 201, 204):
-            app.logger.error("satoshi_lead supabase error: %s %s", resp.status_code, resp.text[:200])
-            return jsonify({"ok": False, "error": "server_error", "_dbg": resp.status_code, "_msg": resp.text[:200]}), 500
-        return jsonify({"ok": True})
+        # 201 = inserted, 409 = duplicate (already captured) — both are ok
+        if resp.status_code in (201, 204, 409):
+            return jsonify({"ok": True})
+        app.logger.error("satoshi_lead supabase error: %s %s", resp.status_code, resp.text[:200])
+        return jsonify({"ok": False, "error": "server_error"}), 500
     except Exception as exc:
         app.logger.error("satoshi_lead error: %s", exc)
         return jsonify({"ok": False, "error": "server_error"}), 500
