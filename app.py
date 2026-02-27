@@ -938,8 +938,53 @@ def place_bet():
 
         trade = get_trade_client()
 
-        # se opposta => chiudi prima e attendi flat, poi aggiorna Supabase
+        # se opposta => controlla PnL corrente prima di invertire (R-03)
         if pos and pos["side"] != desired_side:
+            # Leggi il prezzo corrente PRIMA di fare qualsiasi ordine
+            current_mark = _get_mark_price(symbol) or float(pos.get("price") or 0)
+            entry_p = float(pos.get("price") or 0)
+
+            # Calcola se la posizione esistente è in profitto
+            in_profit = False
+            if entry_p > 0 and current_mark > 0:
+                in_profit = (
+                    (current_mark > entry_p) if pos["side"] == "long"
+                    else (current_mark < entry_p)
+                )
+
+            # Se in profitto: ignora il segnale inverso — non tagliare un vincitore
+            if in_profit:
+                app.logger.info(
+                    f"[reverse-bet] Posizione {pos['side']} in profitto "
+                    f"(entry={entry_p:.1f} mark={current_mark:.1f}) — segnale opposto ignorato"
+                )
+                return jsonify({
+                    "status": "skipped",
+                    "reason": "Posizione opposta in profitto — reverse ignorato per preservare guadagno",
+                    "symbol": symbol,
+                    "existing_side": pos["side"],
+                    "current_mark": current_mark,
+                    "entry_price": entry_p,
+                    "confidence": confidence,
+                }), 200
+
+            # Se in perdita ma confidence < 0.75: non abbastanza segnale per invertire
+            if confidence < 0.75:
+                app.logger.info(
+                    f"[reverse-bet] Posizione {pos['side']} in perdita ma conf={confidence:.2f} < 0.75 — skip reverse"
+                )
+                return jsonify({
+                    "status": "skipped",
+                    "reason": f"Reverse: posizione in perdita ma confidence ({confidence:.2f}) < 0.75 — non invertire",
+                    "symbol": symbol,
+                    "confidence": confidence,
+                }), 200
+
+            # Procedi: posizione in perdita E confidence >= 0.75 → inverti
+            app.logger.info(
+                f"[reverse-bet] Posizione {pos['side']} in perdita (entry={entry_p:.1f} mark={current_mark:.1f}) "
+                f"e conf={confidence:.2f} >= 0.75 — procedo con inversione"
+            )
             close_side = "sell" if pos["side"] == "long" else "buy"
             trade.create_order(
                 orderType="mkt",
@@ -949,7 +994,7 @@ def place_bet():
                 reduceOnly=True,
             )
             wait_for_position(symbol, want_open=False, retries=15, sleep_s=0.35)
-            exit_price_at_close = _get_mark_price(symbol) or float(pos.get("price") or 0)
+            exit_price_at_close = _get_mark_price(symbol) or current_mark
             _close_prev_bet_on_reverse(pos["side"], exit_price_at_close, pos["size"])
             time.sleep(2)  # buffer Kraken: attendi che il conto si assesti prima di aprire nuova posizione
 
