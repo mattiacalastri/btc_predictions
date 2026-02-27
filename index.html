@@ -779,6 +779,7 @@
   }
 
   /* ── PAGE BANNERS (Contributors + Manifesto) ─────────────── */
+  /* ── PAGE BANNERS — Tron / Matrix ───────────────────────────── */
   .page-banners-grid {
     display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
     margin-bottom: 20px;
@@ -787,59 +788,115 @@
 
   .page-banner {
     display: flex; align-items: center; justify-content: space-between; gap: 16px;
-    padding: 16px 18px;
+    padding: 18px 20px;
     position: relative; overflow: hidden;
-    transition: background 0.2s;
+    background: rgba(6,9,18,0.96);
+    background-image:
+      linear-gradient(rgba(255,255,255,.016) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.016) 1px, transparent 1px);
+    background-size: auto, auto, 26px 26px, 26px 26px;
+    border: 1px solid rgba(255,255,255,.07);
+    transition: border-color .28s, box-shadow .28s, background-color .28s;
   }
-  .page-banner.orange {
-    background: rgba(247,147,26,0.06);
-    border-left: 3px solid var(--orange);
+  /* TL corner bracket */
+  .page-banner::before {
+    content: ''; position: absolute; top: 6px; left: 6px;
+    width: 10px; height: 10px;
+    border-top: 1.5px solid var(--ban-clr, rgba(255,255,255,.25));
+    border-left: 1.5px solid var(--ban-clr, rgba(255,255,255,.25));
+    pointer-events: none;
   }
-  .page-banner.cyan {
-    background: rgba(0,212,255,0.05);
-    border-left: 3px solid var(--cyan);
+  /* BR corner bracket */
+  .page-banner::after {
+    content: ''; position: absolute; bottom: 6px; right: 6px;
+    width: 10px; height: 10px;
+    border-bottom: 1.5px solid var(--ban-clr, rgba(255,255,255,.25));
+    border-right:  1.5px solid var(--ban-clr, rgba(255,255,255,.25));
+    pointer-events: none;
   }
+  /* scan line */
+  .ban-scan {
+    position: absolute; top: 0; left: -40%; width: 35%; height: 100%;
+    background: linear-gradient(90deg, transparent 0%, var(--ban-clr, rgba(255,255,255,.1)) 50%, transparent 100%);
+    opacity: .05; pointer-events: none;
+    animation: banScan 7s ease-in-out infinite;
+  }
+  @keyframes banScan { 0% { left: -40%; } 65%, 100% { left: 115%; } }
+
+  /* ── color variants ── */
+  .page-banner.green  { --ban-clr:#00ff88; border-color:rgba(0,255,136,.2);   background-color:rgba(0,255,136,.025); }
+  .page-banner.purple { --ban-clr:#aa66ff; border-color:rgba(170,102,255,.2); background-color:rgba(170,102,255,.025); }
+  .page-banner.orange { --ban-clr:#f7931a; border-color:rgba(247,147,26,.2);  background-color:rgba(247,147,26,.025); }
+  .page-banner.cyan   { --ban-clr:#00d4ff; border-color:rgba(0,212,255,.2);   background-color:rgba(0,212,255,.025); }
+  .page-banner.ban-aureo { --ban-clr:#C9A84C; border-color:rgba(201,168,76,.2); background-color:rgba(201,168,76,.025); }
+
+  .page-banner.green:hover  { border-color:rgba(0,255,136,.55);   box-shadow:0 0 28px rgba(0,255,136,.1),  inset 0 0 50px rgba(0,255,136,.03); }
+  .page-banner.purple:hover { border-color:rgba(170,102,255,.55); box-shadow:0 0 28px rgba(170,102,255,.12),inset 0 0 50px rgba(170,102,255,.04); }
+  .page-banner.orange:hover { border-color:rgba(247,147,26,.55);  box-shadow:0 0 28px rgba(247,147,26,.1),  inset 0 0 50px rgba(247,147,26,.03); }
+  .page-banner.cyan:hover   { border-color:rgba(0,212,255,.55);   box-shadow:0 0 28px rgba(0,212,255,.1),  inset 0 0 50px rgba(0,212,255,.03); }
+  .page-banner.ban-aureo:hover { border-color:rgba(201,168,76,.55); box-shadow:0 0 28px rgba(201,168,76,.1), inset 0 0 50px rgba(201,168,76,.03); }
+
+  /* ghost watermark */
   .page-banner-ghost {
-    position: absolute; right: 14px; top: 50%;
+    position: absolute; right: 18px; top: 50%;
     transform: translateY(-50%);
-    font-size: 52px; opacity: 0.13; pointer-events: none; line-height: 1;
+    font-size: 48px; opacity: .09; pointer-events: none; line-height: 1;
+    filter: blur(.5px);
   }
   .page-banner-body { flex: 1; min-width: 0; }
+
+  /* titles — color + glow */
   .page-banner-title {
     font-size: 13px; font-weight: 700; color: var(--white);
-    margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    text-shadow: 0 0 12px var(--ban-clr, transparent);
   }
+  .page-banner.green  .page-banner-title { color: #00ff88; }
+  .page-banner.purple .page-banner-title { color: #bb88ff; }
+  .page-banner.orange .page-banner-title { color: #f7931a; }
+  .page-banner.cyan   .page-banner-title { color: #00d4ff; }
+  .page-banner.ban-aureo .page-banner-title { color: #C9A84C; }
+
   .page-banner-sub {
     font-family: 'Share Tech Mono', monospace;
-    font-size: 9px; color: var(--muted); letter-spacing: 1.5px;
+    font-size: 9px; color: rgba(255,255,255,.3); letter-spacing: 1.5px;
     text-transform: uppercase;
   }
-  .page-banner-chips {
-    display: flex; gap: 5px; flex-wrap: wrap; align-items: center;
-    margin-top: 8px;
-  }
+  .page-banner-chips { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
   .page-banner-chip {
-    font-size: 11px; padding: 2px 5px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 2px; color: var(--muted);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9.5px; padding: 2px 7px;
+    background: transparent; border-radius: 0;
+    border: 1px solid rgba(255,255,255,.1); color: rgba(255,255,255,.35);
+    letter-spacing: .05em;
   }
+  .page-banner.green  .page-banner-chip { border-color:rgba(0,255,136,.25);   color:rgba(0,255,136,.65); }
+  .page-banner.purple .page-banner-chip { border-color:rgba(170,102,255,.25); color:rgba(170,102,255,.7); }
+  .page-banner.orange .page-banner-chip { border-color:rgba(247,147,26,.25);  color:rgba(247,147,26,.65); }
+  .page-banner.cyan   .page-banner-chip { border-color:rgba(0,212,255,.25);   color:rgba(0,212,255,.6); }
+  .page-banner.ban-aureo .page-banner-chip { border-color:rgba(201,168,76,.25); color:rgba(201,168,76,.7); }
+
+  /* CTA — neon outline button */
   .page-banner-cta {
     display: inline-flex; align-items: center;
     font-family: 'Share Tech Mono', monospace;
-    font-size: 10px; font-weight: 700; letter-spacing: 1px;
+    font-size: 10px; font-weight: 700; letter-spacing: 2px;
     text-decoration: none; text-transform: uppercase;
-    padding: 8px 14px; border-radius: 2px;
+    padding: 8px 16px; border-radius: 0;
     white-space: nowrap; flex-shrink: 0;
-    transition: opacity 0.2s;
+    background: transparent; border: 1px solid currentColor;
+    transition: background .2s, box-shadow .2s;
   }
-  .page-banner-cta:hover { opacity: 0.8; }
-  .page-banner.orange .page-banner-cta { background: var(--orange); color: #fff; }
-  .page-banner.cyan   .page-banner-cta { background: var(--cyan);   color: #fff; }
-  .page-banner.green  { background: rgba(0,255,136,0.04);  border-left: 3px solid var(--accent); }
-  .page-banner.purple { background: rgba(170,102,255,0.05); border-left: 3px solid #aa66ff; }
-  .page-banner.green  .page-banner-cta { background: var(--accent); color: #000; }
-  .page-banner.purple .page-banner-cta { background: #aa66ff; color: #fff; }
+  .page-banner.green  .page-banner-cta { color:#00ff88; }
+  .page-banner.green  .page-banner-cta:hover { background:rgba(0,255,136,.1);   box-shadow:0 0 16px rgba(0,255,136,.35); }
+  .page-banner.purple .page-banner-cta { color:#aa66ff; }
+  .page-banner.purple .page-banner-cta:hover { background:rgba(170,102,255,.1); box-shadow:0 0 16px rgba(170,102,255,.4); }
+  .page-banner.orange .page-banner-cta { color:#f7931a; }
+  .page-banner.orange .page-banner-cta:hover { background:rgba(247,147,26,.1);  box-shadow:0 0 16px rgba(247,147,26,.35); }
+  .page-banner.cyan   .page-banner-cta { color:#00d4ff; }
+  .page-banner.cyan   .page-banner-cta:hover { background:rgba(0,212,255,.1);   box-shadow:0 0 16px rgba(0,212,255,.35); }
+  .page-banner.ban-aureo .page-banner-cta { color:#C9A84C; }
+  .page-banner.ban-aureo .page-banner-cta:hover { background:rgba(201,168,76,.1); box-shadow:0 0 16px rgba(201,168,76,.35); }
 
   /* ── TRAINING BANNER ──────────────────────────────────────── */
   .training-banner {
@@ -3277,6 +3334,7 @@
 
     <!-- Dual Gate AI -->
     <div class="page-banner green">
+      <div class="ban-scan"></div>
       <div class="page-banner-body">
         <div class="page-banner-title">Il Dual-Gate AI</div>
         <div class="page-banner-sub">Claude LLM + XGBoost · Due cancelli</div>
@@ -3291,6 +3349,7 @@
 
     <!-- Prevedibilità Perfetta -->
     <div class="page-banner purple">
+      <div class="ban-scan" style="animation-delay:2.5s"></div>
       <div class="page-banner-body">
         <div class="page-banner-title">Prevedibilità Perfetta</div>
         <div class="page-banner-sub">Regime di abbondanza · Il percorso</div>
@@ -3309,22 +3368,24 @@
   <div class="page-banners-grid">
 
     <!-- AUREO -->
-    <div class="page-banner" style="background:rgba(201,168,76,0.07);border-left:3px solid #C9A84C;">
-      <div class="page-banner-ghost" style="color:#C9A84C;opacity:0.18;font-family:serif;font-size:52px;font-weight:700;line-height:1;">A</div>
+    <div class="page-banner ban-aureo">
+      <div class="ban-scan" style="animation-delay:1.2s"></div>
+      <div class="page-banner-ghost" style="font-family:serif;font-size:52px;font-weight:700;line-height:1;color:#C9A84C;">A</div>
       <div class="page-banner-body">
-        <div class="page-banner-title" style="color:#C9A84C;">AUREO</div>
+        <div class="page-banner-title">AUREO</div>
         <div class="page-banner-sub">Educazione finanziaria italiana · Gratuita · Verificabile</div>
         <div class="page-banner-chips">
-          <span class="page-banner-chip" style="border-color:rgba(201,168,76,0.3);color:#C9A84C;">⛓ on-chain</span>
-          <span class="page-banner-chip" style="border-color:rgba(201,168,76,0.3);color:#C9A84C;">free forever</span>
-          <span class="page-banner-chip" style="border-color:rgba(201,168,76,0.3);color:#C9A84C;">OCSE 2023</span>
+          <span class="page-banner-chip">⛓ on-chain</span>
+          <span class="page-banner-chip">free forever</span>
+          <span class="page-banner-chip">OCSE 2023</span>
         </div>
       </div>
-      <a href="/aureo" class="page-banner-cta" style="background:#C9A84C;color:#0D1B2A;" target="_blank">→ scopri</a>
+      <a href="/aureo" class="page-banner-cta" target="_blank">→ scopri</a>
     </div>
 
     <!-- Investors -->
     <div class="page-banner orange">
+      <div class="ban-scan" style="animation-delay:3.8s"></div>
       <div class="page-banner-ghost">💼</div>
       <div class="page-banner-body">
         <div class="page-banner-title">Investors</div>

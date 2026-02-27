@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import time
 import hmac as _hmac
@@ -3861,6 +3862,29 @@ def contributors():
     with open("contributors.html", "r") as f:
         html = f.read()
     return html, 200, {"Content-Type": "text/html"}
+
+
+_EMAIL_RE = re.compile(r'^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$')
+
+@app.route("/satoshi-lead", methods=["POST"])
+def satoshi_lead():
+    """Salva email raccolta dal widget Satoshi in Supabase leads."""
+    data = request.get_json(silent=True) or {}
+    email = str(data.get("email", "")).strip().lower()
+    if not _EMAIL_RE.match(email):
+        return jsonify({"ok": False, "error": "invalid_email"}), 400
+    source   = str(data.get("source", "satoshi_widget"))[:64]
+    metadata = data.get("metadata") if isinstance(data.get("metadata"), dict) else {}
+    try:
+        supabase = _get_supabase()
+        supabase.table("leads").upsert(
+            {"email": email, "source": source, "metadata": metadata},
+            on_conflict="email,source",
+        ).execute()
+        return jsonify({"ok": True})
+    except Exception as exc:
+        app.logger.error("satoshi_lead error: %s", exc)
+        return jsonify({"ok": False, "error": "server_error"}), 500
 
 
 @app.route("/xgboost-spiegato", methods=["GET"])
