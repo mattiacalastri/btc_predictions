@@ -417,7 +417,7 @@ def health():
                 multiplier = 1.0
                 if recent_pnl < -0.15: multiplier = 0.25
                 elif streak_type == False and streak >= 2: multiplier = 0.5
-                elif streak_type == True and streak >= 3: multiplier = 1.5 if 0.62 >= 0.65 else 1.2
+                elif streak_type == True and streak >= 3: multiplier = 1.5
                 base_size = round(max(0.001, min(0.005, 0.002 * multiplier)), 6)
     except Exception:
         pass
@@ -703,20 +703,22 @@ def place_bet():
     if _XGB_MODEL is not None:
         try:
             import math as _math
+            from datetime import datetime as _dt_xgb
             _h = current_hour_utc
+            _dow_xgb = _dt_xgb.utcnow().weekday()  # 0=Mon..6=Sun
+            _session_xgb = 0 if _h < 8 else (1 if _h < 14 else 2)  # 0=Asia 1=London 2=NY
             feat_row = [[
                 confidence,
                 float(data.get("fear_greed", data.get("fear_greed_value", 50))),
                 float(data.get("rsi14", 50)),
                 float(data.get("technical_score", 0)),
-                _math.sin(2 * _math.pi * _h / 24),  # hour_sin
-                _math.cos(2 * _math.pi * _h / 24),  # hour_cos
-                float(data.get("ema_trend_up", 0)),
+                _math.sin(2 * _math.pi * _h / 24),              # hour_sin
+                _math.cos(2 * _math.pi * _h / 24),              # hour_cos
                 float(data.get("technical_bias_bullish", data.get("technical_bias", 0))),
-                float(data.get("signal_technical_buy", data.get("signal_technical", 0))),
-                float(data.get("signal_sentiment_pos", data.get("signal_sentiment", 0))),
                 float(data.get("signal_fg_fear", data.get("signal_fg", 0))),
-                float(data.get("signal_volume_high", data.get("signal_volume", 0))),
+                _math.sin(2 * _math.pi * _dow_xgb / 7),         # dow_sin
+                _math.cos(2 * _math.pi * _dow_xgb / 7),         # dow_cos
+                float(_session_xgb),                             # session
             ]]
             prob = _XGB_MODEL.predict_proba(feat_row)[0]  # [P(DOWN), P(UP)]
             xgb_prob_up = float(prob[1])  # salva in scope per pyramid check
@@ -1532,20 +1534,22 @@ def predict_xgb():
         sig_vol      = request.args.get("signal_volume", "").lower()
 
         import math as _math2
+        from datetime import datetime as _dt_xgb2
         _h2 = int(request.args.get("hour_utc", 12))
+        _dow2 = _dt_xgb2.utcnow().weekday()  # 0=Mon..6=Sun
+        _session2 = 0 if _h2 < 8 else (1 if _h2 < 14 else 2)  # 0=Asia 1=London 2=NY
         features = [[
             float(request.args.get("confidence", 0.62)),
             float(request.args.get("fear_greed_value", 50)),
             float(request.args.get("rsi14", 50)),
             float(request.args.get("technical_score", 0)),
-            _math2.sin(2 * _math2.pi * _h2 / 24),  # hour_sin
-            _math2.cos(2 * _math2.pi * _h2 / 24),  # hour_cos
-            1 if "bullish" in ema_trend or "bull" in ema_trend else 0,
-            1 if "bull" in tech_bias else 0,
-            1 if sig_tech in ("buy", "bullish") else 0,
-            1 if sig_sent in ("positive", "pos", "buy", "bullish") else 0,
-            1 if sig_fg == "fear" else 0,
-            1 if "high" in sig_vol else 0,
+            _math2.sin(2 * _math2.pi * _h2 / 24),          # hour_sin
+            _math2.cos(2 * _math2.pi * _h2 / 24),          # hour_cos
+            1 if "bull" in tech_bias else 0,                # technical_bias_bullish
+            1 if sig_fg == "fear" else 0,                   # signal_fg_fear
+            _math2.sin(2 * _math2.pi * _dow2 / 7),         # dow_sin
+            _math2.cos(2 * _math2.pi * _dow2 / 7),         # dow_cos
+            float(_session2),                               # session
         ]]
 
         prob = _XGB_MODEL.predict_proba(features)[0]  # [P(DOWN), P(UP)]
@@ -1664,17 +1668,19 @@ def bet_sizing():
         if _xgb_correctness is not None:
             try:
                 import math as _math3
+                from datetime import datetime as _dt_xgb3
+                _dow3 = _dt_xgb3.utcnow().weekday()  # 0=Mon..6=Sun
+                _session3 = 0 if hour_utc < 8 else (1 if hour_utc < 14 else 2)
                 feat_row = [[
                     confidence, fear_greed,
                     rsi14, tech_score,
                     _math3.sin(2 * _math3.pi * hour_utc / 24),  # hour_sin
                     _math3.cos(2 * _math3.pi * hour_utc / 24),  # hour_cos
-                    ema_trend_up,
-                    tech_bias_bullish,
-                    sig_tech_buy,
-                    sig_sent_pos,
-                    sig_fg_fear,
-                    sig_vol_high,
+                    tech_bias_bullish,                           # technical_bias_bullish
+                    sig_fg_fear,                                 # signal_fg_fear
+                    _math3.sin(2 * _math3.pi * _dow3 / 7),      # dow_sin
+                    _math3.cos(2 * _math3.pi * _dow3 / 7),      # dow_cos
+                    float(_session3),                            # session
                 ]]
                 corr_prob = float(_xgb_correctness.predict_proba(feat_row)[0][1])  # P(CORRECT)
                 # Se P(CORRECT) < 0.45: size -20%, se > 0.55: size +10%, altrimenti invariata
