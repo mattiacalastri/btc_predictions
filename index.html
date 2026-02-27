@@ -2294,21 +2294,21 @@
       <button class="war-room-btn" id="warRoomToggle" onclick="toggleWarRoom(this)">&#9876;&#65039; War Room</button>
       <div class="tab-controls-sep" style="width:1px;height:20px;background:var(--border);"></div>
       <span class="period-label" style="font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-right:4px">PERIOD</span>
-      <button class="time-pill desktop-period-pill"        data-period="ALL"   onclick="setTimePeriod(this)">ALL</button>
+      <button class="time-pill desktop-period-pill active" data-period="ALL"   onclick="setTimePeriod(this)">ALL</button>
       <button class="time-pill desktop-period-pill"        data-period="7D"    onclick="setTimePeriod(this)">7D</button>
       <button class="time-pill desktop-period-pill"        data-period="3D"    onclick="setTimePeriod(this)">3D</button>
       <button class="time-pill desktop-period-pill"        data-period="24H"   onclick="setTimePeriod(this)">24H</button>
-      <button class="time-pill desktop-period-pill active"  data-period="TODAY" onclick="setTimePeriod(this)">TODAY</button>
+      <button class="time-pill desktop-period-pill"        data-period="TODAY" onclick="setTimePeriod(this)">TODAY</button>
     </div>
   </div>
 
   <!-- MOBILE PERIOD BAR — visible only on mobile, sticky below tab nav -->
   <div class="mobile-period-bar" id="mobilePeriodBar">
-    <button class="time-pill"        data-period="ALL"   onclick="setTimePeriod(this)">ALL</button>
+    <button class="time-pill active" data-period="ALL"   onclick="setTimePeriod(this)">ALL</button>
     <button class="time-pill"        data-period="7D"    onclick="setTimePeriod(this)">7D</button>
     <button class="time-pill"        data-period="3D"    onclick="setTimePeriod(this)">3D</button>
     <button class="time-pill"        data-period="24H"   onclick="setTimePeriod(this)">24H</button>
-    <button class="time-pill active"  data-period="TODAY" onclick="setTimePeriod(this)">TODAY</button>
+    <button class="time-pill"        data-period="TODAY" onclick="setTimePeriod(this)">TODAY</button>
     <div style="flex:1;min-width:4px;"></div>
     <button class="war-room-btn" id="warRoomToggleMobile" onclick="toggleWarRoom(document.getElementById('warRoomToggle'))" style="font-size:8px;padding:5px 8px;white-space:nowrap;">&#9876;&#65039; WR</button>
   </div>
@@ -4029,7 +4029,8 @@ function renderLivePosition() {
   dirEl.textContent  = dir === 'UP' ? '↑ LONG UP' : '↓ SHORT DOWN';
   dirEl.style.color  = dir === 'UP' ? 'var(--accent)' : 'var(--danger)';
   document.getElementById('lpConfidence').textContent  = Math.round(conf * 100) + '% confidence';
-  document.getElementById('lpSize').textContent        = size.toFixed(4) + ' BTC · 0.00240 req';
+  const totalOpenSize = openBets.reduce((s, b) => s + parseFloat(b.bet_size || 0), 0);
+  document.getElementById('lpSize').textContent = size.toFixed(4) + ' BTC · ' + totalOpenSize.toFixed(5) + ' total';
 
   const pyrCount = parseInt(openBet.pyramid_count || 0);
   const pyrEl = document.getElementById('lpPyramidBadge');
@@ -4045,7 +4046,10 @@ function renderLivePosition() {
   try {
     const created  = new Date(openBet.created_at);
     const minsOpen = Math.round((Date.now() - created.getTime()) / 60000);
-    document.getElementById('lpOpenTime').textContent  = fmtDate(openBet.created_at) + ' · ' + minsOpen + 'min open';
+    const hOpen    = Math.floor(minsOpen / 60);
+    const mOpen    = minsOpen % 60;
+    const durStr   = hOpen > 0 ? hOpen + 'h ' + mOpen + 'm' : minsOpen + 'min';
+    document.getElementById('lpOpenTime').textContent  = fmtDate(openBet.created_at) + ' · ' + durStr + ' open';
   } catch(e) {}
 
   const pnlEl = document.getElementById('lpPnl');
