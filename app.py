@@ -3236,7 +3236,9 @@ def legal():
 
 @app.route("/", methods=["GET"])
 def index():
-    return redirect("/dashboard", code=301)
+    with open("home.html", "r") as f:
+        html = f.read()
+    return html, 200, {"Content-Type": "text/html"}
 
 
 @app.route("/manifesto", methods=["GET"])

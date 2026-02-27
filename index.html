@@ -1232,7 +1232,7 @@
     background: rgba(0,0,0,0.9); backdrop-filter: blur(8px);
     opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
   }
-  .brain-overlay.visible { opacity: 1; pointer-events: all; }
+  .brain-overlay.visible { opacity: 1; pointer-events: all; cursor: pointer; }
   .brain-box {
     display: flex; flex-direction: column; align-items: center; gap: 24px;
     padding: 44px 60px; border: 1px solid rgba(0,255,136,0.28); border-radius: 4px;
@@ -4158,7 +4158,7 @@ function renderSizeCell(d) {
          `<span class="size-mult ${multClass}">${multLabel} ${reasonDisplay}</span>`;
 }
 
-let currentPeriod = 'TODAY';
+let currentPeriod = 'ALL';
 let allData = [];
 
 function setTimePeriod(btn) {
@@ -6164,39 +6164,64 @@ async function trnForceRetrain() {
   const btn     = document.getElementById('trnRetrainBtn');
   const overlay = document.getElementById('brainOverlay');
   const sub     = document.getElementById('brainSubLabel');
-  if (btn)     { btn.disabled = true; btn.classList.remove('ready'); }
+  const hint    = document.getElementById('trnRetrainHint');
+  if (btn)     { btn.disabled = true; btn.classList.remove('ready'); btn.innerHTML = '<span style="font-size:15px;line-height:1">⏳</span><span>Running…</span>'; }
   if (overlay) { overlay.setAttribute('aria-hidden', 'false'); overlay.classList.add('visible'); }
   if (sub)     { sub.textContent = 'RELOADING THRESHOLDS FROM LIVE DATA'; sub.style.color = ''; }
+
+  let success = false;
   try {
     const res = await fetch(CONFIG.RAILWAY_URL + '/force-retrain', {
-      method: 'POST', signal: AbortSignal.timeout(20000)
+      method: 'POST', signal: AbortSignal.timeout(25000)
     });
     if (sub) {
       if (res.ok) {
-        sub.innerHTML = '✅ THRESHOLDS UPDATED';
+        success = true;
+        sub.innerHTML = '✅ CALIBRATION COMPLETE — tap to close';
         sub.style.color = 'var(--accent)';
       } else if (res.status === 429) {
-        sub.innerHTML = '⏳ RATE LIMITED — TRY AGAIN LATER';
+        const d = await res.json().catch(() => ({}));
+        const mins = d.next_allowed_in_seconds ? Math.ceil(d.next_allowed_in_seconds / 60) : '?';
+        sub.innerHTML = `⏳ RATE LIMITED — prossima run tra ${mins}min`;
         sub.style.color = 'var(--warn)';
       } else {
         sub.innerHTML = '⚠️ ERROR ' + res.status;
         sub.style.color = 'var(--danger)';
       }
     }
-    await new Promise(r => setTimeout(r, 2000));
-    if (res.ok) await fetchTrainingTab();
+    // Tap-to-dismiss: resolves after 5s OR on overlay click
+    await Promise.race([
+      new Promise(r => setTimeout(r, success ? 5000 : 4000)),
+      new Promise(r => { if (overlay) overlay.addEventListener('click', r, { once: true }); })
+    ]);
+    if (success) await fetchTrainingTab();
   } catch(e) {
-    if (sub) { sub.textContent = '⚠️ REQUEST FAILED'; sub.style.color = 'var(--danger)'; }
-    await new Promise(r => setTimeout(r, 2000));
+    if (sub) { sub.textContent = '⚠️ REQUEST FAILED — verifica Railway'; sub.style.color = 'var(--danger)'; }
+    await new Promise(r => setTimeout(r, 3000));
   } finally {
     if (overlay) { overlay.classList.remove('visible'); overlay.setAttribute('aria-hidden', 'true'); }
     if (sub)     { sub.textContent = 'RELOADING THRESHOLDS FROM LIVE DATA'; sub.style.color = ''; }
-    // Re-enable button only if still unlocked
     if (btn) {
-      const betsEl = document.getElementById('trn-betsSince');
-      const bets   = parseInt(betsEl?.textContent) || 0;
-      const thr    = parseInt(document.getElementById('trn-betsThr')?.textContent) || 30;
-      if (bets >= thr) { btn.disabled = false; btn.classList.add('ready'); }
+      btn.innerHTML = '<span style="font-size:15px;line-height:1">🧠</span><span>Force Recalibrate</span>';
+      if (success) {
+        // Show "last run" timestamp for 30s, then re-check threshold
+        const ts = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+        btn.innerHTML = `<span style="font-size:15px;line-height:1">✅</span><span>Done · ${ts}</span>`;
+        btn.disabled = true;
+        if (hint) { hint.innerHTML = `<span style="color:var(--accent)">✅ Calibrazione completata alle ${ts}</span> — prossima disponibile tra ~1h`; }
+        setTimeout(() => {
+          if (btn) {
+            btn.innerHTML = '<span style="font-size:15px;line-height:1">🧠</span><span>Force Recalibrate</span>';
+            btn.disabled = true; // stays locked for 1h — rate limit in server
+          }
+        }, 30000);
+      } else {
+        // Re-enable only if threshold still met (for non-success cases like network error)
+        const betsEl = document.getElementById('trn-betsSince');
+        const bets   = parseInt(betsEl?.textContent) || 0;
+        const thr    = parseInt(document.getElementById('trn-betsThr')?.textContent) || 30;
+        if (bets >= thr) { btn.disabled = false; btn.classList.add('ready'); }
+      }
     }
   }
 }

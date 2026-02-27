@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BTC Predictor — btcpredictor.io</title>
+<meta name="description" content="An AI system that reads BTC futures markets. Not predictable — legible.">
+<meta property="og:title" content="BTC Predictor">
+<meta property="og:description" content="Not predictable. Legible. Every trade committed on-chain before execution.">
+<meta property="og:url" content="https://btcpredictor.io">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='15' fill='%230d0d0d'/%3E%3Ctext x='50' y='72' font-size='70' text-anchor='middle' fill='%2300ff88' font-family='Arial'%3E%E2%82%BF%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:      #080b0f;
+    --surface: #0d1117;
+    --card:    #111820;
+    --border:  #1e2d3d;
+    --accent:  #00ff88;
+    --blue:    #00aaff;
+    --text:    #e8f0fe;
+    --muted:   #4a6070;
+    --danger:  #ff4466;
+    --warn:    #ffaa00;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Noise texture overlay ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  /* ── Subtle grid ── */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,255,136,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,136,0.02) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Layout ── */
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+  }
+
+  /* ── Header / brand ── */
+  .brand {
+    text-align: center;
+    margin-bottom: 56px;
+  }
+
+  .brand-mark {
+    width: 48px;
+    height: 48px;
+    border: 1px solid rgba(0,255,136,0.25);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    margin: 0 auto 20px;
+    background: rgba(0,255,136,0.04);
+    color: var(--accent);
+    box-shadow: 0 0 24px rgba(0,255,136,0.08);
+  }
+
+  .brand-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .brand-name span { color: var(--accent); }
+
+  .brand-tagline {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  /* ── Live price strip ── */
+  .price-strip {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 48px;
+    padding: 8px 20px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.02);
+  }
+
+  .price-val {
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+  }
+
+  .price-sep {
+    width: 1px;
+    height: 12px;
+    background: var(--border);
+  }
+
+  .live-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 1.5s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.4; transform: scale(0.7); }
+  }
+
+  /* ── Navigation grid ── */
+  .nav-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2px;
+    width: 100%;
+    max-width: 560px;
+    margin-bottom: 2px;
+  }
+
+  .nav-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 28px 24px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    text-decoration: none;
+    color: var(--text);
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s, background 0.2s;
+    cursor: pointer;
+  }
+
+  .nav-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .nav-card:hover {
+    border-color: rgba(0,255,136,0.35);
+    background: rgba(0,255,136,0.03);
+  }
+  .nav-card:hover::before { opacity: 1; }
+
+  .nav-card-eyebrow {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+
+  .nav-card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.5px;
+    line-height: 1;
+    margin-bottom: 10px;
+  }
+
+  .nav-card-desc {
+    font-size: 10px;
+    color: var(--muted);
+    line-height: 1.6;
+    letter-spacing: 0.5px;
+    flex-grow: 1;
+    margin-bottom: 20px;
+  }
+
+  .nav-card-cta {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: gap 0.2s;
+  }
+  .nav-card:hover .nav-card-cta { gap: 10px; }
+
+  .nav-card-arrow {
+    font-size: 11px;
+    line-height: 1;
+  }
+
+  /* Manifesto card variant — slightly warmer */
+  .nav-card.manifesto:hover {
+    border-color: rgba(247,147,26,0.35);
+    background: rgba(247,147,26,0.025);
+  }
+  .nav-card.manifesto::before { background: #f7931a; }
+  .nav-card.manifesto .nav-card-eyebrow { color: #f7931a; }
+  .nav-card.manifesto .nav-card-cta { color: #f7931a; }
+
+  /* ── Stats row (1 row below cards) ── */
+  .meta-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2px;
+    width: 100%;
+    max-width: 560px;
+    margin-bottom: 48px;
+  }
+
+  .meta-cell {
+    background: rgba(255,255,255,0.015);
+    border: 1px solid var(--border);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .meta-label {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .meta-val {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: 0.5px;
+  }
+  .meta-val.green { color: var(--accent); }
+
+  /* ── Footer ── */
+  .footer {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: center;
+    line-height: 2;
+  }
+  .footer a {
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+  .footer a:hover { color: var(--accent); }
+  .footer-sep { margin: 0 10px; opacity: 0.4; }
+
+  /* ── Fade-in on load ── */
+  .wrapper { animation: fadeUp 0.5s ease both; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Mobile ── */
+  @media (max-width: 560px) {
+    .nav-grid  { grid-template-columns: 1fr; }
+    .meta-row  { grid-template-columns: 1fr; }
+    .brand     { margin-bottom: 36px; }
+    .nav-card  { padding: 22px 18px; }
+    .price-strip { flex-wrap: wrap; gap: 10px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- Brand -->
+  <div class="brand">
+    <div class="brand-mark">₿</div>
+    <div class="brand-name">BTC<span>PREDICTOR</span>.IO</div>
+    <div class="brand-tagline">Non prevedibile &mdash; leggibile</div>
+  </div>
+
+  <!-- Live price strip -->
+  <div class="price-strip">
+    <div class="live-dot"></div>
+    <span>BTC/USD</span>
+    <span class="price-val" id="btcPrice">—</span>
+    <div class="price-sep"></div>
+    <span id="fgVal">F&amp;G —</span>
+    <div class="price-sep"></div>
+    <span id="walletVal">equity —</span>
+  </div>
+
+  <!-- Nav cards -->
+  <div class="nav-grid">
+
+    <a href="/dashboard" class="nav-card">
+      <div>
+        <div class="nav-card-eyebrow">Live system</div>
+        <div class="nav-card-title">Dashboard</div>
+        <div class="nav-card-desc">
+          Real-time signals, open positions,<br>
+          equity curve and full trade history.<br>
+          Every bet on-chain before execution.
+        </div>
+      </div>
+      <div class="nav-card-cta">
+        Enter <span class="nav-card-arrow">→</span>
+      </div>
+    </a>
+
+    <a href="/manifesto" class="nav-card manifesto">
+      <div>
+        <div class="nav-card-eyebrow">La tesi</div>
+        <div class="nav-card-title">Manifesto</div>
+        <div class="nav-card-desc">
+          Perché i mercati inefficienti con<br>
+          abbastanza dati e AI diventano leggibili.<br>
+          La storia di questo progetto.
+        </div>
+      </div>
+      <div class="nav-card-cta">
+        Leggi <span class="nav-card-arrow">→</span>
+      </div>
+    </a>
+
+  </div>
+
+  <!-- Meta row -->
+  <div class="meta-row">
+    <div class="meta-cell">
+      <span class="meta-label">Track record</span>
+      <span class="meta-val green" id="metaBets">— bets</span>
+    </div>
+    <div class="meta-cell">
+      <span class="meta-label">On-chain audit</span>
+      <span class="meta-val">
+        <a href="https://polygonscan.com/address/0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55"
+           target="_blank" rel="noopener"
+           style="color:var(--blue);text-decoration:none;font-size:9px;letter-spacing:1px;">
+          Polygon PoS ↗
+        </a>
+      </span>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <a href="/dashboard">Dashboard</a>
+    <span class="footer-sep">·</span>
+    <a href="/manifesto">Manifesto</a>
+    <span class="footer-sep">·</span>
+    <a href="https://github.com/mattiacalastri/btc_predictions" target="_blank" rel="noopener">GitHub ↗</a>
+    <br>
+    btcpredictor.io &mdash; open source &mdash; MIT license
+  </div>
+
+</div>
+
+<script>
+(async () => {
+  // Fetch health + quick stats in parallel
+  try {
+    const [health, signals] = await Promise.allSettled([
+      fetch('/health', { signal: AbortSignal.timeout(8000) }).then(r => r.json()),
+      fetch('/performance-stats', { signal: AbortSignal.timeout(8000) }).then(r => r.json()),
+    ]);
+
+    if (health.status === 'fulfilled') {
+      const h = health.value;
+      if (h.wallet_equity) {
+        document.getElementById('walletVal').textContent =
+          'equity $' + Number(h.wallet_equity).toFixed(2);
+      }
+    }
+
+    if (signals.status === 'fulfilled') {
+      const s = signals.value;
+      if (s.total_bets) {
+        document.getElementById('metaBets').textContent = s.total_bets + ' bets';
+      }
+      if (s.fear_greed_value !== undefined) {
+        const fg = s.fear_greed_value;
+        const label = fg <= 25 ? 'extreme fear' : fg <= 45 ? 'fear' :
+                      fg <= 55 ? 'neutral' : fg <= 75 ? 'greed' : 'extreme greed';
+        document.getElementById('fgVal').textContent =
+          'F&G ' + fg + ' · ' + label;
+      }
+    }
+  } catch (_) {}
+
+  // Live BTC price — poll every 15s
+  async function fetchPrice() {
+    try {
+      const r = await fetch('/btc-price', { signal: AbortSignal.timeout(6000) });
+      const d = await r.json();
+      const price = d.price || d.mark_price || d.last_price;
+      if (price) {
+        const el = document.getElementById('btcPrice');
+        el.textContent = '$' + Number(price).toLocaleString('en-US', {
+          minimumFractionDigits: 0, maximumFractionDigits: 0
+        });
+      }
+    } catch (_) {}
+  }
+  fetchPrice();
+  setInterval(fetchPrice, 15000);
+})();
+</script>
+</body>
+</html>
