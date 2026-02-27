@@ -31,9 +31,10 @@ def set_security_headers(response):
 _XGB_MODEL = None
 _XGB_FEATURE_COLS = [
     "confidence", "fear_greed_value", "rsi14", "technical_score",
-    "hour_sin", "hour_cos",  # encoding ciclico — allineato a train_xgboost.py
-    "ema_trend_up", "technical_bias_bullish", "signal_technical_buy",
-    "signal_sentiment_pos", "signal_fg_fear", "signal_volume_high",
+    "hour_sin", "hour_cos",       # encoding ciclico ora UTC
+    "technical_bias_bullish", "signal_fg_fear",
+    "dow_sin", "dow_cos",         # encoding ciclico giorno settimana (T-01)
+    "session",                    # 0=Asia 1=London 2=NY (T-01)
 ]
 
 def _load_xgb_model():

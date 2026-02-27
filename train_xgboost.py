@@ -25,7 +25,7 @@ from datetime import datetime
 import pandas as pd
 import numpy as np
 from xgboost import XGBClassifier
-from sklearn.model_selection import StratifiedKFold, cross_val_score
+from sklearn.model_selection import StratifiedKFold, TimeSeriesSplit, cross_val_score
 from sklearn.metrics import (
     classification_report, confusion_matrix,
     accuracy_score, roc_auc_score
@@ -51,6 +51,14 @@ FEATURE_COLS = [
     "hour_cos",   # cos(2π * hour_utc / 24)
     "technical_bias_bullish",
     "signal_fg_fear",
+    # T-01: Giorno della settimana — encoding ciclico
+    # I mercati crypto hanno pattern settimanali (es. dump del lunedì,
+    # rally del venerdì pre-weekend). Encoding ciclico: dom(6)≈lun(0).
+    "dow_sin",    # sin(2π * day_of_week / 7)
+    "dow_cos",    # cos(2π * day_of_week / 7)
+    # T-01: Sessione di trading — 0=Asia, 1=London, 2=NY
+    # Cattura il regime di liquidità: London+NY = alta liquidità, direzionalità.
+    "session",
     # RIMOSSI: ema_trend_up, signal_technical_buy, signal_sentiment_pos,
     # signal_volume_high — 0% importance su 422 segnali → costanti/skewed
 ]
@@ -235,6 +243,53 @@ def main():
         target_names=["WRONG", "CORRECT"],
         digits=3
     ))
+
+    # ── T-02: Walkforward Validation (cronologico, no lookahead bias) ────────
+    # Replica la realtà del trading: il modello è addestrato su dati passati
+    # e testato SOLO su dati futuri — mai l'inverso.
+    # Se shuffle_CV >> walkforward_CV → overfitting temporale → da correggere.
+    print_section("T-02 — WALKFORWARD VALIDATION (TimeSeriesSplit)")
+    if "created_at" in df_clean.columns:
+        df_sorted     = df_clean.sort_values("created_at").reset_index(drop=True)
+        X_wf          = df_sorted[active_feature_cols].values
+        y_wf_dir      = df_sorted["direction_bin"].values
+        y_wf_corr     = df_sorted["label"].values
+
+        wf_cv = TimeSeriesSplit(n_splits=5)
+        _kw   = dict(n_estimators=200, max_depth=4, learning_rate=0.05,
+                     subsample=0.8, colsample_bytree=0.8,
+                     eval_metric="logloss", random_state=42, verbosity=0)
+
+        wf_acc_dir  = cross_val_score(XGBClassifier(**_kw), X_wf, y_wf_dir,  cv=wf_cv, scoring="accuracy")
+        wf_auc_dir  = cross_val_score(XGBClassifier(**_kw), X_wf, y_wf_dir,  cv=wf_cv, scoring="roc_auc")
+        wf_acc_corr = cross_val_score(XGBClassifier(**_kw), X_wf, y_wf_corr, cv=wf_cv, scoring="accuracy")
+        wf_auc_corr = cross_val_score(XGBClassifier(**_kw), X_wf, y_wf_corr, cv=wf_cv, scoring="roc_auc")
+
+        gap_dir  = res_dir["cv_acc"].mean()  - wf_acc_dir.mean()
+        gap_corr = res_corr["cv_acc"].mean() - wf_acc_corr.mean()
+
+        log(f"\n  {'Metrica':<30} {'Shuffle':>9}  {'Walkforward':>11}  {'Gap':>8}")
+        log("  " + "-"*63)
+        log(f"  {'Direction   Accuracy':<30} {res_dir['cv_acc'].mean():>9.3f}  {wf_acc_dir.mean():>11.3f}  {gap_dir:>+8.3f}")
+        log(f"  {'Direction   AUC-ROC':<30} {res_dir['cv_auc'].mean():>9.3f}  {wf_auc_dir.mean():>11.3f}")
+        log(f"  {'Correctness Accuracy':<30} {res_corr['cv_acc'].mean():>9.3f}  {wf_acc_corr.mean():>11.3f}  {gap_corr:>+8.3f}")
+        log(f"  {'Correctness AUC-ROC':<30} {res_corr['cv_auc'].mean():>9.3f}  {wf_auc_corr.mean():>11.3f}")
+        log("")
+
+        for _name, _gap in [("Direction", gap_dir), ("Correctness", gap_corr)]:
+            if _gap > 0.10:
+                log(f"  ⚠️  {_name} gap {_gap:+.1%} > 10% — overfitting temporale rilevato")
+            elif _gap > 0.05:
+                log(f"  🟡 {_name} gap {_gap:+.1%} 5-10% — controllare periodicità del retrain")
+            else:
+                log(f"  ✅ {_name} gap {_gap:+.1%} ≤ 5% — generalizzazione temporale OK")
+
+        log(f"\n  Righe ordinate per created_at: {len(df_sorted)}")
+        log(f"  Fold size approssimativo: train ~{len(df_sorted)//6}  test ~{len(df_sorted)//6}")
+    else:
+        log("  ⚠️  Colonna 'created_at' non trovata nel CSV.")
+        log("  Rigenera dataset: python build_dataset.py (include created_at da sessione T-01)")
+        log("  T-02 saltato — shuffle CV usato come fallback.")
 
     # ── Analisi: Confidence LLM vs correttezza reale ──────────────────────────
     print_section("ANALISI: Confidence LLM vs Win Rate reale")

@@ -52,6 +52,9 @@ FEATURE_COLS = [
     "confidence", "fear_greed_value", "rsi14", "technical_score",
     "hour_sin", "hour_cos",
     "technical_bias_bullish", "signal_fg_fear",
+    # T-01: encoding ciclico giorno settimana + sessione liquidità
+    "dow_sin", "dow_cos",   # sin/cos del giorno della settimana (0=lun, 6=dom)
+    "session",              # 0=Asia(0-7 UTC), 1=London(8-13 UTC), 2=NY(14-23 UTC)
     # RIMOSSI: ema_trend_up, signal_technical_buy, signal_sentiment_pos,
     # signal_volume_high — 0% importance → costanti/skewed nel dataset
 ]

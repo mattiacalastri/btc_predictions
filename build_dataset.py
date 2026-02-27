@@ -298,6 +298,7 @@ def row_to_csv_dict(row: dict, cvd_6m_pct: float | None = None) -> dict:
         cvd_6m_pct:  CVD proxy normalizzato (opzionale, calcolato da fetch_cvd_6m).
                      Se None, la colonna viene inclusa come stringa vuota.
     """
+    # ── Ora UTC ────────────────────────────────────────────────────────────────
     hour = 0
     try:
         hour = int(row.get("created_at", "T00:")[11:13])
@@ -310,7 +311,31 @@ def row_to_csv_dict(row: dict, cvd_6m_pct: float | None = None) -> dict:
     hour_sin = math.sin(2 * math.pi * hour / 24)
     hour_cos = math.cos(2 * math.pi * hour / 24)
 
+    # ── T-01: Giorno della settimana (0=Lunedì, 6=Domenica) ───────────────────
+    # I mercati hanno pattern settimanali ben documentati (es. lunedì volatile,
+    # venerdì con profit-taking). Encoding ciclico: venerdì (4) è vicino a sabato.
+    dow = 0
+    try:
+        from datetime import timezone
+        dt = datetime.fromisoformat(
+            row.get("created_at", "2020-01-01T00:00:00+00:00").replace("Z", "+00:00")
+        )
+        dow = dt.astimezone(timezone.utc).weekday()  # 0=Mon, 6=Sun
+    except Exception:
+        pass
+    dow_sin = math.sin(2 * math.pi * dow / 7)
+    dow_cos = math.cos(2 * math.pi * dow / 7)
+
+    # ── T-01: Sessione di trading ──────────────────────────────────────────────
+    # Asia (0-7 UTC): bassa liquidità, movimenti lenti
+    # London (8-13 UTC): alta liquidità EUR/GBP, forte direzionalità
+    # NY (14-23 UTC): massima liquidità, overlap con London in apertura
+    session = 0 if hour < 8 else (1 if hour < 14 else 2)
+
     return {
+        # Metadato temporale — usato da train_xgboost.py per ordinamento
+        # cronologico (walk-forward CV, T-02). NON è una feature ML.
+        "created_at": row.get("created_at", ""),
         # Target
         "label": 1 if row.get("correct") else 0,
         "direction": row.get("direction", ""),
@@ -322,12 +347,17 @@ def row_to_csv_dict(row: dict, cvd_6m_pct: float | None = None) -> dict:
         "technical_score": float(row.get("technical_score") or 0),
         # Ora UTC: intero grezzo (per reporting) + encoding ciclico (per ML)
         "hour_utc": hour,
-        "hour_sin": round(hour_sin, 6),   # sin(2π * hour / 24) — feature ML
-        "hour_cos": round(hour_cos, 6),   # cos(2π * hour / 24) — feature ML
+        "hour_sin": round(hour_sin, 6),   # sin(2π * hour / 24)
+        "hour_cos": round(hour_cos, 6),   # cos(2π * hour / 24)
+        # T-01: Giorno settimana — encoding ciclico
+        "day_of_week": dow,               # 0=Lun … 6=Dom (per reporting)
+        "dow_sin": round(dow_sin, 6),     # sin(2π * dow / 7) — feature ML
+        "dow_cos": round(dow_cos, 6),     # cos(2π * dow / 7) — feature ML
+        # T-01: Sessione — 0=Asia, 1=London, 2=NY
+        "session": session,
         # CVD proxy: pressione netta acquisto/vendita ultime 6 candele 1m.
         # Popolato solo se build_dataset.py eseguito con --cvd flag.
         # Range: da -100 (tutto vendita) a +100 (tutto acquisto).
-        # NaN/vuoto = dati non disponibili (retroattivo non richiesto).
         "cvd_6m_pct": cvd_6m_pct if cvd_6m_pct is not None else "",
         # Categoriche (encoded)
         "ema_trend_up": 1 if (row.get("ema_trend") or "").upper() == "UP" else 0,
