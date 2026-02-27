@@ -785,7 +785,7 @@
   .page-banner-ghost {
     position: absolute; right: 14px; top: 50%;
     transform: translateY(-50%);
-    font-size: 52px; opacity: 0.18; pointer-events: none; line-height: 1;
+    font-size: 52px; opacity: 0.13; pointer-events: none; line-height: 1;
   }
   .page-banner-body { flex: 1; min-width: 0; }
   .page-banner-title {
@@ -2088,6 +2088,15 @@
   body.war-room .signal-filters { background: #0a0a0a; border-color: #222; }
   body.war-room .filter-btn { border-color: #333; color: #555; }
   body.war-room .filter-btn.active { background: #00ff41; color: #000; border-color: #00ff41; }
+
+  /* ── SIGNAL FILTER MOBILE — FIX DEFINITIVO: button full-width su mobile ── */
+  @media (max-width: 640px) {
+    .signal-filters { flex-direction: column; gap: 6px; padding: 10px; }
+    .filter-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); width: 100%; }
+    .filter-group-sep { display: none; }
+    .filter-btn { padding: 7px 4px; text-align: center; min-height: 32px; font-size: 0.7rem; }
+    #signal-search { width: 100%; box-sizing: border-box; min-width: 0; }
+  }
   body.war-room #signal-search { background: #050505; border-color: #333; color: #00ff41; }
 /* ── MULTI-POSITION TABS ── */
 .lp-tabs {
@@ -2961,7 +2970,7 @@
     <div class="kpi yellow">
       <div class="kpi-label">Signal WR</div>
       <div class="kpi-value yellow" id="kpiWrNoBet">—</div>
-      <div class="kpi-sub">All signals incl. skipped</div>
+      <div class="kpi-sub">All predictions verified</div>
     </div>
     <div class="kpi blue">
       <div class="kpi-label">Fear &amp; Greed</div>
@@ -3173,7 +3182,6 @@
 
     <!-- Dual Gate AI -->
     <div class="page-banner green">
-      <div class="page-banner-ghost">🔮</div>
       <div class="page-banner-body">
         <div class="page-banner-title">Il Dual-Gate AI</div>
         <div class="page-banner-sub">Claude LLM + XGBoost · Due cancelli</div>
@@ -3188,7 +3196,6 @@
 
     <!-- Prevedibilità Perfetta -->
     <div class="page-banner purple">
-      <div class="page-banner-ghost">∞</div>
       <div class="page-banner-body">
         <div class="page-banner-title">Prevedibilità Perfetta</div>
         <div class="page-banner-sub">Regime di abbondanza · Il percorso</div>
@@ -4954,10 +4961,8 @@ function render(data) {
   document.getElementById('footerCapital').textContent = fmtUsd(capitalBase) + ' equity';
 
   document.getElementById('kpiWinRate').textContent = closedBets.length ? Math.round(correctBets.length / closedBets.length * 100) + '%' : '—';
-  const noBets        = data.filter(d => !d.bet_taken);  // include SKIP+NO_BET+ALERT
-  const noBetsClosed  = noBets.filter(d => d.correct !== null);
-  const noBetsCorrect = noBetsClosed.filter(d => d.correct === true);
-  document.getElementById('kpiWrNoBet').textContent = noBetsClosed.length ? Math.round(noBetsCorrect.length / noBetsClosed.length * 100) + '%' : '—';
+  // Signal WR = WR on ALL verified predictions (bets + no-bets), distinct from Win Rate (bets only)
+  document.getElementById('kpiWrNoBet').textContent = closed.length ? Math.round(correct.length / closed.length * 100) + '%' : '—';
   document.getElementById('kpiFG').textContent      = lastFG !== null ? lastFG : '—';
   document.getElementById('kpiFGLabel').textContent = lastFG !== null
     ? (lastFG < 20 ? 'EXTREME FEAR' : lastFG < 40 ? 'FEAR' : lastFG < 60 ? 'NEUTRAL' : lastFG < 80 ? 'GREED' : 'EXTREME GREED') : '';
@@ -7654,7 +7659,7 @@ const KPI_DESCRIPTIONS = {
   kpiPnl:             { label: 'Total PnL',        desc: 'Total realized PnL across all real bets (excluding fees).' },
   kpiRoi:             { label: 'Session ROI',      desc: 'Return on investment since session start (2026-02-24, $100 capital).' },
   kpiWinRate:         { label: 'Win Rate',         desc: 'Win rate on executed bets (BET classification only).' },
-  kpiWrNoBet:         { label: 'WR NoBet',         desc: 'Win rate on signals where no bet was taken (theoretical).' },
+  kpiWrNoBet:         { label: 'Signal WR',         desc: 'Win rate on ALL verified predictions — bets + skipped + no-bet. Broader than Win Rate which counts executed bets only.' },
   kpiFG:              { label: 'Fear & Greed',     desc: 'Fear & Greed Index (0 = Extreme Fear, 100 = Extreme Greed).' },
   kpiBets:            { label: 'Bets Taken',       desc: 'Number of bets taken out of total signals.' },
   kpiDrawdown:        { label: 'Max Drawdown',     desc: 'Worst single trade loss.' },
