@@ -963,9 +963,35 @@ if(localStorage.getItem('btcp_ga_consent')==='granted'){
     .footer { flex-direction: column; align-items: flex-start; }
     .footer-links { align-items: flex-start; }
   }
+  /* ─── GLOBAL NAV ─── */
+  .gnav{position:sticky;top:0;z-index:1000;height:52px;background:rgba(10,10,15,.97);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid rgba(247,147,26,.12);display:flex;align-items:center;justify-content:space-between;padding:0 28px;}
+  .gnav-logo{display:flex;align-items:center;gap:9px;text-decoration:none;color:#fff;font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;font-family:'SF Mono','Fira Code','Courier New',monospace;}
+  .gnav-pulse{width:7px;height:7px;border-radius:50%;background:#00ff88;box-shadow:0 0 8px #00ff88;flex-shrink:0;animation:gnavPulse 2s ease-in-out infinite;}
+  @keyframes gnavPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.85)}}
+  .gnav-links{display:flex;align-items:center;gap:2px;list-style:none;margin:0;padding:0;}
+  .gnav-links a{text-decoration:none;color:rgba(255,255,255,.45);font-size:10px;letter-spacing:.14em;text-transform:uppercase;padding:6px 14px;border-radius:3px;transition:color .18s,background .18s;font-family:'SF Mono','Fira Code','Courier New',monospace;}
+  .gnav-links a:hover{color:#fff;background:rgba(255,255,255,.05);}
+  .gnav-links a.gnav-active{color:rgba(255,255,255,.9);}
+  .gnav-links a.gnav-investors{color:#f7931a;border:1px solid rgba(247,147,26,.3);padding:5px 14px;}
+  .gnav-links a.gnav-investors:hover{background:rgba(247,147,26,.07);border-color:rgba(247,147,26,.6);}
+  .gnav-burger{display:none;background:none;border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);font-size:14px;cursor:pointer;padding:5px 9px;border-radius:3px;transition:border-color .2s;}
+  .gnav-burger:hover{border-color:rgba(255,255,255,.4);}
+  @media(max-width:680px){.gnav-links{display:none;}.gnav-links.gnav-open{display:flex;flex-direction:column;gap:0;position:absolute;top:52px;left:0;right:0;background:rgba(10,10,15,.99);border-bottom:1px solid rgba(247,147,26,.15);padding:8px 0;z-index:999;}.gnav-links.gnav-open a{display:block;padding:12px 28px;border-radius:0;border:none;}.gnav-burger{display:block;}}
 </style>
 </head>
 <body>
+
+<!-- GLOBAL NAV -->
+<nav class="gnav">
+  <a href="https://btcpredictor.io" class="gnav-logo"><span class="gnav-pulse"></span>BTCPREDICTOR.IO</a>
+  <ul class="gnav-links" id="gnavLinks">
+    <li><a href="https://btcpredictor.io/dashboard">Dashboard</a></li>
+    <li><a href="https://btcpredictor.io/xgboost-spiegato">How It Works</a></li>
+    <li><a href="https://btcpredictor.io/investors" class="gnav-investors">Investors</a></li>
+    <li><a href="https://btcpredictor.io/contributors" class="gnav-active">Contributors</a></li>
+  </ul>
+  <button class="gnav-burger" onclick="document.getElementById('gnavLinks').classList.toggle('gnav-open')" aria-label="Menu">☰</button>
+</nav>
 
 <!-- ── HERO ── -->
 <section class="hero">
@@ -1383,7 +1409,8 @@ if(localStorage.getItem('btcp_ga_consent')==='granted'){
   </div>
   <div class="footer-links">
     <a href="https://btcpredictor.io/dashboard" class="footer-link">→ Dashboard</a>
-    <a href="https://btcpredictor.io/manifesto" class="footer-link">→ Manifesto</a>
+    <a href="https://btcpredictor.io/xgboost-spiegato" class="footer-link">→ How It Works</a>
+    <a href="https://btcpredictor.io/investors" class="footer-link" style="color:var(--orange)">→ Investors</a>
     <a href="https://polygonscan.com/address/0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55" class="footer-link cyan" target="_blank" rel="noopener">⛓ On-Chain Audit</a>
   </div>
 </footer>

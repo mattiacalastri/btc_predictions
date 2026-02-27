@@ -56,60 +56,33 @@
     ::-webkit-scrollbar-track { background: var(--bg); }
     ::-webkit-scrollbar-thumb { background: var(--orange); border-radius: 2px; }
 
-    /* ─── NAV ─── */
-    nav {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 100;
-      padding: 1.2rem 2.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid transparent;
-      transition: border-color 0.3s, background 0.3s;
-    }
-
-    nav.scrolled {
-      background: rgba(10,10,15,0.92);
-      backdrop-filter: blur(12px);
-      border-color: var(--border);
-    }
-
-    .nav-logo {
-      font-family: var(--mono);
-      font-size: 0.8rem;
-      color: var(--orange);
-      text-decoration: none;
-      letter-spacing: 0.1em;
-      font-weight: 500;
-    }
-
-    .nav-links {
-      display: flex;
-      gap: 2rem;
-      list-style: none;
-    }
-
-    .nav-links a {
-      font-family: var(--mono);
-      font-size: 0.72rem;
-      color: var(--muted);
-      text-decoration: none;
-      letter-spacing: 0.08em;
-      transition: color 0.2s;
-    }
-
-    .nav-links a:hover { color: var(--white); }
+    /* ─── GLOBAL NAV ─── */
+    .gnav{position:sticky;top:0;z-index:1000;height:52px;background:rgba(10,10,15,.97);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid rgba(247,147,26,.12);display:flex;align-items:center;justify-content:space-between;padding:0 28px;}
+    .gnav-logo{display:flex;align-items:center;gap:9px;text-decoration:none;color:#fff;font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;font-family:var(--mono);}
+    .gnav-pulse{width:7px;height:7px;border-radius:50%;background:#00ff88;box-shadow:0 0 8px #00ff88;flex-shrink:0;animation:gnavPulse 2s ease-in-out infinite;}
+    @keyframes gnavPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.85)}}
+    .gnav-links{display:flex;align-items:center;gap:2px;list-style:none;margin:0;padding:0;}
+    .gnav-links a{text-decoration:none;color:rgba(255,255,255,.45);font-size:10px;letter-spacing:.14em;text-transform:uppercase;padding:6px 14px;border-radius:3px;transition:color .18s,background .18s;font-family:var(--mono);}
+    .gnav-links a:hover{color:#fff;background:rgba(255,255,255,.05);}
+    .gnav-links a.gnav-active{color:rgba(255,255,255,.9);}
+    .gnav-links a.gnav-investors{color:#f7931a;border:1px solid rgba(247,147,26,.3);padding:5px 14px;}
+    .gnav-links a.gnav-investors:hover{background:rgba(247,147,26,.07);border-color:rgba(247,147,26,.6);}
+    .gnav-burger{display:none;background:none;border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);font-size:14px;cursor:pointer;padding:5px 9px;border-radius:3px;transition:border-color .2s;}
+    .gnav-burger:hover{border-color:rgba(255,255,255,.4);}
+    @media(max-width:680px){.gnav-links{display:none;}.gnav-links.gnav-open{display:flex;flex-direction:column;gap:0;position:absolute;top:52px;left:0;right:0;background:rgba(10,10,15,.99);border-bottom:1px solid rgba(247,147,26,.15);padding:8px 0;z-index:999;}.gnav-links.gnav-open a{display:block;padding:12px 28px;border-radius:0;border:none;}.gnav-burger{display:block;}}
+    /* ─── PAGE SUB-NAV (in-page anchors) ─── */
+    .page-subnav{display:flex;overflow-x:auto;border-bottom:1px solid rgba(255,255,255,.05);background:rgba(10,10,15,.8);padding:0 28px;scrollbar-width:none;}
+    .page-subnav::-webkit-scrollbar{display:none;}
+    .page-subnav a{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.32);text-decoration:none;padding:10px 16px;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;white-space:nowrap;}
+    .page-subnav a:hover{color:rgba(255,255,255,.7);border-bottom-color:rgba(255,255,255,.2);}
 
     /* ─── HERO ─── */
     .hero {
-      min-height: 100vh;
+      min-height: calc(100vh - 52px);
       display: flex;
       flex-direction: column;
       justify-content: center;
-      padding: 8rem 2.5rem 5rem;
+      padding: 4rem 2.5rem 5rem;
       position: relative;
       overflow: hidden;
     }
@@ -946,10 +919,7 @@
 
     /* ─── RESPONSIVE ─── */
     @media (max-width: 768px) {
-      nav { padding: 1rem 1.2rem; }
-      .nav-links { display: none; }
-
-      .hero { padding: 6rem 1.2rem 3rem; }
+      .hero { padding: 4rem 1.2rem 3rem; }
 
       section { padding: 4rem 1.2rem; }
 
@@ -980,17 +950,25 @@
 </head>
 <body>
 
-  <!-- NAV -->
-  <nav id="nav">
-    <a href="https://btcpredictor.io" class="nav-logo">BTCPREDICTOR.IO</a>
-    <ul class="nav-links">
-      <li><a href="#thesis">The Thesis</a></li>
-      <li><a href="#numbers">The Numbers</a></li>
-      <li><a href="#moat">The Moat</a></li>
-      <li><a href="#roadmap">Roadmap</a></li>
-      <li><a href="#contact">Contact</a></li>
+  <!-- GLOBAL NAV -->
+  <nav class="gnav">
+    <a href="https://btcpredictor.io" class="gnav-logo"><span class="gnav-pulse"></span>BTCPREDICTOR.IO</a>
+    <ul class="gnav-links" id="gnavLinks">
+      <li><a href="https://btcpredictor.io/dashboard">Dashboard</a></li>
+      <li><a href="https://btcpredictor.io/xgboost-spiegato">How It Works</a></li>
+      <li><a href="https://btcpredictor.io/investors" class="gnav-investors gnav-active">Investors</a></li>
+      <li><a href="https://btcpredictor.io/contributors">Contributors</a></li>
     </ul>
+    <button class="gnav-burger" onclick="document.getElementById('gnavLinks').classList.toggle('gnav-open')" aria-label="Menu">☰</button>
   </nav>
+  <!-- IN-PAGE ANCHORS -->
+  <div class="page-subnav">
+    <a href="#thesis">The Thesis</a>
+    <a href="#numbers">The Numbers</a>
+    <a href="#moat">The Moat</a>
+    <a href="#roadmap">Roadmap</a>
+    <a href="#contact">Contact</a>
+  </div>
 
   <!-- HERO -->
   <section class="hero" id="top">
@@ -1424,12 +1402,6 @@
   </footer>
 
   <script>
-    // ─── NAV SCROLL ───
-    const nav = document.getElementById('nav');
-    window.addEventListener('scroll', () => {
-      nav.classList.toggle('scrolled', window.scrollY > 50);
-    });
-
     // ─── COUNTER ANIMATION ───
     function animateCounter(el) {
       const target = parseFloat(el.dataset.count);
