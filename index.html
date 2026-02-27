@@ -1634,6 +1634,7 @@
   .mbet-card {
     display: flex;
     flex-direction: column;
+    flex-shrink: 0;
     gap: 0;
     background: rgba(255,255,255,0.025);
     border: 1px solid rgba(255,255,255,0.06);
@@ -3146,7 +3147,7 @@
 
   <div id="dashboardMain">
 
-  <!-- PAGE BANNERS — Contributors + Manifesto -->
+  <!-- PAGE BANNERS — Row 1: Contributors + Manifesto -->
   <div class="page-banners-grid">
 
     <!-- Contributors -->
@@ -3180,40 +3181,11 @@
       <a href="/manifesto" class="page-banner-cta" target="_blank">→ leggi</a>
     </div>
 
-    <!-- Dual Gate AI -->
-    <div class="page-banner green">
-      <div class="page-banner-body">
-        <div class="page-banner-title">Il Dual-Gate AI</div>
-        <div class="page-banner-sub">Claude LLM + XGBoost · Due cancelli</div>
-        <div class="page-banner-chips">
-          <span class="page-banner-chip">Claude Sonnet</span>
-          <span class="page-banner-chip">XGBoost</span>
-          <span class="page-banner-chip">86% accuracy</span>
-        </div>
-      </div>
-      <a href="/xgboost-spiegato" class="page-banner-cta" target="_blank">→ come funziona</a>
-    </div>
-
-    <!-- Prevedibilità Perfetta -->
-    <div class="page-banner purple">
-      <div class="page-banner-body">
-        <div class="page-banner-title">Prevedibilità Perfetta</div>
-        <div class="page-banner-sub">Regime di abbondanza · Il percorso</div>
-        <div class="page-banner-chips">
-          <span class="page-banner-chip">abbondanza</span>
-          <span class="page-banner-chip">AI</span>
-          <span class="page-banner-chip">il futuro</span>
-        </div>
-      </div>
-      <a href="/prevedibilita-perfetta" class="page-banner-cta" target="_blank">→ scopri</a>
-    </div>
-
   </div>
 
   <!-- ═══════════════════════════════════════════
-       CHARTS GRID — 4 temporal charts
+       CHARTS GRID — BTC Price vs Predictions + Rolling Win Rate
   ═══════════════════════════════════════════ -->
-  <!-- Top charts: BTC Price vs Predictions + Rolling Win Rate -->
   <div class="charts-grid">
 
     <!-- Chart 1: BTC Price + Predictions Overlay -->
@@ -3253,6 +3225,39 @@
     </div>
 
   </div><!-- /.charts-grid top -->
+
+  <!-- PAGE BANNERS — Row 2: Dual-Gate AI + Prevedibilità Perfetta -->
+  <div class="page-banners-grid">
+
+    <!-- Dual Gate AI -->
+    <div class="page-banner green">
+      <div class="page-banner-body">
+        <div class="page-banner-title">Il Dual-Gate AI</div>
+        <div class="page-banner-sub">Claude LLM + XGBoost · Due cancelli</div>
+        <div class="page-banner-chips">
+          <span class="page-banner-chip">Claude Sonnet</span>
+          <span class="page-banner-chip">XGBoost</span>
+          <span class="page-banner-chip">86% accuracy</span>
+        </div>
+      </div>
+      <a href="/xgboost-spiegato" class="page-banner-cta" target="_blank">→ come funziona</a>
+    </div>
+
+    <!-- Prevedibilità Perfetta -->
+    <div class="page-banner purple">
+      <div class="page-banner-body">
+        <div class="page-banner-title">Prevedibilità Perfetta</div>
+        <div class="page-banner-sub">Regime di abbondanza · Il percorso</div>
+        <div class="page-banner-chips">
+          <span class="page-banner-chip">abbondanza</span>
+          <span class="page-banner-chip">AI</span>
+          <span class="page-banner-chip">il futuro</span>
+        </div>
+      </div>
+      <a href="/prevedibilita-perfetta" class="page-banner-cta" target="_blank">→ scopri</a>
+    </div>
+
+  </div>
 
   <!-- Signal Log — full width -->
   <div class="panel" id="signalLogPanel" style="margin-bottom:14px;">
@@ -6660,10 +6665,17 @@ async function fetchTradingStats() {
 async function fetchErrorPatterns() {
   try {
     const res = await fetch(`${CONFIG.RAILWAY_URL}/error-patterns`, { signal: AbortSignal.timeout(8000) });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
+    if (!res.ok) {
+      // No data yet — show empty heatmap with placeholder cells
+      renderHourlyHeatmap({ all_patterns: [], total_bets: 0 });
+      return;
+    }
     const d = await res.json();
     renderHourlyHeatmap(d);
-  } catch(e) { console.warn('fetchErrorPatterns error:', e); }
+  } catch(e) {
+    console.warn('fetchErrorPatterns error:', e);
+    renderHourlyHeatmap({ all_patterns: [], total_bets: 0 });
+  }
 }
 
 function renderHourlyHeatmap(d) {
@@ -6700,8 +6712,13 @@ function renderHourlyHeatmap(d) {
 
   if (tag) {
     const total = d.total_bets || 0;
-    tag.textContent = total + ' BETS';
-    tag.className = 'panel-tag tag-blue';
+    if (total === 0) {
+      tag.textContent = 'NO DATA';
+      tag.className = 'panel-tag tag-muted';
+    } else {
+      tag.textContent = total + ' BETS';
+      tag.className = 'panel-tag tag-blue';
+    }
   }
 }
 
