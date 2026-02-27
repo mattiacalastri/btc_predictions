@@ -9,6 +9,22 @@
         y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
     })(window, document, "clarity", "script", "vnm5ks28uw");
 </script>
+<!-- Sentry Error Monitoring (JS frontend) -->
+<script
+  src="https://js-de.sentry-cdn.com/c892859215f1e7703459ccf162cd4833.min.js"
+  crossorigin="anonymous"
+></script>
+<script>
+  Sentry.onLoad(function() {
+    Sentry.init({
+      dsn: "https://c892859215f1e7703459ccf162cd4833@o4510954494885888.ingest.de.sentry.io/4510956436783184",
+      tracesSampleRate: 0.2,
+      replaysSessionSampleRate: 0,
+      replaysOnErrorSampleRate: 0.5,
+      sendDefaultPii: false,
+    });
+  });
+</script>
 <!-- Google Analytics 4 — consent-based (GDPR) -->
 <script>
   window.dataLayer = window.dataLayer || [];
