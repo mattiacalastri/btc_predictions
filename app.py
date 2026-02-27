@@ -2773,17 +2773,23 @@ def submit_contribution():
     except Exception as e:
         return jsonify({"ok": False, "error": "Errore DB"}), 500
 
-    # ── Telegram notification to owner (no personal data, just role+insight) ──
+    # ── Build approve/reject URLs ──
+    base_url     = os.environ.get("RAILWAY_URL", "https://btcpredictor.io")
+    bot_key      = os.environ.get("BOT_API_KEY", "")
+    approve_url  = f"{base_url}/approve-contribution/{contrib_id}?key={bot_key}"
+    reject_url   = f"{base_url}/reject-contribution/{contrib_id}?key={bot_key}"
+    owner_email  = os.environ.get("OWNER_EMAIL", "")
+
+    # ── Telegram notification (best-effort) ──
     telegram_token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
     telegram_owner = os.environ.get("TELEGRAM_OWNER_ID", "")
-    approve_url = f"{os.environ.get('RAILWAY_URL', 'https://btcpredictor.io')}/approve-contribution/{contrib_id}?key={os.environ.get('BOT_API_KEY', '')}"
     if telegram_token and telegram_owner:
         try:
             msg = (
                 f"📥 *Nuovo contributo \\#{contrib_id}*\n\n"
                 f"*Ruolo*: {_CONTRIBUTION_ROLES.get(role, role)}\n\n"
                 f"*Insight*:\n_{insight[:300]}_\n\n"
-                f"[✅ Approva]({approve_url})"
+                f"[✅ Approva]({approve_url}) · [❌ Rifiuta]({reject_url})"
             )
             requests.post(
                 f"https://api.telegram.org/bot{telegram_token}/sendMessage",
@@ -2792,7 +2798,26 @@ def submit_contribution():
                 timeout=5,
             )
         except Exception:
-            pass  # Telegram notification is best-effort
+            pass
+
+    # ── n8n webhook → email review (best-effort) ──
+    n8n_webhook = os.environ.get("N8N_CONTRIBUTION_WEBHOOK",
+                                 "https://n8n.srv1432354.hstgr.cloud/webhook/contribution-review")
+    try:
+        requests.post(
+            n8n_webhook,
+            json={
+                "id":          contrib_id,
+                "role":        _CONTRIBUTION_ROLES.get(role, role),
+                "insight":     insight,
+                "approve_url": approve_url,
+                "reject_url":  reject_url,
+                "owner_email": owner_email,
+            },
+            timeout=6,
+        )
+    except Exception:
+        pass  # email is best-effort; Telegram already notified
 
     return jsonify({"ok": True, "message": "Contributo ricevuto — verrà pubblicato dopo revisione. Grazie!"})
 
@@ -2851,6 +2876,27 @@ def approve_contribution(contrib_id):
         if r.ok:
             return jsonify({"ok": True, "message": f"Contributo #{contrib_id} approvato e pubblicato."})
         return jsonify({"ok": False, "error": "Errore approvazione"}), 500
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/reject-contribution/<int:contrib_id>", methods=["GET"])
+def reject_contribution(contrib_id):
+    """Owner-only: reject (delete) a contribution. Called via link in email."""
+    err = _check_api_key()
+    if err:
+        return err
+    supabase_url = os.environ.get("SUPABASE_URL", "")
+    supabase_key = os.environ.get("SUPABASE_SERVICE_KEY", os.environ.get("SUPABASE_KEY", ""))
+    try:
+        r = requests.delete(
+            f"{supabase_url}/rest/v1/contributions?id=eq.{contrib_id}",
+            headers={"apikey": supabase_key, "Authorization": f"Bearer {supabase_key}"},
+            timeout=8,
+        )
+        if r.ok:
+            return jsonify({"ok": True, "message": f"Contributo #{contrib_id} rifiutato e rimosso."})
+        return jsonify({"ok": False, "error": "Errore rifiuto"}), 500
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
