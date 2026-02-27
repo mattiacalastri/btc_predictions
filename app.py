@@ -3896,7 +3896,7 @@ def satoshi_lead():
         )
         if resp.status_code not in (200, 201, 204):
             app.logger.error("satoshi_lead supabase error: %s %s", resp.status_code, resp.text[:200])
-            return jsonify({"ok": False, "error": "server_error"}), 500
+            return jsonify({"ok": False, "error": "server_error", "_dbg": resp.status_code, "_msg": resp.text[:200]}), 500
         return jsonify({"ok": True})
     except Exception as exc:
         app.logger.error("satoshi_lead error: %s", exc)
