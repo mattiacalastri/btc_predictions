@@ -741,13 +741,72 @@
     100% { background-position: -200% 0; }
   }
 
+  /* ── PAGE BANNERS (Contributors + Manifesto) ─────────────── */
+  .page-banners-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 700px) { .page-banners-grid { grid-template-columns: 1fr; } }
+
+  .page-banner {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    padding: 16px 18px;
+    position: relative; overflow: hidden;
+    transition: background 0.2s;
+  }
+  .page-banner.orange {
+    background: rgba(247,147,26,0.06);
+    border-left: 3px solid var(--orange);
+  }
+  .page-banner.cyan {
+    background: rgba(0,212,255,0.05);
+    border-left: 3px solid var(--cyan);
+  }
+  .page-banner-ghost {
+    position: absolute; right: 14px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 52px; opacity: 0.06; pointer-events: none; line-height: 1;
+  }
+  .page-banner-body { flex: 1; min-width: 0; }
+  .page-banner-title {
+    font-size: 13px; font-weight: 700; color: var(--white);
+    margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .page-banner-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px; color: var(--muted); letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+  .page-banner-chips {
+    display: flex; gap: 5px; flex-wrap: wrap; align-items: center;
+    margin-top: 8px;
+  }
+  .page-banner-chip {
+    font-size: 11px; padding: 2px 5px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 2px; color: var(--muted);
+  }
+  .page-banner-cta {
+    display: inline-flex; align-items: center;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px; font-weight: 700; letter-spacing: 1px;
+    text-decoration: none; text-transform: uppercase;
+    padding: 8px 14px; border-radius: 2px;
+    white-space: nowrap; flex-shrink: 0;
+    transition: opacity 0.2s;
+  }
+  .page-banner-cta:hover { opacity: 0.8; }
+  .page-banner.orange .page-banner-cta { background: var(--orange); color: #000; }
+  .page-banner.cyan   .page-banner-cta { background: var(--cyan);   color: #000; }
+
   /* ── TRAINING BANNER ──────────────────────────────────────── */
   .training-banner {
     display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
-    background: linear-gradient(135deg, rgba(0,212,255,0.04) 0%, rgba(247,147,26,0.04) 100%);
-    border: 1px solid rgba(247,147,26,0.2);
+    background: rgba(247,147,26,0.05);
+    border: none;
     border-left: 3px solid var(--orange);
-    border-radius: 2px;
+    border-radius: 0;
     padding: 12px 14px;
     margin-bottom: 16px;
     font-size: 11px;
@@ -2726,6 +2785,42 @@
   </div>
 
   <div id="dashboardMain">
+
+  <!-- PAGE BANNERS — Contributors + Manifesto -->
+  <div class="page-banners-grid">
+
+    <!-- Contributors -->
+    <div class="page-banner orange">
+      <div class="page-banner-ghost">🎩</div>
+      <div class="page-banner-body">
+        <div class="page-banner-title">I Tanti Padri</div>
+        <div class="page-banner-sub">9 menti · 8 umani · 1 AI · ∞ caffè</div>
+        <div class="page-banner-chips">
+          <span class="page-banner-chip">🎩 Mattia</span>
+          <span class="page-banner-chip">🧠 Alessandro</span>
+          <span class="page-banner-chip">🔧 Riccardo</span>
+          <span class="page-banner-chip">🤖 Claude</span>
+        </div>
+      </div>
+      <a href="/contributors" class="page-banner-cta" target="_blank">→ la storia</a>
+    </div>
+
+    <!-- Manifesto -->
+    <div class="page-banner cyan">
+      <div class="page-banner-ghost">📜</div>
+      <div class="page-banner-body">
+        <div class="page-banner-title">Il Manifesto</div>
+        <div class="page-banner-sub">Build in public · Behavioral Engine</div>
+        <div class="page-banner-chips">
+          <span class="page-banner-chip">prevedibilità</span>
+          <span class="page-banner-chip">abbondanza</span>
+          <span class="page-banner-chip">trasparenza</span>
+        </div>
+      </div>
+      <a href="/manifesto" class="page-banner-cta" target="_blank">→ leggi</a>
+    </div>
+
+  </div>
 
   <!-- ═══════════════════════════════════════════
        CHARTS GRID — 4 temporal charts
