@@ -3788,6 +3788,20 @@ def prevedibilita():
     return html, 200, {"Content-Type": "text/html"}
 
 
+@app.route("/investors", methods=["GET"])
+def investors():
+    with open("investors.html", "r") as f:
+        html = f.read()
+    return html, 200, {"Content-Type": "text/html"}
+
+
+@app.route("/aureo", methods=["GET"])
+def aureo():
+    with open("aureo.html", "r") as f:
+        html = f.read()
+    return html, 200, {"Content-Type": "text/html"}
+
+
 @app.route("/contributors", methods=["GET"])
 def contributors():
     with open("contributors.html", "r") as f:

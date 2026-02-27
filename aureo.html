@@ -1,0 +1,1472 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AUREO — Educazione Finanziaria Italiana. Gratuita. Verificabile.</title>
+  <meta name="description" content="L'Italia risparmia più di quasi tutti in Europa. E perde più di quasi tutti. Noi spieghiamo perché — gratis, con le fonti, verificabile on-chain.">
+  <meta name="author" content="Mattia Calastri">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://aureo.io">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://aureo.io">
+  <meta property="og:title" content="AUREO — Educazione Finanziaria Italiana">
+  <meta property="og:description" content="Gratuita. Verificabile. Fonti ufficiali. Il paradosso finanziario italiano finalmente spiegato.">
+  <meta property="og:locale" content="it_IT">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="AUREO — Educazione Finanziaria Italiana">
+  <meta name="twitter:description" content="L'Italia risparmia più di quasi tutti. E perde più di quasi tutti. Questo è il paradosso che vogliamo risolvere.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --cream:     #FAFAF5;
+      --cream-2:   #F2F1EA;
+      --navy:      #0D1B2A;
+      --navy-mid:  #1C3147;
+      --gold:      #C9A84C;
+      --gold-light:#E8D08A;
+      --muted:     #6B7180;
+      --muted-2:   #9B9EA8;
+      --border:    rgba(13,27,42,0.10);
+      --border-gold: rgba(201,168,76,0.30);
+      --font-display: 'Cormorant Garamond', Georgia, serif;
+      --font-body:    'Libre Baskerville', Georgia, serif;
+      --font-mono:    'JetBrains Mono', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; font-size: 16px; }
+
+    body {
+      background: var(--cream);
+      color: var(--navy);
+      font-family: var(--font-body);
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    /* ── GRAIN TEXTURE ─────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0.028;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      background-size: 128px;
+    }
+
+    /* ── NAV ───────────────────────────────────────── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(250,250,245,0.92);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2.5rem;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-wordmark {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 1.25rem;
+      letter-spacing: 0.18em;
+      color: var(--navy);
+      text-decoration: none;
+      text-transform: uppercase;
+    }
+
+    .nav-wordmark span {
+      color: var(--gold);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-family: var(--font-body);
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--navy); }
+
+    .nav-cta {
+      font-family: var(--font-body);
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--gold) !important;
+      border: 1px solid var(--border-gold);
+      padding: 0.35rem 1rem;
+      border-radius: 2px;
+      transition: background 0.2s, color 0.2s !important;
+    }
+
+    .nav-cta:hover {
+      background: var(--gold) !important;
+      color: var(--cream) !important;
+    }
+
+    /* ── HERO ──────────────────────────────────────── */
+    .hero {
+      min-height: calc(100vh - 56px);
+      display: flex;
+      align-items: center;
+      padding: 6rem 2.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    }
+
+    .hero-bg-text {
+      position: absolute;
+      right: -2rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-family: var(--font-display);
+      font-size: clamp(10rem, 25vw, 22rem);
+      font-weight: 700;
+      color: transparent;
+      -webkit-text-stroke: 1px rgba(13,27,42,0.04);
+      letter-spacing: -0.02em;
+      line-height: 1;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .hero-inner {
+      max-width: 760px;
+      position: relative;
+    }
+
+    .hero-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .hero-eyebrow::before {
+      content: '';
+      display: block;
+      width: 32px;
+      height: 1px;
+      background: var(--gold);
+    }
+
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(2.8rem, 6vw, 5.2rem);
+      font-weight: 500;
+      line-height: 1.08;
+      letter-spacing: -0.01em;
+      color: var(--navy);
+      margin-bottom: 2.5rem;
+    }
+
+    .hero-title em {
+      font-style: italic;
+      color: var(--gold);
+    }
+
+    .hero-quote {
+      font-family: var(--font-display);
+      font-size: clamp(1.15rem, 2.5vw, 1.5rem);
+      font-weight: 400;
+      line-height: 1.5;
+      color: var(--navy-mid);
+      border-left: 2px solid var(--gold);
+      padding-left: 1.5rem;
+      margin-bottom: 3rem;
+      font-style: italic;
+    }
+
+    .hero-sub {
+      font-size: 0.9rem;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 2.5rem;
+      font-family: var(--font-mono);
+    }
+
+    .hero-sub span {
+      margin: 0 0.75rem;
+      color: var(--gold);
+    }
+
+    .btn-primary {
+      display: inline-block;
+      background: var(--navy);
+      color: var(--cream);
+      padding: 0.85rem 2.2rem;
+      font-family: var(--font-body);
+      font-size: 0.8rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.15s;
+      position: relative;
+    }
+
+    .btn-primary::after {
+      content: '';
+      position: absolute;
+      bottom: -3px;
+      right: -3px;
+      width: 100%;
+      height: 100%;
+      border: 1px solid var(--gold);
+      transition: transform 0.15s;
+    }
+
+    .btn-primary:hover {
+      background: var(--navy-mid);
+      transform: translate(-2px, -2px);
+    }
+
+    .btn-primary:hover::after {
+      transform: translate(2px, 2px);
+    }
+
+    /* ── SECTION BASE ──────────────────────────────── */
+    section {
+      padding: 7rem 2.5rem;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .section-label {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .section-label::before {
+      content: '';
+      display: block;
+      width: 24px;
+      height: 1px;
+      background: var(--gold);
+    }
+
+    .section-title {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 4vw, 3.2rem);
+      font-weight: 500;
+      line-height: 1.1;
+      color: var(--navy);
+      margin-bottom: 1.5rem;
+    }
+
+    .section-lead {
+      font-size: 1.05rem;
+      color: var(--muted);
+      max-width: 620px;
+      line-height: 1.75;
+    }
+
+    /* ── IL PROBLEMA ───────────────────────────────── */
+    .problema {
+      background: var(--navy);
+      color: var(--cream);
+    }
+
+    .problema .section-label { color: var(--gold-light); }
+    .problema .section-label::before { background: var(--gold-light); }
+    .problema .section-title { color: var(--cream); }
+    .problema .section-lead { color: rgba(250,250,245,0.65); }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 2px;
+      margin-top: 4rem;
+    }
+
+    .stat-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      padding: 2.5rem 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 2px;
+      height: 0;
+      background: var(--gold);
+      transition: height 0.6s ease;
+    }
+
+    .stat-card.revealed::before { height: 100%; }
+
+    .stat-number {
+      font-family: var(--font-display);
+      font-size: clamp(3rem, 7vw, 5.5rem);
+      font-weight: 600;
+      color: var(--gold);
+      line-height: 1;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.75rem;
+    }
+
+    .stat-label {
+      font-size: 0.9rem;
+      color: rgba(250,250,245,0.75);
+      line-height: 1.5;
+      margin-bottom: 1rem;
+    }
+
+    .stat-source {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      letter-spacing: 0.1em;
+      color: rgba(201,168,76,0.5);
+      text-transform: uppercase;
+    }
+
+    .ranking-bar {
+      margin-top: 4rem;
+      padding: 2.5rem;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .ranking-title {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--gold-light);
+      margin-bottom: 1.5rem;
+    }
+
+    .ranking-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 0.75rem;
+      font-size: 0.82rem;
+    }
+
+    .ranking-country {
+      width: 130px;
+      color: rgba(250,250,245,0.6);
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.05em;
+    }
+
+    .ranking-bar-fill {
+      height: 6px;
+      background: rgba(255,255,255,0.08);
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .ranking-bar-fill-inner {
+      height: 100%;
+      background: var(--gold);
+      width: 0;
+      transition: width 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .ranking-item.italy .ranking-country { color: var(--gold); }
+    .ranking-item.italy .ranking-bar-fill { background: rgba(201,168,76,0.15); }
+    .ranking-item.italy .ranking-bar-fill-inner { background: rgba(201,168,76,0.6); }
+
+    .ranking-score {
+      width: 36px;
+      text-align: right;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: rgba(250,250,245,0.4);
+    }
+
+    /* ── LA RISPOSTA ───────────────────────────────── */
+    .risposta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5px;
+      margin-top: 4rem;
+      border: 1.5px solid var(--border);
+    }
+
+    .risposta-card {
+      padding: 3rem 2.5rem;
+      border-right: 1px solid var(--border);
+      position: relative;
+      transition: background 0.3s;
+    }
+
+    .risposta-card:last-child { border-right: none; }
+
+    .risposta-card:hover { background: rgba(201,168,76,0.04); }
+
+    .risposta-icon {
+      font-size: 1.8rem;
+      margin-bottom: 1.5rem;
+      display: block;
+    }
+
+    .risposta-card h3 {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      font-weight: 500;
+      color: var(--navy);
+      margin-bottom: 1rem;
+    }
+
+    .risposta-card p {
+      font-size: 0.88rem;
+      color: var(--muted);
+      line-height: 1.75;
+    }
+
+    .risposta-tag {
+      display: inline-block;
+      margin-top: 1.5rem;
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--gold);
+      border: 1px solid var(--border-gold);
+      padding: 0.2rem 0.6rem;
+    }
+
+    /* ── COSA TROVI ────────────────────────────────── */
+    .topics-bg { background: var(--cream-2); }
+
+    .topics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1px;
+      margin-top: 4rem;
+      background: var(--border);
+    }
+
+    .topic-item {
+      background: var(--cream-2);
+      padding: 2rem 1.75rem;
+      transition: background 0.25s;
+      cursor: default;
+    }
+
+    .topic-item:hover { background: var(--cream); }
+
+    .topic-icon {
+      font-size: 1.4rem;
+      margin-bottom: 1rem;
+      display: block;
+      opacity: 0.8;
+    }
+
+    .topic-name {
+      font-family: var(--font-display);
+      font-size: 1.05rem;
+      font-weight: 500;
+      color: var(--navy);
+      margin-bottom: 0.4rem;
+    }
+
+    .topic-desc {
+      font-size: 0.75rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    /* ── CHI SIAMO ─────────────────────────────────── */
+    .chi-siamo-inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6rem;
+      align-items: start;
+    }
+
+    .founder-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--gold);
+      border: 1px solid var(--border-gold);
+      padding: 0.3rem 0.8rem;
+      margin-bottom: 2rem;
+    }
+
+    .chi-text {
+      font-family: var(--font-display);
+      font-size: 1.35rem;
+      font-weight: 400;
+      line-height: 1.6;
+      color: var(--navy-mid);
+      margin-bottom: 1.5rem;
+      font-style: italic;
+    }
+
+    .chi-body {
+      font-size: 0.88rem;
+      color: var(--muted);
+      line-height: 1.8;
+    }
+
+    .credentials {
+      border: 1px solid var(--border);
+      padding: 2rem;
+    }
+
+    .credential-item {
+      display: flex;
+      gap: 1rem;
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--border);
+      align-items: flex-start;
+    }
+
+    .credential-item:last-child { border-bottom: none; }
+
+    .credential-icon {
+      font-size: 1.1rem;
+      flex-shrink: 0;
+      margin-top: 0.1rem;
+    }
+
+    .credential-label {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 0.2rem;
+    }
+
+    .credential-value {
+      font-size: 0.82rem;
+      color: var(--navy);
+    }
+
+    /* ── COME FUNZIONA ─────────────────────────────── */
+    .pipeline-bg { background: var(--navy); color: var(--cream); }
+    .pipeline-bg .section-title { color: var(--cream); }
+    .pipeline-bg .section-label { color: var(--gold-light); }
+    .pipeline-bg .section-label::before { background: var(--gold-light); }
+
+    .pipeline {
+      display: flex;
+      align-items: flex-start;
+      gap: 0;
+      margin-top: 4rem;
+      position: relative;
+    }
+
+    .pipeline::before {
+      content: '';
+      position: absolute;
+      top: 28px;
+      left: 28px;
+      right: 28px;
+      height: 1px;
+      background: linear-gradient(90deg, var(--gold), rgba(201,168,76,0.2));
+    }
+
+    .pipeline-step {
+      flex: 1;
+      padding: 0 1rem;
+      position: relative;
+      text-align: center;
+    }
+
+    .pipeline-dot {
+      width: 56px;
+      height: 56px;
+      border: 1px solid rgba(201,168,76,0.4);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      margin: 0 auto 1.5rem;
+      background: var(--navy);
+      position: relative;
+      z-index: 1;
+      transition: border-color 0.3s, background 0.3s;
+    }
+
+    .pipeline-step:hover .pipeline-dot {
+      border-color: var(--gold);
+      background: rgba(201,168,76,0.1);
+    }
+
+    .pipeline-step h4 {
+      font-family: var(--font-display);
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--cream);
+      margin-bottom: 0.5rem;
+    }
+
+    .pipeline-step p {
+      font-size: 0.75rem;
+      color: rgba(250,250,245,0.5);
+      line-height: 1.5;
+    }
+
+    .pipeline-tag {
+      display: inline-block;
+      margin-top: 0.75rem;
+      font-family: var(--font-mono);
+      font-size: 0.55rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(201,168,76,0.6);
+    }
+
+    /* ── CTA ───────────────────────────────────────── */
+    .cta-section {
+      background: var(--cream-2);
+      text-align: center;
+    }
+
+    .cta-section .section-label {
+      justify-content: center;
+    }
+
+    .cta-section .section-label::before { display: none; }
+
+    .cta-section .section-label::after {
+      content: '';
+      display: block;
+      width: 24px;
+      height: 1px;
+      background: var(--gold);
+    }
+
+    .cta-title {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 5vw, 4rem);
+      font-weight: 500;
+      color: var(--navy);
+      line-height: 1.1;
+      margin-bottom: 1.5rem;
+      max-width: 700px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .cta-title em { color: var(--gold); font-style: italic; }
+
+    .cta-sub {
+      font-size: 0.88rem;
+      color: var(--muted);
+      margin-bottom: 3rem;
+      font-family: var(--font-mono);
+      letter-spacing: 0.05em;
+    }
+
+    .social-row {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 3rem;
+    }
+
+    .social-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.75rem;
+      border: 1px solid var(--border);
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      text-decoration: none;
+      color: var(--navy);
+      transition: all 0.2s;
+      background: var(--cream);
+    }
+
+    .social-btn:hover {
+      background: var(--navy);
+      color: var(--cream);
+      border-color: var(--navy);
+    }
+
+    .newsletter-form {
+      display: flex;
+      gap: 0;
+      max-width: 440px;
+      margin: 0 auto;
+      border: 1px solid var(--border);
+    }
+
+    .newsletter-form input {
+      flex: 1;
+      padding: 0.9rem 1.2rem;
+      border: none;
+      background: var(--cream);
+      font-family: var(--font-body);
+      font-size: 0.85rem;
+      color: var(--navy);
+      outline: none;
+    }
+
+    .newsletter-form input::placeholder { color: var(--muted-2); }
+
+    .newsletter-form button {
+      padding: 0.9rem 1.5rem;
+      background: var(--navy);
+      color: var(--cream);
+      border: none;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+
+    .newsletter-form button:hover { background: var(--gold); color: var(--navy); }
+
+    .newsletter-note {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      color: var(--muted-2);
+      letter-spacing: 0.08em;
+      margin-top: 1rem;
+    }
+
+    /* ── FOOTER ────────────────────────────────────── */
+    footer {
+      background: var(--navy);
+      color: rgba(250,250,245,0.5);
+      padding: 3rem 2.5rem;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .footer-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2rem;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .footer-logo {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--cream);
+      text-decoration: none;
+    }
+
+    .footer-logo span { color: var(--gold); }
+
+    .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+
+    .footer-links a {
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(250,250,245,0.4);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: var(--gold); }
+
+    .footer-bottom {
+      max-width: 1100px;
+      margin: 2rem auto 0;
+      padding-top: 1.5rem;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .footer-disclaimer {
+      font-family: var(--font-mono);
+      font-size: 0.58rem;
+      letter-spacing: 0.06em;
+      color: rgba(250,250,245,0.25);
+      max-width: 600px;
+      line-height: 1.6;
+    }
+
+    .footer-onchain {
+      font-family: var(--font-mono);
+      font-size: 0.58rem;
+      color: rgba(201,168,76,0.4);
+      letter-spacing: 0.06em;
+    }
+
+    /* ── SCROLL REVEAL ─────────────────────────────── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(28px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+
+    .reveal.revealed {
+      opacity: 1;
+      transform: none;
+    }
+
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.3s; }
+    .reveal-delay-4 { transition-delay: 0.4s; }
+
+    /* ── MOBILE ────────────────────────────────────── */
+    @media (max-width: 768px) {
+      nav { padding: 0 1.25rem; }
+      .nav-links { display: none; }
+      section { padding: 4.5rem 1.25rem; }
+      .hero { padding: 4rem 1.25rem; }
+      .hero-bg-text { display: none; }
+      .chi-siamo-inner { grid-template-columns: 1fr; gap: 3rem; }
+      .pipeline { flex-direction: column; }
+      .pipeline::before { display: none; }
+      .pipeline-step { text-align: left; display: flex; gap: 1.5rem; align-items: flex-start; }
+      .pipeline-dot { margin: 0; flex-shrink: 0; }
+      .footer-inner { flex-direction: column; align-items: flex-start; }
+      .social-row { justify-content: flex-start; }
+      .cta-section .section-label { justify-content: flex-start; }
+      .cta-section .section-label::before { display: block; }
+      .cta-section .section-label::after { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── NAV ────────────────────────────────────────── -->
+<nav>
+  <a href="#" class="nav-wordmark">A<span>U</span>REO</a>
+  <ul class="nav-links">
+    <li><a href="#problema">Il Problema</a></li>
+    <li><a href="#argomenti">Argomenti</a></li>
+    <li><a href="#chi-siamo">Chi Siamo</a></li>
+    <li><a href="#inizia" class="nav-cta">Inizia da qui</a></li>
+  </ul>
+</nav>
+<!-- ── LIVE STATUS BAR ──────────────────────────────────────────── -->
+<div class="lsb" id="liveStatusBar">
+  <span class="lsb-label">Agents</span>
+  <span class="lsb-item" title="Prediction Bot (wf01)"><span class="lsb-dot" id="lsbWf01"></span>wf01</span>
+  <span class="lsb-sep"></span>
+  <span class="lsb-item" title="Trade Checker (wf02)"><span class="lsb-dot" id="lsbWf02"></span>wf02</span>
+  <span class="lsb-sep"></span>
+  <span class="lsb-item" title="Commander (wf07)"><span class="lsb-dot" id="lsbWf07"></span>wf07</span>
+  <span class="lsb-sep"></span>
+  <span class="lsb-item" title="Railway API"><span class="lsb-dot" id="lsbApi"></span>API</span>
+  <span class="lsb-bigsep"></span>
+  <span class="lsb-label">Bot</span>
+  <span class="lsb-item lsb-hi" title="Bot status"><span class="lsb-dot" id="lsbBot"></span><span id="lsbBotLabel">—</span></span>
+  <span class="lsb-sep"></span>
+  <span class="lsb-item" title="Kraken wallet balance">💰 <span id="lsbBalance">—</span></span>
+  <span class="lsb-sep"></span>
+  <span class="lsb-item" title="Kraken reachability"><span class="lsb-dot" id="lsbKraken"></span>Kraken</span>
+  <span class="lsb-bigsep"></span>
+  <span class="lsb-label">Live</span>
+  <span class="lsb-item" title="Last prediction signal age"><span class="lsb-dot" id="lsbSigAge"></span><span id="lsbLastSig">—</span></span>
+  <span class="lsb-sep"></span>
+  <span class="lsb-item" title="Open bets currently monitored"><span class="lsb-dot" id="lsbOpenPos"></span><span id="lsbOpenVal">— open</span></span>
+  <span class="lsb-sep"></span>
+  <span class="lsb-item lsb-hi" id="lsbLiveChip" title="System live">LIVE</span>
+</div>
+
+<!-- ── HERO ───────────────────────────────────────── -->
+<section class="hero" id="hero">
+  <div class="hero-bg-text">AUREO</div>
+  <div class="hero-inner">
+    <div class="hero-eyebrow">Educazione Finanziaria Italiana</div>
+
+    <h1 class="hero-title">
+      Il sapere che<br>
+      le banche non ti<br>
+      hanno mai <em>dato.</em>
+    </h1>
+
+    <blockquote class="hero-quote">
+      "L'Italia risparmia più di quasi tutti in Europa.<br>
+      E perde più di quasi tutti in Europa.<br>
+      Questo è il paradosso che vogliamo risolvere."
+    </blockquote>
+
+    <p class="hero-sub">
+      Gratuito <span>·</span> Fonti Ufficiali <span>·</span> Verificabile On-Chain
+    </p>
+
+    <a href="#inizia" class="btn-primary">Inizia da qui</a>
+  </div>
+</section>
+
+<!-- ── IL PROBLEMA ────────────────────────────────── -->
+<section class="problema" id="problema">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-label">Il Problema</div>
+      <h2 class="section-title">L'Italia risparmia.<br>Ma non investe.</h2>
+      <p class="section-lead" style="color:rgba(250,250,245,0.6)">
+        Siamo il terzo paese per risparmio privato in Europa. E terzultimi per alfabetizzazione finanziaria.
+        Non è un caso — è il risultato di decenni di educazione finanziaria assente.
+      </p>
+    </div>
+
+    <div class="stats-grid" style="margin-top:4rem">
+      <div class="stat-card reveal reveal-delay-1">
+        <div class="stat-number" data-target="67">0</div>
+        <div class="stat-label">degli italiani non sa calcolare l'interesse composto</div>
+        <div class="stat-source">Fonte: Banca d'Italia, Indagine sul Risparmio 2023</div>
+      </div>
+      <div class="stat-card reveal reveal-delay-2">
+        <div class="stat-number" data-target="78">0</div>
+        <div class="stat-label">del patrimonio familiare medio è in liquidità o immobili</div>
+        <div class="stat-source">Fonte: Banca d'Italia, Ricchezza delle Famiglie 2024</div>
+      </div>
+      <div class="stat-card reveal reveal-delay-3">
+        <div class="stat-number" data-target="12">0</div>
+        <div class="stat-label">degli italiani detiene ETF o fondi indicizzati (vs 47% in UK)</div>
+        <div class="stat-source">Fonte: Consob, Rapporto sulle Scelte di Investimento 2023</div>
+      </div>
+      <div class="stat-card reveal reveal-delay-4">
+        <div class="stat-number" data-target="18">0</div>
+        <div class="stat-label">di potere d'acquisto perso dai conti correnti italiani (2020–2024)</div>
+        <div class="stat-source">Fonte: Eurostat, HICP Inflation Data</div>
+      </div>
+    </div>
+
+    <div class="ranking-bar reveal" style="margin-top:2.5rem">
+      <div class="ranking-title">Alfabetizzazione Finanziaria — Ranking OCSE 2023 (Europa)</div>
+
+      <div class="ranking-item">
+        <div class="ranking-country">🇳🇱 Paesi Bassi</div>
+        <div class="ranking-bar-fill"><div class="ranking-bar-fill-inner" data-width="91"></div></div>
+        <div class="ranking-score">71</div>
+      </div>
+      <div class="ranking-item">
+        <div class="ranking-country">🇩🇰 Danimarca</div>
+        <div class="ranking-bar-fill"><div class="ranking-bar-fill-inner" data-width="86"></div></div>
+        <div class="ranking-score">67</div>
+      </div>
+      <div class="ranking-item">
+        <div class="ranking-country">🇩🇪 Germania</div>
+        <div class="ranking-bar-fill"><div class="ranking-bar-fill-inner" data-width="78"></div></div>
+        <div class="ranking-score">61</div>
+      </div>
+      <div class="ranking-item">
+        <div class="ranking-country">🇫🇷 Francia</div>
+        <div class="ranking-bar-fill"><div class="ranking-bar-fill-inner" data-width="71"></div></div>
+        <div class="ranking-score">55</div>
+      </div>
+      <div class="ranking-item">
+        <div class="ranking-country">🇪🇸 Spagna</div>
+        <div class="ranking-bar-fill"><div class="ranking-bar-fill-inner" data-width="62"></div></div>
+        <div class="ranking-score">48</div>
+      </div>
+      <div class="ranking-item italy">
+        <div class="ranking-country">🇮🇹 Italia</div>
+        <div class="ranking-bar-fill"><div class="ranking-bar-fill-inner" data-width="38"></div></div>
+        <div class="ranking-score" style="color:rgba(201,168,76,0.7)">31</div>
+      </div>
+      <div class="ranking-item">
+        <div class="ranking-country">🇷🇴 Romania</div>
+        <div class="ranking-bar-fill"><div class="ranking-bar-fill-inner" data-width="32"></div></div>
+        <div class="ranking-score">28</div>
+      </div>
+      <div class="ranking-item">
+        <div class="ranking-country">🇧🇬 Bulgaria</div>
+        <div class="ranking-bar-fill"><div class="ranking-bar-fill-inner" data-width="26"></div></div>
+        <div class="ranking-score">24</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── LA RISPOSTA ────────────────────────────────── -->
+<section id="risposta">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-label">La Nostra Risposta</div>
+      <h2 class="section-title">Tre principi.<br>Non negoziabili.</h2>
+      <p class="section-lead">
+        Chiunque può pubblicare contenuti finanziari. Pochissimi possono dimostrare che sono veri,
+        indipendenti, e permanentemente gratuiti. Noi lo facciamo.
+      </p>
+    </div>
+
+    <div class="risposta-grid reveal" style="margin-top:4rem">
+      <div class="risposta-card">
+        <span class="risposta-icon">∞</span>
+        <h3>Gratis per sempre</h3>
+        <p>Nessun freemium. Nessun paywall. Nessuna newsletter premium. Il sapere finanziario
+        non dovrebbe costare niente — specialmente in un paese dove l'educazione finanziaria
+        non è mai stata insegnata a scuola.</p>
+        <span class="risposta-tag">Principio I</span>
+      </div>
+      <div class="risposta-card">
+        <span class="risposta-icon">⊕</span>
+        <h3>Fonti ufficiali</h3>
+        <p>Ogni dato citato ha una fonte verificabile: ISTAT, Banca d'Italia, Consob, Eurostat,
+        OCSE. Nessuna opinione spacciata per dato. Nessun numero inventato per fare effetto.
+        La credibilità non si dichiara — si dimostra.</p>
+        <span class="risposta-tag">Principio II</span>
+      </div>
+      <div class="risposta-card">
+        <span class="risposta-icon">⛓</span>
+        <h3>Verificabile on-chain</h3>
+        <p>Ogni claim viene hashato e timestampato su Polygon PoS prima della pubblicazione.
+        Prova matematica che il contenuto non è stato modificato ex-post. Non "fidatevi" —
+        ma "verificate". Come per i nostri trade su BTC.</p>
+        <span class="risposta-tag">Principio III</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── ARGOMENTI ──────────────────────────────────── -->
+<section class="topics-bg" id="argomenti">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-label">Cosa Trovi</div>
+      <h2 class="section-title">Tutto quello che<br>vorresti sapere.</h2>
+      <p class="section-lead">
+        Dagli argomenti che non ti hanno mai spiegato a scuola a quelli che le banche
+        preferiscono che tu non conosca. In italiano. Senza gergo inutile.
+      </p>
+    </div>
+
+    <div class="topics-grid reveal" style="margin-top:0">
+      <div class="topic-item">
+        <span class="topic-icon">📈</span>
+        <div class="topic-name">Interesse Composto</div>
+        <div class="topic-desc">L'ottava meraviglia del mondo. Perché Einstein aveva ragione.</div>
+      </div>
+      <div class="topic-item">
+        <span class="topic-icon">🔥</span>
+        <div class="topic-name">Inflazione</div>
+        <div class="topic-desc">Perché i tuoi soldi valgono meno ogni anno — e cosa fare.</div>
+      </div>
+      <div class="topic-item">
+        <span class="topic-icon">🌍</span>
+        <div class="topic-name">ETF & Indici</div>
+        <div class="topic-desc">Come investire nel mercato globale con costi vicino allo zero.</div>
+      </div>
+      <div class="topic-item">
+        <span class="topic-icon">🏛️</span>
+        <div class="topic-name">Pensione INPS</div>
+        <div class="topic-desc">Cosa aspettarti davvero. Senza illusioni, con i numeri veri.</div>
+      </div>
+      <div class="topic-item">
+        <span class="topic-icon">🛡️</span>
+        <div class="topic-name">Fondo d'Emergenza</div>
+        <div class="topic-desc">Il fondamento di tutto. Prima regola della finanza personale.</div>
+      </div>
+      <div class="topic-item">
+        <span class="topic-icon">📊</span>
+        <div class="topic-name">Budget Personale</div>
+        <div class="topic-desc">Non si tratta di privazione. Si tratta di consapevolezza.</div>
+      </div>
+      <div class="topic-item">
+        <span class="topic-icon">🏠</span>
+        <div class="topic-name">Immobiliare vs Borsa</div>
+        <div class="topic-desc">Il grande dibattito italiano. I dati storici, senza tifoserie.</div>
+      </div>
+      <div class="topic-item">
+        <span class="topic-icon">⚖️</span>
+        <div class="topic-name">Ottimizzazione Fiscale</div>
+        <div class="topic-desc">Legale, etica, e completamente ignorata dalla maggior parte degli italiani.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CHI SIAMO ──────────────────────────────────── -->
+<section id="chi-siamo">
+  <div class="container">
+    <div class="chi-siamo-inner">
+      <div class="reveal">
+        <div class="section-label">Chi Siamo</div>
+        <h2 class="section-title">Un economista<br>e un'intelligenza<br>artificiale.</h2>
+        <p class="chi-text">
+          "Non siamo una banca. Non vogliamo vendere niente.
+          Siamo un economista e un'AI che hanno deciso che
+          l'Italia merita di capire i propri soldi."
+        </p>
+        <p class="chi-body">
+          Mattia Calastri, laureato in Economia all'Università di Verona, da sempre appassionato
+          di finanza personale e crescita personale. Lo stesso fondatore che ha costruito
+          btcpredictor.io — un sistema di trading AI verificato on-chain con 261 trade reali.
+        </p>
+        <br>
+        <p class="chi-body">
+          AUREO nasce da una domanda semplice: se riesco a spiegare al mercato dei derivati
+          Bitcoin con trasparenza e rigore, perché non fare lo stesso per le basi della
+          finanza personale italiana?
+        </p>
+      </div>
+
+      <div class="credentials reveal reveal-delay-2">
+        <div class="credential-item">
+          <span class="credential-icon">🎓</span>
+          <div>
+            <div class="credential-label">Formazione</div>
+            <div class="credential-value">Laurea Triennale in Economia — Università di Verona</div>
+          </div>
+        </div>
+        <div class="credential-item">
+          <span class="credential-icon">📡</span>
+          <div>
+            <div class="credential-label">Progetto Parallelo</div>
+            <div class="credential-value">btcpredictor.io — AI trading bot, 261 trade verificati on-chain su Polygon PoS</div>
+          </div>
+        </div>
+        <div class="credential-item">
+          <span class="credential-icon">⛓️</span>
+          <div>
+            <div class="credential-label">Infrastruttura</div>
+            <div class="credential-value">Ogni claim hashato su Polygon PoS prima della pubblicazione. Verificabile da chiunque.</div>
+          </div>
+        </div>
+        <div class="credential-item">
+          <span class="credential-icon">∞</span>
+          <div>
+            <div class="credential-label">Modello di Business</div>
+            <div class="credential-value">Zero. Nessun paywall, nessuna vendita di prodotti finanziari, nessun conflitto di interesse.</div>
+          </div>
+        </div>
+        <div class="credential-item">
+          <span class="credential-icon">🔗</span>
+          <div>
+            <div class="credential-label">Codice Sorgente</div>
+            <div class="credential-value">Open source. La trasparenza non è uno slogan — è un'architettura.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── COME FUNZIONA ──────────────────────────────── -->
+<section class="pipeline-bg" id="come-funziona">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-label">Come Funziona</div>
+      <h2 class="section-title">La credibilità<br>come processo.</h2>
+      <p class="section-lead" style="color:rgba(250,250,245,0.6)">
+        Ogni contenuto percorre lo stesso percorso, senza eccezioni.
+        Non perché siamo bravi — ma perché il processo lo garantisce.
+      </p>
+    </div>
+
+    <div class="pipeline reveal" style="margin-top:5rem">
+      <div class="pipeline-step">
+        <div class="pipeline-dot">📝</div>
+        <h4>Creazione</h4>
+        <p>AI genera il contenuto su un argomento specifico, selezionando le fonti ufficiali pertinenti</p>
+        <span class="pipeline-tag">Claude AI</span>
+      </div>
+      <div class="pipeline-step">
+        <div class="pipeline-dot">🎓</div>
+        <h4>Revisione</h4>
+        <p>L'economista verifica ogni dato, ogni claim, ogni implicazione. Zero tolleranza per gli errori.</p>
+        <span class="pipeline-tag">Mattia Calastri</span>
+      </div>
+      <div class="pipeline-step">
+        <div class="pipeline-dot">📖</div>
+        <h4>Citazione</h4>
+        <p>Ogni statistica riceve la sua fonte ufficiale visibile. ISTAT, Banca d'Italia, Consob, Eurostat.</p>
+        <span class="pipeline-tag">Fonti Ufficiali</span>
+      </div>
+      <div class="pipeline-step">
+        <div class="pipeline-dot">⛓️</div>
+        <h4>Hash On-Chain</h4>
+        <p>Il contenuto finale viene hashato e timestampato su Polygon PoS. Immutabile. Per sempre.</p>
+        <span class="pipeline-tag">Polygon PoS</span>
+      </div>
+      <div class="pipeline-step">
+        <div class="pipeline-dot">📲</div>
+        <h4>Pubblicazione</h4>
+        <p>Instagram, TikTok, YouTube Shorts. Ogni giorno. Completamente gratuito.</p>
+        <span class="pipeline-tag">Ogni Giorno</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA ────────────────────────────────────────── -->
+<section class="cta-section" id="inizia">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-label">Inizia da Qui</div>
+      <h2 class="cta-title">Il primo passo è<br>il più <em>importante.</em></h2>
+      <p class="cta-sub">Costa zero. Richiede un minuto. Cambia prospettiva.</p>
+    </div>
+
+    <div class="social-row reveal reveal-delay-1">
+      <a href="https://instagram.com/aureo.io" target="_blank" rel="noopener" class="social-btn">
+        📸 Instagram @aureo.io
+      </a>
+      <a href="https://tiktok.com/@aureo.io" target="_blank" rel="noopener" class="social-btn">
+        🎵 TikTok @aureo.io
+      </a>
+      <a href="https://youtube.com/@aureo.io" target="_blank" rel="noopener" class="social-btn">
+        ▶ YouTube @aureo.io
+      </a>
+    </div>
+
+    <div class="reveal reveal-delay-2">
+      <p style="font-family:var(--font-display);font-size:1rem;color:var(--muted);margin-bottom:1.25rem;font-style:italic">
+        Oppure ricevi una lezione settimanale nella tua casella email:
+      </p>
+      <form class="newsletter-form" onsubmit="handleSubscribe(event)">
+        <input type="email" placeholder="la.tua@email.com" required autocomplete="email">
+        <button type="submit">Iscriviti →</button>
+      </form>
+      <p class="newsletter-note">Nessuno spam. Nessuna vendita. Solo educazione finanziaria ogni settimana.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ─────────────────────────────────────── -->
+<footer>
+  <div class="footer-inner">
+    <a href="#" class="footer-logo">A<span>U</span>REO</a>
+    <div class="footer-links">
+      <a href="https://btcpredictor.io" target="_blank" rel="noopener">BTC Predictor</a>
+      <a href="https://btcpredictor.io/investors">Investors</a>
+      <a href="https://github.com/mattiacalastri" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://polygonscan.com/address/0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55" target="_blank" rel="noopener">Polygon Contract</a>
+      <a href="mailto:signal@btcpredictor.io">Contatto</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p class="footer-disclaimer">
+      AUREO è un progetto educativo. Non fornisce consulenza finanziaria, di investimento, legale o fiscale.
+      Tutti i contenuti hanno finalità esclusivamente educative. Fonti citate per ogni dato.
+      Costruito dagli stessi che hanno verificato on-chain 261 trade in 5 giorni su btcpredictor.io.
+    </p>
+    <p class="footer-onchain">
+      ⛓ POLYGON · 0xe4661F7dB62...833a55
+    </p>
+  </div>
+</footer>
+
+<script>
+  // ── SCROLL REVEAL ──────────────────────────────────
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('revealed');
+        // animate stat numbers
+        const numEl = entry.target.querySelector('[data-target]');
+        if (numEl) animateCounter(numEl);
+        // animate ranking bars
+        entry.target.querySelectorAll('[data-width]').forEach(bar => {
+          bar.style.width = bar.dataset.width + '%';
+        });
+        entry.target.querySelectorAll('.stat-card').forEach(card => {
+          card.classList.add('revealed');
+          const n = card.querySelector('[data-target]');
+          if (n) animateCounter(n);
+        });
+      }
+    });
+  }, { threshold: 0.15 });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  // Animate stat cards directly too
+  const statObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('revealed');
+        const n = entry.target.querySelector('[data-target]');
+        if (n) animateCounter(n);
+      }
+    });
+  }, { threshold: 0.2 });
+
+  document.querySelectorAll('.stat-card').forEach(el => statObserver.observe(el));
+
+  // Ranking bars observer
+  const rankObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.querySelectorAll('[data-width]').forEach(bar => {
+          bar.style.width = bar.dataset.width + '%';
+        });
+      }
+    });
+  }, { threshold: 0.1 });
+
+  const rankingBar = document.querySelector('.ranking-bar');
+  if (rankingBar) rankObserver.observe(rankingBar);
+
+  // ── COUNTER ANIMATION ──────────────────────────────
+  function animateCounter(el) {
+    if (el.dataset.animated) return;
+    el.dataset.animated = 'true';
+    const target = parseInt(el.dataset.target);
+    const suffix = el.dataset.target.includes('%') ? '%' : '%';
+    const duration = 1800;
+    const start = performance.now();
+    function update(now) {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      el.textContent = Math.floor(eased * target) + suffix;
+      if (progress < 1) requestAnimationFrame(update);
+    }
+    requestAnimationFrame(update);
+  }
+
+  // ── NEWSLETTER ─────────────────────────────────────
+  function handleSubscribe(e) {
+    e.preventDefault();
+    const btn = e.target.querySelector('button');
+    const input = e.target.querySelector('input');
+    btn.textContent = 'Iscritto ✓';
+    btn.style.background = 'var(--gold)';
+    btn.style.color = 'var(--navy)';
+    input.value = '';
+    input.placeholder = 'Grazie. Ti scriviamo presto.';
+    setTimeout(() => {
+      btn.textContent = 'Iscriviti →';
+      btn.style.background = '';
+      btn.style.color = '';
+    }, 3000);
+  }
+</script>
+<style>
+.lsb{display:flex;align-items:center;gap:8px;background:#070710;border-bottom:1px solid rgba(255,255,255,0.06);padding:4px 24px;height:26px;overflow-x:auto;scrollbar-width:none;position:sticky;top:52px;z-index:99;}
+.lsb::-webkit-scrollbar{display:none;}
+.lsb-label{font-size:7px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.22);margin-right:1px;white-space:nowrap;font-family:'JetBrains Mono',monospace;}
+.lsb-item{display:flex;align-items:center;gap:4px;font-size:8px;color:rgba(255,255,255,0.4);letter-spacing:0.5px;white-space:nowrap;flex-shrink:0;font-family:'JetBrains Mono',monospace;}
+.lsb-item.lsb-hi{color:rgba(255,255,255,0.85);font-weight:600;}
+.lsb-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.15);display:inline-block;flex-shrink:0;}
+.lsb-dot.g{background:#00ff88;box-shadow:0 0 4px rgba(0,255,136,0.6);animation:lsbPulse 2s infinite;}
+.lsb-dot.r{background:#ff4466;box-shadow:0 0 4px rgba(255,68,102,0.5);}
+.lsb-dot.y{background:#ffaa00;box-shadow:0 0 4px rgba(255,170,0,0.5);animation:lsbPulse 2.5s infinite;}
+.lsb-sep{width:1px;height:12px;background:rgba(255,255,255,0.07);flex-shrink:0;}
+.lsb-bigsep{width:1px;height:16px;background:rgba(255,255,255,0.12);margin:0 6px;flex-shrink:0;}
+@keyframes lsbPulse{0%,100%{opacity:1;}50%{opacity:0.5;}}
+</style>
+<script>
+(function(){
+  var BASE=(window.RAILWAY_URL||window.location.origin);
+  function dot(id,cls){var el=document.getElementById(id);if(el)el.className="lsb-dot "+cls;}
+  function txt(id,val){var el=document.getElementById(id);if(el)el.textContent=val;}
+  function fetchLSB(){
+    fetch(BASE+"/check-status",{signal:AbortSignal.timeout(6000)})
+      .then(function(r){return r.json();})
+      .then(function(d){
+        dot("lsbApi","g");
+        var n=d.open_bets_supabase||0;
+        txt("lsbOpenVal",n+" open");
+        dot("lsbOpenPos",n>0?"y":"g");
+      })
+      .catch(function(){dot("lsbApi","r");});
+    fetch(BASE+"/account-summary",{signal:AbortSignal.timeout(8000)})
+      .then(function(r){return r.json();})
+      .then(function(d){
+        var eq=d.wallet_balance||d.equity||d.available;
+        if(eq!=null)txt("lsbBalance","$"+parseFloat(eq).toFixed(2));
+        dot("lsbKraken",d.kraken_reachable===false?"r":"g");
+        dot("lsbBot",d.bot_paused?"y":"g");
+        txt("lsbBotLabel",d.bot_paused?"PAUSED":"RUNNING");
+        if(d.last_signal_at){
+          var age=Math.round((Date.now()-new Date(d.last_signal_at))/60000);
+          txt("lsbLastSig",age<60?age+"m ago":Math.floor(age/60)+"h ago");
+          dot("lsbSigAge",age<15?"g":age<30?"y":"r");
+        }
+      })
+      .catch(function(){});
+    fetch(BASE+"/n8n-status",{signal:AbortSignal.timeout(6000)})
+      .then(function(r){return r.json();})
+      .then(function(d){
+        var wfs=d.workflows||{};
+        var keys=Object.keys(wfs);
+        function wfDot(dotId,num){
+          var found=keys.find(function(k){return wfs[k].name&&wfs[k].name.indexOf("0"+num)>-1;});
+          dot(dotId,found&&wfs[found].active?"g":"r");
+        }
+        wfDot("lsbWf01","1");wfDot("lsbWf02","2");wfDot("lsbWf07","7");
+      })
+      .catch(function(){dot("lsbWf01","r");dot("lsbWf02","r");dot("lsbWf07","r");});
+  }
+  fetchLSB();
+  setInterval(fetchLSB,60000);
+})();
+</script>
+
+</body>
+</html>

@@ -961,6 +961,31 @@
     </ul>
     <button class="gnav-burger" onclick="document.getElementById('gnavLinks').classList.toggle('gnav-open')" aria-label="Menu">☰</button>
   </nav>
+<!-- ── LIVE STATUS BAR ──────────────────────────────────────────── -->
+<div class="lsb" id="liveStatusBar">
+  <span class="lsb-label">Agents</span>
+  <span class="lsb-item" title="Prediction Bot (wf01)"><span class="lsb-dot" id="lsbWf01"></span>wf01</span>
+  <span class="lsb-sep"></span>
+  <span class="lsb-item" title="Trade Checker (wf02)"><span class="lsb-dot" id="lsbWf02"></span>wf02</span>
+  <span class="lsb-sep"></span>
+  <span class="lsb-item" title="Commander (wf07)"><span class="lsb-dot" id="lsbWf07"></span>wf07</span>
+  <span class="lsb-sep"></span>
+  <span class="lsb-item" title="Railway API"><span class="lsb-dot" id="lsbApi"></span>API</span>
+  <span class="lsb-bigsep"></span>
+  <span class="lsb-label">Bot</span>
+  <span class="lsb-item lsb-hi" title="Bot status"><span class="lsb-dot" id="lsbBot"></span><span id="lsbBotLabel">—</span></span>
+  <span class="lsb-sep"></span>
+  <span class="lsb-item" title="Kraken wallet balance">💰 <span id="lsbBalance">—</span></span>
+  <span class="lsb-sep"></span>
+  <span class="lsb-item" title="Kraken reachability"><span class="lsb-dot" id="lsbKraken"></span>Kraken</span>
+  <span class="lsb-bigsep"></span>
+  <span class="lsb-label">Live</span>
+  <span class="lsb-item" title="Last prediction signal age"><span class="lsb-dot" id="lsbSigAge"></span><span id="lsbLastSig">—</span></span>
+  <span class="lsb-sep"></span>
+  <span class="lsb-item" title="Open bets currently monitored"><span class="lsb-dot" id="lsbOpenPos"></span><span id="lsbOpenVal">— open</span></span>
+  <span class="lsb-sep"></span>
+  <span class="lsb-item lsb-hi" id="lsbLiveChip" title="System live">LIVE</span>
+</div>
   <!-- IN-PAGE ANCHORS -->
   <div class="page-subnav">
     <a href="#thesis">The Thesis</a>
@@ -1497,6 +1522,68 @@
       });
     }
   </script>
+
+<style>
+.lsb{display:flex;align-items:center;gap:8px;background:#070710;border-bottom:1px solid rgba(255,255,255,0.06);padding:4px 24px;height:26px;overflow-x:auto;scrollbar-width:none;position:sticky;top:52px;z-index:99;}
+.lsb::-webkit-scrollbar{display:none;}
+.lsb-label{font-size:7px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.22);margin-right:1px;white-space:nowrap;font-family:'JetBrains Mono',monospace;}
+.lsb-item{display:flex;align-items:center;gap:4px;font-size:8px;color:rgba(255,255,255,0.4);letter-spacing:0.5px;white-space:nowrap;flex-shrink:0;font-family:'JetBrains Mono',monospace;}
+.lsb-item.lsb-hi{color:rgba(255,255,255,0.85);font-weight:600;}
+.lsb-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.15);display:inline-block;flex-shrink:0;}
+.lsb-dot.g{background:#00ff88;box-shadow:0 0 4px rgba(0,255,136,0.6);animation:lsbPulse 2s infinite;}
+.lsb-dot.r{background:#ff4466;box-shadow:0 0 4px rgba(255,68,102,0.5);}
+.lsb-dot.y{background:#ffaa00;box-shadow:0 0 4px rgba(255,170,0,0.5);animation:lsbPulse 2.5s infinite;}
+.lsb-sep{width:1px;height:12px;background:rgba(255,255,255,0.07);flex-shrink:0;}
+.lsb-bigsep{width:1px;height:16px;background:rgba(255,255,255,0.12);margin:0 6px;flex-shrink:0;}
+@keyframes lsbPulse{0%,100%{opacity:1;}50%{opacity:0.5;}}
+</style>
+<script>
+(function(){
+  var BASE=(window.RAILWAY_URL||window.location.origin);
+  function dot(id,cls){var el=document.getElementById(id);if(el)el.className="lsb-dot "+cls;}
+  function txt(id,val){var el=document.getElementById(id);if(el)el.textContent=val;}
+  function fetchLSB(){
+    fetch(BASE+"/check-status",{signal:AbortSignal.timeout(6000)})
+      .then(function(r){return r.json();})
+      .then(function(d){
+        dot("lsbApi","g");
+        var n=d.open_bets_supabase||0;
+        txt("lsbOpenVal",n+" open");
+        dot("lsbOpenPos",n>0?"y":"g");
+      })
+      .catch(function(){dot("lsbApi","r");});
+    fetch(BASE+"/account-summary",{signal:AbortSignal.timeout(8000)})
+      .then(function(r){return r.json();})
+      .then(function(d){
+        var eq=d.wallet_balance||d.equity||d.available;
+        if(eq!=null)txt("lsbBalance","$"+parseFloat(eq).toFixed(2));
+        dot("lsbKraken",d.kraken_reachable===false?"r":"g");
+        dot("lsbBot",d.bot_paused?"y":"g");
+        txt("lsbBotLabel",d.bot_paused?"PAUSED":"RUNNING");
+        if(d.last_signal_at){
+          var age=Math.round((Date.now()-new Date(d.last_signal_at))/60000);
+          txt("lsbLastSig",age<60?age+"m ago":Math.floor(age/60)+"h ago");
+          dot("lsbSigAge",age<15?"g":age<30?"y":"r");
+        }
+      })
+      .catch(function(){});
+    fetch(BASE+"/n8n-status",{signal:AbortSignal.timeout(6000)})
+      .then(function(r){return r.json();})
+      .then(function(d){
+        var wfs=d.workflows||{};
+        var keys=Object.keys(wfs);
+        function wfDot(dotId,num){
+          var found=keys.find(function(k){return wfs[k].name&&wfs[k].name.indexOf("0"+num)>-1;});
+          dot(dotId,found&&wfs[found].active?"g":"r");
+        }
+        wfDot("lsbWf01","1");wfDot("lsbWf02","2");wfDot("lsbWf07","7");
+      })
+      .catch(function(){dot("lsbWf01","r");dot("lsbWf02","r");dot("lsbWf07","r");});
+  }
+  fetchLSB();
+  setInterval(fetchLSB,60000);
+})();
+</script>
 
 </body>
 </html>
