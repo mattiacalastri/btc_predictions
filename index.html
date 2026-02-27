@@ -2289,7 +2289,7 @@
   /* ── TRON/MATRIX BURGER MENU ─────────────────────────────── */
   .tron-menu-btn {
     display: flex; align-items: center; justify-content: center;
-    width: 36px; height: 36px;
+    width: 46px; height: 46px;
     background: rgba(0,170,255,0.06);
     border: 1px solid rgba(0,170,255,0.25);
     border-radius: 3px; cursor: pointer;
@@ -2324,16 +2324,16 @@
 
   /* Drawer */
   #tronMenuDrawer {
-    position: fixed; top: 0; left: -310px;
+    position: fixed; top: 0; right: -310px;
     width: 288px; height: 100vh;
     z-index: 5000;
     background: #04060d;
     border-right: 1px solid rgba(0,170,255,0.18);
     box-shadow: 4px 0 40px rgba(0,0,0,0.8), 0 0 60px rgba(0,170,255,0.06);
-    transition: left 0.34s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: right 0.34s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex; flex-direction: column; overflow: hidden;
   }
-  #tronMenuDrawer.open { left: 0; }
+  #tronMenuDrawer.open { right: 0; }
 
   /* Scanlines overlay */
   #tronMenuDrawer::before {
@@ -2722,9 +2722,6 @@
       <div style="font-size:10px;color:var(--muted);letter-spacing:1.5px;margin-top:3px;font-family:'JetBrains Mono',monospace;">Claude Sonnet + XGBoost · Dual-Gate AI · <span style="color:rgba(168,85,247,0.8);">Every Transaction Verified On-Chain</span></div>
     </div>
     <div class="header-right">
-      <button class="tron-menu-btn" id="tronMenuBtn" onclick="toggleTronMenu()" title="Navigation Menu" aria-label="Open navigation menu">
-        <svg width="16" height="14" viewBox="0 0 16 14" fill="none"><path d="M0 1h16M0 7h16M0 13h16" stroke="#00aaff" stroke-width="1.5" stroke-linecap="square"/></svg>
-      </button>
       <div class="btc-live-ticker">
         <div class="btc-live-price" id="btcLivePrice">—</div>
         <div class="btc-price-meta">BTC/USD · LIVE <span class="btc-price-change" id="btcPriceChange"></span></div>
@@ -2746,6 +2743,9 @@
         </div>
       </div>
       <button class="intro-reopen-btn" id="introReopenBtn" onclick="showIntro()" title="What is this? — Info for new visitors" style="display:none">? ABOUT</button>
+      <button class="tron-menu-btn" id="tronMenuBtn" onclick="toggleTronMenu()" title="Navigation Menu" aria-label="Open navigation menu">
+        <svg width="20" height="17" viewBox="0 0 16 14" fill="none"><path d="M0 1h16M0 7h16M0 13h16" stroke="#00aaff" stroke-width="1.5" stroke-linecap="square"/></svg>
+      </button>
     </div>
   </header>
 
