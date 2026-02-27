@@ -3911,6 +3911,13 @@ def xgboost_spiegato():
     return html, 200, {"Content-Type": "text/html"}
 
 
+@app.route("/privacy", methods=["GET"])
+def privacy():
+    with open("privacy.html", "r") as f:
+        html = f.read()
+    return html, 200, {"Content-Type": "text/html"}
+
+
 @app.route("/dashboard", methods=["GET"])
 def dashboard():
     # Use the actual request host so API calls always go same-origin.

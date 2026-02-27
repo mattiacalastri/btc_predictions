@@ -784,6 +784,31 @@
 
     .newsletter-form button:hover { background: var(--gold); color: var(--navy); }
 
+    .newsletter-gdpr {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-top: 14px;
+      cursor: pointer;
+    }
+    .newsletter-gdpr input[type="checkbox"] {
+      margin-top: 2px;
+      flex-shrink: 0;
+      accent-color: var(--gold);
+      width: 14px;
+      height: 14px;
+      cursor: pointer;
+    }
+    .newsletter-gdpr span {
+      font-size: 0.7rem;
+      color: var(--muted-2);
+      line-height: 1.5;
+    }
+    .newsletter-gdpr a {
+      color: var(--gold);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
     .newsletter-note {
       font-family: var(--font-mono);
       font-size: 0.6rem;
@@ -1293,6 +1318,12 @@
         <input type="email" placeholder="la.tua@email.com" required autocomplete="email">
         <button type="submit">Iscriviti →</button>
       </form>
+      <label class="newsletter-gdpr">
+        <input type="checkbox" required id="gdprCheck">
+        <span>Acconsento al trattamento dell'email ai sensi del GDPR (Reg. UE 2016/679) ·
+          <a href="https://btcpredictor.io/privacy" target="_blank" rel="noopener">Privacy Policy</a>
+        </span>
+      </label>
       <p class="newsletter-note">Nessuno spam. Nessuna vendita. Solo educazione finanziaria ogni settimana.</p>
     </div>
   </div>

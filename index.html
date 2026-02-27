@@ -8887,6 +8887,10 @@ window.addEventListener('load', function() {
 #satEmailInp::placeholder{color:rgba(255,255,255,.17);}
 #satEmailBtn{background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.25);color:#00ff88;font-size:12px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background .18s;border-radius:2px;}
 #satEmailBtn:hover{background:rgba(0,255,136,.22);}
+#satGdpr{display:none;padding:4px 11px 8px;font-size:9px;color:rgba(255,255,255,.25);line-height:1.5;}
+#satGdpr a{color:rgba(0,255,136,.45);text-decoration:none;}
+#satGdpr a:hover{color:#00ff88;}
+#satGdpr.gdpr-show{display:block;}
 </style>
 
 <div id="satW">
@@ -8912,6 +8916,7 @@ window.addEventListener('load', function() {
              onkeydown="if(event.key==='Enter')satEmailSubmit()">
       <button id="satEmailBtn" onclick="satEmailSubmit()">✓</button>
     </div>
+    <div id="satGdpr">Cliccando ✓ acconsenti al trattamento dell'email ai sensi del GDPR · <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a></div>
   </div>
   <div id="satAv" onclick="satToggle()" title="Parla con Satoshi">₿</div>
 </div>
@@ -9039,6 +9044,7 @@ window.addEventListener('load', function() {
         botSay(EMAIL_ASK,950,function(){
           $i('satInpWrap').style.display='none';
           $i('satEmailWrap').classList.add('se-show');
+          $i('satGdpr').classList.add('gdpr-show');
           setTimeout(function(){$i('satEmailInp').focus();},80);
         });
       }
