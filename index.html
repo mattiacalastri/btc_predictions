@@ -4719,8 +4719,8 @@ function renderLivePosition() {
   const pnlPct  = entry ? ((cur - entry) / entry * 100 * (dir === 'UP' ? 1 : -1)).toFixed(2) : '0.00';
 
   const range     = (sl > 0 && tp > 0) ? tp - sl : 0;
-  const entryPct  = range > 0 ? Math.max(1, Math.min(99, ((entry - sl) / range) * 100)) : 40;
-  const livePct   = range > 0 ? Math.max(1, Math.min(99, ((cur   - sl) / range) * 100)) : 50;
+  const entryPct  = range !== 0 ? Math.max(1, Math.min(99, ((entry - sl) / range) * 100)) : 40;
+  const livePct   = range !== 0 ? Math.max(1, Math.min(99, ((cur   - sl) / range) * 100)) : 50;
 
   // DOM updates
   document.getElementById('lpBetId').textContent       = '#' + openBet.id;

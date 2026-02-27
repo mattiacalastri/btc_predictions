@@ -978,6 +978,121 @@ if(localStorage.getItem('btcp_ga_consent')==='granted'){
   .gnav-burger{display:none;background:none;border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);font-size:14px;cursor:pointer;padding:5px 9px;border-radius:3px;transition:border-color .2s;}
   .gnav-burger:hover{border-color:rgba(255,255,255,.4);}
   @media(max-width:680px){.gnav-links{display:none;}.gnav-links.gnav-open{display:flex;flex-direction:column;gap:0;position:absolute;top:52px;left:0;right:0;background:rgba(10,10,15,.99);border-bottom:1px solid rgba(247,147,26,.15);padding:8px 0;z-index:999;}.gnav-links.gnav-open a{display:block;padding:12px 28px;border-radius:0;border:none;}.gnav-burger{display:block;}}
+
+  /* ── NONNA ENTRY ──────────────────────────────────── */
+  .entry-nonna {
+    border-color: rgba(201,168,76,0.25);
+    background: linear-gradient(135deg, rgba(201,168,76,0.04) 0%, transparent 60%);
+    position: relative;
+    overflow: hidden;
+  }
+  .entry-nonna::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(201,168,76,0.6), rgba(201,168,76,0.9), rgba(201,168,76,0.6), transparent);
+  }
+  .nonna-num { color: #C9A84C !important; }
+  .entry-role-tag.nonna-tag {
+    background: rgba(201,168,76,0.12);
+    border: 1px solid rgba(201,168,76,0.3);
+    color: #C9A84C;
+  }
+  .nonna-tagline { color: #C9A84C; opacity: 0.85; }
+  .nonna-era {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    margin: 1.5rem 0 2rem;
+    padding: 1rem 1.5rem;
+    background: rgba(201,168,76,0.06);
+    border-left: 3px solid rgba(201,168,76,0.5);
+    border-radius: 0 6px 6px 0;
+  }
+  .nonna-year {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #C9A84C;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .nonna-separator { color: rgba(201,168,76,0.4); font-size: 1.5rem; }
+  .nonna-context {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    color: rgba(232,224,208,0.5);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .nonna-quote {
+    border-left-color: #C9A84C !important;
+    color: #C9A84C !important;
+    background: rgba(201,168,76,0.06);
+    padding: 1.5rem 2rem;
+    border-radius: 0 8px 8px 0;
+    font-style: italic;
+    line-height: 1.7;
+  }
+  .nonna-reveal {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 8px;
+    background: rgba(201,168,76,0.04);
+  }
+  .nonna-reveal-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: rgba(201,168,76,0.7);
+    margin-bottom: 0.75rem;
+  }
+  .nonna-reveal p {
+    font-size: 0.95rem;
+    color: rgba(232,224,208,0.75);
+    line-height: 1.65;
+  }
+  .nonna-cta-bridge {
+    margin-top: 2.5rem;
+    padding: 2rem;
+    background: rgba(201,168,76,0.08);
+    border: 1px solid rgba(201,168,76,0.3);
+    border-radius: 10px;
+    text-align: center;
+  }
+  .nonna-cta-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: rgba(201,168,76,0.6);
+    margin-bottom: 1rem;
+  }
+  .nonna-cta-btn {
+    display: inline-block;
+    background: #C9A84C;
+    color: #0a0a0f;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-decoration: none;
+    padding: 0.85rem 2.2rem;
+    border-radius: 4px;
+    transition: background 0.2s, transform 0.15s;
+  }
+  .nonna-cta-btn:hover { background: #E8D08A; transform: translateY(-1px); }
+  .nonna-cta-sub {
+    margin-top: 1rem;
+    font-size: 0.82rem;
+    color: rgba(232,224,208,0.4);
+    font-style: italic;
+    line-height: 1.5;
+  }
 </style>
 </head>
 <body>
@@ -1358,6 +1473,89 @@ if(localStorage.getItem('btcp_ga_consent')==='granted'){
     </div>
   </div>
 
+  <!-- 11 — Ferdinando -->
+  <div class="entry-compact entry" data-entry>
+    <div class="entry-compact-left">11</div>
+    <div class="entry-compact-right">
+      <div class="entry-compact-name"><span class="emoji">🛡️</span> Ferdinando</div>
+      <div class="entry-compact-role">Guardia del Fortino — Collaboratore d'Agenzia</div>
+      <div class="entry-compact-body">
+        Mentre Mattia costruiva il bot di notte e di giorno,
+        qualcuno teneva in piedi l'agenzia. Ferdinando ha capito da solo — senza che nessuno glielo chiedesse —
+        che stava succedendo qualcosa di importante, e ha preso in mano la delivery e i clienti.
+        Non è un contributo tecnico. È più prezioso: è la fiducia silenziosa di chi
+        <strong>tiene il fronte senza disturbare chi sta costruendo</strong>.
+        Un'agenzia che non crolla mentre il fondatore segue una visione — questo è il contributo di Ferdinando.
+      </div>
+    </div>
+  </div>
+
+  <div class="timeline-marker" data-entry>
+    <div class="timeline-dot" style="background:#C9A84C;box-shadow:0 0 12px rgba(201,168,76,0.6)"></div>
+    <div class="timeline-text" style="color:rgba(201,168,76,0.7)">1997–1998 — trent'anni prima</div>
+  </div>
+
+  <!-- 10 — La Nonna -->
+  <div class="entry entry-nonna" data-entry>
+    <div class="entry-meta">
+      <span class="entry-num nonna-num">10</span>
+      <span class="entry-role-tag nonna-tag">Prima Investitrice Contrarian — Nonna di Mattia</span>
+    </div>
+    <h2 class="entry-name"><span class="emoji">👵</span>La Nonna</h2>
+    <div class="entry-tagline nonna-tagline">L'unica a non perdere una lira. L'unica ad aver capito prima.</div>
+
+    <div class="nonna-era">
+      <span class="nonna-year">1997</span>
+      <span class="nonna-separator">&mdash;</span>
+      <span class="nonna-context">Italia · l'anno prima dell'Euro · tutti compravano BOT</span>
+    </div>
+
+    <p class="entry-body">
+      In Italia andava di moda un solo investimento: i <strong>BOT</strong> — <em>Buoni Ordinari del Tesoro</em>.
+      Titoli di Stato "sicuri", comprati per abitudine, senza fare domande.
+      Giampaolo — grande economista, amico di università di <strong>Nonno Oreste</strong>,
+      che tutti chiamavano semplicemente <em>"Oro"</em> — diceva il contrario:
+      diversifica, usa sistemi, non restare immobile su un solo strumento.<br><br>
+      Tra tutti i loro conoscenti, <strong>una sola persona lo ha ascoltato</strong>.
+      Ha messo una lira reale. Ha seguito la logica invece della folla.
+    </p>
+
+    <div class="entry-quote nonna-quote">
+      "Sono stata l'unica a non perdere una lira.<br>
+      Non mi fidavo di nessuno, solo di Giampaolo.<br>
+      E ho fatto sempre bene fino all'ultimo."
+    </div>
+
+    <p class="entry-body" style="margin-top:2rem">
+      Trent'anni dopo, suo nipote ha costruito un <strong>bot</strong> — software —
+      che fa esattamente quello che Giampaolo teorizzava negli anni '90.
+      La parola è la stessa. Il concetto è lo stesso.
+      Quando gliene ha parlato, lei ha detto una cosa sola:<br><br>
+      <em style="color:rgba(201,168,76,0.85)">"Anche lui è uno che segue una logica importante."</em>
+    </p>
+
+    <div class="nonna-reveal">
+      <div class="nonna-reveal-label">La connessione che non sapevamo</div>
+      <p>
+        Mattia aveva scelto il nome AUREO. Il colore oro. Il termine <em>"gold standard"</em>
+        ripetuto in tutto il progetto — senza capire perché.
+        Solo in quella conversazione è emerso: Nonno Oreste, <em>"una persona davvero d'oro"</em>,
+        era il nonno paterno. Il nome della nonna glielo aveva già detto.
+        <strong>AUREO = aureus = oro.</strong>
+        Il nome era nell'inconscio. Lui lo ha scoperto dopo.
+      </p>
+    </div>
+
+    <div class="nonna-cta-bridge">
+      <div class="nonna-cta-label">Quella storia ha dato il via a qualcosa di nuovo</div>
+      <a href="/aureo" class="nonna-cta-btn">Scopri AUREO &rarr;</a>
+      <p class="nonna-cta-sub">
+        Educazione finanziaria italiana. Gratuita. Verificabile.<br>
+        Nata dall'eredità di Nonno Oro — e dal paradosso che sua nipote aveva già risolto trent'anni fa.
+      </p>
+    </div>
+  </div>
+
 </main>
 
 <!-- ── SECTION DIVIDER ── -->
@@ -1457,8 +1655,8 @@ if(localStorage.getItem('btcp_ga_consent')==='granted'){
   }
 
   setTimeout(() => {
-    animateCount(document.getElementById('c1'), 9,  800);
-    animateCount(document.getElementById('c2'), 8,  800);
+    animateCount(document.getElementById('c1'), 12, 800);
+    animateCount(document.getElementById('c2'), 11, 800);
     animateCount(document.getElementById('c3'), 1,  800);
   }, 1200);
 
