@@ -8493,7 +8493,10 @@ window.addEventListener('load', function() {
   }
 
   document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') { toggleTronMenu(false); skipTutorial(); }
+    if (e.key === 'Escape') {
+      toggleTronMenu(false);
+      if (document.getElementById('tutorialOverlay').classList.contains('tut-active')) skipTutorial();
+    }
   });
 
   // ── TUTORIAL SPOTLIGHT ─────────────────────────────────────────────────────
