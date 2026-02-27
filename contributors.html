@@ -73,6 +73,7 @@ if(localStorage.getItem('btcp_ga_consent')==='granted'){
     font-size: 16px;
     line-height: 1.6;
     overflow-x: hidden;
+    padding-top: 78px;
   }
 
   /* ── GRAIN OVERLAY ── */
@@ -964,7 +965,7 @@ if(localStorage.getItem('btcp_ga_consent')==='granted'){
     .footer-links { align-items: flex-start; }
   }
   /* ─── GLOBAL NAV ─── */
-  .gnav{position:sticky;top:0;z-index:1000;height:52px;background:rgba(10,10,15,.97);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid rgba(247,147,26,.12);display:flex;align-items:center;justify-content:space-between;padding:0 28px;}
+  .gnav{position:fixed;width:100%;top:0;z-index:1000;height:52px;background:rgba(10,10,15,.97);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid rgba(247,147,26,.12);display:flex;align-items:center;justify-content:space-between;padding:0 28px;}
   .gnav-logo{display:flex;align-items:center;gap:9px;text-decoration:none;color:#fff;font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;font-family:'SF Mono','Fira Code','Courier New',monospace;}
   .gnav-pulse{width:7px;height:7px;border-radius:50%;background:#00ff88;box-shadow:0 0 8px #00ff88;flex-shrink:0;animation:gnavPulse 2s ease-in-out infinite;}
   @keyframes gnavPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.85)}}
@@ -1611,7 +1612,7 @@ var form=document.querySelector('form');
 if(form)form.addEventListener('submit',function(){trackEvent('contribution_submitted',{});});
 </script>
 <style>
-.lsb{display:flex;align-items:center;gap:8px;background:#070710;border-bottom:1px solid rgba(255,255,255,0.06);padding:4px 24px;height:26px;overflow-x:auto;scrollbar-width:none;position:sticky;top:52px;z-index:99;}
+.lsb{display:flex;align-items:center;gap:8px;background:#070710;border-bottom:1px solid rgba(255,255,255,0.06);padding:4px 24px;height:26px;overflow-x:auto;scrollbar-width:none;position:fixed;top:52px;left:0;right:0;z-index:99;}
 .lsb::-webkit-scrollbar{display:none;}
 .lsb-label{font-size:7px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.22);margin-right:1px;white-space:nowrap;font-family:'JetBrains Mono',monospace;}
 .lsb-item{display:flex;align-items:center;gap:4px;font-size:8px;color:rgba(255,255,255,0.4);letter-spacing:0.5px;white-space:nowrap;flex-shrink:0;font-family:'JetBrains Mono',monospace;}
