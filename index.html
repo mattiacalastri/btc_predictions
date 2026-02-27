@@ -8771,5 +8771,105 @@ window.addEventListener('load', function() {
     localStorage.setItem('btcp_tutorial_done', '1');
   }
   </script>
+
+<!-- ── SATOSHI WIDGET ─────────────────────────────────────────── -->
+<style>
+#satoshiWidget{position:fixed;bottom:24px;left:24px;z-index:8990;display:flex;flex-direction:column;align-items:flex-start;gap:10px;pointer-events:none;}
+#satoshiWidget>*{pointer-events:auto;}
+#satoshiAvatar{width:42px;height:42px;border-radius:50%;background:rgba(10,12,25,.97);border:1.5px solid rgba(247,147,26,.45);color:#f7931a;font-size:17px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 0 20px rgba(247,147,26,.12),0 2px 8px rgba(0,0,0,.5);transition:transform .18s,box-shadow .18s;user-select:none;flex-shrink:0;}
+#satoshiAvatar:hover{transform:scale(1.09);box-shadow:0 0 28px rgba(247,147,26,.35),0 2px 8px rgba(0,0,0,.5);}
+#satoshiBubble{background:rgba(10,12,25,.97);border:1px solid rgba(247,147,26,.22);border-radius:12px 12px 12px 2px;padding:14px 38px 12px 16px;max-width:268px;position:relative;font-family:'SF Mono','Fira Code','Courier New',monospace;font-size:11px;line-height:1.7;color:rgba(255,255,255,.82);box-shadow:0 4px 24px rgba(0,0,0,.55),0 0 16px rgba(247,147,26,.05);}
+#satoshiBubble.sat-visible{animation:satPop .32s cubic-bezier(.175,.885,.32,1.275) both;}
+#satoshiBubble.sat-hiding{animation:satHide .2s ease forwards;}
+#satoshiBubble.sat-hidden{display:none;}
+@keyframes satPop{from{opacity:0;transform:scale(.82) translateY(10px);}to{opacity:1;transform:scale(1) translateY(0);}}
+@keyframes satHide{to{opacity:0;transform:scale(.82) translateY(10px);}}
+#satoshiMsgText{min-height:28px;}
+.sat-cursor{display:inline-block;width:6px;height:11px;background:rgba(247,147,26,.75);margin-left:1px;vertical-align:middle;animation:satCur .9s step-end infinite;}
+@keyframes satCur{0%,100%{opacity:1}50%{opacity:0}}
+.sat-sig{margin-top:9px;color:rgba(247,147,26,.45);font-size:9px;letter-spacing:.12em;text-transform:uppercase;}
+.sat-next{display:inline-block;margin-top:6px;color:rgba(255,255,255,.22);font-size:9px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:color .18s;}
+.sat-next:hover{color:rgba(255,255,255,.6);}
+#satoshiClose{position:absolute;top:8px;right:11px;background:none;border:none;color:rgba(255,255,255,.22);font-size:15px;cursor:pointer;line-height:1;padding:2px 4px;transition:color .18s;}
+#satoshiClose:hover{color:rgba(255,255,255,.65);}
+</style>
+
+<div id="satoshiWidget">
+  <div id="satoshiBubble" class="sat-hidden">
+    <button id="satoshiClose" onclick="satClose()">×</button>
+    <div id="satoshiMsgText"></div>
+    <div class="sat-sig">— Satoshi, probabilmente</div>
+    <div class="sat-next" onclick="satNext()">prossimo →</div>
+  </div>
+  <div id="satoshiAvatar" onclick="satToggle()" title="Satoshi ha qualcosa da dire">₿</div>
+</div>
+
+<script>
+(function(){
+  const MSGS = [
+    "The chain doesn't lie.\nNeither does the data.",
+    "On-chain verified.\nZero trust required.",
+    "261 trade. Tutti hashati.\nTutti pubblici.\nCome il genesis block.",
+    "Ho costruito Bitcoin per rimuovere\ngli intermediari.\nQuesto è il passo successivo.",
+    "Trust the math.\nVerify the chain.",
+    "Ogni predizione: timestampata.\nOgni bet: pubblica.\nQuesto è ciò che avevo in mente.",
+    "Un sistema senza terze parti fidate.\nA partire dai tuoi trade.",
+    "Il genesis block era timestampato\nper un motivo.\nCome ogni segnale qui.",
+    "Don't trust. Verify.\nA partire da ogni segnale\nin questo dashboard.",
+    "La trasparenza non è un bonus.\nÈ il protocollo."
+  ];
+  let idx = 0, typing = false, typeTimer;
+  const bubble = () => document.getElementById('satoshiBubble');
+  const msgEl  = () => document.getElementById('satoshiMsgText');
+
+  function typeMsg(txt) {
+    typing = true;
+    clearInterval(typeTimer);
+    const el = msgEl(); el.innerHTML = '';
+    let i = 0;
+    typeTimer = setInterval(() => {
+      if (i < txt.length) {
+        el.innerHTML = txt.slice(0, ++i).replace(/\n/g, '<br>') + '<span class="sat-cursor"></span>';
+      } else {
+        el.innerHTML = txt.replace(/\n/g, '<br>');
+        typing = false;
+        clearInterval(typeTimer);
+      }
+    }, 36);
+  }
+
+  function showBubble() {
+    const b = bubble();
+    b.classList.remove('sat-hidden','sat-hiding');
+    void b.offsetWidth;
+    b.classList.add('sat-visible');
+    typeMsg(MSGS[idx]);
+  }
+
+  window.satClose = function() {
+    const b = bubble();
+    clearInterval(typeTimer); typing = false;
+    b.classList.add('sat-hiding');
+    setTimeout(() => { b.classList.remove('sat-visible','sat-hiding'); b.classList.add('sat-hidden'); }, 210);
+    sessionStorage.setItem('satoshi_closed','1');
+  };
+
+  window.satToggle = function() {
+    bubble().classList.contains('sat-hidden') ? showBubble() : satClose();
+  };
+
+  window.satNext = function() {
+    if (typing) return;
+    idx = (idx + 1) % MSGS.length;
+    showBubble();
+  };
+
+  // Auto-show dopo 4.5s se non già chiuso in questa sessione
+  if (!sessionStorage.getItem('satoshi_closed')) {
+    setTimeout(showBubble, 4500);
+  }
+})();
+</script>
+<!-- ── END SATOSHI WIDGET ──────────────────────────────────────── -->
 </body>
 </html>
