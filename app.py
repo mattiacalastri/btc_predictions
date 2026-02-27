@@ -2704,6 +2704,159 @@ def backtest_data():
         return jsonify({"error": str(e)}), 500
 
 
+# ── PUBLIC CONTRIBUTIONS ──────────────────────────────────────────────────────
+
+_CONTRIBUTION_ROLES = {
+    "trader":    "Trader",
+    "developer": "Developer",
+    "crypto":    "Crypto Expert",
+    "visionary": "Visionario",
+    "friend":    "Amico / Parente",
+    "other":     "Altro",
+}
+_CONTRIBUTION_MAX_CHARS = 500
+_CONTRIBUTION_RATE = {}   # ip → last_submit timestamp (in-memory, ephemeral)
+_CONTRIBUTION_COOLDOWN = 300  # 5 min between submissions per IP
+
+
+@app.route("/submit-contribution", methods=["POST"])
+def submit_contribution():
+    """
+    Public endpoint — zero personal data stored.
+    Accepts: role (dropdown), insight (text), consent (bool).
+    No name, no email, no IP stored in DB.
+    """
+    # ── Rate limit by IP (in-memory, not stored) ──
+    ip = request.headers.get("X-Forwarded-For", request.remote_addr or "unknown").split(",")[0].strip()
+    now = time.time()
+    last = _CONTRIBUTION_RATE.get(ip, 0)
+    if now - last < _CONTRIBUTION_COOLDOWN:
+        remaining = int(_CONTRIBUTION_COOLDOWN - (now - last))
+        return jsonify({"ok": False, "error": "rate_limited",
+                        "message": f"Aspetta {remaining // 60}m {remaining % 60}s prima di inviare un altro contributo."}), 429
+    _CONTRIBUTION_RATE[ip] = now
+
+    data = request.get_json(silent=True) or {}
+    role    = str(data.get("role", "other"))[:20].strip()
+    insight = str(data.get("insight", ""))[:_CONTRIBUTION_MAX_CHARS].strip()
+    consent = bool(data.get("consent", False))
+
+    if not insight or len(insight) < 10:
+        return jsonify({"ok": False, "error": "insight troppo corto (min 10 caratteri)"}), 400
+    if role not in _CONTRIBUTION_ROLES:
+        role = "other"
+    if not consent:
+        return jsonify({"ok": False, "error": "consenso obbligatorio"}), 400
+
+    # ── Save to Supabase (zero personal data) ──
+    supabase_url = os.environ.get("SUPABASE_URL", "")
+    supabase_key = os.environ.get("SUPABASE_SERVICE_KEY", os.environ.get("SUPABASE_KEY", ""))
+    if not supabase_url or not supabase_key:
+        return jsonify({"ok": False, "error": "DB non configurato"}), 500
+
+    payload = {"role": role, "insight": insight, "consent_given": True, "approved": False}
+    headers = {
+        "apikey": supabase_key,
+        "Authorization": f"Bearer {supabase_key}",
+        "Content-Type": "application/json",
+        "Prefer": "return=representation",
+    }
+    try:
+        r = requests.post(
+            f"{supabase_url}/rest/v1/contributions",
+            json=payload, headers=headers, timeout=8,
+        )
+        if r.status_code not in (200, 201):
+            return jsonify({"ok": False, "error": "Errore salvataggio"}), 500
+        saved = r.json()
+        contrib_id = saved[0]["id"] if saved else "?"
+    except Exception as e:
+        return jsonify({"ok": False, "error": "Errore DB"}), 500
+
+    # ── Telegram notification to owner (no personal data, just role+insight) ──
+    telegram_token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    telegram_owner = os.environ.get("TELEGRAM_OWNER_ID", "")
+    approve_url = f"{os.environ.get('RAILWAY_URL', 'https://btcpredictor.io')}/approve-contribution/{contrib_id}?key={os.environ.get('BOT_API_KEY', '')}"
+    if telegram_token and telegram_owner:
+        try:
+            msg = (
+                f"📥 *Nuovo contributo \\#{contrib_id}*\n\n"
+                f"*Ruolo*: {_CONTRIBUTION_ROLES.get(role, role)}\n\n"
+                f"*Insight*:\n_{insight[:300]}_\n\n"
+                f"[✅ Approva]({approve_url})"
+            )
+            requests.post(
+                f"https://api.telegram.org/bot{telegram_token}/sendMessage",
+                json={"chat_id": telegram_owner, "text": msg, "parse_mode": "MarkdownV2",
+                      "disable_web_page_preview": True},
+                timeout=5,
+            )
+        except Exception:
+            pass  # Telegram notification is best-effort
+
+    return jsonify({"ok": True, "message": "Contributo ricevuto — verrà pubblicato dopo revisione. Grazie!"})
+
+
+@app.route("/public-contributions", methods=["GET"])
+def public_contributions():
+    """Return approved contributions — role + insight + month/year only. Zero personal data."""
+    supabase_url = os.environ.get("SUPABASE_URL", "")
+    supabase_key = os.environ.get("SUPABASE_KEY", "")
+    if not supabase_url or not supabase_key:
+        return jsonify([])
+    try:
+        r = requests.get(
+            f"{supabase_url}/rest/v1/contributions"
+            "?select=id,role,insight,created_at"
+            "&approved=eq.true"
+            "&order=created_at.desc"
+            "&limit=50",
+            headers={"apikey": supabase_key, "Authorization": f"Bearer {supabase_key}"},
+            timeout=8,
+        )
+        if not r.ok:
+            return jsonify([])
+        rows = r.json() or []
+        # Strip timestamp to month/year only — no fingerprinting
+        for row in rows:
+            if row.get("created_at"):
+                try:
+                    from datetime import datetime as _dt
+                    dt = _dt.fromisoformat(row["created_at"].replace("Z", "+00:00"))
+                    row["date_label"] = dt.strftime("%B %Y")
+                except Exception:
+                    row["date_label"] = "2026"
+                del row["created_at"]
+        return jsonify(rows)
+    except Exception:
+        return jsonify([])
+
+
+@app.route("/approve-contribution/<int:contrib_id>", methods=["GET"])
+def approve_contribution(contrib_id):
+    """Owner-only: approve a contribution. Called via link in Telegram."""
+    err = _check_api_key()
+    if err:
+        return err
+    supabase_url = os.environ.get("SUPABASE_URL", "")
+    supabase_key = os.environ.get("SUPABASE_SERVICE_KEY", os.environ.get("SUPABASE_KEY", ""))
+    try:
+        r = requests.patch(
+            f"{supabase_url}/rest/v1/contributions?id=eq.{contrib_id}",
+            json={"approved": True},
+            headers={"apikey": supabase_key, "Authorization": f"Bearer {supabase_key}",
+                     "Content-Type": "application/json"},
+            timeout=8,
+        )
+        if r.ok:
+            return jsonify({"ok": True, "message": f"Contributo #{contrib_id} approvato e pubblicato."})
+        return jsonify({"ok": False, "error": "Errore approvazione"}), 500
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ── BACKTEST ───────────────────────────────────────────────────────────────────
+
 _last_backtest_run = 0.0
 _BACKTEST_COOLDOWN = 3600  # seconds (1 hour)
 

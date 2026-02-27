@@ -659,6 +659,253 @@
 
   .entry-claude .claude-glow { animation: glowPulse 3s ease-in-out infinite; }
 
+  /* ── COMMUNITY CONTRIBUTIONS ── */
+  .contrib-section {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+  }
+
+  /* Submitted contributions stream */
+  .contrib-stream {
+    margin-bottom: 64px;
+  }
+
+  .contrib-stream-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .contrib-stream-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .contrib-card {
+    padding: 20px 24px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    margin-bottom: 12px;
+    background: rgba(255,255,255,0.015);
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+
+  .contrib-card.visible { opacity: 1; transform: none; }
+
+  .contrib-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .contrib-card-role {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border: 1px solid var(--border);
+    color: var(--orange);
+    border-color: rgba(247,147,26,0.3);
+    border-radius: 2px;
+  }
+
+  .contrib-card-date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  .contrib-card-anon {
+    font-size: 9px;
+    color: var(--muted);
+    margin-left: auto;
+  }
+
+  .contrib-card-text {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: 15px;
+    color: var(--text);
+    line-height: 1.7;
+  }
+
+  /* Form */
+  .contrib-form-wrap {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 40px 40px;
+    background: rgba(255,255,255,0.015);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .contrib-form-wrap::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--orange), transparent);
+  }
+
+  .contrib-form-ornament {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--orange);
+    margin-bottom: 16px;
+  }
+
+  .contrib-form-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(28px, 5vw, 48px);
+    font-weight: 900;
+    color: var(--white);
+    margin-bottom: 12px;
+    line-height: 1.1;
+  }
+
+  .contrib-form-desc {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.8;
+    max-width: 560px;
+    margin-bottom: 24px;
+  }
+
+  .contrib-privacy-notice {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    background: rgba(0,212,255,0.04);
+    border: 1px solid rgba(0,212,255,0.12);
+    border-radius: 4px;
+    padding: 12px 16px;
+    margin-bottom: 28px;
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .contrib-privacy-notice strong { color: var(--cyan); }
+  .contrib-privacy-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+  .contrib-field { margin-bottom: 20px; }
+
+  .contrib-label {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .contrib-select,
+  .contrib-textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 14px;
+    padding: 12px 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+
+  .contrib-select:focus,
+  .contrib-textarea:focus { border-color: var(--orange); }
+
+  .contrib-select option { background: #1a1a24; }
+  .contrib-textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
+
+  .contrib-charcount {
+    text-align: right;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .contrib-consent-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    margin-bottom: 24px;
+  }
+
+  .contrib-consent-row input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    margin-top: 2px;
+    accent-color: var(--orange);
+    cursor: pointer;
+  }
+
+  .contrib-consent-row label {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+    cursor: pointer;
+  }
+
+  .contrib-submit {
+    background: var(--orange);
+    color: #000;
+    border: none;
+    padding: 12px 28px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+
+  .contrib-submit:hover { opacity: 0.85; }
+  .contrib-submit:active { transform: scale(0.98); }
+  .contrib-submit:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .contrib-feedback {
+    margin-top: 16px;
+    padding: 12px 16px;
+    border-radius: 4px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .contrib-feedback.ok {
+    background: rgba(0,255,136,0.06);
+    border: 1px solid rgba(0,255,136,0.2);
+    color: #00ff88;
+  }
+
+  .contrib-feedback.err {
+    background: rgba(255,80,80,0.06);
+    border: 1px solid rgba(255,80,80,0.2);
+    color: #ff5050;
+  }
+
   /* ── RESPONSIVE ── */
   @media (max-width: 640px) {
     .hero { padding: 60px 20px 40px; }
@@ -1005,6 +1252,68 @@
   <div class="section-divider-line"></div>
 </div>
 
+<!-- ── COMMUNITY CONTRIBUTIONS ── -->
+<section class="contrib-section" id="contribuisci">
+
+  <!-- Community submissions display -->
+  <div class="contrib-stream" id="contribStream">
+    <!-- populated by JS -->
+  </div>
+
+  <!-- Form -->
+  <div class="contrib-form-wrap" id="contribFormWrap">
+    <div class="contrib-form-ornament">btcpredictor.io / contributi</div>
+    <h2 class="contrib-form-title">Anche tu hai un'idea?</h2>
+    <p class="contrib-form-desc">
+      Ogni intuizione conta — grande o piccola. Se hai un pensiero su come migliorare il progetto,
+      mandalo. Verrà pubblicato anonimamente qui sotto, senza nomi né dati personali.
+    </p>
+
+    <div class="contrib-privacy-notice">
+      <span class="contrib-privacy-icon">🔒</span>
+      <span><strong>Zero dati personali.</strong> Non raccogliamo nome, email o indirizzo IP.
+      Solo la tua idea e il tuo ruolo (categoria generica). GDPR compliant.</span>
+    </div>
+
+    <form id="contribForm" onsubmit="submitContrib(event)">
+      <div class="contrib-field">
+        <label class="contrib-label" for="contribRole">Come ti descrivi?</label>
+        <select id="contribRole" class="contrib-select" required>
+          <option value="" disabled selected>Scegli una categoria</option>
+          <option value="trader">Trader</option>
+          <option value="developer">Developer</option>
+          <option value="crypto">Crypto Expert</option>
+          <option value="visionary">Visionario</option>
+          <option value="friend">Amico / Parente</option>
+          <option value="other">Altro</option>
+        </select>
+      </div>
+
+      <div class="contrib-field">
+        <label class="contrib-label" for="contribInsight">La tua idea / intuizione</label>
+        <textarea id="contribInsight" class="contrib-textarea" maxlength="500" rows="4"
+          placeholder="Un'intuizione tecnica, una critica, un'osservazione di mercato, un'idea folle..."></textarea>
+        <div class="contrib-charcount"><span id="contribCount">0</span> / 500</div>
+      </div>
+
+      <div class="contrib-consent-row">
+        <input type="checkbox" id="contribConsent" required>
+        <label for="contribConsent">
+          Accetto che questo contributo venga pubblicato anonimamente su btcpredictor.io.
+          Nessun dato personale viene memorizzato.
+        </label>
+      </div>
+
+      <button type="submit" class="contrib-submit" id="contribSubmitBtn">
+        Invia il contributo →
+      </button>
+
+      <div id="contribFeedback" class="contrib-feedback" style="display:none"></div>
+    </form>
+  </div>
+
+</section>
+
 <!-- ── FOOTER ── -->
 <footer class="footer">
   <div class="footer-left">
@@ -1072,10 +1381,115 @@
       twEl.innerHTML = chars + QUOTE[twIndex] + '<span class="typewriter-cursor"></span>';
       twIndex++;
       setTimeout(typeNext, twIndex < 3 ? 80 : 70);
-    } else {
-      // leave cursor blinking
     }
   }
+
+  // ── Community contributions ──────────────────────────────────────────────
+  const ROLE_LABELS = {
+    trader: 'Trader', developer: 'Developer', crypto: 'Crypto Expert',
+    visionary: 'Visionario', friend: 'Amico / Parente', other: 'Altro'
+  };
+
+  const BASE_URL = 'https://web-production-e27d0.up.railway.app';
+
+  async function loadContributions() {
+    const stream = document.getElementById('contribStream');
+    try {
+      const r = await fetch(BASE_URL + '/public-contributions', { signal: AbortSignal.timeout(8000) });
+      if (!r.ok) return;
+      const data = await r.json();
+      if (!data || !data.length) return;
+
+      stream.innerHTML = '<div class="contrib-stream-title">Contributi dalla community</div>';
+      data.forEach((c, i) => {
+        const card = document.createElement('div');
+        card.className = 'contrib-card';
+        card.style.transitionDelay = (i * 80) + 'ms';
+        card.innerHTML = `
+          <div class="contrib-card-meta">
+            <span class="contrib-card-role">${ROLE_LABELS[c.role] || c.role}</span>
+            <span class="contrib-card-date">${c.date_label || ''}</span>
+            <span class="contrib-card-anon">🔒 anonimo</span>
+          </div>
+          <div class="contrib-card-text">"${escHtml(c.insight)}"</div>`;
+        stream.appendChild(card);
+
+        // Trigger reveal
+        setTimeout(() => {
+          const obs = new IntersectionObserver(([e]) => {
+            if (e.isIntersecting) { card.classList.add('visible'); obs.disconnect(); }
+          }, { threshold: 0.1 });
+          obs.observe(card);
+          card.classList.add('visible'); // immediate if already visible
+        }, 50 + i * 80);
+      });
+    } catch (e) { /* silent — contributions are optional */ }
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // Char counter
+  const ta = document.getElementById('contribInsight');
+  const cc = document.getElementById('contribCount');
+  if (ta && cc) {
+    ta.addEventListener('input', () => { cc.textContent = ta.value.length; });
+  }
+
+  async function submitContrib(e) {
+    e.preventDefault();
+    const btn      = document.getElementById('contribSubmitBtn');
+    const feedback = document.getElementById('contribFeedback');
+    const role     = document.getElementById('contribRole').value;
+    const insight  = document.getElementById('contribInsight').value.trim();
+    const consent  = document.getElementById('contribConsent').checked;
+
+    if (!role || !insight || !consent) return;
+
+    btn.disabled = true;
+    btn.textContent = 'Invio...';
+    feedback.style.display = 'none';
+
+    try {
+      const r = await fetch(BASE_URL + '/submit-contribution', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role, insight, consent: true }),
+        signal: AbortSignal.timeout(12000),
+      });
+      const data = await r.json();
+
+      if (data.ok) {
+        feedback.className = 'contrib-feedback ok';
+        feedback.textContent = data.message || 'Contributo ricevuto. Grazie!';
+        feedback.style.display = 'block';
+        document.getElementById('contribForm').reset();
+        if (cc) cc.textContent = '0';
+        btn.textContent = '✓ Inviato';
+      } else if (r.status === 429) {
+        feedback.className = 'contrib-feedback err';
+        feedback.textContent = data.message || 'Aspetta prima di inviare un altro contributo.';
+        feedback.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Invia il contributo →';
+      } else {
+        feedback.className = 'contrib-feedback err';
+        feedback.textContent = data.error || 'Errore. Riprova tra qualche secondo.';
+        feedback.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Invia il contributo →';
+      }
+    } catch (err) {
+      feedback.className = 'contrib-feedback err';
+      feedback.textContent = 'Errore di rete. Riprova.';
+      feedback.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Invia il contributo →';
+    }
+  }
+
+  loadContributions();
 </script>
 </body>
 </html>
