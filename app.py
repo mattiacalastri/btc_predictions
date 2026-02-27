@@ -436,7 +436,7 @@ def health():
         "capital": capital,
         "wallet_equity": wallet_equity,
         "base_size": base_size,
-        "confidence_threshold": float(os.environ.get("CONF_THRESHOLD", "0.65")),
+        "confidence_threshold": float(os.environ.get("CONF_THRESHOLD", "0.75")),
     })
 
 
@@ -3136,7 +3136,7 @@ def training_status():
         "calibration_cooldown_remaining_secs": cal_remaining_secs,
         # Bot configuration & model status (for Training Tab in dashboard)
         "dead_hours": sorted(list(DEAD_HOURS_UTC)),
-        "confidence_threshold": float(os.environ.get("CONF_THRESHOLD", "0.65")),
+        "confidence_threshold": float(os.environ.get("CONF_THRESHOLD", "0.75")),
         "base_size_btc": float(os.environ.get("BASE_SIZE", "0.002")),
         "xgb_loaded": _XGB_MODEL is not None,
         "correctness_loaded": _xgb_correctness is not None,
