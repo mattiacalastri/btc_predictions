@@ -8833,104 +8833,271 @@ window.addEventListener('load', function() {
   }
   </script>
 
-<!-- ── SATOSHI WIDGET ─────────────────────────────────────────── -->
+<!-- ── SATOSHI WIDGET v2 ─────────────────────────────────────── -->
 <style>
-#satoshiWidget{position:fixed;bottom:24px;left:24px;z-index:8990;display:flex;flex-direction:column;align-items:flex-start;gap:10px;pointer-events:none;}
-#satoshiWidget>*{pointer-events:auto;}
-#satoshiAvatar{width:42px;height:42px;border-radius:50%;background:rgba(10,12,25,.97);border:1.5px solid rgba(247,147,26,.45);color:#f7931a;font-size:17px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 0 20px rgba(247,147,26,.12),0 2px 8px rgba(0,0,0,.5);transition:transform .18s,box-shadow .18s;user-select:none;flex-shrink:0;}
-#satoshiAvatar:hover{transform:scale(1.09);box-shadow:0 0 28px rgba(247,147,26,.35),0 2px 8px rgba(0,0,0,.5);}
-#satoshiBubble{background:rgba(10,12,25,.97);border:1px solid rgba(247,147,26,.22);border-radius:12px 12px 12px 2px;padding:14px 38px 12px 16px;max-width:268px;position:relative;font-family:'SF Mono','Fira Code','Courier New',monospace;font-size:11px;line-height:1.7;color:rgba(255,255,255,.82);box-shadow:0 4px 24px rgba(0,0,0,.55),0 0 16px rgba(247,147,26,.05);}
-#satoshiBubble.sat-visible{animation:satPop .32s cubic-bezier(.175,.885,.32,1.275) both;}
-#satoshiBubble.sat-hiding{animation:satHide .2s ease forwards;}
-#satoshiBubble.sat-hidden{display:none;}
-@keyframes satPop{from{opacity:0;transform:scale(.82) translateY(10px);}to{opacity:1;transform:scale(1) translateY(0);}}
-@keyframes satHide{to{opacity:0;transform:scale(.82) translateY(10px);}}
-#satoshiMsgText{min-height:28px;}
-.sat-cursor{display:inline-block;width:6px;height:11px;background:rgba(247,147,26,.75);margin-left:1px;vertical-align:middle;animation:satCur .9s step-end infinite;}
-@keyframes satCur{0%,100%{opacity:1}50%{opacity:0}}
-.sat-sig{margin-top:9px;color:rgba(247,147,26,.45);font-size:9px;letter-spacing:.12em;text-transform:uppercase;}
-.sat-next{display:inline-block;margin-top:6px;color:rgba(255,255,255,.22);font-size:9px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:color .18s;}
-.sat-next:hover{color:rgba(255,255,255,.6);}
-#satoshiClose{position:absolute;top:8px;right:11px;background:none;border:none;color:rgba(255,255,255,.22);font-size:15px;cursor:pointer;line-height:1;padding:2px 4px;transition:color .18s;}
-#satoshiClose:hover{color:rgba(255,255,255,.65);}
+#satW{position:fixed;bottom:24px;left:24px;z-index:8990;display:flex;flex-direction:column;align-items:flex-start;gap:10px;pointer-events:none;}
+#satW>*{pointer-events:auto;}
+/* avatar */
+#satAv{width:42px;height:42px;border-radius:50%;background:rgba(8,10,22,.97);border:1.5px solid rgba(247,147,26,.45);color:#f7931a;font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 0 18px rgba(247,147,26,.12),0 2px 8px rgba(0,0,0,.5);transition:transform .18s,box-shadow .18s,border-color .18s;user-select:none;flex-shrink:0;}
+#satAv:hover{transform:scale(1.09);box-shadow:0 0 28px rgba(247,147,26,.35),0 2px 8px rgba(0,0,0,.5);}
+#satAv.open{border-color:rgba(247,147,26,.9);box-shadow:0 0 22px rgba(247,147,26,.28),0 2px 8px rgba(0,0,0,.5);}
+/* panel */
+#satPanel{width:300px;height:440px;display:flex;flex-direction:column;background:rgba(8,10,22,.98);border:1px solid rgba(247,147,26,.2);box-shadow:0 8px 40px rgba(0,0,0,.7),0 0 20px rgba(247,147,26,.05);overflow:hidden;transform-origin:bottom left;}
+#satPanel.sp-hidden{display:none;}
+#satPanel.sp-in{animation:spIn .3s cubic-bezier(.175,.885,.32,1.275) both;}
+#satPanel.sp-out{animation:spOut .2s ease forwards;}
+@keyframes spIn{from{opacity:0;transform:scale(.88) translateY(14px);}to{opacity:1;transform:scale(1) translateY(0);}}
+@keyframes spOut{to{opacity:0;transform:scale(.88) translateY(14px);}}
+/* header */
+#satHdr{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid rgba(247,147,26,.1);flex-shrink:0;}
+.shinfo{display:flex;align-items:center;gap:9px;}
+.shav{width:26px;height:26px;border-radius:50%;background:rgba(247,147,26,.1);border:1px solid rgba(247,147,26,.35);color:#f7931a;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.shname{font-family:'SF Mono','Fira Code','Courier New',monospace;font-size:11px;font-weight:700;color:rgba(255,255,255,.9);letter-spacing:.05em;}
+.shstatus{font-size:8.5px;color:rgba(0,255,136,.55);letter-spacing:.1em;font-family:'SF Mono','Fira Code','Courier New',monospace;margin-top:1px;}
+#satXBtn{background:none;border:none;color:rgba(255,255,255,.22);font-size:16px;cursor:pointer;line-height:1;padding:3px 6px;transition:color .15s;}
+#satXBtn:hover{color:rgba(255,255,255,.65);}
+/* messages */
+#satMsgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;min-height:0;scroll-behavior:smooth;}
+#satMsgs::-webkit-scrollbar{width:3px;}
+#satMsgs::-webkit-scrollbar-thumb{background:rgba(247,147,26,.18);border-radius:2px;}
+.sm{max-width:88%;font-family:'SF Mono','Fira Code','Courier New',monospace;font-size:10.5px;line-height:1.68;padding:9px 12px;word-break:break-word;}
+.sm-bot{align-self:flex-start;background:rgba(247,147,26,.07);border:1px solid rgba(247,147,26,.14);color:rgba(255,255,255,.82);border-radius:0 10px 10px 10px;}
+.sm-user{align-self:flex-end;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);color:rgba(255,255,255,.68);border-radius:10px 10px 0 10px;}
+/* typing dots */
+.sm-dots{align-self:flex-start;padding:10px 14px;display:flex;gap:4px;align-items:center;background:rgba(247,147,26,.05);border:1px solid rgba(247,147,26,.1);border-radius:0 10px 10px 10px;}
+.sm-dots span{width:5px;height:5px;border-radius:50%;background:rgba(247,147,26,.5);animation:sdot 1.1s ease-in-out infinite;}
+.sm-dots span:nth-child(2){animation-delay:.22s;}
+.sm-dots span:nth-child(3){animation-delay:.44s;}
+@keyframes sdot{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)}}
+/* typewriter cursor */
+.sc{display:inline-block;width:6px;height:10px;background:rgba(247,147,26,.8);margin-left:1px;vertical-align:middle;animation:scur .85s step-end infinite;}
+@keyframes scur{0%,100%{opacity:1}50%{opacity:0}}
+/* text input row */
+#satInpWrap{flex-shrink:0;border-top:1px solid rgba(247,147,26,.1);padding:9px 11px;display:flex;gap:7px;align-items:center;}
+#satInp{flex:1;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.09);color:rgba(255,255,255,.8);font-family:'SF Mono','Fira Code','Courier New',monospace;font-size:10.5px;padding:7px 10px;outline:none;transition:border-color .18s;border-radius:2px;}
+#satInp:focus{border-color:rgba(247,147,26,.4);}
+#satInp::placeholder{color:rgba(255,255,255,.17);}
+#satSnd{background:rgba(247,147,26,.12);border:1px solid rgba(247,147,26,.3);color:#f7931a;font-size:13px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background .18s;border-radius:2px;}
+#satSnd:hover{background:rgba(247,147,26,.25);}
+/* email input row */
+#satEmailWrap{flex-shrink:0;border-top:1px solid rgba(0,255,136,.1);padding:9px 11px;display:none;gap:7px;align-items:center;}
+#satEmailWrap.se-show{display:flex;}
+#satEmailInp{flex:1;background:rgba(255,255,255,.03);border:1px solid rgba(0,255,136,.2);color:rgba(255,255,255,.8);font-family:'SF Mono','Fira Code','Courier New',monospace;font-size:10.5px;padding:7px 10px;outline:none;transition:border-color .18s;border-radius:2px;}
+#satEmailInp:focus{border-color:rgba(0,255,136,.55);}
+#satEmailInp::placeholder{color:rgba(255,255,255,.17);}
+#satEmailBtn{background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.25);color:#00ff88;font-size:12px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background .18s;border-radius:2px;}
+#satEmailBtn:hover{background:rgba(0,255,136,.22);}
 </style>
 
-<div id="satoshiWidget">
-  <div id="satoshiBubble" class="sat-hidden">
-    <button id="satoshiClose" onclick="satClose()">×</button>
-    <div id="satoshiMsgText"></div>
-    <div class="sat-sig">— Satoshi, probabilmente</div>
-    <div class="sat-next" onclick="satNext()">prossimo →</div>
+<div id="satW">
+  <div id="satPanel" class="sp-hidden">
+    <div id="satHdr">
+      <div class="shinfo">
+        <div class="shav">₿</div>
+        <div>
+          <div class="shname">Satoshi</div>
+          <div class="shstatus">● on-chain · sempre</div>
+        </div>
+      </div>
+      <button id="satXBtn" onclick="satPanelClose()">×</button>
+    </div>
+    <div id="satMsgs"></div>
+    <div id="satInpWrap">
+      <input id="satInp" type="text" placeholder="Scrivi a Satoshi..." maxlength="200"
+             onkeydown="if(event.key==='Enter')satSend()">
+      <button id="satSnd" onclick="satSend()">→</button>
+    </div>
+    <div id="satEmailWrap">
+      <input id="satEmailInp" type="email" placeholder="La tua email..."
+             onkeydown="if(event.key==='Enter')satEmailSubmit()">
+      <button id="satEmailBtn" onclick="satEmailSubmit()">✓</button>
+    </div>
   </div>
-  <div id="satoshiAvatar" onclick="satToggle()" title="Satoshi ha qualcosa da dire">₿</div>
+  <div id="satAv" onclick="satToggle()" title="Parla con Satoshi">₿</div>
 </div>
 
 <script>
 (function(){
-  const MSGS = [
-    "The chain doesn't lie.\nNeither does the data.",
-    "On-chain verified.\nZero trust required.",
-    "261 trade. Tutti hashati.\nTutti pubblici.\nCome il genesis block.",
-    "Ho costruito Bitcoin per rimuovere\ngli intermediari.\nQuesto è il passo successivo.",
-    "Trust the math.\nVerify the chain.",
-    "Ogni predizione: timestampata.\nOgni bet: pubblica.\nQuesto è ciò che avevo in mente.",
-    "Un sistema senza terze parti fidate.\nA partire dai tuoi trade.",
-    "Il genesis block era timestampato\nper un motivo.\nCome ogni segnale qui.",
-    "Don't trust. Verify.\nA partire da ogni segnale\nin questo dashboard.",
-    "La trasparenza non è un bonus.\nÈ il protocollo."
-  ];
-  let idx = 0, typing = false, typeTimer;
-  const bubble = () => document.getElementById('satoshiBubble');
-  const msgEl  = () => document.getElementById('satoshiMsgText');
+  /* ── responses ── */
+  var R={
+    greet:  ["Sono qui.\nCosa vuoi sapere?",
+             "Il genesis block era silenzio.\nPoi tutto è cominciato.\nDimmi."],
+    btc:    ["Bitcoin risolve un problema\nche la maggioranza non sa ancora\ndi avere.",
+             "La scarsità è codice.\nIl codice è legge.\nIl resto è rumore."],
+    pred:   ["261 trade aperti e chiusi.\nOgni hash su Polygon.\nNon chiedere fiducia — verifica.",
+             "L'AI genera. L'economista valida.\nLa blockchain registra.\nTu verifichi."],
+    chain:  ["Polygon PoS.\nContratto 0xe4661F7dB626...\nAperto. Sempre.",
+             "Ogni bet committata on-chain\nprima di aprire.\nImpossibile fare cherry-picking."],
+    how:    ["1. Signal AI\n2. Validazione economista\n3. Commit on-chain (prima)\n4. Trade su Kraken\n5. Resolve on-chain (dopo)\n6. Tu verifichi tutto."],
+    trust:  ["La fiducia è un protocollo rotto.\nL'on-chain è il fix.",
+             "Non chiedo fiducia.\nTi do hash. Ti do contratti.\nVerifica da solo."],
+    aureo:  ["L'Italia risparmia più di quasi tutti.\nE perde più di quasi tutti.\nAUREO vuole chiudere quel gap.\naureo.it — gratis, forever."],
+    result: ["53% win rate. Live.\nI dati non mentono.",
+             "261 trade verificabili.\nOgni predizione hashata.\nIl track record è sul dashboard."],
+    thanks: ["The chain doesn't lie.",
+             "Il codice è aperto.\nI trade sono pubblici."],
+    dflt:   ["Alcune cose restano nell'ombra.\nAltre sono on-chain per sempre.",
+             "Non ho abbastanza dati.\nProva con una domanda diversa.",
+             "Il silenzio ha valore.\nMa meriti una risposta migliore."]
+  };
+  var EMAIL_ASK="Sei ancora qui.\nSignifica che sei curioso.\n\nLasciami un'email —\nti avviso quando qualcosa\ncambia on-chain.\nNiente spam. Zero.";
+  var EMAIL_OK ="Salvato.\nNiente spam. Solo segnali.\n\nThe chain doesn't lie. \u20bf";
+  var EMAIL_NO ="Come vuoi.\nIl dashboard è sempre aperto.";
 
-  function typeMsg(txt) {
-    typing = true;
-    clearInterval(typeTimer);
-    const el = msgEl(); el.innerHTML = '';
-    let i = 0;
-    typeTimer = setInterval(() => {
-      if (i < txt.length) {
-        el.innerHTML = txt.slice(0, ++i).replace(/\n/g, '<br>') + '<span class="sat-cursor"></span>';
-      } else {
-        el.innerHTML = txt.replace(/\n/g, '<br>');
-        typing = false;
-        clearInterval(typeTimer);
+  /* ── state ── */
+  var exchanges=0, emailAsked=false, emailDone=false, typing=false, typeTimer=null;
+
+  function $i(id){return document.getElementById(id);}
+  function rand(a){return a[Math.floor(Math.random()*a.length)];}
+  function scrollMsgs(){var m=$i('satMsgs');m.scrollTop=m.scrollHeight;}
+
+  function addMsg(html,role){
+    var d=document.createElement('div');
+    d.className='sm sm-'+(role==='bot'?'bot':'user');
+    d.innerHTML=html;
+    $i('satMsgs').appendChild(d);
+    scrollMsgs();
+    return d;
+  }
+
+  function showDots(){
+    var d=document.createElement('div');
+    d.id='satDots';d.className='sm-dots';
+    d.innerHTML='<span></span><span></span><span></span>';
+    $i('satMsgs').appendChild(d);scrollMsgs();
+  }
+  function rmDots(){var d=$i('satDots');if(d)d.remove();}
+
+  function typeInto(el,text,cb){
+    typing=true;
+    if(typeTimer){clearInterval(typeTimer);typeTimer=null;}
+    el.innerHTML='';
+    var t=text.replace(/\n/g,'<br>');
+    var i=0;
+    typeTimer=setInterval(function(){
+      if(i<t.length){
+        if(t.slice(i,i+4)==='<br>'){i+=4;}else{i++;}
+        el.innerHTML=t.slice(0,i)+'<span class="sc"></span>';
+        scrollMsgs();
+      }else{
+        el.innerHTML=t;
+        clearInterval(typeTimer);typeTimer=null;
+        typing=false;
+        if(cb)cb();
       }
-    }, 36);
+    },30);
   }
 
-  function showBubble() {
-    const b = bubble();
-    b.classList.remove('sat-hidden','sat-hiding');
-    void b.offsetWidth;
-    b.classList.add('sat-visible');
-    typeMsg(MSGS[idx]);
+  function botSay(text,delay,cb){
+    var pause=Math.min(850,text.replace(/\n/g,' ').length*6+180);
+    setTimeout(function(){
+      showDots();
+      setTimeout(function(){
+        rmDots();
+        var el=addMsg('','bot');
+        typeInto(el,text,cb);
+      },pause);
+    },delay||0);
   }
 
-  window.satClose = function() {
-    const b = bubble();
-    clearInterval(typeTimer); typing = false;
-    b.classList.add('sat-hiding');
-    setTimeout(() => { b.classList.remove('sat-visible','sat-hiding'); b.classList.add('sat-hidden'); }, 210);
-    sessionStorage.setItem('satoshi_closed','1');
+  /* ── intent ── */
+  function intent(t){
+    t=t.toLowerCase();
+    if(/\b(ciao|hello|hey|salve|buongiorno|buonasera|hi\b|hola)\b/.test(t)) return 'greet';
+    if(/\b(come funziona|how|spiegami|explain|step|processo|pipeline)\b/.test(t)) return 'how';
+    if(/\b(bitcoin|btc|crypto|criptovaluta)\b/.test(t)) return 'btc';
+    if(/\b(previsioni?|predizioni?|signal|segnale|trade|modello|xgb)\b/.test(t)) return 'pred';
+    if(/\b(onchain|on.chain|polygon|hash|contratto|verif)\b/.test(t)) return 'chain';
+    if(/\b(fid[aio]|trust|sicuro|affidabile|legit)\b/.test(t)) return 'trust';
+    if(/\b(aureo|finanza|invest|risparmio|italia|etf|pensione)\b/.test(t)) return 'aureo';
+    if(/\b(risultat|result|win|loss|pnl|53|261|performance)\b/.test(t)) return 'result';
+    if(/\b(grazie|thanks|ok|capito|cool|bello|wow|super)\b/.test(t)) return 'thanks';
+    if(/\b(skip|no grazie|passa|dopo|non|newsletter)\b/.test(t)) return '__skip';
+    return 'dflt';
+  }
+
+  /* ── send ── */
+  window.satSend=function(){
+    if(typing)return;
+    var v=$i('satInp').value.trim();if(!v)return;
+    $i('satInp').value='';
+    addMsg(v,'user');
+    exchanges++;
+    // email typed directly in chat
+    if(!emailDone&&/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)){doSaveEmail(v);return;}
+    var it=intent(v);
+    if(it==='__skip'&&emailAsked){
+      emailDone=true;
+      $i('satEmailWrap').classList.remove('se-show');
+      $i('satInpWrap').style.display='flex';
+      botSay(EMAIL_NO,250);
+      return;
+    }
+    botSay(rand(R[it]||R.dflt),350,function(){
+      if(exchanges>=2&&!emailAsked&&!emailDone){
+        emailAsked=true;
+        botSay(EMAIL_ASK,950,function(){
+          $i('satInpWrap').style.display='none';
+          $i('satEmailWrap').classList.add('se-show');
+          setTimeout(function(){$i('satEmailInp').focus();},80);
+        });
+      }
+    });
   };
 
-  window.satToggle = function() {
-    bubble().classList.contains('sat-hidden') ? showBubble() : satClose();
+  /* ── email submit ── */
+  window.satEmailSubmit=function(){
+    var e=$i('satEmailInp').value.trim();
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e))return;
+    $i('satEmailInp').value='';
+    $i('satEmailWrap').classList.remove('se-show');
+    $i('satInpWrap').style.display='flex';
+    addMsg(e,'user');
+    doSaveEmail(e);
   };
 
-  window.satNext = function() {
-    if (typing) return;
-    idx = (idx + 1) % MSGS.length;
-    showBubble();
+  function doSaveEmail(email){
+    emailDone=true;
+    fetch('/satoshi-lead',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({email:email,source:'satoshi_widget',metadata:{exchanges:exchanges}})
+    }).catch(function(){});
+    botSay(EMAIL_OK,350);
+  }
+
+  /* ── open / close ── */
+  function openPanel(){
+    var p=$i('satPanel');
+    p.classList.remove('sp-hidden','sp-out');
+    void p.offsetWidth;
+    p.classList.add('sp-in');
+    $i('satAv').classList.add('open');
+    if($i('satMsgs').children.length===0){
+      botSay("The chain doesn't lie.\nNeither does the data.\n\nCosa vuoi sapere?",320);
+    }
+    setTimeout(function(){$i('satInp').focus();},380);
+    sessionStorage.setItem('sat_seen','1');
+  }
+
+  window.satPanelClose=function(){
+    var p=$i('satPanel');
+    p.classList.remove('sp-in');
+    p.classList.add('sp-out');
+    setTimeout(function(){p.classList.remove('sp-out');p.classList.add('sp-hidden');},210);
+    $i('satAv').classList.remove('open');
   };
 
-  // Auto-show dopo 4.5s se non già chiuso in questa sessione
-  if (!sessionStorage.getItem('satoshi_closed')) {
-    setTimeout(showBubble, 4500);
+  window.satToggle=function(){
+    $i('satPanel').classList.contains('sp-hidden')?openPanel():satPanelClose();
+  };
+
+  /* auto-open una volta per sessione dopo 5s */
+  if(!sessionStorage.getItem('sat_seen')){
+    setTimeout(openPanel,5000);
   }
 })();
 </script>
-<!-- ── END SATOSHI WIDGET ──────────────────────────────────────── -->
+<!-- ── END SATOSHI WIDGET v2 ─────────────────────────────────── -->
 </body>
 </html>
