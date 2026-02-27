@@ -9044,7 +9044,7 @@ window.addEventListener('load', function() {
       <button id="satSnd" onclick="satSend()">→</button>
     </div>
     <div id="satEmailWrap">
-      <input id="satEmailInp" type="email" placeholder="La tua email..."
+      <input id="satEmailInp" type="email" placeholder="Niente spam."
              onkeydown="if(event.key==='Enter')satEmailSubmit()">
       <button id="satEmailBtn" onclick="satEmailSubmit()">✓</button>
     </div>
@@ -9077,7 +9077,8 @@ window.addEventListener('load', function() {
              "Non ho abbastanza dati.\nProva con una domanda diversa.",
              "Il silenzio ha valore.\nMa meriti una risposta migliore."]
   };
-  var EMAIL_ASK="Sei ancora qui.\nSignifica che sei curioso.\n\nLasciami un'email —\nti avviso quando qualcosa\ncambia on-chain.\nNiente spam. Zero.";
+  var PRE_EMAIL ="Stai ancora cercando.\n\nÈ raro.\nSi vede subito.";
+  var EMAIL_ASK="Sei ancora qui.\nSignifica che sei curioso.\n\nLasciami un'email —\nti avviso quando qualcosa\ncambia on-chain.\nNiente spam.";
   var EMAIL_OK ="Salvato.\nNiente spam. Solo segnali.\n\nThe chain doesn't lie. \u20bf";
   var EMAIL_NO ="Come vuoi.\nIl dashboard è sempre aperto.";
 
@@ -9170,7 +9171,9 @@ window.addEventListener('load', function() {
       botSay(EMAIL_NO,250);
       return;
     }
-    botSay(rand(R[it]||R.dflt),350,function(){
+    var willAskEmail=exchanges>=2&&!emailAsked&&!emailDone;
+    var reply=(willAskEmail&&it==='dflt')?PRE_EMAIL:rand(R[it]||R.dflt);
+    botSay(reply,350,function(){
       if(exchanges>=2&&!emailAsked&&!emailDone){
         emailAsked=true;
         botSay(EMAIL_ASK,950,function(){
