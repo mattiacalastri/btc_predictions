@@ -2417,6 +2417,16 @@
   .tron-menu-footer-link.poly:hover { color: #8247e5; border-color: rgba(130,71,229,0.4); background: rgba(130,71,229,0.08); }
   .tron-menu-footer-link.tg:hover { color: #29b6f6; border-color: rgba(41,182,246,0.4); background: rgba(41,182,246,0.08); }
   .tron-menu-footer-link svg { flex-shrink: 0; }
+  .tron-menu-wallet {
+    margin-top: 8px; padding: 6px 10px;
+    background: rgba(247,147,26,0.05); border: 1px solid rgba(247,147,26,0.15);
+    border-radius: 4px; cursor: pointer; transition: background 0.15s, border-color 0.15s;
+    display: flex; align-items: center; gap: 6px; width: 100%;
+  }
+  .tron-menu-wallet:hover { background: rgba(247,147,26,0.1); border-color: rgba(247,147,26,0.35); }
+  .tron-menu-wallet-label { font-size: 7px; letter-spacing: .14em; color: rgba(247,147,26,0.7); text-transform: uppercase; font-weight: 700; flex-shrink: 0; }
+  .tron-menu-wallet-addr { font-size: 6.5px; letter-spacing: .03em; color: rgba(255,255,255,0.28); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+  .tron-menu-wallet-copied { font-size: 7px; color: rgba(0,255,136,0.9); display: none; flex-shrink: 0; letter-spacing: .1em; }
 
   /* On mobile: drawer wider */
   @media (max-width: 480px) {
@@ -8520,6 +8530,12 @@ window.addEventListener('load', function() {
             <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.26 13.746l-2.956-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.884.813z"/></svg>
             TELEGRAM
           </a>
+        </div>
+        <div class="tron-menu-wallet" id="walletCopyBtn" onclick="(function(){navigator.clipboard.writeText('0x7Ac896F18ce52a0520dA49C3129520f7B70d51f0');var c=document.getElementById('walletCopied');c.style.display='inline';setTimeout(function(){c.style.display='none'},1800);})()" title="Copia indirizzo wallet — Polygon PoS · Donazioni">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="rgba(247,147,26,0.7)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
+          <span class="tron-menu-wallet-label">⬡ WALLET</span>
+          <span class="tron-menu-wallet-addr">0x7Ac896F18ce52a0520dA49C3129520f7B70d51f0</span>
+          <span class="tron-menu-wallet-copied" id="walletCopied">✓ COPIATO</span>
         </div>
       </div>
 
