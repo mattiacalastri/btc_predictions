@@ -3542,6 +3542,13 @@ def manifesto():
     return html, 200, {"Content-Type": "text/html"}
 
 
+@app.route("/contributors", methods=["GET"])
+def contributors():
+    with open("contributors.html", "r") as f:
+        html = f.read()
+    return html, 200, {"Content-Type": "text/html"}
+
+
 @app.route("/dashboard", methods=["GET"])
 def dashboard():
     # Use the actual request host so API calls always go same-origin.
@@ -3554,6 +3561,13 @@ def dashboard():
     inject = f'<script>window.RAILWAY_URL = {json.dumps(railway_url)};</script>'
     html = html.replace("</head>", inject + "\n</head>", 1)
     return html, 200, {"Content-Type": "text/html"}
+
+@app.errorhandler(404)
+def page_not_found(e):
+    with open("404.html", "r") as f:
+        html = f.read()
+    return html, 404, {"Content-Type": "text/html"}
+
 
 # ── MAIN ─────────────────────────────────────────────────────────────────────
 

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>404 — btcpredictor.io</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syne:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #020509;
+    --cyan: #00d4ff;
+    --orange: #f7931a;
+    --green: #00ff41;
+    --muted: #1a3a4a;
+    --text: #9ecfdf;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  /* ── GRID TRON ── */
+  .tron-grid {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+    animation: gridShift 8s linear infinite;
+    transform-origin: center;
+    perspective: 400px;
+  }
+
+  @keyframes gridShift {
+    0%   { background-position: 0 0; }
+    100% { background-position: 48px 48px; }
+  }
+
+  /* ── SCAN LINE ── */
+  .scanline {
+    position: fixed;
+    left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+    opacity: 0.15;
+    animation: scan 4s linear infinite;
+    pointer-events: none;
+  }
+
+  @keyframes scan {
+    0%   { top: -2px; }
+    100% { top: 100vh; }
+  }
+
+  /* ── MATRIX RAIN (canvas) ── */
+  #matrixCanvas {
+    position: fixed;
+    inset: 0;
+    opacity: 0.07;
+    pointer-events: none;
+  }
+
+  /* ── CONTENT ── */
+  .content {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    padding: 24px;
+  }
+
+  .error-code {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(120px, 22vw, 240px);
+    font-weight: 900;
+    line-height: 1;
+    color: transparent;
+    -webkit-text-stroke: 1px var(--cyan);
+    letter-spacing: -8px;
+    position: relative;
+    animation: glitch 3s infinite;
+  }
+
+  .error-code::before,
+  .error-code::after {
+    content: '404';
+    position: absolute;
+    inset: 0;
+    font-family: 'Syne', sans-serif;
+    font-size: inherit;
+    font-weight: 900;
+    letter-spacing: inherit;
+    -webkit-text-stroke: 1px;
+  }
+
+  .error-code::before {
+    color: var(--orange);
+    -webkit-text-stroke-color: var(--orange);
+    clip-path: polygon(0 0, 100% 0, 100% 40%, 0 40%);
+    animation: glitchTop 3s infinite;
+    opacity: 0.6;
+  }
+
+  .error-code::after {
+    color: var(--cyan);
+    -webkit-text-stroke-color: var(--cyan);
+    clip-path: polygon(0 60%, 100% 60%, 100% 100%, 0 100%);
+    animation: glitchBot 3s infinite;
+    opacity: 0.6;
+  }
+
+  @keyframes glitch {
+    0%, 92%, 100% { transform: none; }
+    93% { transform: skewX(-2deg) translateX(3px); }
+    95% { transform: skewX(2deg) translateX(-3px); }
+    97% { transform: none; }
+  }
+
+  @keyframes glitchTop {
+    0%, 92%, 100% { transform: none; }
+    93% { transform: translateX(-6px); }
+    95% { transform: translateX(6px); }
+    97% { transform: none; }
+  }
+
+  @keyframes glitchBot {
+    0%, 92%, 100% { transform: none; }
+    93% { transform: translateX(6px); }
+    95% { transform: translateX(-6px); }
+    97% { transform: none; }
+  }
+
+  .error-label {
+    font-size: 11px;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    color: var(--cyan);
+    margin-bottom: 8px;
+    opacity: 0.7;
+    animation: fadeIn 1s 0.3s both;
+  }
+
+  .error-msg {
+    font-size: 13px;
+    color: var(--text);
+    opacity: 0.6;
+    margin-bottom: 40px;
+    animation: fadeIn 1s 0.5s both;
+  }
+
+  .terminal-line {
+    font-size: 12px;
+    color: var(--green);
+    margin-bottom: 32px;
+    animation: fadeIn 1s 0.7s both;
+  }
+
+  .terminal-line::before { content: '> '; opacity: 0.5; }
+
+  .cursor {
+    display: inline-block;
+    width: 8px;
+    height: 14px;
+    background: var(--green);
+    vertical-align: middle;
+    animation: blink 0.8s step-end infinite;
+    margin-left: 2px;
+  }
+
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  .nav-links {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    flex-wrap: wrap;
+    animation: fadeIn 1s 0.9s both;
+  }
+
+  .nav-link {
+    color: var(--cyan);
+    text-decoration: none;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    padding: 10px 20px;
+    border: 1px solid rgba(0,212,255,0.25);
+    border-radius: 2px;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .nav-link::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0,212,255,0.05);
+    transform: translateX(-100%);
+    transition: transform 0.3s;
+  }
+
+  .nav-link:hover { border-color: var(--cyan); color: #fff; }
+  .nav-link:hover::before { transform: translateX(0); }
+
+  .nav-link.orange {
+    color: var(--orange);
+    border-color: rgba(247,147,26,0.25);
+  }
+  .nav-link.orange:hover { border-color: var(--orange); color: #fff; }
+  .nav-link.orange::before { background: rgba(247,147,26,0.05); }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  /* ── CORNER DECORATIONS ── */
+  .corner {
+    position: fixed;
+    width: 40px;
+    height: 40px;
+    opacity: 0.3;
+  }
+
+  .corner-tl { top: 20px; left: 20px; border-top: 1px solid var(--cyan); border-left: 1px solid var(--cyan); }
+  .corner-tr { top: 20px; right: 20px; border-top: 1px solid var(--cyan); border-right: 1px solid var(--cyan); }
+  .corner-bl { bottom: 20px; left: 20px; border-bottom: 1px solid var(--cyan); border-left: 1px solid var(--cyan); }
+  .corner-br { bottom: 20px; right: 20px; border-bottom: 1px solid var(--cyan); border-right: 1px solid var(--cyan); }
+
+  /* ── STATUS BAR ── */
+  .status-bar {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="matrixCanvas"></canvas>
+<div class="tron-grid"></div>
+<div class="scanline"></div>
+
+<div class="corner corner-tl"></div>
+<div class="corner corner-tr"></div>
+<div class="corner corner-bl"></div>
+<div class="corner corner-br"></div>
+
+<div class="content">
+  <div class="error-label">btcpredictor.io — sistema</div>
+  <div class="error-code">404</div>
+  <div class="error-msg">Nodo non trovato nella rete</div>
+
+  <div class="terminal-line">
+    route_not_found :: reindirizzamento disponibile<span class="cursor"></span>
+  </div>
+
+  <div class="nav-links">
+    <a href="/dashboard" class="nav-link orange">Dashboard →</a>
+    <a href="/"          class="nav-link">Home</a>
+    <a href="/manifesto" class="nav-link">Manifesto</a>
+    <a href="/contributors" class="nav-link">Contributors</a>
+  </div>
+</div>
+
+<div class="status-bar">btcpredictor.io // PF_XBTUSD // error 404 // node unreachable</div>
+
+<script>
+  // Matrix rain
+  const canvas = document.getElementById('matrixCanvas');
+  const ctx    = canvas.getContext('2d');
+
+  function resize() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  const CHARS = 'アイウエオカキクケコサシスセソタチツテトナニヌネノ01アBTC01XBTUSD10'.split('');
+  const cols  = [];
+  const COL_W = 20;
+
+  function initCols() {
+    const n = Math.floor(canvas.width / COL_W);
+    cols.length = 0;
+    for (let i = 0; i < n; i++) cols.push(Math.random() * -canvas.height);
+  }
+  initCols();
+  window.addEventListener('resize', initCols);
+
+  function drawMatrix() {
+    ctx.fillStyle = 'rgba(2,5,9,0.05)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = '#00ff41';
+    ctx.font = '14px Share Tech Mono';
+
+    cols.forEach((y, i) => {
+      const char = CHARS[Math.floor(Math.random() * CHARS.length)];
+      ctx.fillText(char, i * COL_W, y);
+      cols[i] = y > canvas.height + Math.random() * 200 ? 0 : y + 20;
+    });
+  }
+
+  setInterval(drawMatrix, 55);
+</script>
+</body>
+</html>
