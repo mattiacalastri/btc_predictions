@@ -3771,16 +3771,40 @@ def legal():
   </ul>
   <p>The operator expressly disclaims all liability for any direct, indirect, incidental, or consequential damages arising from use of or reliance on this service.</p>
 
-  <h2>3. PRIVACY POLICY</h2>
-  <p><strong>We do not collect, store, or process any personal data from visitors to this dashboard.</strong></p>
+  <h2>3. PRIVACY POLICY &amp; COOKIE POLICY</h2>
+  <p>This website uses analytics and monitoring tools to improve the service. All third-party scripts are loaded <strong>only after explicit user consent</strong> via the cookie banner. No registration or login is required. No user accounts exist.</p>
+
+  <h2>3.1 THIRD-PARTY ANALYTICS TOOLS</h2>
+  <p>The following tools are activated <strong>only if you accept analytics</strong> via the cookie banner:</p>
   <ul>
-    <li><strong>No cookies</strong> are set by this website (no analytics, no tracking, no advertising cookies).</li>
-    <li><strong>No registration or login</strong> is required to view the dashboard. No user accounts exist.</li>
-    <li><strong>No third-party analytics</strong> scripts (Google Analytics, Meta Pixel, etc.) are loaded by this page.</li>
-    <li>The dashboard fetches live data from our own backend API (Railway) and from on-chain public data (Polygon PoS). No personal data is transmitted in these requests.</li>
-    <li>If you contact us by email at <a href="mailto:signal@btcpredictor.io">signal@btcpredictor.io</a>, your email address and message content will be stored only for the purpose of responding to your enquiry and will not be shared with third parties.</li>
+    <li><strong>Google Analytics 4</strong> — Provider: Google LLC. Collects: page views, traffic sources, time on site. Cookies: <code>_ga</code>, <code>_gid</code>, <code>_gat</code>. Default: denied until consent. <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy ↗</a></li>
+    <li><strong>Microsoft Clarity</strong> — Provider: Microsoft Corporation. Collects: heatmaps, session replay, click tracking. Storage: <code>clarity_*</code>, <code>clr_*</code> in localStorage. Default: not loaded until consent. <a href="https://privacy.microsoft.com/en-us/privacystatement" target="_blank" rel="noopener">Microsoft Privacy Policy ↗</a></li>
+    <li><strong>Sentry</strong> — Provider: Functional Software Inc. Purpose: JavaScript error monitoring and performance tracking. <code>sendDefaultPii: false</code> — no personally identifiable information is sent. Default: not loaded until consent. <a href="https://sentry.io/privacy/" target="_blank" rel="noopener">Sentry Privacy Policy ↗</a></li>
   </ul>
-  <p>This policy is compliant with EU GDPR requirements for websites that do not process personal data. For questions about data privacy, contact: <a href="mailto:signal@btcpredictor.io">signal@btcpredictor.io</a>.</p>
+  <p>If you <strong>decline</strong> the cookie banner, none of these scripts are loaded. Your choice is stored in <code>localStorage</code> (key: <code>btcp_ga_consent</code>) to avoid showing the banner on every visit.</p>
+
+  <h2>3.2 LOCAL STORAGE USAGE</h2>
+  <p>We store the following data in your browser's localStorage — never on our servers:</p>
+  <ul>
+    <li><code>btcp_ga_consent</code> — your analytics preference ("granted" or "denied")</li>
+    <li><code>introDismissed</code> — whether you have closed the tutorial intro (UI state only)</li>
+    <li><code>clarity_*</code>, <code>clr_*</code> — set by Microsoft Clarity if analytics accepted</li>
+    <li><code>_sentry_*</code> — set by Sentry if analytics accepted</li>
+  </ul>
+  <p>You can clear all localStorage data at any time via your browser's developer tools (Application → Local Storage → Clear All).</p>
+
+  <h2>3.3 DATA SUBJECT RIGHTS (GDPR ART. 12-22)</h2>
+  <p>You have the right to: access your data · request erasure · object to processing · file a complaint with the Italian data protection authority (<a href="https://www.garanteprivacy.it" target="_blank" rel="noopener">Garante per la Protezione dei Dati Personali ↗</a>).</p>
+  <p>To exercise these rights: <a href="mailto:signal@btcpredictor.io">signal@btcpredictor.io</a></p>
+
+  <h2>3.4 BACKEND &amp; API</h2>
+  <ul>
+    <li><strong>No registration or login</strong> required. No user accounts exist.</li>
+    <li>The dashboard fetches live data from our own backend API (Railway) and from on-chain public data (Polygon PoS). No personal data is transmitted in these requests.</li>
+    <li>The <code>/submit-contribution</code> endpoint accepts voluntary text submissions. Submitted text is stored in our database (Supabase) and may be displayed publicly. Do not include personal data in submissions.</li>
+    <li>If you contact us by email at <a href="mailto:signal@btcpredictor.io">signal@btcpredictor.io</a>, your email address and message will be stored only to respond to your enquiry and will not be shared with third parties.</li>
+  </ul>
+  <p>Last updated: 2026-02-27. For questions: <a href="mailto:signal@btcpredictor.io">signal@btcpredictor.io</a></p>
 
   <h2>4. INTELLECTUAL PROPERTY</h2>
   <p>The source code of BTC Predictor is released under the <strong>MIT License</strong>. You are free to use, modify, and distribute it subject to the license terms. The "BTC Predictor" name, "Astra Digital Marketing" name, and associated branding remain the property of the operator.</p>

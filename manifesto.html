@@ -980,5 +980,36 @@ function trackEvent(n,p){if(typeof gtag!=='undefined'&&localStorage.getItem('btc
 (function(){var f={};var T=[25,50,75,100];window.addEventListener('scroll',function(){var pct=Math.round((window.scrollY+window.innerHeight)/document.body.scrollHeight*100);T.forEach(function(t){if(!f[t]&&pct>=t){f[t]=true;trackEvent('scroll_depth',{depth_pct:t,page:'manifesto'});}});},{passive:true});})();
 </script>
 
+<!-- ── GDPR COOKIE BANNER ───────────────────────────────────────────── -->
+<div id="cookieBanner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:rgba(10,14,26,0.97);border-top:1px solid rgba(0,255,136,0.2);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;backdrop-filter:blur(8px);animation:slideCb .4s ease;">
+  <style>
+    @keyframes slideCb{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
+    #cookieBanner.cb-hidden{display:none!important}
+    .cb-text{font-size:9px;color:rgba(200,208,224,0.7);font-family:'Space Mono',monospace;letter-spacing:.5px;line-height:1.6;flex:1;min-width:200px}
+    .cb-text a{color:#00ff88;text-decoration:none}
+    .cb-actions{display:flex;gap:8px;flex-shrink:0}
+    .cb-accept{padding:7px 18px;background:#00ff88;color:#000;border:none;font-family:'Space Mono',monospace;font-size:8px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer}
+    .cb-decline{padding:7px 14px;background:transparent;color:rgba(200,208,224,0.5);border:1px solid rgba(255,255,255,0.1);font-family:'Space Mono',monospace;font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer}
+  </style>
+  <div class="cb-text">
+    ⚡ BTCPREDICTOR.IO usa <strong style="color:#c8d0e0">Google Analytics</strong> per migliorare il servizio. Nessun dato di trading condiviso.
+    <span style="margin-left:6px"><a href="/legal">Privacy Policy ↗</a></span>
+  </div>
+  <div class="cb-actions">
+    <button class="cb-decline" onclick="(function(){localStorage.setItem('btcp_ga_consent','denied');document.getElementById('cookieBanner').classList.add('cb-hidden')})()">RIFIUTA</button>
+    <button class="cb-accept" onclick="(function(){localStorage.setItem('btcp_ga_consent','granted');document.getElementById('cookieBanner').classList.add('cb-hidden');var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-K2E2B4FVQ5';s.onload=function(){gtag('consent','update',{'analytics_storage':'granted'});gtag('js',new Date());gtag('config','G-K2E2B4FVQ5');};document.head.appendChild(s)})()">ACCETTA</button>
+  </div>
+</div>
+<script>
+(function(){
+  if(!localStorage.getItem('btcp_ga_consent')){
+    setTimeout(function(){
+      var b=document.getElementById('cookieBanner');
+      if(b){b.style.display='flex';}
+    },1500);
+  }
+})();
+</script>
+
 </body>
 </html>

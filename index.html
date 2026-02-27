@@ -3,29 +3,43 @@
 <head>
 <!-- Anti-flicker: hide intro before render if already dismissed -->
 <script>if(localStorage.getItem('introDismissed'))document.documentElement.classList.add('intro-dismissed');</script>
-<!-- Microsoft Clarity -->
-<script type="text/javascript">
-    (function(c,l,a,r,i,t,y){
-        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-    })(window, document, "clarity", "script", "vnm5ks28uw");
-</script>
-<!-- Sentry Error Monitoring (JS frontend) -->
-<script
-  src="https://js-de.sentry-cdn.com/c892859215f1e7703459ccf162cd4833.min.js"
-  crossorigin="anonymous"
-></script>
+<!-- Microsoft Clarity + Sentry — caricati SOLO dopo consenso analytics (GDPR) -->
 <script>
-  Sentry.onLoad(function() {
-    Sentry.init({
-      dsn: "https://c892859215f1e7703459ccf162cd4833@o4510954494885888.ingest.de.sentry.io/4510956436783184",
-      tracesSampleRate: 0.2,
-      replaysSessionSampleRate: 0,
-      replaysOnErrorSampleRate: 0.5,
-      sendDefaultPii: false,
-    });
-  });
+(function(){
+  function loadClarity(){
+    (function(c,l,a,r,i,t,y){
+      c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+      t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+      y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window,document,"clarity","script","vnm5ks28uw");
+  }
+  function loadSentry(){
+    var s=document.createElement('script');
+    s.src='https://js-de.sentry-cdn.com/c892859215f1e7703459ccf162cd4833.min.js';
+    s.crossOrigin='anonymous';
+    s.onload=function(){
+      if(typeof Sentry!=='undefined'){
+        Sentry.onLoad(function(){
+          Sentry.init({
+            dsn:"https://c892859215f1e7703459ccf162cd4833@o4510954494885888.ingest.de.sentry.io/4510956436783184",
+            tracesSampleRate:0.2,
+            replaysSessionSampleRate:0,
+            replaysOnErrorSampleRate:0.5,
+            sendDefaultPii:false,
+          });
+        });
+      }
+    };
+    document.head.appendChild(s);
+  }
+  window._loadAnalyticsVendors=function(){
+    loadClarity();
+    loadSentry();
+  };
+  if(localStorage.getItem('btcp_ga_consent')==='granted'){
+    window._loadAnalyticsVendors();
+  }
+})();
 </script>
 <!-- Google Analytics 4 — consent-based (GDPR) -->
 <script>
@@ -8415,13 +8429,20 @@ window.addEventListener('load', function() {
   <!-- GDPR Cookie Banner -->
   <div id="cookieBanner" class="hidden">
     <div class="cookie-text">
-      ⚡ BTCPREDICTOR.IO usa Google Analytics per misurare le performance del sistema. Nessun dato di trading o finanziario viene condiviso.
-      <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Privacy Policy</a>
-      <div style="margin-top:6px;font-size:10px;"><a href="/legal" style="color:var(--cyan);opacity:0.6;text-decoration:none;">Privacy Policy → btcpredictor.io/legal</a></div>
+      ⚡ BTCPREDICTOR.IO usa <strong>Google Analytics</strong>, <strong>Microsoft Clarity</strong> (session replay) e <strong>Sentry</strong> (error monitoring) per migliorare il servizio. Nessun dato di trading o finanziario viene condiviso. Nessun cookie di profilazione.
+      <div style="margin-top:5px;">
+        <a href="/legal" style="color:var(--accent);text-decoration:none;">Privacy Policy ↗</a>
+        &nbsp;·&nbsp;
+        <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" style="color:var(--muted);text-decoration:none;font-size:9px;">Google</a>
+        &nbsp;·&nbsp;
+        <a href="https://privacy.microsoft.com/en-us/privacystatement" target="_blank" rel="noopener" style="color:var(--muted);text-decoration:none;font-size:9px;">Microsoft</a>
+        &nbsp;·&nbsp;
+        <a href="https://sentry.io/privacy/" target="_blank" rel="noopener" style="color:var(--muted);text-decoration:none;font-size:9px;">Sentry</a>
+      </div>
     </div>
     <div class="cookie-actions">
-      <button class="btn-cookie-decline" onclick="cookieDecline()">DECLINE</button>
-      <button class="btn-cookie-accept" onclick="cookieAccept()">ACCEPT ANALYTICS</button>
+      <button class="btn-cookie-decline" onclick="cookieDecline()">RIFIUTA</button>
+      <button class="btn-cookie-accept" onclick="cookieAccept()">ACCETTA</button>
     </div>
   </div>
 
@@ -8440,7 +8461,7 @@ window.addEventListener('load', function() {
   window.cookieAccept = function() {
     localStorage.setItem('btcp_ga_consent', 'granted');
     document.getElementById('cookieBanner').classList.add('hidden');
-    // Load GA4 now
+    // Load GA4
     gtag('consent', 'update', { 'analytics_storage': 'granted' });
     var s = document.createElement('script');
     s.async = true;
@@ -8451,6 +8472,8 @@ window.addEventListener('load', function() {
       gtag('event', 'consent_accepted', { method: 'cookie_banner' });
     };
     document.head.appendChild(s);
+    // Load Clarity + Sentry (gated)
+    if (window._loadAnalyticsVendors) window._loadAnalyticsVendors();
   };
 
   window.cookieDecline = function() {
