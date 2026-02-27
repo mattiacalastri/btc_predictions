@@ -257,10 +257,12 @@
   /* STATS ROW */
   .stats-row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--border); margin-bottom: 16px; }
   @media (max-width: 900px) { .stats-row { grid-template-columns: repeat(3, 1fr); } }
-  .stat-cell { background: var(--card); padding: 14px 18px; text-align: center; cursor: pointer; }
+  .stat-cell { background: var(--card); padding: 18px 18px; text-align: center; cursor: pointer; }
   .stat-cell:hover { background: rgba(255,255,255,0.02); }
-  .stat-cell-label { font-size: 9px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
-  .stat-cell-val { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; }
+  .stat-cell-label { font-size: 9px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .stat-cell-val { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 700; }
+  .stat-cell-apr { grid-column: span 4; }
+  .stat-cell-apr + .stat-cell-apr { grid-column: span 3; }
   .stat-info-icon { font-size: 8px; font-style: normal; opacity: 0.4; vertical-align: middle; margin-left: 2px; font-weight: 400; letter-spacing: 0; }
   .stat-cell:hover .stat-info-icon { opacity: 0.8; }
   /* Stat tooltip */
@@ -1666,7 +1668,9 @@
     .stats-row { grid-template-columns: repeat(3, 1fr); }
     .stat-cell { padding: 8px 10px; }
     .stat-cell-label { font-size: 9px; }
-    .stat-cell-val { font-size: 14px; }
+    .stat-cell-val { font-size: 18px; }
+    .stat-cell-apr { grid-column: span 2; }
+    .stat-cell-apr + .stat-cell-apr { grid-column: span 1; }
   }
 
   /* Backtest + Costs KPI grids: 6-col → 3-col on mobile */
@@ -2632,11 +2636,11 @@
       <div class="stat-cell-label">Total Slippage <span class="stat-info-icon">ⓘ</span></div>
       <div class="stat-cell-val" id="statTotalSlippage" style="color:var(--warn)">—</div>
     </div>
-    <div class="stat-cell" data-tip-title="APR Today" data-tip="Today's PnL annualized: (Today's PnL / Capital) × 365. Daily pulse of performance vs expected annual return." onclick="showStatExplain(event,'APR Today','Today\'s PnL annualized: (today PnL / capital) × 365. Daily pulse — volatile but useful for trend detection.')">
+    <div class="stat-cell stat-cell-apr" data-tip-title="APR Today" data-tip="Today's PnL annualized: (Today's PnL / Capital) × 365. Daily pulse of performance vs expected annual return." onclick="showStatExplain(event,'APR Today','Today\'s PnL annualized: (today PnL / capital) × 365. Daily pulse — volatile but useful for trend detection.')">
       <div class="stat-cell-label">APR Today <span class="stat-info-icon">ⓘ</span></div>
       <div class="stat-cell-val" id="statAprToday" style="color:var(--purple)">—</div>
     </div>
-    <div class="stat-cell" data-tip-title="APR 7d" data-tip="Last 7-day PnL annualized: (7d PnL / Capital) / 7 × 365. Rolling window to smooth daily variance and detect medium-term performance trends." onclick="showStatExplain(event,'APR 7d','Last 7-day PnL annualized. Rolling window smooths daily noise — a better estimate of sustained performance than APR Today.')">
+    <div class="stat-cell stat-cell-apr" data-tip-title="APR 7d" data-tip="Last 7-day PnL annualized: (7d PnL / Capital) / 7 × 365. Rolling window to smooth daily variance and detect medium-term performance trends." onclick="showStatExplain(event,'APR 7d','Last 7-day PnL annualized. Rolling window smooths daily noise — a better estimate of sustained performance than APR Today.')">
       <div class="stat-cell-label">APR 7d <span class="stat-info-icon">ⓘ</span></div>
       <div class="stat-cell-val" id="statApr7d" style="color:var(--purple)">—</div>
     </div>
