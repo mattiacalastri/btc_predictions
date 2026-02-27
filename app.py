@@ -1618,7 +1618,7 @@ def predict_xgb():
 @app.route("/bet-sizing", methods=["GET"])
 def bet_sizing():
     base_size = float(request.args.get("base_size", 0.002))
-    confidence = float(request.args.get("confidence", 0.65))
+    confidence = float(request.args.get("confidence", 0.75))
 
     # Parametri aggiuntivi per XGBoost correctness model (opzionali, con default neutri)
     fear_greed  = float(request.args.get("fear_greed_value", 50))
@@ -1688,7 +1688,7 @@ def bet_sizing():
             multiplier = 0.5
             reason = f"loss_streak_{streak}"
         elif streak_type == True and streak >= 3:
-            if confidence >= 0.65:
+            if confidence >= 0.75:
                 multiplier = 1.5
                 reason = f"win_streak_{streak}_high_conf"
             else:
@@ -1700,8 +1700,8 @@ def bet_sizing():
             multiplier *= 0.75
             reason = "asymmetry_penalty"
 
-        # confidence scaling: 0.65→1.00x | 0.75→1.20x (pivot alzato con nuova soglia)
-        conf_mult = 1.0 + (confidence - 0.65) * (0.2 / 0.10)
+        # confidence scaling: 0.75→1.00x | 0.85→1.20x (pivot = nuova soglia 0.75)
+        conf_mult = 1.0 + (confidence - 0.75) * (0.2 / 0.10)
         conf_mult = round(max(0.8, min(1.2, conf_mult)), 2)
 
         final_size = round(base_size * multiplier * conf_mult, 6)

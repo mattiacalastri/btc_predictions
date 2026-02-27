@@ -3094,7 +3094,7 @@
 
   <!-- TRADING STATS ROW -->
   <div class="stats-row">
-    <div class="stat-cell" data-tip-title="Avg Confidence" data-tip="Average confidence (estimated probability) assigned by the AI across all predictions in the selected period. Values >65% indicate high-conviction signals." onclick="showStatExplain(event,'Avg Confidence','% of AI confidence averaged across all bets in the period. The bot only executes trades at ≥65% confidence.')">
+    <div class="stat-cell" data-tip-title="Avg Confidence" data-tip="Average confidence (estimated probability) assigned by the AI across all predictions in the selected period. Values >75% indicate high-conviction signals." onclick="showStatExplain(event,'Avg Confidence','% of AI confidence averaged across all bets in the period. The bot only executes trades at ≥75% confidence.')">
       <div class="stat-cell-label">Avg Confidence <span class="stat-info-icon">ⓘ</span></div>
       <div class="stat-cell-val" id="statConf" style="color:var(--blue)">—</div>
     </div>
@@ -5210,7 +5210,7 @@ const _hpopContent = {
       { dot: 'var(--warn)',   key: '🟡 SLOW',    val: 'Last signal 8–20 min — possible delay' },
       { dot: 'var(--danger)', key: '🔴 OFFLINE', val: 'No signal > 20 min — check n8n wf01' },
       { key: 'Cycle',        val: 'wf01 fires every 6 min: fetch → Claude AI → XGBoost → dual-gate → place/skip' },
-      { key: 'Threshold',    val: 'Both Claude (conf ≥ 0.65) AND XGBoost must agree — or bet is skipped' },
+      { key: 'Threshold',    val: 'Both Claude (conf ≥ 0.75) AND XGBoost must agree — or bet is skipped' },
     ]
   }
 };
@@ -5322,8 +5322,8 @@ function renderGalaxy(data) {
     return 3 + t * 4.5; // radius 3–7.5px
   };
 
-  // Threshold line at conf=0.65 and pnl=0
-  const threshX = cx(0.65);
+  // Threshold line at conf=0.75 and pnl=0
+  const threshX = cx(0.75);
   const midY    = cy(0);
 
   let html = '';
@@ -5452,8 +5452,9 @@ function renderConfDist(data) {
     { label: '50-54%', min: 0.50, max: 0.55, above: false },
     { label: '55-59%', min: 0.55, max: 0.60, above: false },
     { label: '60-64%', min: 0.60, max: 0.65, above: false },
-    { label: '65-69%', min: 0.65, max: 0.70, above: true  },
-    { label: '70%+',   min: 0.70, max: 1.01, above: true  },
+    { label: '65-74%', min: 0.65, max: 0.75, above: false },
+    { label: '75-79%', min: 0.75, max: 0.80, above: true  },
+    { label: '80%+',   min: 0.80, max: 1.01, above: true  },
   ];
   // Use only BETs (executed signals) for distribution + win rate
   const bets = data.filter(d => d.classification === 'BET' && d.confidence !== null);
@@ -5471,7 +5472,7 @@ function renderConfDist(data) {
   counts.forEach((c, i) => {
     // Insert threshold divider before first above-threshold bucket
     if (i === 3) {
-      html += `<div class="conf-thresh-line"><span class="conf-thresh-label">▲ min threshold 0.65</span></div>`;
+      html += `<div class="conf-thresh-line"><span class="conf-thresh-label">▲ min threshold 0.75</span></div>`;
     }
     const wrLabel = c.wr !== null ? c.wr + '%' : '—';
     const wrColor = c.wr === null ? 'var(--muted)' : c.wr >= 60 ? 'var(--accent)' : c.wr >= 50 ? 'var(--warn)' : 'var(--danger)';
@@ -6888,7 +6889,7 @@ function renderTrainingTab(d) {
   }
 
   // Config
-  set('trn-confThr',  d.confidence_threshold != null ? d.confidence_threshold.toFixed(2) : '0.65');
+  set('trn-confThr',  d.confidence_threshold != null ? d.confidence_threshold.toFixed(2) : '0.75');
   set('trn-baseSize', d.base_size_btc != null ? d.base_size_btc + ' BTC' : '0.002 BTC');
   const xgbEl = document.getElementById('trn-xgbStatus');
   const corrEl = document.getElementById('trn-corrStatus');
@@ -7178,7 +7179,7 @@ fetch(CONFIG.RAILWAY_URL + '/health')
     // Update botStatusDetail with size/conf info
     const detailEl = document.getElementById('botStatusDetail');
     if (detailEl && data.base_size != null) {
-      const confPct = Math.round((data.confidence_threshold || 0.65) * 100);
+      const confPct = Math.round((data.confidence_threshold || 0.75) * 100);
       const currentText = detailEl.textContent || '';
       detailEl.textContent = currentText + ' · size: ' + data.base_size + ' BTC | conf: ' + confPct + '%';
     }
@@ -7239,7 +7240,7 @@ fetch(CONFIG.RAILWAY_URL + '/health')
     'Cumulative Equity': { cat:'PERFORMANCE', color:'#00ff88', desc:'Capital curve built from real PnL of every closed bet. Steady upward trend = positive edge. Drawdowns visible as dips. Click any point to inspect that trade.' },
     'BTC Price vs Predictions': { cat:'TECHNICAL', color:'#3399ee', desc:'BTC price action overlaid with AI prediction markers. ▲ Green = UP prediction (correct if price rose). ▼ Red = DOWN prediction. Diamonds = high-confidence bets taken. Shows if predictions align with price movement.' },
     'Rolling Win Rate': { cat:'STATISTICS', color:'#ffbb00', desc:'Rolling 10-bet and 20-bet win rate curves. Target > 55% for profitability at 1:1 RR. Downward trend = potential model decay. Dashed line = overall WR.' },
-    'Prediction Galaxy': { cat:'ML ANALYSIS', color:'#aa66ff', desc:'Scatter plot: X-axis = confidence (0.65–1.0), Y-axis = PnL per bet. Cluster top-right = high-confidence wins. Bottom-left = low-confidence losses. Useful to detect if model calibration is working.' },
+    'Prediction Galaxy': { cat:'ML ANALYSIS', color:'#aa66ff', desc:'Scatter plot: X-axis = confidence (0.75–1.0), Y-axis = PnL per bet. Cluster top-right = high-confidence wins. Bottom-left = low-confidence losses. Useful to detect if model calibration is working.' },
     'BTC Regime & Confidence': { cat:'ML ANALYSIS', color:'#aa66ff', desc:'Confidence levels over time with BTC price context. Spikes = model conviction. Low-confidence periods may correlate with choppy/ranging market conditions.' },
     'Rolling Rate & Bets': { cat:'STATISTICS', color:'#ffbb00', desc:'Rolling win rate (line) and individual bet outcomes (bars). Green bars = WIN, red bars = LOSS. Width proportional to bet size. Shows performance consistency over time.' },
     'Cumulative Equity Curve': { cat:'PERFORMANCE', color:'#00ff88', desc:'Capital curve built from real PnL of every closed bet. Steady upward trend = positive edge. Drawdowns visible as dips.' },
