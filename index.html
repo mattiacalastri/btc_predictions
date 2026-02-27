@@ -7564,14 +7564,36 @@ function populateIntroHero(data) {
   var wrEl = document.getElementById('introWR');
   var pnlEl = document.getElementById('introPnL');
   var trEl = document.getElementById('introTrades');
-  if (wrEl && closed.length) wrEl.textContent = Math.round(wins.length / closed.length * 100) + '%';
+  var wr = closed.length ? Math.round(wins.length / closed.length * 100) + '%' : null;
+  var totalPnl = closed.reduce(function(s,d) { return s + parseFloat(d.pnl_usd||0); }, 0);
+  var pnlStr = (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toFixed(2);
+  if (wrEl && wr) wrEl.textContent = wr;
   if (trEl) trEl.textContent = closed.length;
   if (pnlEl) {
-    var totalPnl = closed.reduce(function(s,d) { return s + parseFloat(d.pnl_usd||0); }, 0);
-    pnlEl.textContent = (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toFixed(2);
+    pnlEl.textContent = pnlStr;
     pnlEl.style.color = totalPnl >= 0 ? 'inherit' : 'var(--danger)';
   }
+  // Cache in localStorage — instant display on next page load (no flash of "—")
+  if (closed.length) {
+    try {
+      localStorage.setItem('_introKpi', JSON.stringify({ wr: wr, pnl: pnlStr, trades: closed.length, ts: Date.now() }));
+    } catch(e) {}
+  }
 }
+// Restore intro KPIs from cache immediately — runs before API responds
+(function() {
+  try {
+    var c = JSON.parse(localStorage.getItem('_introKpi') || 'null');
+    if (c && (Date.now() - c.ts) < 86400000) { // max 24h stale
+      var w = document.getElementById('introWR');
+      var p = document.getElementById('introPnL');
+      var t = document.getElementById('introTrades');
+      if (w && c.wr) w.textContent = c.wr;
+      if (p && c.pnl) p.textContent = c.pnl;
+      if (t && c.trades !== undefined) t.textContent = c.trades;
+    }
+  } catch(e) {}
+})();
 
 /* ──────────────────────────────────────────────────────────────────────────
    MINI STATUS BAR — Agents + Bot + Live

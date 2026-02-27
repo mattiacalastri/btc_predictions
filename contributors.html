@@ -1431,7 +1431,7 @@ if(localStorage.getItem('btcp_ga_consent')==='granted'){
     visionary: 'Visionario', friend: 'Amico / Parente', other: 'Altro'
   };
 
-  const BASE_URL = 'https://web-production-e27d0.up.railway.app';
+  const BASE_URL = ''; // relative URL — same-origin (avoids CORS when served via btcpredictor.io)
 
   async function loadContributions() {
     const stream = document.getElementById('contribStream');
