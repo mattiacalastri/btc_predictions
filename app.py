@@ -3167,9 +3167,9 @@ def resolve_prediction():
 
 
 def _supabase_update(bet_id: int, fields: dict):
-    """Helper: aggiorna una riga Supabase per bet_id."""
+    """Helper: aggiorna una riga Supabase per bet_id. Usa service key se disponibile."""
     sb_url = os.environ.get("SUPABASE_URL", "")
-    sb_key = os.environ.get("SUPABASE_KEY", "")
+    sb_key = os.environ.get("SUPABASE_SERVICE_KEY") or os.environ.get("SUPABASE_KEY", "")
     url = f"{sb_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{bet_id}"
     headers = {
         "apikey": sb_key,
