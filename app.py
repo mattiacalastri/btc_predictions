@@ -2704,6 +2704,49 @@ def backtest_data():
         return jsonify({"error": str(e)}), 500
 
 
+_last_backtest_run = 0.0
+_BACKTEST_COOLDOWN = 3600  # seconds (1 hour)
+
+
+@app.route("/run-backtest", methods=["POST"])
+def run_backtest():
+    """Trigger walk-forward backtest (rate-limited: once per hour)."""
+    global _last_backtest_run
+    now = time.time()
+    elapsed = now - _last_backtest_run
+    if elapsed < _BACKTEST_COOLDOWN:
+        remaining = int(_BACKTEST_COOLDOWN - elapsed)
+        return jsonify({
+            "ok": False,
+            "error": "rate_limited",
+            "message": f"Backtest già in esecuzione o completato di recente. Riprova tra {remaining // 60}m {remaining % 60}s.",
+            "cooldown_remaining": remaining,
+        }), 429
+    _last_backtest_run = now
+    import subprocess, threading as _threading
+    base = os.path.dirname(__file__)
+    script = os.path.join(base, "backtest.py")
+
+    def _run():
+        try:
+            subprocess.run(
+                ["python3", script],
+                cwd=base,
+                capture_output=True,
+                text=True,
+                timeout=300,
+            )
+        except Exception:
+            pass
+
+    _threading.Thread(target=_run, daemon=True).start()
+    return jsonify({
+        "ok": True,
+        "message": "Backtest avviato in background. I risultati saranno disponibili in ~30-60 secondi.",
+        "cooldown": _BACKTEST_COOLDOWN,
+    })
+
+
 @app.route("/xgb-report", methods=["GET"])
 def xgb_report():
     """Return last XGBoost training report."""

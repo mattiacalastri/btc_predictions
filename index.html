@@ -3007,6 +3007,14 @@
       </div>
     </div>
 
+    <!-- Launch Backtest -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+      <button id="btnRunBacktest" onclick="triggerBacktest()" style="background:var(--accent);color:#000;border:none;padding:8px 18px;border-radius:6px;font-size:12px;font-weight:700;letter-spacing:.5px;cursor:pointer;display:flex;align-items:center;gap:6px">
+        🔬 Lancia Backtest
+      </button>
+      <span id="backtestStatus" style="font-size:11px;color:var(--muted)">Ultimo backtest: caricamento...</span>
+    </div>
+
     <!-- KPI row -->
     <div class="kpi-grid" style="grid-template-columns:repeat(6,1fr);margin-bottom:16px" id="btKpiGrid">
       <div class="kpi" data-tip="Optimal strategy found by the walk-forward backtest.<br>Confidence threshold that maximises PnL.<br>e.g. CONF_062 = minimum confidence 62%."><div class="kpi-label">Best Strategy</div><div class="kpi-value" id="btKpiBest">—</div><div class="kpi-sub" id="btKpiBestPnl">—</div></div>
@@ -4565,7 +4573,7 @@ function renderTable(data) {
       <td>${pnlCell}</td>
       <td>${feeCell}</td>
       <td>${d.sl_price || d.tp_price || d.rr_ratio ? `<span style="font-size:9px;color:var(--danger)">SL ${d.sl_price ? fmtPrice(d.sl_price) : '—'}</span><br><span style="font-size:9px;color:var(--accent)">TP ${d.tp_price ? fmtPrice(d.tp_price) : '—'}</span><br><span style="font-size:9px;color:var(--muted)">RR ${d.rr_ratio ? parseFloat(d.rr_ratio).toFixed(2) + '×' : '—'}</span>` : '<span style="color:var(--muted)">—</span>'}</td>
-      <td style="text-align:center">${d.onchain_commit_tx && /^0x[0-9a-fA-F]{64}$/.test(d.onchain_commit_tx) ? `<a href="https://polygonscan.com/tx/${d.onchain_commit_tx}" target="_blank" rel="noopener" title="Verified on Polygon PoS" style="text-decoration:none;font-size:13px">🔗</a>` : '<span style="color:var(--muted);font-size:9px">—</span>'}</td>
+      <td style="text-align:center">${d.onchain_commit_tx && /^(0x)?[0-9a-fA-F]{64}$/.test(d.onchain_commit_tx) ? `<a href="https://polygonscan.com/tx/0x${d.onchain_commit_tx.replace(/^0x/,'')}" target="_blank" rel="noopener" title="Verified on Polygon PoS" style="text-decoration:none;font-size:13px">⛓️</a>` : '<span style="color:var(--muted);font-size:9px">—</span>'}</td>
     </tr>`;
   }).join('');
   renderMobileBetList(data);
@@ -5576,7 +5584,83 @@ async function fetchBacktestReport() {
     else          preXGB.textContent = 'Report non disponibile.';
 
     if (btData) renderBacktestDashboard(btData);
+    // Update "last backtest" timestamp from report
+    const statusEl = document.getElementById('backtestStatus');
+    if (statusEl) {
+      if (btTxt && btTxt.ok) {
+        statusEl.textContent = 'Dati disponibili (' + (btTxt.lines || '?') + ' righe). Premi per rieseguire.';
+      } else {
+        statusEl.textContent = 'Nessun backtest eseguito. Premi il pulsante per avviarne uno.';
+      }
+    }
   });
+}
+
+let _backtestCooldownTimer = null;
+
+async function triggerBacktest() {
+  const btn      = document.getElementById('btnRunBacktest');
+  const statusEl = document.getElementById('backtestStatus');
+  if (!btn || btn.disabled) return;
+
+  btn.disabled = true;
+  btn.style.opacity = '0.5';
+  btn.style.cursor  = 'not-allowed';
+  statusEl.textContent = 'Avvio backtest...';
+
+  try {
+    const resp = await fetch(CONFIG.RAILWAY_URL + '/run-backtest', {
+      method: 'POST',
+      signal: AbortSignal.timeout(15000),
+    });
+    const data = await resp.json();
+
+    if (resp.status === 429) {
+      const remaining = data.cooldown_remaining || 3600;
+      _startBacktestCooldown(remaining, statusEl, btn);
+      return;
+    }
+
+    if (data.ok) {
+      statusEl.textContent = data.message || 'Backtest avviato. I dati si aggiorneranno a breve.';
+      _startBacktestCooldown(3600, statusEl, btn);
+      // Auto-reload results after 60s
+      setTimeout(() => { fetchBacktestReport(); }, 65000);
+    } else {
+      statusEl.textContent = 'Errore: ' + (data.message || 'unknown');
+      btn.disabled = false;
+      btn.style.opacity = '1';
+      btn.style.cursor  = 'pointer';
+    }
+  } catch (e) {
+    statusEl.textContent = 'Errore di rete: ' + e.message;
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.style.cursor  = 'pointer';
+  }
+}
+
+function _startBacktestCooldown(seconds, statusEl, btn) {
+  if (_backtestCooldownTimer) clearInterval(_backtestCooldownTimer);
+  let remaining = seconds;
+  btn.disabled = true;
+  btn.style.opacity = '0.4';
+  btn.style.cursor  = 'not-allowed';
+
+  _backtestCooldownTimer = setInterval(() => {
+    remaining--;
+    const m = Math.floor(remaining / 60);
+    const s = remaining % 60;
+    if (statusEl) statusEl.textContent = 'Cooldown: ' + m + 'm ' + s + 's — riprova più tardi.';
+    if (remaining <= 0) {
+      clearInterval(_backtestCooldownTimer);
+      _backtestCooldownTimer = null;
+      btn.disabled = false;
+      btn.style.opacity = '1';
+      btn.style.cursor  = 'pointer';
+      if (statusEl) statusEl.textContent = 'Pronto. Premi per rieseguire il backtest.';
+    }
+  }, 1000);
 }
 
 // ── Backtest dashboard rendering ─────────────────────────────────────────────
