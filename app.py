@@ -3875,12 +3875,28 @@ def satoshi_lead():
         return jsonify({"ok": False, "error": "invalid_email"}), 400
     source   = str(data.get("source", "satoshi_widget"))[:64]
     metadata = data.get("metadata") if isinstance(data.get("metadata"), dict) else {}
+    sb_url = os.environ.get("SUPABASE_URL", "")
+    sb_key = os.environ.get("SUPABASE_KEY", "")
+    if not sb_url or not sb_key:
+        app.logger.error("satoshi_lead: missing SUPABASE_URL/KEY env")
+        return jsonify({"ok": False, "error": "server_error"}), 500
     try:
-        supabase = _get_supabase()
-        supabase.table("leads").upsert(
-            {"email": email, "source": source, "metadata": metadata},
-            on_conflict="email,source",
-        ).execute()
+        headers = {
+            "apikey": sb_key,
+            "Authorization": f"Bearer {sb_key}",
+            "Content-Type": "application/json",
+            "Prefer": "resolution=merge-duplicates,return=minimal",
+        }
+        payload = {"email": email, "source": source, "metadata": metadata}
+        resp = requests.post(
+            f"{sb_url}/rest/v1/leads",
+            json=payload,
+            headers=headers,
+            timeout=8,
+        )
+        if resp.status_code not in (200, 201):
+            app.logger.error("satoshi_lead supabase error: %s %s", resp.status_code, resp.text[:200])
+            return jsonify({"ok": False, "error": "server_error"}), 500
         return jsonify({"ok": True})
     except Exception as exc:
         app.logger.error("satoshi_lead error: %s", exc)
