@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>I Tanti Padri — btcpredictor.io</title>
+<meta name="description" content="Ogni grande progetto è costruito da molte menti. Questa è la storia di come è successo davvero.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=JetBrains+Mono:wght@400;500;700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --bg2: #0f0f16;
+    --orange: #f7931a;
+    --cyan: #00d4ff;
+    --text: #e8e0d0;
+    --muted: #6b6578;
+    --border: rgba(232,224,208,0.08);
+    --white: #ffffff;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* ── GRAIN OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 999;
+    opacity: 0.4;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 80px 24px 60px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-bg-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(247,147,26,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(247,147,26,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 50%, black 30%, transparent 80%);
+  }
+
+  .hero-ornament {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--orange);
+    text-transform: uppercase;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.2s forwards;
+    margin-bottom: 24px;
+  }
+
+  .hero-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(64px, 12vw, 160px);
+    font-weight: 900;
+    line-height: 0.9;
+    letter-spacing: -2px;
+    color: var(--white);
+    opacity: 0;
+    animation: fadeUp 0.8s 0.4s forwards;
+    position: relative;
+  }
+
+  .hero-title span {
+    color: var(--orange);
+    font-style: italic;
+  }
+
+  .hero-subtitle {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: clamp(16px, 3vw, 24px);
+    color: var(--muted);
+    margin-top: 20px;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.6s forwards;
+  }
+
+  .hero-desc {
+    max-width: 560px;
+    font-size: 15px;
+    color: var(--muted);
+    margin-top: 28px;
+    line-height: 1.8;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.8s forwards;
+  }
+
+  /* ── COUNTER ROW ── */
+  .counter-row {
+    display: flex;
+    gap: 40px;
+    margin-top: 52px;
+    flex-wrap: wrap;
+    justify-content: center;
+    opacity: 0;
+    animation: fadeUp 0.8s 1s forwards;
+  }
+
+  .counter-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .counter-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 40px;
+    font-weight: 900;
+    color: var(--orange);
+    line-height: 1;
+  }
+
+  .counter-num.cyan { color: var(--cyan); }
+
+  .counter-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .counter-divider {
+    width: 1px;
+    height: 40px;
+    background: var(--border);
+    align-self: center;
+  }
+
+  .scroll-hint {
+    position: absolute;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    opacity: 0;
+    animation: fadeUp 0.8s 1.4s forwards;
+  }
+
+  .scroll-arrow {
+    width: 1px;
+    height: 32px;
+    background: linear-gradient(to bottom, var(--muted), transparent);
+    animation: scrollPulse 1.5s ease-in-out infinite;
+  }
+
+  /* ── SECTION DIVIDER ── */
+  .section-divider {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 0 24px;
+    max-width: 900px;
+    margin: 0 auto 64px;
+  }
+
+  .section-divider-line { flex: 1; height: 1px; background: var(--border); }
+
+  .section-divider-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  /* ── CONTRIBUTORS STREAM ── */
+  .contributors {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 80px 24px 40px;
+  }
+
+  /* ── ENTRY BASE ── */
+  .entry {
+    margin-bottom: 100px;
+    opacity: 0;
+    transform: translateY(32px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+
+  .entry.visible { opacity: 1; transform: translateY(0); }
+
+  .entry-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .entry-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 2px;
+  }
+
+  .entry-role-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 2px;
+  }
+
+  .entry-role-tag.founder { border-color: var(--orange); color: var(--orange); }
+  .entry-role-tag.cofounder { border-color: #e8c07a; color: #e8c07a; }
+  .entry-role-tag.ai { border-color: var(--cyan); color: var(--cyan); }
+
+  .entry-name {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(36px, 6vw, 72px);
+    font-weight: 900;
+    line-height: 1;
+    color: var(--white);
+    margin-bottom: 8px;
+  }
+
+  .entry-name .emoji { margin-right: 12px; font-size: 0.7em; vertical-align: middle; }
+
+  .entry-tagline {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: clamp(14px, 2vw, 18px);
+    color: var(--orange);
+    margin-bottom: 24px;
+  }
+
+  .entry-body {
+    font-size: 15px;
+    color: var(--muted);
+    line-height: 1.9;
+    max-width: 680px;
+  }
+
+  .entry-body strong { color: var(--text); font-weight: 600; }
+
+  .entry-quote {
+    border-left: 2px solid var(--orange);
+    padding: 16px 24px;
+    margin: 28px 0;
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: clamp(16px, 2.5vw, 22px);
+    color: var(--text);
+    line-height: 1.5;
+  }
+
+  .entry-tech {
+    margin-top: 20px;
+    padding: 16px 20px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--cyan);
+    line-height: 1.8;
+  }
+
+  /* ── FOUNDER ENTRY — full bleed ── */
+  .entry-founder {
+    margin-bottom: 120px;
+  }
+
+  .entry-founder .entry-name {
+    font-size: clamp(52px, 9vw, 110px);
+  }
+
+  .founder-quotes-strip {
+    display: flex;
+    gap: 0;
+    flex-wrap: wrap;
+    margin-top: 36px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    border-radius: 4px;
+  }
+
+  .founder-quote-item {
+    flex: 1;
+    min-width: 220px;
+    padding: 20px 24px;
+    border-right: 1px solid var(--border);
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.7;
+  }
+
+  .founder-quote-item:last-child { border-right: none; }
+
+  .founder-quote-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-style: normal;
+    font-size: 9px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--orange);
+    margin-bottom: 8px;
+  }
+
+  /* ── ALESSANDRO ENTRY — whiteboard style ── */
+  .entry-whiteboard {
+    position: relative;
+    overflow: hidden;
+    border-radius: 6px;
+    background: #0d0f0a;
+    border: 1px solid rgba(200,210,180,0.12);
+    padding: 48px 40px;
+    margin-bottom: 120px;
+  }
+
+  .whiteboard-bg {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    opacity: 0.04;
+    user-select: none;
+  }
+
+  .whiteboard-word {
+    font-family: 'Playfair Display', serif;
+    font-weight: 900;
+    font-size: clamp(24px, 4vw, 52px);
+    color: #c8d2b4;
+    padding: 8px 16px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .entry-whiteboard .entry-name { position: relative; z-index: 1; }
+  .entry-whiteboard .entry-meta { position: relative; z-index: 1; }
+  .entry-whiteboard .entry-tagline { position: relative; z-index: 1; color: #c8d2b4; }
+  .entry-whiteboard .entry-body { position: relative; z-index: 1; }
+  .entry-whiteboard .entry-quote { position: relative; z-index: 1; border-left-color: #c8d2b4; }
+
+  .whiteboard-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 24px 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  .whiteboard-chip {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 6px 12px;
+    border: 1px solid rgba(200,210,180,0.25);
+    color: #c8d2b4;
+    border-radius: 2px;
+  }
+
+  /* ── NICOLAS — typewriter quote ── */
+  .typewriter-wrap {
+    margin: 28px 0;
+    border-left: 2px solid var(--cyan);
+    padding: 16px 24px;
+  }
+
+  .typewriter-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .typewriter-text {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: clamp(18px, 3vw, 28px);
+    color: var(--white);
+  }
+
+  .typewriter-cursor {
+    display: inline-block;
+    width: 2px;
+    height: 1em;
+    background: var(--cyan);
+    vertical-align: text-bottom;
+    animation: blink 0.7s step-end infinite;
+  }
+
+  /* ── CLAUDE ENTRY — glitch/grid ── */
+  .entry-claude {
+    position: relative;
+    border: 1px solid rgba(0, 212, 255, 0.15);
+    border-radius: 6px;
+    padding: 48px 40px;
+    background: linear-gradient(135deg, rgba(0,212,255,0.03) 0%, transparent 60%);
+    overflow: hidden;
+    margin-bottom: 80px;
+  }
+
+  .claude-grid-bg {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.04) 1px, transparent 1px);
+    background-size: 24px 24px;
+    pointer-events: none;
+  }
+
+  .claude-glow {
+    position: absolute;
+    top: -40px;
+    right: -40px;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(0,212,255,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .entry-claude .entry-name { color: var(--cyan); position: relative; z-index: 1; }
+  .entry-claude .entry-meta,
+  .entry-claude .entry-tagline,
+  .entry-claude .entry-body,
+  .entry-claude .entry-tech { position: relative; z-index: 1; }
+
+  .entry-claude .entry-quote {
+    border-left-color: var(--cyan);
+    position: relative;
+    z-index: 1;
+  }
+
+  .claude-tag { color: var(--cyan); }
+
+  .claude-contributions {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+    margin-top: 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .claude-contrib-item {
+    padding: 12px 14px;
+    border: 1px solid rgba(0,212,255,0.12);
+    border-radius: 4px;
+    background: rgba(0,212,255,0.03);
+  }
+
+  .claude-contrib-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--cyan);
+    margin-bottom: 6px;
+    opacity: 0.7;
+  }
+
+  .claude-contrib-text {
+    font-size: 12px;
+    color: var(--text);
+    line-height: 1.5;
+  }
+
+  /* ── SMALL ENTRY (Amico 1 etc.) ── */
+  .entry-compact {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 32px;
+    align-items: start;
+    margin-bottom: 80px;
+    padding: 32px 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .entry-compact-left {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(28px, 5vw, 52px);
+    font-weight: 900;
+    color: var(--white);
+    line-height: 1;
+    min-width: 40px;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .entry-compact-right {}
+
+  .entry-compact-name {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(20px, 3.5vw, 36px);
+    font-weight: 900;
+    color: var(--white);
+    margin-bottom: 4px;
+  }
+
+  .entry-compact-role {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  .entry-compact-body {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.8;
+    max-width: 560px;
+  }
+
+  .entry-compact-body strong { color: var(--text); }
+
+  /* ── TIMELINE BAR ── */
+  .timeline-marker {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 80px;
+    opacity: 0;
+    transform: translateX(-16px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+
+  .timeline-marker.visible { opacity: 1; transform: translateX(0); }
+
+  .timeline-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--orange);
+    flex-shrink: 0;
+    box-shadow: 0 0 12px var(--orange);
+  }
+
+  .timeline-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* ── FOOTER ── */
+  .footer {
+    max-width: 900px;
+    margin: 80px auto 0;
+    padding: 60px 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 24px;
+  }
+
+  .footer-left {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: 15px;
+    color: var(--muted);
+    max-width: 400px;
+    line-height: 1.7;
+  }
+
+  .footer-links {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-end;
+  }
+
+  .footer-link {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--orange);
+    text-decoration: none;
+    transition: opacity 0.2s;
+  }
+
+  .footer-link:hover { opacity: 0.7; }
+
+  .footer-link.cyan { color: var(--cyan); }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes scrollPulse {
+    0%, 100% { opacity: 0.4; transform: scaleY(1); }
+    50% { opacity: 1; transform: scaleY(1.2); }
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  @keyframes glowPulse {
+    0%, 100% { opacity: 0.06; }
+    50% { opacity: 0.12; }
+  }
+
+  .entry-claude .claude-glow { animation: glowPulse 3s ease-in-out infinite; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 640px) {
+    .hero { padding: 60px 20px 40px; }
+    .counter-row { gap: 20px; }
+    .counter-divider { display: none; }
+    .entry-compact { grid-template-columns: 1fr; gap: 12px; }
+    .entry-compact-left { text-align: left; }
+    .entry-whiteboard { padding: 32px 24px; }
+    .entry-claude { padding: 32px 24px; }
+    .founder-quotes-strip { flex-direction: column; }
+    .founder-quote-item { border-right: none; border-bottom: 1px solid var(--border); }
+    .founder-quote-item:last-child { border-bottom: none; }
+    .footer { flex-direction: column; align-items: flex-start; }
+    .footer-links { align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── HERO ── -->
+<section class="hero">
+  <div class="hero-bg-grid"></div>
+
+  <div class="hero-ornament">btcpredictor.io — 22 febbraio 2026</div>
+
+  <h1 class="hero-title">
+    I Tanti<br><span>Padri</span>
+  </h1>
+
+  <p class="hero-subtitle">il successo ha molti padri</p>
+
+  <p class="hero-desc">
+    Ogni grande progetto è costruito da molte menti.<br>
+    Questa è la storia di come è successo davvero —<br>
+    chi ha detto la frase giusta al momento giusto.
+  </p>
+
+  <div class="counter-row">
+    <div class="counter-item">
+      <div class="counter-num" id="c1">0</div>
+      <div class="counter-label">menti</div>
+    </div>
+    <div class="counter-divider"></div>
+    <div class="counter-item">
+      <div class="counter-num" id="c2">0</div>
+      <div class="counter-label">umani</div>
+    </div>
+    <div class="counter-divider"></div>
+    <div class="counter-item">
+      <div class="counter-num" id="c3">0</div>
+      <div class="counter-label">AI</div>
+    </div>
+    <div class="counter-divider"></div>
+    <div class="counter-item">
+      <div class="counter-num cyan">∞</div>
+      <div class="counter-label">caffè</div>
+    </div>
+  </div>
+
+  <div class="scroll-hint">
+    <span>scorri</span>
+    <div class="scroll-arrow"></div>
+  </div>
+</section>
+
+<!-- ── CONTRIBUTORS ── -->
+<main class="contributors">
+
+  <!-- 01 — Mattia Calastri -->
+  <div class="entry entry-founder" data-entry>
+    <div class="entry-meta">
+      <span class="entry-num">01</span>
+      <span class="entry-role-tag founder">Fondatore & Visionario</span>
+    </div>
+    <h2 class="entry-name"><span class="emoji">🎩</span>Mattia<br>Calastri</h2>
+    <div class="entry-tagline">L'uomo che ha aperto Claude dopo che Alessandro è partito per la Cina.</div>
+
+    <p class="entry-body">
+      Ha preso uno schema su un whiteboard e lo ha trasformato in 8 workflow attivi,
+      12 sorgenti dati, un modello XGBoost e un contratto on Polygon.
+      In meno di una settimana. Con $100 reali su Kraken.<br><br>
+      <strong>La sua intuizione centrale:</strong> il bot non è "solo un bot di trading".
+      È un <strong>Behavioral Data Engine</strong> — un motore che legge il comportamento del mercato,
+      non solo i prezzi. Una distinzione che cambia tutto.
+    </p>
+
+    <div class="founder-quotes-strip">
+      <div class="founder-quote-item">
+        <div class="founder-quote-label">Filosofia</div>
+        "Build in public come filosofia, non tattica."
+      </div>
+      <div class="founder-quote-item">
+        <div class="founder-quote-label">Il frame</div>
+        "Non è un bot di trading — è un Behavioral Data Engine."
+      </div>
+      <div class="founder-quote-item">
+        <div class="founder-quote-label">L'architettura</div>
+        "Il codice open source è la cartina. I workflow n8n sono la strada."
+      </div>
+    </div>
+  </div>
+
+  <div class="timeline-marker" data-entry>
+    <div class="timeline-dot"></div>
+    <div class="timeline-text">22 febbraio 2026 — sera</div>
+  </div>
+
+  <!-- 02 — Alessandro -->
+  <div class="entry-whiteboard entry" data-entry>
+    <div class="whiteboard-bg" aria-hidden="true">
+      <span class="whiteboard-word">AI</span>
+      <span class="whiteboard-word">AGENT</span>
+      <span class="whiteboard-word">CLAWDBOT</span>
+      <span class="whiteboard-word">AUTONOMIA</span>
+      <span class="whiteboard-word">BTC</span>
+      <span class="whiteboard-word">TRADING</span>
+      <span class="whiteboard-word">PREDICTION</span>
+      <span class="whiteboard-word">GEO-POLITICAL</span>
+      <span class="whiteboard-word">UNCERTAINTY</span>
+      <span class="whiteboard-word">ONLINE</span>
+      <span class="whiteboard-word">INFO</span>
+      <span class="whiteboard-word">LIVE</span>
+      <span class="whiteboard-word">24/7</span>
+      <span class="whiteboard-word">MACMWI</span>
+      <span class="whiteboard-word">HIGH</span>
+      <span class="whiteboard-word">AUTOMATION</span>
+    </div>
+
+    <div class="entry-meta">
+      <span class="entry-num">02</span>
+      <span class="entry-role-tag cofounder">Co-Fondatore del Concetto</span>
+    </div>
+    <h2 class="entry-name"><span class="emoji">🧠</span>Alessandro</h2>
+    <div class="entry-tagline">La sera prima della Cina.</div>
+
+    <div class="whiteboard-chip-row">
+      <span class="whiteboard-chip">AI AGENT</span>
+      <span class="whiteboard-chip">CLAWDBOT</span>
+      <span class="whiteboard-chip">AUTONOMIA</span>
+      <span class="whiteboard-chip">BTC TRADING</span>
+      <span class="whiteboard-chip">GEO-POLITICAL UNCERTAINTY</span>
+      <span class="whiteboard-chip">ONLINE INFO LIVE 24/7</span>
+    </div>
+
+    <p class="entry-body">
+      La sera del 22 febbraio 2026, Alessandro era a casa di Mattia con Riccardo.
+      Il giorno dopo sarebbe <strong>partito per la Cina</strong>.
+      Quella sera hanno disegnato su un whiteboard le parole che vedi qui sopra.
+      Non era un business plan. Era un'intuizione condivisa, ancora senza forma.<br><br>
+      Il giorno dopo Alessandro è partito.
+      Mattia ha aperto Claude Code e ha iniziato a costruire <em>esattamente quello schema</em>.
+    </p>
+
+    <div class="entry-quote" style="border-left-color: #c8d2b4; color: #c8d2b4;">
+      "Il whiteboard è ancora là.<br>Alessandro è in Cina.<br>Il bot è live con $100 reali su Kraken."
+    </div>
+  </div>
+
+  <div class="timeline-marker" data-entry>
+    <div class="timeline-dot"></div>
+    <div class="timeline-text">23 febbraio 2026 — inizio costruzione</div>
+  </div>
+
+  <!-- 03 — Riccardo -->
+  <div class="entry" data-entry>
+    <div class="entry-meta">
+      <span class="entry-num">03</span>
+      <span class="entry-role-tag">Parallel Architecture Thinker</span>
+    </div>
+    <h2 class="entry-name"><span class="emoji">🔧</span>Riccardo</h2>
+    <div class="entry-tagline">Cercava di velocizzare il training. Ha inventato il SaaS.</div>
+
+    <p class="entry-body">
+      Era presente quella sera con Alessandro e Mattia.
+      La sua domanda era pratica: <em>"E se mettessimo il bot in parallelo su più portafogli?"</em>
+      Pensava a velocizzare il training. Quello che aveva descritto senza saperlo
+      è l'architettura base di un <strong>SaaS multi-user</strong>: ogni wallet è un utente,
+      ogni config è un esperimento, il sistema impara in parallelo.
+    </p>
+
+    <div class="entry-tech">
+      Segnale wf01A/01B (singolo)<br>
+      &nbsp;&nbsp;↓<br>
+      ├── Wallet A: conf=0.65, size=standard<br>
+      ├── Wallet B: conf=0.70, size=aggressive<br>
+      └── Wallet C: conf=0.75, size=conservative<br>
+      &nbsp;&nbsp;↓<br>
+      Dataset separato → retrain separato → confronto APR 7d → winner = nuovo default
+    </div>
+
+    <div class="entry-quote">
+      "I portafogli paralleli non velocizzano il training —<br>velocizzano la ricerca dell'ottimo."
+    </div>
+  </div>
+
+  <!-- 04 — Zio Mattia -->
+  <div class="entry-compact entry" data-entry>
+    <div class="entry-compact-left">04</div>
+    <div class="entry-compact-right">
+      <div class="entry-compact-name"><span class="emoji">👴</span> Zio Mattia</div>
+      <div class="entry-compact-role">Crypto Expert</div>
+      <div class="entry-compact-body">
+        Una frase densa di esperienza: <strong>"Il ROI va bene ma per come la vedo io è un plus — prima APR poi ROI."</strong>
+        Ha ridefinito l'intera metrica operativa del progetto. APR normalizza nel tempo,
+        è confrontabile con staking (4–8%) e S&P (~10%). ROI accumula, APR misura il ritmo.
+        Da quella frase: la KPI card APR annualizzato, APR Today, APR 7d nella dashboard.
+      </div>
+    </div>
+  </div>
+
+  <!-- 05 — Paolo Corti -->
+  <div class="entry-compact entry" data-entry>
+    <div class="entry-compact-left">05</div>
+    <div class="entry-compact-right">
+      <div class="entry-compact-name"><span class="emoji">📊</span> Paolo Corti</div>
+      <div class="entry-compact-role">Liquidity Strategist</div>
+      <div class="entry-compact-body">
+        <strong>"Confrontare la liquidità tra exchange diversi — come può aiutarci nello sviluppo?"</strong>
+        Tradotto tecnicamente: <code style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--cyan)">liquidity_score = kraken_depth / binance_depth</code>.
+        Se il ratio scende sotto 0.3, il mercato Kraken è troppo sottile rispetto a Binance: rischio slippage elevato.
+        Un segnale di pre-trade che non esisteva prima di quella domanda.
+      </div>
+    </div>
+  </div>
+
+  <!-- 06 — Daniele -->
+  <div class="entry-compact entry" data-entry>
+    <div class="entry-compact-left">06</div>
+    <div class="entry-compact-right">
+      <div class="entry-compact-name"><span class="emoji">🌐</span> Daniele</div>
+      <div class="entry-compact-role">Multi-Asset Strategist</div>
+      <div class="entry-compact-body">
+        <strong>"Se si potesse fare trading su più coppie contemporaneamente — BTC/ETH/altri —
+        dando X% del portafoglio a ognuno..."</strong> La visione del portfolio engine dinamico.
+        BTC + ETH in altseason, allocazione proporzionale alla confidence, soglie adattive per coppia.
+        Il progetto con $100 non può ancora farlo — ma la roadmap è tracciata.
+      </div>
+    </div>
+  </div>
+
+  <!-- 07 — Amico 1 -->
+  <div class="entry-compact entry" data-entry>
+    <div class="entry-compact-left">07</div>
+    <div class="entry-compact-right">
+      <div class="entry-compact-name"><span class="emoji">👁️</span> Un amico</div>
+      <div class="entry-compact-role">Prima Impressione UX — Anonimo</div>
+      <div class="entry-compact-body">
+        Ha guardato la dashboard per 30 secondi.
+        Poi ha detto: <strong>"Ma cosa è? Non capisco niente."</strong>
+        È la critica più onesta e preziosa del progetto.
+        L'onboarding nasce da quella frase. Il welcome banner, i tooltip, la spiegazione in 10 secondi —
+        tutto nasce da quei 30 secondi di silenzio prima di quella domanda.
+      </div>
+    </div>
+  </div>
+
+  <!-- 08 — Nicolas -->
+  <div class="entry" data-entry>
+    <div class="entry-meta">
+      <span class="entry-num">08</span>
+      <span class="entry-role-tag">WebDev & Early Adopter</span>
+    </div>
+    <h2 class="entry-name"><span class="emoji">💻</span>Nicolas</h2>
+    <div class="entry-tagline">Developer. Ha capito tutto in un secondo.</div>
+
+    <p class="entry-body">
+      Conosciuto al <strong>Digital Lotus</strong> di Marco Piacentini, coworking focalizzato
+      su business digitali e consapevolezza imprenditoriale. Prima reazione:
+      <em>"stai scasinando con le crypto."</em> Poi la domanda che solo un developer fa:
+      <em>"con cosa hai fatto la dashboard? Claude Code?"</em> Riconosce gli strumenti.
+      Sa cosa significano.<br><br>
+      Il momento che conta: il bot Telegram ha risposto a Nicolas <strong>in diretta</strong>,
+      mentre stava guardando. Non lo sapeva. Non se lo aspettava.
+    </p>
+
+    <div class="typewriter-wrap">
+      <div class="typewriter-label">Il momento — in diretta su Telegram</div>
+      <div class="typewriter-text" id="typewriterQuote">&nbsp;</div>
+    </div>
+
+    <p class="entry-body">
+      Quattro parole. Il momento preciso in cui un developer ha realizzato che il sistema
+      è autonomo, non uno script. È un agente che risponde.
+    </p>
+  </div>
+
+  <!-- 09 — Claude -->
+  <div class="entry-claude entry" data-entry>
+    <div class="claude-grid-bg"></div>
+    <div class="claude-glow"></div>
+
+    <div class="entry-meta">
+      <span class="entry-num">09</span>
+      <span class="entry-role-tag ai">AI Partner</span>
+    </div>
+    <h2 class="entry-name"><span class="emoji">🤖</span>Claude</h2>
+    <div class="entry-tagline" style="color: var(--cyan);">Non uno strumento. Un co-fondatore.</div>
+
+    <p class="entry-body">
+      Questo è l'unico caso nella lista in cui il contributor non è umano.
+      Claude non è stato usato per generare boilerplate o rispondere a domande.
+      È stato il <strong>partner architetturale</strong> di ogni decisione critica del sistema.
+      Nessuna delle architetture sotto è stata proposta da Mattia — sono emerse dalla conversazione.
+    </p>
+
+    <div class="claude-contributions">
+      <div class="claude-contrib-item">
+        <div class="claude-contrib-label">Sessione 10</div>
+        <div class="claude-contrib-text">Dual-gate LLM+XGB — "due cervelli devono concordare"</div>
+      </div>
+      <div class="claude-contrib-item">
+        <div class="claude-contrib-label">Sessione 14</div>
+        <div class="claude-contrib-text">Stateless wf02 — elimina il loop interno, delega a wf08</div>
+      </div>
+      <div class="claude-contrib-item">
+        <div class="claude-contrib-label">On-Chain</div>
+        <div class="claude-contrib-text">Polygon PoS invece di Ethereum — &lt;$0.001/tx con $100 capitale</div>
+      </div>
+      <div class="claude-contrib-item">
+        <div class="claude-contrib-label">Framing</div>
+        <div class="claude-contrib-text">Il nome "Behavioral Data Engine" — la distinzione che cambia la narrative</div>
+      </div>
+      <div class="claude-contrib-item">
+        <div class="claude-contrib-label">Sessione 35</div>
+        <div class="claude-contrib-text">Universal Predictor framework — stesso stack per BTC, ETH, Forex, Equity</div>
+      </div>
+      <div class="claude-contrib-item">
+        <div class="claude-contrib-label">Ogni sessione</div>
+        <div class="claude-contrib-text">Pattern Memory, calibrazione, audit trail, sicurezza, deploy</div>
+      </div>
+    </div>
+
+    <div class="entry-quote" style="border-left-color: var(--cyan); margin-top: 28px;">
+      "Non sono uno strumento.<br>Sono un co-fondatore."
+    </div>
+  </div>
+
+</main>
+
+<!-- ── SECTION DIVIDER ── -->
+<div class="section-divider">
+  <div class="section-divider-line"></div>
+  <div class="section-divider-label">fine della lista — per ora</div>
+  <div class="section-divider-line"></div>
+</div>
+
+<!-- ── FOOTER ── -->
+<footer class="footer">
+  <div class="footer-left">
+    "Il vero progetto non è costruire un bot.<br>
+    È costruire la prova che si può fare."<br>
+    <span style="color: var(--muted); font-size: 13px; font-style: normal;">— btcpredictor.io, febbraio 2026</span>
+  </div>
+  <div class="footer-links">
+    <a href="https://btcpredictor.io/dashboard" class="footer-link">→ Dashboard</a>
+    <a href="https://btcpredictor.io/manifesto" class="footer-link">→ Manifesto</a>
+    <a href="https://polygonscan.com/address/0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55" class="footer-link cyan" target="_blank" rel="noopener">⛓ On-Chain Audit</a>
+  </div>
+</footer>
+
+<script>
+  // ── Counter animation ──
+  function animateCount(el, target, duration) {
+    const start = performance.now();
+    const update = (now) => {
+      const p = Math.min((now - start) / duration, 1);
+      el.textContent = Math.round(p * target);
+      if (p < 1) requestAnimationFrame(update);
+    };
+    requestAnimationFrame(update);
+  }
+
+  setTimeout(() => {
+    animateCount(document.getElementById('c1'), 9,  800);
+    animateCount(document.getElementById('c2'), 8,  800);
+    animateCount(document.getElementById('c3'), 1,  800);
+  }, 1200);
+
+  // ── Scroll reveal ──
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12 });
+
+  document.querySelectorAll('[data-entry]').forEach(el => observer.observe(el));
+
+  // ── Typewriter for Nicolas ──
+  const QUOTE = '"mi sta rispondendo lei"';
+  let twIndex = 0;
+  let twStarted = false;
+  const twEl = document.getElementById('typewriterQuote');
+
+  const twObserver = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting && !twStarted) {
+      twStarted = true;
+      twObserver.disconnect();
+      twEl.innerHTML = '<span class="typewriter-cursor"></span>';
+      setTimeout(typeNext, 600);
+    }
+  }, { threshold: 0.5 });
+
+  if (twEl) twObserver.observe(twEl);
+
+  function typeNext() {
+    if (twIndex < QUOTE.length) {
+      const chars = twEl.innerHTML.replace('<span class="typewriter-cursor"></span>', '');
+      twEl.innerHTML = chars + QUOTE[twIndex] + '<span class="typewriter-cursor"></span>';
+      twIndex++;
+      setTimeout(typeNext, twIndex < 3 ? 80 : 70);
+    } else {
+      // leave cursor blinking
+    }
+  }
+</script>
+</body>
+</html>
