@@ -2603,11 +2603,13 @@
   <div class="mini-status-bar" id="miniStatusBar">
     <!-- AGENTS -->
     <span class="msb-label">Agents</span>
-    <span class="msb-item" title="Prediction Bot (wf01A/01B)"><span class="status-dot" id="statusWf01"></span>wf01</span>
+    <span class="msb-item" title="01A — Input Fetcher (dati mercato)"><span class="lsb-robot">🤖</span><span class="status-dot" id="statusWf01a"></span>FEEDS</span>
     <span class="msb-sep"></span>
-    <span class="msb-item" title="Trade Checker (wf02)"><span class="status-dot" id="statusWf02"></span>wf02</span>
+    <span class="msb-item" title="01B — AI Prediction Engine"><span class="lsb-robot">🤖</span><span class="status-dot" id="statusWf01b"></span>BRAIN</span>
     <span class="msb-sep"></span>
-    <span class="msb-item" title="Commander (wf07)"><span class="status-dot" id="statusWf07"></span>wf07</span>
+    <span class="msb-item" title="02 — Trade Desk (exit manager)"><span class="lsb-robot">🤖</span><span class="status-dot" id="statusWf02"></span>DESK</span>
+    <span class="msb-sep"></span>
+    <span class="msb-item" title="07 — Commander (Telegram bot)"><span class="lsb-robot">🤖</span><span class="status-dot" id="statusWf07"></span>CMD</span>
     <span class="msb-sep"></span>
     <span class="msb-item" title="Railway API"><span class="status-dot" id="statusRailway"></span>API</span>
     <!-- BOT -->
@@ -3285,6 +3287,41 @@
         </div>
       </div>
       <a href="/prevedibilita-perfetta" class="page-banner-cta" target="_blank">→ scopri</a>
+    </div>
+
+  </div>
+
+  <!-- PAGE BANNERS — Row 3: AUREO + Investors -->
+  <div class="page-banners-grid">
+
+    <!-- AUREO -->
+    <div class="page-banner" style="background:rgba(201,168,76,0.07);border-left:3px solid #C9A84C;">
+      <div class="page-banner-ghost" style="color:#C9A84C;opacity:0.18;font-family:serif;font-size:52px;font-weight:700;line-height:1;">A</div>
+      <div class="page-banner-body">
+        <div class="page-banner-title" style="color:#C9A84C;">AUREO</div>
+        <div class="page-banner-sub">Educazione finanziaria italiana · Gratuita · Verificabile</div>
+        <div class="page-banner-chips">
+          <span class="page-banner-chip" style="border-color:rgba(201,168,76,0.3);color:#C9A84C;">⛓ on-chain</span>
+          <span class="page-banner-chip" style="border-color:rgba(201,168,76,0.3);color:#C9A84C;">free forever</span>
+          <span class="page-banner-chip" style="border-color:rgba(201,168,76,0.3);color:#C9A84C;">OCSE 2023</span>
+        </div>
+      </div>
+      <a href="/aureo" class="page-banner-cta" style="background:#C9A84C;color:#0D1B2A;" target="_blank">→ scopri</a>
+    </div>
+
+    <!-- Investors -->
+    <div class="page-banner" style="background:rgba(247,147,26,0.05);border-left:3px solid rgba(247,147,26,0.5);">
+      <div class="page-banner-ghost">💼</div>
+      <div class="page-banner-body">
+        <div class="page-banner-title">Investors</div>
+        <div class="page-banner-sub">Capital at risk · Track record on-chain · $100 USDC</div>
+        <div class="page-banner-chips">
+          <span class="page-banner-chip">live PnL</span>
+          <span class="page-banner-chip">Polygon PoS</span>
+          <span class="page-banner-chip">early stage</span>
+        </div>
+      </div>
+      <a href="/investors" class="page-banner-cta" target="_blank">→ vedi</a>
     </div>
 
   </div>
@@ -8120,14 +8157,14 @@ function updateMiniStatusBar(agentsData, railwayOk) {
   var dotRailway = document.getElementById('statusRailway');
   if (dotRailway) dotRailway.className = 'status-dot ' + (railwayOk ? 'green' : 'red');
   if (!agentsData || agentsData.status !== 'ok') {
-    ['statusWf01','statusWf02','statusWf07'].forEach(function(id) {
+    ['statusWf01a','statusWf01b','statusWf02','statusWf07'].forEach(function(id) {
       var el = document.getElementById(id);
       if (el) el.className = 'status-dot ' + (railwayOk ? 'yellow' : 'red');
     });
     return;
   }
   var wfs = agentsData.workflows || [];
-  var targets = { 'statusWf01': ['01A','01B','01'], 'statusWf02': ['02'], 'statusWf07': ['07'] };
+  var targets = { 'statusWf01a': ['01A'], 'statusWf01b': ['01B'], 'statusWf02': ['02'], 'statusWf07': ['07'] };
   Object.keys(targets).forEach(function(dotId) {
     var prefixes = targets[dotId];
     var match = wfs.find(function(wf) {
@@ -8480,6 +8517,16 @@ window.addEventListener('load', function() {
           <span class="tron-menu-item-emoji">🎩</span>
           <span class="tron-menu-item-text">I Tanti Padri</span>
           <span class="tron-menu-item-badge ext">↗</span>
+        </a>
+        <a class="tron-menu-item" href="/investors">
+          <span class="tron-menu-item-emoji">💼</span>
+          <span class="tron-menu-item-text">Investors</span>
+          <span class="tron-menu-item-badge ext">↗</span>
+        </a>
+        <a class="tron-menu-item" href="/aureo" style="border-left:2px solid rgba(201,168,76,0.4);">
+          <span class="tron-menu-item-emoji">🏛</span>
+          <span class="tron-menu-item-text" style="color:#C9A84C;">AUREO</span>
+          <span class="tron-menu-item-badge ext" style="color:#C9A84C;">↗</span>
         </a>
         <a class="tron-menu-item" href="/manifesto">
           <span class="tron-menu-item-emoji">📜</span>
