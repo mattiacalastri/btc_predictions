@@ -2372,6 +2372,104 @@
   @media (max-width: 480px) {
     #tronMenuDrawer { width: min(288px, 88vw); }
   }
+
+/* ── TUTORIAL SPOTLIGHT OVERLAY ──────────────────────────────── */
+#tutorialOverlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  background: rgba(8,12,15,0.82);
+  backdrop-filter: blur(2px);
+  pointer-events: auto;
+}
+#tutorialOverlay.tut-active { display: block; }
+#tutorialSpotlight {
+  position: fixed;
+  border: 2px solid var(--accent);
+  border-radius: 6px;
+  box-shadow: 0 0 0 4px rgba(0,255,136,0.10), 0 0 24px rgba(0,255,136,0.45), inset 0 0 14px rgba(0,255,136,0.09);
+  pointer-events: none;
+  z-index: 12001;
+  transition: all 0.38s cubic-bezier(0.16,1,0.3,1);
+  animation: tutGlow 2.2s ease-in-out infinite;
+}
+@keyframes tutGlow {
+  0%,100% { box-shadow: 0 0 0 4px rgba(0,255,136,0.10), 0 0 24px rgba(0,255,136,0.40); }
+  50%      { box-shadow: 0 0 0 6px rgba(0,255,136,0.18), 0 0 38px rgba(0,255,136,0.65); }
+}
+#tutorialCallout {
+  position: fixed;
+  background: var(--card);
+  border: 1px solid rgba(0,255,136,0.32);
+  border-radius: 5px;
+  padding: 15px 17px;
+  width: 300px;
+  z-index: 12002;
+  box-shadow: 0 14px 44px rgba(0,0,0,0.72), 0 0 22px rgba(0,255,136,0.11);
+  transition: left 0.38s cubic-bezier(0.16,1,0.3,1), top 0.38s cubic-bezier(0.16,1,0.3,1);
+  animation: tutSlideIn 0.38s cubic-bezier(0.16,1,0.3,1);
+}
+@keyframes tutSlideIn { from { opacity:0; transform:translateY(10px) scale(0.95); } to { opacity:1; transform:none; } }
+.tut-step-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.tut-step-num {
+  width: 21px; height: 21px;
+  border-radius: 50%;
+  background: rgba(0,255,136,0.13);
+  border: 1px solid var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 700; color: var(--accent);
+  flex-shrink: 0;
+}
+.tut-step-title {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 2px; text-transform: uppercase;
+  color: var(--accent);
+}
+.tut-step-text {
+  font-size: 11px; color: var(--text); line-height: 1.6;
+  margin-bottom: 14px;
+}
+.tut-controls {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-top: 11px;
+  border-top: 1px solid rgba(0,255,136,0.10);
+}
+.tut-progress {
+  font-size: 9px; color: var(--muted);
+  letter-spacing: 1px; text-transform: uppercase;
+}
+.tut-btn-group { display: flex; gap: 7px; }
+.tut-btn {
+  padding: 5px 11px; font-size: 9px; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase;
+  border-radius: 3px; border: 1px solid; background: none;
+  cursor: pointer; transition: all 0.25s;
+  font-family: 'JetBrains Mono', monospace;
+}
+.tut-btn-next {
+  background: rgba(0,255,136,0.11); border-color: rgba(0,255,136,0.4); color: var(--accent);
+}
+.tut-btn-next:hover { background: rgba(0,255,136,0.20); border-color: var(--accent); box-shadow: 0 0 10px rgba(0,255,136,0.2); }
+.tut-btn-skip {
+  background: none; border-color: rgba(74,96,112,0.28); color: var(--muted);
+}
+.tut-btn-skip:hover { color: var(--text); border-color: rgba(74,96,112,0.5); }
+#tutSkipFixed {
+  position: fixed; top: 18px; right: 70px;
+  padding: 6px 13px; font-size: 9px; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  background: none; border: 1px solid rgba(255,68,102,0.30);
+  color: rgba(255,68,102,0.58); border-radius: 3px;
+  cursor: pointer; transition: all 0.25s; z-index: 12003;
+  font-family: 'JetBrains Mono', monospace; display: none;
+}
+#tutSkipFixed:hover { color: var(--danger); border-color: rgba(255,68,102,0.65); background: rgba(255,68,102,0.06); }
 </style>
 </head>
 <body>
@@ -7784,6 +7882,10 @@ function dismissIntro() {
   setTimeout(function() {
     if (h) { h.style.display = 'none'; h.setAttribute('aria-hidden', 'true'); }
     if (reopenBtn) { reopenBtn.style.display = ''; reopenBtn.style.opacity = '1'; }
+    // First-time tutorial
+    if (typeof startTutorial === 'function' && localStorage.getItem('btcp_tutorial_done') !== '1') {
+      setTimeout(startTutorial, 300);
+    }
   }, 420);
 }
 
@@ -8265,6 +8367,28 @@ window.addEventListener('load', function() {
     </div>
   </div>
 
+  <!-- ══════════════════════════════════════════
+       FIRST-TIME TUTORIAL OVERLAY (4 steps)
+  ══════════════════════════════════════════ -->
+  <div id="tutorialOverlay">
+    <div id="tutorialSpotlight"></div>
+    <div id="tutorialCallout">
+      <div class="tut-step-header">
+        <div class="tut-step-num" id="tutStepNum">1</div>
+        <div class="tut-step-title" id="tutStepTitle">KPI Grid</div>
+      </div>
+      <div class="tut-step-text" id="tutStepText">Real-time metrics: Win Rate, PnL, APR, Drawdown. Updated every time a trade closes.</div>
+      <div class="tut-controls">
+        <div class="tut-progress" id="tutProgress">1 / 4</div>
+        <div class="tut-btn-group">
+          <button class="tut-btn tut-btn-skip" onclick="skipTutorial()">SKIP ALL</button>
+          <button class="tut-btn tut-btn-next" id="tutNextBtn" onclick="advanceTutorial()">NEXT →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <button id="tutSkipFixed" onclick="skipTutorial()">✕ SKIP TOUR</button>
+
   <script>
   // ── TRON MENU ──────────────────────────────────────────────────────────────
   function toggleTronMenu(forceOpen) {
@@ -8297,8 +8421,103 @@ window.addEventListener('load', function() {
   }
 
   document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') toggleTronMenu(false);
+    if (e.key === 'Escape') { toggleTronMenu(false); skipTutorial(); }
   });
+
+  // ── TUTORIAL SPOTLIGHT ─────────────────────────────────────────────────────
+  var TUT_STEPS = [
+    {
+      sel: '.kpi-grid',
+      title: 'KPI Grid',
+      text: 'Real-time metrics: Win Rate, PnL, APR, Drawdown. Updated automatically every trade close.',
+      pos: 'below'
+    },
+    {
+      sel: '#signalLogPanel',
+      title: 'Live Signal Log',
+      text: 'Every 10-min AI prediction from Claude + XGBoost. Filter by direction, outcome, type.',
+      pos: 'above'
+    },
+    {
+      sel: '#warRoomToggle',
+      title: 'War Room Mode',
+      text: 'Full-screen neon monitoring. Ultra-wide layout, live chart, real-time updates every 4h.',
+      pos: 'below'
+    },
+    {
+      sel: '#tgCtaBanner',
+      title: 'Live Alerts',
+      text: 'Receive every signal and trade result directly on Telegram. Free, instant, transparent.',
+      pos: 'below'
+    }
+  ];
+
+  var _tutStep = 0;
+
+  function startTutorial() {
+    if (localStorage.getItem('btcp_tutorial_done') === '1') return;
+    _tutStep = 0;
+    document.getElementById('tutorialOverlay').classList.add('tut-active');
+    document.getElementById('tutSkipFixed').style.display = '';
+    _tutRender(_tutStep);
+  }
+
+  function _tutRender(n) {
+    var step = TUT_STEPS[n];
+    var target = document.querySelector(step.sel);
+    if (!target) { advanceTutorial(); return; }
+
+    var r = target.getBoundingClientRect();
+    var pad = 6;
+    var sp = document.getElementById('tutorialSpotlight');
+    sp.style.left   = (r.left - pad) + 'px';
+    sp.style.top    = (r.top  - pad) + 'px';
+    sp.style.width  = (r.width  + pad*2) + 'px';
+    sp.style.height = (r.height + pad*2) + 'px';
+
+    // Scroll target into view smoothly
+    target.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+
+    // Position callout
+    var cal = document.getElementById('tutorialCallout');
+    var calW = 300, calH = 130;
+    var vw = window.innerWidth, vh = window.innerHeight;
+    var left, top;
+    if (step.pos === 'below') {
+      top  = Math.min(r.bottom + pad + 14, vh - calH - 16);
+      left = Math.max(8, Math.min(r.left, vw - calW - 8));
+    } else {
+      top  = Math.max(8, r.top - calH - pad - 14);
+      left = Math.max(8, Math.min(r.left, vw - calW - 8));
+    }
+    cal.style.left = left + 'px';
+    cal.style.top  = top  + 'px';
+    cal.style.animation = 'none';
+    cal.offsetHeight; // reflow to restart animation
+    cal.style.animation = '';
+
+    document.getElementById('tutStepNum').textContent   = n + 1;
+    document.getElementById('tutStepTitle').textContent = step.title;
+    document.getElementById('tutStepText').textContent  = step.text;
+    document.getElementById('tutProgress').textContent  = (n + 1) + ' / ' + TUT_STEPS.length;
+
+    var nextBtn = document.getElementById('tutNextBtn');
+    nextBtn.textContent = (n === TUT_STEPS.length - 1) ? 'DONE ✓' : 'NEXT →';
+  }
+
+  function advanceTutorial() {
+    _tutStep++;
+    if (_tutStep >= TUT_STEPS.length) { completeTutorial(); return; }
+    _tutRender(_tutStep);
+  }
+
+  function skipTutorial() { completeTutorial(); }
+
+  function completeTutorial() {
+    document.getElementById('tutorialOverlay').classList.remove('tut-active');
+    document.getElementById('tutSkipFixed').style.display = 'none';
+    localStorage.setItem('btcp_tutorial_done', '1');
+  }
   </script>
 </body>
 </html>
