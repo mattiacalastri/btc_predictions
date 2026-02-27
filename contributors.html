@@ -977,7 +977,7 @@ if(localStorage.getItem('btcp_ga_consent')==='granted'){
   .gnav-links a.gnav-investors:hover{background:rgba(247,147,26,.07);border-color:rgba(247,147,26,.6);}
   .gnav-burger{display:none;background:none;border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);font-size:14px;cursor:pointer;padding:5px 9px;border-radius:3px;transition:border-color .2s;}
   .gnav-burger:hover{border-color:rgba(255,255,255,.4);}
-  @media(max-width:680px){.gnav-links{display:none;}.gnav-links.gnav-open{display:flex;flex-direction:column;gap:0;position:absolute;top:52px;left:0;right:0;background:rgba(10,10,15,.99);border-bottom:1px solid rgba(247,147,26,.15);padding:8px 0;z-index:999;}.gnav-links.gnav-open a{display:block;padding:12px 28px;border-radius:0;border:none;}.gnav-burger{display:block;}}
+  @media(max-width:680px){.gnav-links{display:flex;flex-direction:column;gap:0;position:fixed;top:52px;right:0;bottom:0;width:220px;background:rgba(10,10,15,.99);border-left:1px solid rgba(247,147,26,.15);padding:16px 0;z-index:999;transform:translateX(110%);transition:transform .28s cubic-bezier(.4,0,.2,1);overflow-y:auto;}.gnav-links.gnav-open{transform:translateX(0);}.gnav-links a{display:block;padding:13px 24px;border-radius:0 !important;border:none !important;}.gnav-burger{display:flex;align-items:center;justify-content:center;}}
 
   /* ── NONNA ENTRY ──────────────────────────────────── */
   .entry-nonna {
@@ -1107,7 +1107,7 @@ if(localStorage.getItem('btcp_ga_consent')==='granted'){
     <li><a href="https://btcpredictor.io/contributors" class="gnav-active">Contributors</a></li>
     <li><a href="https://btcpredictor.io/aureo" style="color:#C9A84C;border:1px solid rgba(201,168,76,.3);padding:5px 14px;border-radius:3px;">AUREO</a></li>
   </ul>
-  <button class="gnav-burger" onclick="document.getElementById('gnavLinks').classList.toggle('gnav-open')" aria-label="Menu">☰</button>
+  <button class="gnav-burger" onclick="const l=document.getElementById('gnavLinks');l.classList.toggle('gnav-open');this.textContent=l.classList.contains('gnav-open')?'✕':'☰'" aria-label="Menu">☰</button>
 </nav>
 <!-- ── LIVE STATUS BAR ──────────────────────────────────────────── -->
 <div class="lsb" id="liveStatusBar">
@@ -1473,23 +1473,6 @@ if(localStorage.getItem('btcp_ga_consent')==='granted'){
     </div>
   </div>
 
-  <!-- 11 — Ferdinando -->
-  <div class="entry-compact entry" data-entry>
-    <div class="entry-compact-left">11</div>
-    <div class="entry-compact-right">
-      <div class="entry-compact-name"><span class="emoji">🛡️</span> Ferdinando</div>
-      <div class="entry-compact-role">Guardia del Fortino — Collaboratore d'Agenzia</div>
-      <div class="entry-compact-body">
-        Mentre Mattia costruiva il bot di notte e di giorno,
-        qualcuno teneva in piedi l'agenzia. Ferdinando ha capito da solo — senza che nessuno glielo chiedesse —
-        che stava succedendo qualcosa di importante, e ha preso in mano la delivery e i clienti.
-        Non è un contributo tecnico. È più prezioso: è la fiducia silenziosa di chi
-        <strong>tiene il fronte senza disturbare chi sta costruendo</strong>.
-        Un'agenzia che non crolla mentre il fondatore segue una visione — questo è il contributo di Ferdinando.
-      </div>
-    </div>
-  </div>
-
   <div class="timeline-marker" data-entry>
     <div class="timeline-dot" style="background:#C9A84C;box-shadow:0 0 12px rgba(201,168,76,0.6)"></div>
     <div class="timeline-text" style="color:rgba(201,168,76,0.7)">1997–1998 — trent'anni prima</div>
@@ -1553,6 +1536,23 @@ if(localStorage.getItem('btcp_ga_consent')==='granted'){
         Educazione finanziaria italiana. Gratuita. Verificabile.<br>
         Nata dall'eredità di Nonno Oro — e dal paradosso che sua nipote aveva già risolto trent'anni fa.
       </p>
+    </div>
+  </div>
+
+  <!-- 11 — Ferdinando -->
+  <div class="entry-compact entry" data-entry>
+    <div class="entry-compact-left">11</div>
+    <div class="entry-compact-right">
+      <div class="entry-compact-name"><span class="emoji">🛡️</span> Ferdinando</div>
+      <div class="entry-compact-role">Guardia del Fortino — Collaboratore d'Agenzia</div>
+      <div class="entry-compact-body">
+        Mentre Mattia costruiva il bot di notte e di giorno,
+        qualcuno teneva in piedi l'agenzia. Ferdinando ha capito da solo — senza che nessuno glielo chiedesse —
+        che stava succedendo qualcosa di importante, e ha preso in mano la delivery e i clienti.
+        Non è un contributo tecnico. È più prezioso: è la fiducia silenziosa di chi
+        <strong>tiene il fronte senza disturbare chi sta costruendo</strong>.
+        Un'agenzia che non crolla mentre il fondatore segue una visione — questo è il contributo di Ferdinando.
+      </div>
     </div>
   </div>
 
