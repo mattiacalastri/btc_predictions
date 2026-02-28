@@ -91,9 +91,11 @@ def get_calibrated_wr(conf):
     return 0.50
 
 # ── Auto-calibration: ore morti (aggiornato da /reload-calibration) ───────────
-# Default conservativo: ore con WR<45% confermato da dati storici live
-# 10h aggiunta 2026-02-26: 40% WR, -$1.68 PnL su 10 bets — worst unblocked hour
-DEAD_HOURS_UTC: set = {10, 12, 22}
+# Calibrazione 2026-02-28 su 650 segnali pre-Day0 (xgb_report.txt hourly WR):
+#   5h 42.3% | 7h 42.1% | 10h 44.0% | 11h 42.9% | 17h 43.6% | 19h 44.4%
+# (soglia live: n>=8 && WR<45%; 11h ha 7 bet — incluso come prior di calibrazione)
+# Post-Day0: refresh_dead_hours() non trova dati → usa questi come fallback.
+DEAD_HOURS_UTC: set = {5, 7, 10, 11, 17, 19}
 
 def refresh_calibration():
     """Aggiorna CONF_CALIBRATION da WR reale Supabase per bucket di confidence."""
@@ -174,8 +176,8 @@ def refresh_dead_hours():
             hour_stats[h] = {"wr": round(wr, 3), "n": len(vals)}
             if len(vals) >= 8 and wr < 0.45:
                 dead.add(h)
-        # fallback: se non ci sono ore con n>=8 e WR<45%, usa le due ore più stabili storicamente
-        DEAD_HOURS_UTC = dead if dead else {12, 22}
+        # fallback: se non ci sono ore con n>=8 e WR<45%, usa prior da calibrazione storica
+        DEAD_HOURS_UTC = dead if dead else {5, 7, 10, 11, 17, 19}
         print(f"[CAL] Dead hours updated: {sorted(DEAD_HOURS_UTC)}")
         return {"ok": True, "dead_hours": sorted(DEAD_HOURS_UTC), "hour_stats": hour_stats}
     except Exception as e:
