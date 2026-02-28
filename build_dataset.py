@@ -30,7 +30,7 @@ _SSL_CTX = ssl.create_default_context(cafile=certifi.where())
 
 # ─── Config ────────────────────────────────────────────────────────────────────
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY") or os.environ.get("SUPABASE_ANON_KEY", "")
 
 SYSTEM_PROMPT = """You are an expert BTC futures trading analyst. Your job is to predict the short-term BTC price direction (next 6 minutes) based on technical indicators, market sentiment, and on-chain data.
 
