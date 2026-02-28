@@ -260,6 +260,17 @@ def _check_api_key():
     return None
 
 
+def _make_contribution_token(contrib_id: int, action: str) -> str:
+    """Genera un token HMAC-SHA256 per approve/reject link.
+    Token specifico per contrib_id+action: non riutilizzabile su altri endpoint.
+    Non espone BOT_API_KEY nell'URL.
+    """
+    import hashlib as _hl
+    bot_key = os.environ.get("BOT_API_KEY", "anonymous")
+    raw = f"{bot_key}:{contrib_id}:{action}"
+    return _hl.sha256(raw.encode()).hexdigest()[:32]
+
+
 # ── SDK clients ──────────────────────────────────────────────────────────────
 
 def get_trade_client():
@@ -2979,11 +2990,10 @@ def submit_contribution():
     except Exception as e:
         return jsonify({"ok": False, "error": "Errore DB"}), 500
 
-    # ── Build approve/reject URLs ──
+    # ── Build approve/reject URLs (token HMAC, non espone BOT_API_KEY) ──
     base_url     = os.environ.get("RAILWAY_URL", "https://btcpredictor.io")
-    bot_key      = os.environ.get("BOT_API_KEY", "")
-    approve_url  = f"{base_url}/approve-contribution/{contrib_id}?key={bot_key}"
-    reject_url   = f"{base_url}/reject-contribution/{contrib_id}?key={bot_key}"
+    approve_url  = f"{base_url}/approve-contribution/{contrib_id}?token={_make_contribution_token(contrib_id, 'approve')}"
+    reject_url   = f"{base_url}/reject-contribution/{contrib_id}?token={_make_contribution_token(contrib_id, 'reject')}"
     owner_email  = os.environ.get("OWNER_EMAIL", "")
 
     # ── Telegram notification (best-effort) ──
@@ -3066,9 +3076,9 @@ def public_contributions():
 @app.route("/approve-contribution/<int:contrib_id>", methods=["GET"])
 def approve_contribution(contrib_id):
     """Owner-only: approve a contribution. Called via link in Telegram."""
-    err = _check_api_key()
-    if err:
-        return err
+    token = request.args.get("token", "")
+    if not _hmac.compare_digest(token, _make_contribution_token(contrib_id, "approve")):
+        return jsonify({"error": "Unauthorized"}), 401
     supabase_url = os.environ.get("SUPABASE_URL", "")
     supabase_key = os.environ.get("SUPABASE_SERVICE_KEY", os.environ.get("SUPABASE_KEY", ""))
     try:
@@ -3089,9 +3099,9 @@ def approve_contribution(contrib_id):
 @app.route("/reject-contribution/<int:contrib_id>", methods=["GET"])
 def reject_contribution(contrib_id):
     """Owner-only: reject (delete) a contribution. Called via link in email."""
-    err = _check_api_key()
-    if err:
-        return err
+    token = request.args.get("token", "")
+    if not _hmac.compare_digest(token, _make_contribution_token(contrib_id, "reject")):
+        return jsonify({"error": "Unauthorized"}), 401
     supabase_url = os.environ.get("SUPABASE_URL", "")
     supabase_key = os.environ.get("SUPABASE_SERVICE_KEY", os.environ.get("SUPABASE_KEY", ""))
     try:
