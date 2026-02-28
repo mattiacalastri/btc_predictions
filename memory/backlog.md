@@ -1,5 +1,5 @@
 # Backlog — BTC Predictor Bot
-> Aggiornato: 2026-02-28 (fine sessione)
+> Aggiornato: 2026-02-28 (sess.50 fine — ghost_exit_price fix scritto, 2 step manuali)
 
 ---
 
@@ -10,9 +10,9 @@
 
 | # | Task | Note |
 |---|------|------|
-| 1 | Fix CNBC RSS — sostituire con Bloomberg RSS o Reuters Markets | Feed attuale ~24h ritardo → AI decide su news stantie. Contraddice "real numbers". |
+| 1 | ~~Fix CNBC RSS~~ ✅ | Risolto 28 Feb: URL search-based (`search.cnbc.com`) → CNBC Markets diretto (`cnbc.com/id/15839069/device/rss/rss.html`). Notizie ora in minuti, non 24h. |
 | 2 | ~~Fix PENDING cleanup~~ ✅ | Risolto 28 Feb: 3 nodi aggiunti a wf08 (Get Stale PENDING → Filter Old PENDING → Mark SKIP). Soglia: 15 min. |
-| 3 | Fix ghost_exit_price — shadow evaluation non popolata | Verifica che 02_BTC_Trade_Checker scriva su `ghost_exit_price`. Fondamentale per trasparenza verifiable. |
+| 3 | ~~Fix ghost_exit_price~~ ✅ | Risolto 28 Feb: (a) ADD COLUMN ghost_exit_price/ghost_correct/ghost_evaluated_at su Supabase, (b) branch diretto aggiunto a wf08 (Ghost Evaluate SKIP ogni 5 min, indipendente dai bet aperti). |
 
 ---
 
@@ -107,3 +107,9 @@ Mese 2+:        Outreach influencer (vedi Roadmap futura sotto)
 - Migrazione 09A_BTC_Social_Manager: `HTTP — Call Claude API` → OpenRouter `gemini-2.5-flash`
   - `Code — Parse Claude Response` aggiornato: `content[0].text` → `choices[0].message.content` ✅
 - Aggiornamento backlog con strategia AI ibrida e sequenza go-live allineata alla visione
+- Fix ghost_exit_price (sessione serale):
+  - ADD COLUMN ghost_exit_price/ghost_correct/ghost_evaluated_at su Supabase
+  - Branch diretto `Ghost Evaluate SKIP` aggiunto a wf08 (ogni 5 min, indipendente dai bet)
+- Fix CNBC RSS (sessione serale):
+  - URL cambiato: search.cnbc.com (24h delay) → cnbc.com/id/15839069 (CNBC Markets, real-time)
+  - **🟢 TUTTI E 3 I BLOCCHI PRE-GO-LIVE RISOLTI** → sistema pronto per DB reset 1° Marzo
