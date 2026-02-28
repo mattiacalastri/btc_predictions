@@ -1830,7 +1830,7 @@ def rescue_orphaned():
 
     # 2. Per ogni bet orfana, controlla se wf02 è già attivo per quella bet
     #    (esecuzioni in waiting nelle ultime 40 minuti)
-    WF02_ID = "vallzU6ceD5gPwSP"
+    WF02_ID = "NnjfpzgdIyleMVBO"
     rescued = []
     skipped = []
 
