@@ -27,7 +27,25 @@ def set_security_headers(response):
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com "
+        "https://js-de.sentry-cdn.com https://www.googletagmanager.com https://www.clarity.ms; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        "img-src 'self' data: https:; "
+        "connect-src 'self' https://*.railway.app https://oimlamjilivrcnhztwvj.supabase.co "
+        "https://sentry.io https://*.sentry-cdn.com https://www.clarity.ms "
+        "https://www.google-analytics.com https://n8n.srv1432354.hstgr.cloud;"
+    )
     return response
+
+
+def _sb_config() -> tuple:
+    """Restituisce (supabase_url, supabase_key). Unica sorgente env vars Supabase."""
+    url = os.environ.get("SUPABASE_URL", "").rstrip("/")
+    key = os.environ.get("SUPABASE_SERVICE_KEY") or os.environ.get("SUPABASE_KEY", "")
+    return url, key
 
 # ── XGBoost direction model (caricato una volta all'avvio) ────────────────────
 _XGB_MODEL = None
@@ -91,8 +109,7 @@ DEAD_HOURS_UTC: set = {5, 7, 10, 11, 17, 19}
 def refresh_calibration():
     """Aggiorna CONF_CALIBRATION da WR reale Supabase per bucket di confidence."""
     global CONF_CALIBRATION
-    sb_url = os.environ.get("SUPABASE_URL", "")
-    sb_key = os.environ.get("SUPABASE_KEY", "")
+    sb_url, sb_key = _sb_config()
     if not sb_url or not sb_key:
         return {"ok": False, "error": "no_supabase_env"}
     try:
@@ -129,13 +146,13 @@ def refresh_calibration():
         print(f"[CAL] Calibration updated: {stats}")
         return {"ok": True, "stats": stats, "total_rows": len(rows)}
     except Exception as e:
-        return {"ok": False, "error": str(e)}
+        app.logger.exception("Calibration refresh error")
+        return {"ok": False, "error": "refresh_error"}
 
 def refresh_dead_hours():
     """Aggiorna DEAD_HOURS_UTC: ore con WR < 45% e almeno 8 bet. Ora estratta da created_at."""
     global DEAD_HOURS_UTC
-    sb_url = os.environ.get("SUPABASE_URL", "")
-    sb_key = os.environ.get("SUPABASE_KEY", "")
+    sb_url, sb_key = _sb_config()
     if not sb_url or not sb_key:
         return {"ok": False, "error": "no_supabase_env"}
     try:
@@ -172,7 +189,8 @@ def refresh_dead_hours():
         print(f"[CAL] Dead hours updated: {sorted(DEAD_HOURS_UTC)}")
         return {"ok": True, "dead_hours": sorted(DEAD_HOURS_UTC), "hour_stats": hour_stats}
     except Exception as e:
-        return {"ok": False, "error": str(e)}
+        app.logger.exception("Calibration refresh error")
+        return {"ok": False, "error": "refresh_error"}
 
 # Refresh calibration all'avvio (non-blocking)
 try:
@@ -202,8 +220,7 @@ def _refresh_bot_paused():
     """
     global _BOT_PAUSED, _BOT_PAUSED_REFRESHED_AT
     try:
-        sb_url = os.environ.get("SUPABASE_URL", "")
-        sb_key = os.environ.get("SUPABASE_KEY", "")
+        sb_url, sb_key = _sb_config()
         if not sb_url or not sb_key:
             return
         r = requests.get(
@@ -229,8 +246,7 @@ def _refresh_bot_paused():
 def _save_bot_paused(paused: bool):
     """Persist paused state to Supabase bot_state."""
     try:
-        sb_url = os.environ.get("SUPABASE_URL", "")
-        sb_key = os.environ.get("SUPABASE_KEY", "")
+        sb_url, sb_key = _sb_config()
         if not sb_url or not sb_key:
             return
         requests.patch(
@@ -374,8 +390,7 @@ def _close_prev_bet_on_reverse(old_side: str, exit_price: float, closed_size: fl
     il bet precedente che è stato chiuso automaticamente da Kraken.
     """
     try:
-        supabase_url = os.environ.get("SUPABASE_URL", "")
-        supabase_key = os.environ.get("SUPABASE_KEY", "")
+        supabase_url, supabase_key = _sb_config()
         if not supabase_url or not supabase_key or exit_price <= 0:
             return
 
@@ -440,8 +455,7 @@ def health():
     # base_size — from bet-sizing logic (last 10 trades, default conf 0.62)
     base_size = 0.002
     try:
-        sb_url = os.environ.get("SUPABASE_URL", "")
-        sb_key = os.environ.get("SUPABASE_KEY", "")
+        sb_url, sb_key = _sb_config()
         if sb_url and sb_key:
             r = requests.get(
                 f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
@@ -509,7 +523,8 @@ def balance():
             "raw": result,
         })
     except Exception as e:
-        return jsonify({"status": "error", "error": str(e)}), 500
+        app.logger.exception("Endpoint error")
+        return jsonify({"status": "error", "error": "internal_error"}), 500
 
 
 # ── POSITION ─────────────────────────────────────────────────────────────────
@@ -526,8 +541,7 @@ def position():
             # Enrich with Supabase entry_fill_price when Kraken returns price=0
             if not pos.get("price") or float(pos.get("price") or 0) == 0:
                 try:
-                    sb_url = os.environ.get("SUPABASE_URL", "")
-                    sb_key = os.environ.get("SUPABASE_ANON_KEY", "")
+                    sb_url, sb_key = _sb_config()
                     r = requests.get(
                         f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
                         f"?bet_taken=eq.true&correct=is.null"
@@ -546,7 +560,8 @@ def position():
             return jsonify({"status": "open", "symbol": symbol, **pos})
         return jsonify({"status": "flat", "symbol": symbol})
     except Exception as e:
-        return jsonify({"status": "error", "error": str(e), "symbol": symbol}), 500
+        app.logger.exception("Endpoint error")
+        return jsonify({"status": "error", "error": "internal_error", "symbol": symbol}), 500
 
 
 # ── CLOSE POSITION ───────────────────────────────────────────────────────────
@@ -573,8 +588,7 @@ def close_position():
             # A-11: SL potrebbe aver già chiuso la posizione su Kraken.
             # Controlla se esiste un bet orfano in Supabase e risolvilo.
             try:
-                _sb_url = os.environ.get("SUPABASE_URL", "")
-                _sb_key = os.environ.get("SUPABASE_KEY", "")
+                _sb_url, _sb_key = _sb_config()
                 _sb_h   = {"apikey": _sb_key, "Authorization": f"Bearer {_sb_key}"}
                 _explicit = data.get("bet_id")
                 _oq = (
@@ -701,8 +715,7 @@ def close_position():
                 events = result.get("sendStatus", {}).get("orderEvents", [])
                 exit_fill_price = float(events[0]["price"]) if events else 0.0
 
-                supabase_url = os.environ.get("SUPABASE_URL", "")
-                supabase_key = os.environ.get("SUPABASE_KEY", "")
+                supabase_url, supabase_key = _sb_config()
                 headers = {"apikey": supabase_key, "Authorization": f"Bearer {supabase_key}"}
 
                 # Cerca il bet aperto più recente (bet_id esplicito ha priorità)
@@ -770,7 +783,8 @@ def close_position():
         }), (200 if ok else 400)
 
     except Exception as e:
-        return jsonify({"status": "error", "error": str(e), "symbol": symbol}), 500
+        app.logger.exception("Endpoint error")
+        return jsonify({"status": "error", "error": "internal_error", "symbol": symbol}), 500
 
 
 # ── BOT PAUSE / RESUME ───────────────────────────────────────────────────────
@@ -895,8 +909,7 @@ def place_bet():
 
     # Circuit breaker: 3 consecutive losses → auto-pause
     try:
-        sb_url = os.environ.get("SUPABASE_URL", "")
-        sb_key = os.environ.get("SUPABASE_KEY", "")
+        sb_url, sb_key = _sb_config()
         if sb_url and sb_key:
             r_cb = requests.get(
                 f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
@@ -948,8 +961,7 @@ def place_bet():
             # default conservativo: non pyramisare se non riusciamo a leggere Supabase
             pyramid_count_existing = 1
             try:
-                sb_url = os.environ.get("SUPABASE_URL", "")
-                sb_key = os.environ.get("SUPABASE_KEY", "")
+                sb_url, sb_key = _sb_config()
                 if sb_url and sb_key:
                     # Hard cap: count ALL open bets before pyramid logic
                     r_all = requests.get(
@@ -1044,8 +1056,7 @@ def place_bet():
                     # UPDATE Supabase: pyramid_count=1, bet_size aggiornata
                     bet_id = existing_bet_info.get("existing_bet_id")
                     if bet_id:
-                        _sb_url = os.environ.get("SUPABASE_URL", "")
-                        _sb_key = os.environ.get("SUPABASE_KEY", "")
+                        _sb_url, _sb_key = _sb_config()
                         try:
                             _patch_resp = requests.patch(
                                 f"{_sb_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{bet_id}",
@@ -1251,7 +1262,8 @@ def place_bet():
         }), (200 if ok else 400)
 
     except Exception as e:
-        return jsonify({"status": "error", "error": str(e)}), 500
+        app.logger.exception("Endpoint error")
+        return jsonify({"status": "error", "error": "internal_error"}), 500
 
 # ── BTC PRICE (Kraken Futures mark price) ────────────────────────────────────
 
@@ -1281,7 +1293,8 @@ def get_btc_price():
             "funding_rate": ticker.get("fundingRate"),
         })
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        app.logger.exception("Endpoint error")
+        return jsonify({"error": "internal_error"}), 500
 
 
 
@@ -1320,7 +1333,8 @@ def get_execution_fees():
             "fills":        order_fills,
         })
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        app.logger.exception("Endpoint error")
+        return jsonify({"error": "internal_error"}), 500
 
 # ── ACCOUNT SUMMARY (tutto in uno) ───────────────────────────────────────────
 
@@ -1468,8 +1482,7 @@ def account_summary():
         # ── 6. OPEN BETS (Supabase) ──────────────────────────────────────────────
         open_bets = []
         try:
-            supabase_url = os.environ.get("SUPABASE_URL", "")
-            supabase_key = os.environ.get("SUPABASE_KEY", "")
+            supabase_url, supabase_key = _sb_config()
             supabase_headers = {"apikey": supabase_key, "Authorization": f"Bearer {supabase_key}"}
             r_bets = requests.get(
                 f"{supabase_url}/rest/v1/{SUPABASE_TABLE}"
@@ -1529,7 +1542,8 @@ def account_summary():
         })
 
     except Exception as e:
-        return jsonify({"status": "error", "error": str(e)}), 500
+        app.logger.exception("Endpoint error")
+        return jsonify({"status": "error", "error": "internal_error"}), 500
 
 # ── SIGNALS PROXY (Supabase) ─────────────────────────────────────────────────
 
@@ -1549,8 +1563,7 @@ def get_signals():
         except (ValueError, TypeError):
             days = 0
 
-        supabase_url = os.environ.get("SUPABASE_URL", "")
-        supabase_key = os.environ.get("SUPABASE_KEY", "")
+        supabase_url, supabase_key = _sb_config()
 
         if not supabase_url or not supabase_key:
             return jsonify({"error": "Supabase credentials not configured"}), 500
@@ -1591,7 +1604,8 @@ def get_signals():
         })
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        app.logger.exception("Endpoint error")
+        return jsonify({"error": "internal_error"}), 500
 
 # ── PERFORMANCE STATS ────────────────────────────────────────────────────────
 
@@ -1602,8 +1616,7 @@ def performance_stats():
     compatto da iniettare nel prompt di Claude come contesto di calibrazione.
     """
     try:
-        supabase_url = os.environ.get("SUPABASE_URL", "")
-        supabase_key = os.environ.get("SUPABASE_KEY", "")
+        supabase_url, supabase_key = _sb_config()
         if not supabase_url or not supabase_key:
             return jsonify({"perf_stats_text": "n/a (no Supabase config)"})
 
@@ -1807,8 +1820,7 @@ def bet_sizing():
     sig_vol_high       = 1 if "high" in sig_vol else 0
 
     try:
-        supabase_url = os.environ.get("SUPABASE_URL", "")
-        supabase_key = os.environ.get("SUPABASE_KEY", "")
+        supabase_url, supabase_key = _sb_config()
 
         url = f"{supabase_url}/rest/v1/{SUPABASE_TABLE}?select=correct,pnl_usd&bet_taken=eq.true&correct=not.is.null&order=id.desc&limit=10"
         res = requests.get(url, headers={
@@ -1928,7 +1940,8 @@ def bet_sizing():
         })
 
     except Exception as e:
-        return jsonify({"size": base_size, "reason": "error", "error": str(e)})
+        app.logger.exception("Endpoint error")
+        return jsonify({"size": base_size, "reason": "error", "error": "internal_error"})
 
 # ── N8N STATUS (proxy) ───────────────────────────────────────────────────────
 
@@ -1944,8 +1957,7 @@ def rescue_orphaned():
         return err
     n8n_key = os.environ.get("N8N_API_KEY", "")
     n8n_url = os.environ.get("N8N_URL", "https://n8n.srv1432354.hstgr.cloud")
-    supabase_url = os.environ.get("SUPABASE_URL", "")
-    supabase_key = os.environ.get("SUPABASE_KEY", "")
+    supabase_url, supabase_key = _sb_config()
 
     if not n8n_key:
         return jsonify({"status": "error", "error": "N8N_API_KEY not configured"}), 503
@@ -2114,8 +2126,7 @@ def ghost_evaluate():
 
     import datetime as _dt
 
-    supabase_url = os.environ.get("SUPABASE_URL", "")
-    supabase_key = os.environ.get("SUPABASE_KEY", "")
+    supabase_url, supabase_key = _sb_config()
 
     if not supabase_url or not supabase_key:
         return jsonify({"status": "error", "error": "Supabase not configured"}), 503
@@ -2211,7 +2222,8 @@ def ghost_evaluate():
             else:
                 errors.append({"id": row_id, "error": upd.text[:100]})
         except Exception as e:
-            errors.append({"id": row_id, "error": str(e)})
+            app.logger.exception(f"Ghost evaluate error row {row_id}")
+            errors.append({"id": row_id, "error": "evaluate_error"})
 
     app.logger.info(
         f"[ghost_evaluate] evaluated={len(evaluated)} errors={len(errors)} "
@@ -2283,8 +2295,7 @@ def costs():
     Cache 10 minuti sulla parte n8n executions.
     """
     global _costs_cache
-    sb_url = os.environ.get("SUPABASE_URL", "")
-    sb_key = os.environ.get("SUPABASE_KEY", "")
+    sb_url, sb_key = _sb_config()
     sb_headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
 
     # ── 1. Kraken fees (reali da Supabase) ───────────────────────────────────
@@ -2519,8 +2530,7 @@ def equity_history():
     err = _check_read_key()
     if err:
         return err
-    sb_url = os.environ.get("SUPABASE_URL", "")
-    sb_key = os.environ.get("SUPABASE_KEY", "")
+    sb_url, sb_key = _sb_config()
     sb_headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
     capital_base = float(os.environ.get("CAPITAL_USD") or os.environ.get("CAPITAL", "100"))
 
@@ -2564,8 +2574,7 @@ def risk_metrics():
     err = _check_read_key()
     if err:
         return err
-    sb_url = os.environ.get("SUPABASE_URL", "")
-    sb_key = os.environ.get("SUPABASE_KEY", "")
+    sb_url, sb_key = _sb_config()
     sb_headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
 
     try:
@@ -2648,8 +2657,7 @@ def wf_status():
     err = _check_api_key()
     if err:
         return err
-    sb_url = os.environ.get("SUPABASE_URL", "")
-    sb_key = os.environ.get("SUPABASE_KEY", "")
+    sb_url, sb_key = _sb_config()
     sb_headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
     n8n_key = os.environ.get("N8N_API_KEY", "")
     n8n_url_base = os.environ.get("N8N_URL", "https://n8n.srv1432354.hstgr.cloud")
@@ -2711,8 +2719,7 @@ def check_status():
     Returns: alert message (or null), open bet count, wf02 active flag.
     No auth required — only returns high-level system status.
     """
-    sb_url = os.environ.get("SUPABASE_URL", "")
-    sb_key = os.environ.get("SUPABASE_KEY", "")
+    sb_url, sb_key = _sb_config()
     sb_headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
     n8n_key = os.environ.get("N8N_API_KEY", "")
     n8n_url_base = os.environ.get("N8N_URL", "https://n8n.srv1432354.hstgr.cloud")
@@ -2779,8 +2786,7 @@ def orphaned_bets():
     if err:
         return err
     import datetime
-    sb_url = os.environ.get("SUPABASE_URL", "")
-    sb_key = os.environ.get("SUPABASE_KEY", "")
+    sb_url, sb_key = _sb_config()
     sb_headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
 
     try:
@@ -2821,8 +2827,7 @@ def backfill_bet(bet_id):
     err = _check_api_key()
     if err:
         return err
-    sb_url = os.environ.get("SUPABASE_URL", "")
-    sb_key = os.environ.get("SUPABASE_KEY", "")
+    sb_url, sb_key = _sb_config()
     sb_headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
 
     body = request.get_json(silent=True) or {}
@@ -2989,7 +2994,8 @@ def n8n_status():
         return jsonify({"status": "ok", "workflows": result, "ts": int(time.time())})
 
     except Exception as e:
-        return jsonify({"status": "error", "error": str(e)[:120]}), 200
+        app.logger.exception("Endpoint error")
+        return jsonify({"status": "error", "error": "internal_error"[:120]}), 200
 
 
 
@@ -3007,7 +3013,8 @@ def error_patterns():
             data = json.load(f)
         return jsonify(data)
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        app.logger.exception("Endpoint error")
+        return jsonify({"error": "internal_error"}), 500
 
 
 # ── BACKTEST REPORT ──────────────────────────────────────────────────────────
@@ -3037,7 +3044,8 @@ def backtest_report():
             "ok": True,
         })
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        app.logger.exception("Endpoint error")
+        return jsonify({"error": "internal_error"}), 500
 
 
 @app.route("/backtest-data", methods=["GET"])
@@ -3052,7 +3060,8 @@ def backtest_data():
             content = json.load(f)
         return jsonify(content)
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        app.logger.exception("Endpoint error")
+        return jsonify({"error": "internal_error"}), 500
 
 
 # ── PUBLIC CONTRIBUTIONS ──────────────────────────────────────────────────────
@@ -3103,8 +3112,7 @@ def submit_contribution():
         return jsonify({"ok": False, "error": "consenso obbligatorio"}), 400
 
     # ── Save to Supabase (zero personal data) ──
-    supabase_url = os.environ.get("SUPABASE_URL", "")
-    supabase_key = os.environ.get("SUPABASE_SERVICE_KEY", os.environ.get("SUPABASE_KEY", ""))
+    supabase_url, supabase_key = _sb_config()
     if not supabase_url or not supabase_key:
         return jsonify({"ok": False, "error": "DB non configurato"}), 500
 
@@ -3178,8 +3186,7 @@ def submit_contribution():
 @app.route("/public-contributions", methods=["GET"])
 def public_contributions():
     """Return approved contributions — role + insight + month/year only. Zero personal data."""
-    supabase_url = os.environ.get("SUPABASE_URL", "")
-    supabase_key = os.environ.get("SUPABASE_KEY", "")
+    supabase_url, supabase_key = _sb_config()
     if not supabase_url or not supabase_key:
         return jsonify([])
     try:
@@ -3216,8 +3223,7 @@ def approve_contribution(contrib_id):
     token = request.args.get("token", "")
     if not _hmac.compare_digest(token, _make_contribution_token(contrib_id, "approve")):
         return jsonify({"error": "Unauthorized"}), 401
-    supabase_url = os.environ.get("SUPABASE_URL", "")
-    supabase_key = os.environ.get("SUPABASE_SERVICE_KEY", os.environ.get("SUPABASE_KEY", ""))
+    supabase_url, supabase_key = _sb_config()
     try:
         r = requests.patch(
             f"{supabase_url}/rest/v1/contributions?id=eq.{contrib_id}",
@@ -3230,7 +3236,8 @@ def approve_contribution(contrib_id):
             return jsonify({"ok": True, "message": f"Contributo #{contrib_id} approvato e pubblicato."})
         return jsonify({"ok": False, "error": "Errore approvazione"}), 500
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        app.logger.exception("Endpoint error")
+        return jsonify({"ok": False, "error": "internal_error"}), 500
 
 
 @app.route("/reject-contribution/<int:contrib_id>", methods=["GET"])
@@ -3239,8 +3246,7 @@ def reject_contribution(contrib_id):
     token = request.args.get("token", "")
     if not _hmac.compare_digest(token, _make_contribution_token(contrib_id, "reject")):
         return jsonify({"error": "Unauthorized"}), 401
-    supabase_url = os.environ.get("SUPABASE_URL", "")
-    supabase_key = os.environ.get("SUPABASE_SERVICE_KEY", os.environ.get("SUPABASE_KEY", ""))
+    supabase_url, supabase_key = _sb_config()
     try:
         r = requests.delete(
             f"{supabase_url}/rest/v1/contributions?id=eq.{contrib_id}",
@@ -3251,7 +3257,8 @@ def reject_contribution(contrib_id):
             return jsonify({"ok": True, "message": f"Contributo #{contrib_id} rifiutato e rimosso."})
         return jsonify({"ok": False, "error": "Errore rifiuto"}), 500
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        app.logger.exception("Endpoint error")
+        return jsonify({"ok": False, "error": "internal_error"}), 500
 
 
 # ── BACKTEST ───────────────────────────────────────────────────────────────────
@@ -3312,7 +3319,8 @@ def xgb_report():
         lines = content.strip().split("\n")
         return jsonify({"report": content, "lines": len(lines), "ok": True})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        app.logger.exception("Endpoint error")
+        return jsonify({"error": "internal_error"}), 500
 
 # ── TRAINING STATUS ───────────────────────────────────────────────────────────
 
@@ -3369,8 +3377,7 @@ def training_status():
 
     # Bets since last retrain (from Supabase)
     bets_since = None
-    sb_url = os.environ.get("SUPABASE_URL", "")
-    sb_key = os.environ.get("SUPABASE_KEY", "")
+    sb_url, sb_key = _sb_config()
     if sb_url and sb_key and last_retrain_ts:
         try:
             cutoff = last_retrain_ts.strftime("%Y-%m-%dT%H:%M:%S")
@@ -3454,8 +3461,7 @@ def trading_stats():
     e restituisce i dati in JSON.
     """
     try:
-        supabase_url = os.environ.get("SUPABASE_URL", "")
-        supabase_key = os.environ.get("SUPABASE_KEY", "")
+        supabase_url, supabase_key = _sb_config()
 
         if not supabase_url or not supabase_key:
             return jsonify({"error": "Supabase credentials not configured"}), 500
@@ -3476,7 +3482,8 @@ def trading_stats():
         return jsonify({"status": "ok", "data": rows[0]})
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        app.logger.exception("Endpoint error")
+        return jsonify({"error": "internal_error"}), 500
 
 # ── MACRO GUARD ──────────────────────────────────────────────────────────────
 
@@ -3687,7 +3694,8 @@ def commit_prediction():
 
     except Exception as e:
         app.logger.error(f"[ONCHAIN] commit_prediction error: {e}")
-        return jsonify({"ok": False, "error": str(e)}), 500
+        app.logger.exception("Endpoint error")
+        return jsonify({"ok": False, "error": "internal_error"}), 500
 
 
 @app.route("/resolve-prediction", methods=["POST"])
@@ -3752,13 +3760,13 @@ def resolve_prediction():
 
     except Exception as e:
         app.logger.error(f"[ONCHAIN] resolve_prediction error: {e}")
-        return jsonify({"ok": False, "error": str(e)}), 500
+        app.logger.exception("Endpoint error")
+        return jsonify({"ok": False, "error": "internal_error"}), 500
 
 
 def _supabase_update(bet_id: int, fields: dict):
-    """Helper: aggiorna una riga Supabase per bet_id. Usa service key se disponibile."""
-    sb_url = os.environ.get("SUPABASE_URL", "")
-    sb_key = os.environ.get("SUPABASE_SERVICE_KEY") or os.environ.get("SUPABASE_KEY", "")
+    """Helper: aggiorna una riga Supabase per bet_id."""
+    sb_url, sb_key = _sb_config()
     url = f"{sb_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{bet_id}"
     headers = {
         "apikey": sb_key,
@@ -4043,8 +4051,7 @@ def satoshi_lead():
         return jsonify({"ok": False, "error": "invalid_email"}), 400
     source   = str(data.get("source", "satoshi_widget"))[:64]
     metadata = data.get("metadata") if isinstance(data.get("metadata"), dict) else {}
-    sb_url = os.environ.get("SUPABASE_URL", "")
-    sb_key = os.environ.get("SUPABASE_KEY", "")
+    sb_url, sb_key = _sb_config()
     if not sb_url or not sb_key:
         app.logger.error("satoshi_lead: missing SUPABASE_URL/KEY env")
         return jsonify({"ok": False, "error": "server_error"}), 500
@@ -4144,8 +4151,7 @@ def on_chain_audit():
     """
     import datetime as _dt
 
-    sb_url = os.environ.get("SUPABASE_URL", "")
-    sb_key = os.environ.get("SUPABASE_KEY", "")
+    sb_url, sb_key = _sb_config()
     if not sb_url or not sb_key:
         return jsonify({"error": "no_supabase"}), 500
 
@@ -4178,7 +4184,8 @@ def on_chain_audit():
             bets = r.json()
             onchain_cols = True
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        app.logger.exception("Endpoint error")
+        return jsonify({"error": "internal_error"}), 500
 
     total_bets  = len(bets)
     with_commit = sum(1 for b in bets if b.get("onchain_commit_tx"))
