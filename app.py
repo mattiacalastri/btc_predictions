@@ -3915,6 +3915,188 @@ def resolve_prediction():
         return jsonify({"ok": False, "error": "internal_error"}), 500
 
 
+# ── ON-CHAIN FASI AGGIUNTIVE (INPUT HASH · FILL CONFIRM · SL/TP) ──────────────
+# Convenzione offset bet_id (usa existing commit() senza redeploy contratto):
+#   Fase inputs:   bet_id + 10_000_000
+#   Fase fill:     bet_id + 20_000_000
+#   Fase stops:    bet_id + 30_000_000
+
+@app.route("/commit-inputs", methods=["POST"])
+def commit_inputs():
+    """
+    Committa hash degli input pre-LLM su Polygon.
+    Body JSON: { bet_id, btc_price, rsi14, fg_value, funding_rate, timestamp }
+    Prova che gli input di mercato erano reali PRIMA della chiamata LLM.
+    """
+    err = _check_api_key()
+    if err:
+        return err
+    data = request.get_json(force=True) or {}
+    required = ["bet_id", "btc_price", "rsi14", "fg_value", "funding_rate", "timestamp"]
+    missing = [f for f in required if f not in data]
+    if missing:
+        return jsonify({"ok": False, "error": f"Campi mancanti: {missing}"}), 400
+
+    bet_id    = int(data["bet_id"])
+    btc_price = float(data["btc_price"])
+    rsi14     = float(data["rsi14"])
+    fg_value  = int(data["fg_value"])
+    funding   = float(data["funding_rate"])
+    ts        = int(data["timestamp"])
+
+    try:
+        from web3 import Web3
+        try:
+            w3, contract, account = _get_web3_contract()
+        except RuntimeError as cfg_err:
+            app.logger.error(f"[ONCHAIN] config error: {cfg_err}")
+            return jsonify({"ok": False, "error": "polygon_not_configured"}), 503
+
+        onchain_id = bet_id + 10_000_000
+        commit_hash = Web3.solidity_keccak(
+            ["uint256", "uint256", "int256", "int256", "int256", "uint256"],
+            [bet_id, int(btc_price * 1e2), int(rsi14 * 1e6), fg_value,
+             int(funding * 1e8), ts]
+        )
+        nonce = w3.eth.get_transaction_count(account.address, 'pending')
+        tx = contract.functions.commit(onchain_id, commit_hash).build_transaction({
+            "from": account.address, "nonce": nonce,
+            "gas": 80000, "gasPrice": w3.to_wei("30", "gwei"), "chainId": 137,
+        })
+        signed = account.sign_transaction(tx)
+        tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
+        tx_hex = tx_hash.hex()
+        app.logger.info(f"[ONCHAIN] inputs bet #{bet_id} → tx {tx_hex}")
+
+        try:
+            _supabase_update(bet_id, {"onchain_inputs_tx": tx_hex})
+        except Exception as sb_err:
+            app.logger.error(f"[ONCHAIN] Supabase update failed: {sb_err}")
+            return jsonify({"ok": True, "tx": tx_hex, "warning": "tx sent but Supabase update failed"})
+
+        return jsonify({"ok": True, "tx": tx_hex, "onchain_id": onchain_id})
+
+    except Exception as e:
+        app.logger.error(f"[ONCHAIN] commit_inputs error: {type(e).__name__}: {e}")
+        app.logger.exception("Endpoint error")
+        return jsonify({"ok": False, "error": "internal_error"}), 500
+
+
+@app.route("/commit-fill", methods=["POST"])
+def commit_fill():
+    """
+    Committa il prezzo di fill reale post-esecuzione Kraken.
+    Body JSON: { bet_id, entry_fill_price, timestamp_fill }
+    Crea record immutabile dello slippage reale.
+    """
+    err = _check_api_key()
+    if err:
+        return err
+    data = request.get_json(force=True) or {}
+    required = ["bet_id", "entry_fill_price", "timestamp_fill"]
+    missing = [f for f in required if f not in data]
+    if missing:
+        return jsonify({"ok": False, "error": f"Campi mancanti: {missing}"}), 400
+
+    bet_id     = int(data["bet_id"])
+    fill_price = float(data["entry_fill_price"])
+    ts_fill    = int(data["timestamp_fill"])
+
+    try:
+        from web3 import Web3
+        try:
+            w3, contract, account = _get_web3_contract()
+        except RuntimeError as cfg_err:
+            app.logger.error(f"[ONCHAIN] config error: {cfg_err}")
+            return jsonify({"ok": False, "error": "polygon_not_configured"}), 503
+
+        onchain_id = bet_id + 20_000_000
+        commit_hash = Web3.solidity_keccak(
+            ["uint256", "uint256", "uint256"],
+            [bet_id, int(fill_price * 1e2), ts_fill]
+        )
+        nonce = w3.eth.get_transaction_count(account.address, 'pending')
+        tx = contract.functions.commit(onchain_id, commit_hash).build_transaction({
+            "from": account.address, "nonce": nonce,
+            "gas": 80000, "gasPrice": w3.to_wei("30", "gwei"), "chainId": 137,
+        })
+        signed = account.sign_transaction(tx)
+        tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
+        tx_hex = tx_hash.hex()
+        app.logger.info(f"[ONCHAIN] fill bet #{bet_id} price={fill_price} → tx {tx_hex}")
+
+        try:
+            _supabase_update(bet_id, {"onchain_fill_tx": tx_hex})
+        except Exception as sb_err:
+            app.logger.error(f"[ONCHAIN] Supabase update failed: {sb_err}")
+            return jsonify({"ok": True, "tx": tx_hex, "warning": "tx sent but Supabase update failed"})
+
+        return jsonify({"ok": True, "tx": tx_hex, "onchain_id": onchain_id})
+
+    except Exception as e:
+        app.logger.error(f"[ONCHAIN] commit_fill error: {type(e).__name__}: {e}")
+        app.logger.exception("Endpoint error")
+        return jsonify({"ok": False, "error": "internal_error"}), 500
+
+
+@app.route("/commit-stops", methods=["POST"])
+def commit_stops():
+    """
+    Committa prezzi SL/TP post-piazzamento su Polygon.
+    Body JSON: { bet_id, sl_price, tp_price, timestamp }
+    Prova che lo stop era piazzato PRIMA di qualsiasi movimento significativo.
+    """
+    err = _check_api_key()
+    if err:
+        return err
+    data = request.get_json(force=True) or {}
+    required = ["bet_id", "sl_price", "tp_price", "timestamp"]
+    missing = [f for f in required if f not in data]
+    if missing:
+        return jsonify({"ok": False, "error": f"Campi mancanti: {missing}"}), 400
+
+    bet_id   = int(data["bet_id"])
+    sl_price = float(data["sl_price"])
+    tp_price = float(data["tp_price"])
+    ts       = int(data["timestamp"])
+
+    try:
+        from web3 import Web3
+        try:
+            w3, contract, account = _get_web3_contract()
+        except RuntimeError as cfg_err:
+            app.logger.error(f"[ONCHAIN] config error: {cfg_err}")
+            return jsonify({"ok": False, "error": "polygon_not_configured"}), 503
+
+        onchain_id = bet_id + 30_000_000
+        commit_hash = Web3.solidity_keccak(
+            ["uint256", "uint256", "uint256", "uint256"],
+            [bet_id, int(sl_price * 1e2), int(tp_price * 1e2), ts]
+        )
+        nonce = w3.eth.get_transaction_count(account.address, 'pending')
+        tx = contract.functions.commit(onchain_id, commit_hash).build_transaction({
+            "from": account.address, "nonce": nonce,
+            "gas": 80000, "gasPrice": w3.to_wei("30", "gwei"), "chainId": 137,
+        })
+        signed = account.sign_transaction(tx)
+        tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
+        tx_hex = tx_hash.hex()
+        app.logger.info(f"[ONCHAIN] stops bet #{bet_id} sl={sl_price} tp={tp_price} → tx {tx_hex}")
+
+        try:
+            _supabase_update(bet_id, {"onchain_stops_tx": tx_hex})
+        except Exception as sb_err:
+            app.logger.error(f"[ONCHAIN] Supabase update failed: {sb_err}")
+            return jsonify({"ok": True, "tx": tx_hex, "warning": "tx sent but Supabase update failed"})
+
+        return jsonify({"ok": True, "tx": tx_hex, "onchain_id": onchain_id})
+
+    except Exception as e:
+        app.logger.error(f"[ONCHAIN] commit_stops error: {type(e).__name__}: {e}")
+        app.logger.exception("Endpoint error")
+        return jsonify({"ok": False, "error": "internal_error"}), 500
+
+
 def _supabase_update(bet_id: int, fields: dict):
     """Helper: aggiorna una riga Supabase per bet_id."""
     sb_url, sb_key = _sb_config()
