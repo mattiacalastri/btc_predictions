@@ -5281,19 +5281,30 @@ function render(data) {
   renderTable(data);
 
   const chronoBets = [...realBets].reverse();
-  renderGalaxy(data);
-  renderSignalQuality(data);
-  renderConfDist(data);
-  renderEquityCurve(chronoBets, totalPnl);
-  renderRollingWrFull(chronoBets);
-  renderConfFull(chronoBets);
+  const chronoAll  = [...data].reverse();
 
-  // Charts Grid (4 temporal charts)
-  const chronoAll = [...data].reverse();
-  renderConfidenceOverTime(chronoAll);
-  renderRollingWinRate(chronoBets);
-  renderPnlBarsLarge(chronoBets);
-  renderBtcPredictionsOverlay(chronoAll);
+  // I-06: defer all SVG renders to idle time — prevents blocking main thread every 60s.
+  // Safari polyfill: requestIdleCallback not supported → setTimeout(16ms) yields one frame.
+  const _ric = window.requestIdleCallback
+    ? fn => requestIdleCallback(fn, { timeout: 2000 })
+    : fn => setTimeout(fn, 16);
+
+  _ric(() => {
+    renderGalaxy(data);
+    renderSignalQuality(data);
+    renderConfDist(data);
+  });
+  _ric(() => {
+    renderEquityCurve(chronoBets, totalPnl);
+    renderRollingWrFull(chronoBets);
+    renderConfFull(chronoBets);
+  });
+  _ric(() => {
+    renderConfidenceOverTime(chronoAll);
+    renderRollingWinRate(chronoBets);
+    renderPnlBarsLarge(chronoBets);
+    renderBtcPredictionsOverlay(chronoAll);
+  });
 
   const tag = document.getElementById('totalPnlTag');
   tag.textContent = 'TOTAL: ' + (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toFixed(2);
