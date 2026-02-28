@@ -2253,16 +2253,33 @@ def ghost_evaluate():
     if not supabase_url or not supabase_key:
         return jsonify({"status": "error", "error": "Supabase not configured"}), 503
 
-    # 1. Prezzo BTC attuale da Binance
-    try:
-        pr = requests.get(
-            "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT",
-            timeout=5,
-        )
-        pr.raise_for_status()
-        current_price = float(pr.json()["price"])
-    except Exception as e:
-        return jsonify({"status": "error", "error": f"Binance price fetch: {e}"}), 503
+    # 1. Prezzo BTC: opzionale dal body, poi Kraken public, poi Binance
+    body = request.get_json(silent=True) or {}
+    if body.get("btc_price"):
+        try:
+            current_price = float(body["btc_price"])
+        except (TypeError, ValueError):
+            current_price = None
+    else:
+        current_price = None
+
+    if not current_price:
+        for price_url, parser in [
+            ("https://api.kraken.com/0/public/Ticker?pair=XBTUSD",
+             lambda r: float(r.json()["result"]["XXBTZUSD"]["c"][0])),
+            ("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT",
+             lambda r: float(r.json()["price"])),
+        ]:
+            try:
+                pr = requests.get(price_url, timeout=5)
+                pr.raise_for_status()
+                current_price = parser(pr)
+                break
+            except Exception:
+                continue
+
+    if not current_price:
+        return jsonify({"status": "error", "error": "price_fetch_failed"}), 503
 
     # 2. Fetch candidati: bet_taken=false, ghost_evaluated_at IS NULL,
     #    signal_price non null, creati tra 18min e 6h fa
