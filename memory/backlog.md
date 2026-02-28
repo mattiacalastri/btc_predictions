@@ -11,7 +11,7 @@
 | # | Task | Note |
 |---|------|------|
 | 1 | Fix CNBC RSS — sostituire con Bloomberg RSS o Reuters Markets | Feed attuale ~24h ritardo → AI decide su news stantie. Contraddice "real numbers". |
-| 2 | Fix PENDING cleanup — prediction non-bet restano PENDING per sempre | Dati incompleti nel DB certificato. Nodo dedicato in 08_Position_Monitor o wf separato |
+| 2 | ~~Fix PENDING cleanup~~ ✅ | Risolto 28 Feb: 3 nodi aggiunti a wf08 (Get Stale PENDING → Filter Old PENDING → Mark SKIP). Soglia: 15 min. |
 | 3 | Fix ghost_exit_price — shadow evaluation non popolata | Verifica che 02_BTC_Trade_Checker scriva su `ghost_exit_price`. Fondamentale per trasparenza verifiable. |
 
 ---
