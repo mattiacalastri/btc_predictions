@@ -500,6 +500,7 @@ def health():
 
     # base_size — from bet-sizing logic (last 10 trades, default conf 0.62)
     base_size = 0.002
+    supabase_ok = None
     try:
         sb_url, sb_key = _sb_config()
         if sb_url and sb_key:
@@ -509,6 +510,7 @@ def health():
                 headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
                 timeout=3,
             )
+            supabase_ok = r.status_code == 200
             trades = r.json() if r.status_code == 200 else []
             if trades and len(trades) >= 3:
                 results = [t.get("correct") for t in trades if t.get("correct") is not None]
@@ -552,6 +554,7 @@ def health():
         "xgb_clean_bets": _clean_bets,
         "xgb_min_bets": _XGB_GATE_MIN_BETS,
         "polygon_configured": _polygon_configured,
+        "supabase_ok": supabase_ok,
     })
 
 

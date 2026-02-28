@@ -180,17 +180,29 @@
 
   <!-- MINI STATUS BAR -->
   <div class="mini-status-bar" id="miniStatusBar">
-    <!-- AGENTS -->
-    <span class="msb-label">Agents</span>
-    <span class="msb-item" title="01A — Input Fetcher (dati mercato)"><span class="lsb-robot">🤖</span><span class="status-dot" id="statusWf01a"></span>FEEDS<span class="msb-stxt" id="stxtWf01a"></span></span>
+    <!-- PIPELINE: core trading flow (01A → 01B → 02 → 08) -->
+    <span class="msb-label">PIPELINE</span>
+    <span class="msb-item" title="01A — Input Fetcher: fetches 16 market data sources ogni 6min"><span class="lsb-robot">🤖</span><span class="status-dot" id="statusWf01a"></span>FEEDS<span class="msb-stxt" id="stxtWf01a"></span></span>
     <span class="msb-sep"></span>
-    <span class="msb-item" title="01B — AI Prediction Engine"><span class="lsb-robot">🤖</span><span class="status-dot" id="statusWf01b"></span>BRAIN<span class="msb-stxt" id="stxtWf01b"></span></span>
+    <span class="msb-item" title="01B — AI Prediction Engine: Claude + XGBoost dual-gate"><span class="lsb-robot">🤖</span><span class="status-dot" id="statusWf01b"></span>BRAIN<span class="msb-stxt" id="stxtWf01b"></span></span>
     <span class="msb-sep"></span>
-    <span class="msb-item" title="02 — Trade Desk (exit manager)"><span class="lsb-robot">🤖</span><span class="status-dot" id="statusWf02"></span>DESK<span class="msb-stxt" id="stxtWf02"></span></span>
+    <span class="msb-item" title="02 — Trade Desk: SL/TP/timeout exit manager"><span class="lsb-robot">🤖</span><span class="status-dot" id="statusWf02"></span>DESK<span class="msb-stxt" id="stxtWf02"></span></span>
     <span class="msb-sep"></span>
-    <span class="msb-item" title="07 — Commander (Telegram bot)"><span class="lsb-robot">🤖</span><span class="status-dot" id="statusWf07"></span>CMD<span class="msb-stxt" id="stxtWf07"></span></span>
+    <span class="msb-item" title="08 — Position Monitor: fires wf02 ogni 3min per ogni posizione aperta"><span class="lsb-robot">🤖</span><span class="status-dot" id="statusWf08"></span>GUARD<span class="msb-stxt" id="stxtWf08"></span></span>
+    <!-- COMMS: communication & monitoring agents -->
+    <span class="msb-bigsep"></span>
+    <span class="msb-label">COMMS</span>
+    <span class="msb-item" title="07 — Commander: Telegram bot per controllo sistema"><span class="lsb-robot">🤖</span><span class="status-dot" id="statusWf07"></span>CMD<span class="msb-stxt" id="stxtWf07"></span></span>
     <span class="msb-sep"></span>
-    <span class="msb-item" title="Railway API"><span class="status-dot" id="statusRailway"></span>API<span class="msb-stxt" id="stxtRailway"></span></span>
+    <span class="msb-item" title="09A — Social Manager: post automatici dopo ogni trade"><span class="lsb-robot">🤖</span><span class="status-dot" id="statusWf09a"></span>SOC<span class="msb-stxt" id="stxtWf09a"></span></span>
+    <span class="msb-sep"></span>
+    <span class="msb-item" title="06 — System Watchdog: monitora anomalie sistema ogni 15min"><span class="lsb-robot">🤖</span><span class="status-dot" id="statusWf06"></span>WATCH<span class="msb-stxt" id="stxtWf06"></span></span>
+    <!-- INFRA: infrastructure health -->
+    <span class="msb-bigsep"></span>
+    <span class="msb-label">INFRA</span>
+    <span class="msb-item" title="Railway API (Flask backend)"><span class="status-dot" id="statusRailway"></span>API<span class="msb-stxt" id="stxtRailway"></span></span>
+    <span class="msb-sep"></span>
+    <span class="msb-item" title="Supabase DB (predictions, signals, bot_state)"><span class="status-dot" id="statusDB"></span>DB<span class="msb-stxt" id="stxtDB"></span></span>
     <!-- BOT -->
     <span class="msb-bigsep"></span>
     <span class="msb-label">Bot</span>
@@ -6823,20 +6835,32 @@ function _msbSet(dotId, txtId, color, txt) {
 }
 function updateMiniStatusBar(agentsData, railwayOk) {
   _msbSet('statusRailway', 'stxtRailway', railwayOk ? 'green' : 'red', railwayOk ? 'OK' : 'ERR');
+  var unknownDots = ['statusWf01a','statusWf01b','statusWf02','statusWf08',
+                     'statusWf07','statusWf09a','statusWf06'];
+  var unknownTxts = ['stxtWf01a','stxtWf01b','stxtWf02','stxtWf08',
+                     'stxtWf07','stxtWf09a','stxtWf06'];
   if (!agentsData || agentsData.status !== 'ok') {
     var c = railwayOk ? 'yellow' : 'red', t = railwayOk ? '?' : 'ERR';
-    _msbSet('statusWf01a','stxtWf01a', c, t);
-    _msbSet('statusWf01b','stxtWf01b', c, t);
-    _msbSet('statusWf02', 'stxtWf02',  c, t);
-    _msbSet('statusWf07', 'stxtWf07',  c, t);
+    unknownDots.forEach(function(d, i) { _msbSet(d, unknownTxts[i], c, t); });
     return;
   }
   var wfs = agentsData.workflows || [];
+  var now = Date.now();
+  // Max acceptable staleness per workflow (ms): scheduled workflows stale if not run within 2x period
+  var maxStaleness = {
+    'statusWf01a': 8  * 60000,  // 01A fires every 6min → stale after 8min
+    'statusWf01b': 8  * 60000,  // 01B fires per 01A → same
+    'statusWf08':  10 * 60000,  // 08 fires every 3min → stale after 10min
+    'statusWf06':  35 * 60000,  // 06 watchdog every 15min → stale after 35min
+  };
   var targets = {
     'statusWf01a': { prefixes: ['01A'], txt: 'stxtWf01a' },
     'statusWf01b': { prefixes: ['01B'], txt: 'stxtWf01b' },
     'statusWf02':  { prefixes: ['02'],  txt: 'stxtWf02'  },
-    'statusWf07':  { prefixes: ['07'],  txt: 'stxtWf07'  }
+    'statusWf08':  { prefixes: ['08'],  txt: 'stxtWf08'  },
+    'statusWf07':  { prefixes: ['07'],  txt: 'stxtWf07'  },
+    'statusWf09a': { prefixes: ['09A'], txt: 'stxtWf09a' },
+    'statusWf06':  { prefixes: ['06'],  txt: 'stxtWf06'  },
   };
   Object.keys(targets).forEach(function(dotId) {
     var cfg = targets[dotId];
@@ -6846,10 +6870,18 @@ function updateMiniStatusBar(agentsData, railwayOk) {
     if (!match) { _msbSet(dotId, cfg.txt, 'yellow', '?'); return; }
     var isActive = match.active;
     var last = match.last_execution && match.last_execution.status;
-    if (!isActive)                              { _msbSet(dotId, cfg.txt, 'red',    'OFF'); }
-    else if (last === 'success')                { _msbSet(dotId, cfg.txt, 'green',  'OK');  }
-    else if (last === 'crashed' || last === 'error') { _msbSet(dotId, cfg.txt, 'red', 'ERR'); }
-    else                                        { _msbSet(dotId, cfg.txt, 'yellow', '…');   }
+    var lastTs = match.last_execution && (match.last_execution.stopped_at || match.last_execution.started_at);
+    if (!isActive) { _msbSet(dotId, cfg.txt, 'red', 'OFF'); return; }
+    if (last === 'crashed' || last === 'error') { _msbSet(dotId, cfg.txt, 'red', 'ERR'); return; }
+    // Staleness check for scheduled workflows
+    if (maxStaleness[dotId] && lastTs) {
+      try {
+        var ageSec = (now - new Date(lastTs).getTime());
+        if (ageSec > maxStaleness[dotId]) { _msbSet(dotId, cfg.txt, 'yellow', 'STALE'); return; }
+      } catch(e) {}
+    }
+    if (last === 'success') { _msbSet(dotId, cfg.txt, 'green', 'OK'); }
+    else                    { _msbSet(dotId, cfg.txt, 'yellow', '…'); }
   });
 }
 
@@ -6910,12 +6942,17 @@ function refreshMiniStatusBarLive() {
           dryLabel.style.color = 'var(--accent)';
         }
       }
+      // DB (Supabase) status — directly from health response
+      if (h.supabase_ok === true)       { _msbSet('statusDB', 'stxtDB', 'green',  'OK');  }
+      else if (h.supabase_ok === false) { _msbSet('statusDB', 'stxtDB', 'red',    'ERR'); }
+      else                              { _msbSet('statusDB', 'stxtDB', 'yellow', '?');   }
     })
     .catch(function() {
       var d = document.getElementById('statusBot');
       if (d) d.className = 'status-dot red';
       var k = document.getElementById('statusKraken');
       if (k) k.className = 'status-dot red';
+      _msbSet('statusDB', 'stxtDB', 'red', 'ERR');
     });
 
   /* ── /signals?limit=1: last prediction age ── */
