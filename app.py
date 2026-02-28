@@ -1031,12 +1031,21 @@ def place_bet():
         sl_price    = None
         tp_price    = None
         rr_ratio    = None
+        fill_price  = None
         if ok and confirmed_pos:
             try:
+                # Execution event price (stesso source usato da n8n Save Entry Fill)
+                _order_events = (result.get("sendStatus") or {}).get("orderEvents") or []
+                _exec = next((e for e in _order_events if e.get("type") == "EXECUTION"), None)
+                if _exec and _exec.get("price"):
+                    fill_price = float(_exec["price"])
+
                 sl_pct = float(data.get("sl_pct", 1.2))
                 tp_pct = float(data.get("tp_pct", sl_pct * 2))  # default 2× SL
-                entry_price = float(confirmed_pos.get("price") or 0) or _get_mark_price(symbol)
+                entry_price = fill_price or float(confirmed_pos.get("price") or 0) or _get_mark_price(symbol)
                 if entry_price > 0:
+                    if not fill_price:
+                        fill_price = entry_price
                     if direction == "UP":
                         sl_price = round(entry_price * (1 - sl_pct / 100), 1)
                         tp_price = round(entry_price * (1 + tp_pct / 100), 1)
@@ -1074,6 +1083,7 @@ def place_bet():
             "position_confirmed": position_confirmed,
             "position": confirmed_pos,
             "previous_position_existed": pos is not None,
+            "fill_price":  fill_price,
             "sl_order_id": sl_order_id,
             "sl_price":    sl_price,
             "tp_price":    tp_price,
