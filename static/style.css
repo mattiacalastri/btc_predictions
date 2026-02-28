@@ -588,6 +588,8 @@
   .status-dot.green  { background:var(--accent); box-shadow:0 0 4px rgba(0,255,136,0.6); animation:pulse 2s infinite; }
   .status-dot.red    { background:var(--danger);  box-shadow:0 0 4px rgba(255,68,102,0.6); }
   .status-dot.yellow { background:var(--warn);    box-shadow:0 0 4px rgba(255,170,0,0.6); animation:pulse 2.5s infinite; }
+  .tagline-break { display:inline; }
+  @media (max-width:640px) { .tagline-break { display:block; padding-left:1.2rem; } }
   .msb-stxt { font-size:7px; font-weight:700; letter-spacing:0.3px; opacity:0.85; }
   .msb-stxt-green  { color:var(--accent); }
   .msb-stxt-red    { color:var(--danger); }
