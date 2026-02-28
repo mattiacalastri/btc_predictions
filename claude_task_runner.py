@@ -47,12 +47,16 @@ def fetch_pending():
 
 
 def mark_inprogress(task_id):
-    """Update to in_progress. Returns False only if already claimed."""
-    url = f"{SUPABASE_URL}/rest/v1/claude_tasks?id=eq.{task_id}"
+    """Atomic claim: aggiunge &status=eq.pending al filtro.
+    Se un'altra istanza ha già claimato il task, Supabase non aggiorna nessuna riga
+    e restituisce [] → restituiamo False → l'istanza corrente esce senza eseguire.
+    Risolve la race condition C-01 (doppia esecuzione su launchd overlap).
+    """
+    url = f"{SUPABASE_URL}/rest/v1/claude_tasks?id=eq.{task_id}&status=eq.pending"
     payload = {"status": "running", "started_at": _now()}
     r = requests.patch(url, headers=_headers(), json=payload, timeout=10)
     r.raise_for_status()
-    return True
+    return bool(r.json())  # [] → già claimato da un'altra istanza
 
 
 def mark_done(task_id, result, status="completed"):
@@ -150,7 +154,9 @@ def main():
         return
 
     print(f"[{datetime.now().isoformat()}] Task #{task_id}: {command[:80]}")
-    mark_inprogress(task_id)
+    if not mark_inprogress(task_id):
+        print(f"[{datetime.now().isoformat()}] Task #{task_id} già claimato da altra istanza — uscita")
+        return  # C-01: altra istanza launchd ci ha preceduti
 
     try:
         result = run_claude(command)
