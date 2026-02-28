@@ -2584,3 +2584,214 @@
   #tutSkipFixed { top: 14px; right: 14px; width: 40px; height: 40px; font-size: 22px; }
 }
 #tutSkipFixed:hover { background: rgba(255,68,102,0.30); border-color: rgba(255,68,102,0.75); color: #ff6070; transform: scale(1.08); }
+
+/* ═══════════════════════════════════════
+   MARKETING TAB
+═══════════════════════════════════════ */
+.mkt-stats-bar {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 12px 16px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.mkt-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 52px;
+}
+.mkt-stat-val {
+  font-size: 22px;
+  font-weight: 800;
+  font-family: 'Syne', sans-serif;
+  color: var(--text);
+  line-height: 1;
+}
+.mkt-stat-pub .mkt-stat-val { color: var(--accent); }
+.mkt-stat-pen .mkt-stat-val { color: var(--warn); }
+.mkt-stat-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.mkt-stat-channels {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+.mkt-ch-btn {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: none;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: 'JetBrains Mono', monospace;
+}
+.mkt-ch-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.3); }
+.mkt-ch-btn.active { color: var(--accent); border-color: rgba(0,255,136,0.5); background: rgba(0,255,136,0.07); }
+
+.mkt-calendar {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 10px;
+}
+.mkt-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+}
+.mkt-card:hover { border-color: rgba(0,170,255,0.35); box-shadow: 0 0 12px rgba(0,170,255,0.06); }
+.mkt-card.expanded { border-color: rgba(0,170,255,0.5); box-shadow: 0 0 16px rgba(0,170,255,0.10); cursor: default; }
+.mkt-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.mkt-day-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 40px;
+  background: rgba(0,170,255,0.10);
+  border: 1px solid rgba(0,170,255,0.25);
+  border-radius: 5px;
+  flex-shrink: 0;
+}
+.mkt-day-num { font-size: 16px; font-weight: 800; font-family: 'Syne', sans-serif; color: var(--blue); line-height: 1; }
+.mkt-day-name { font-size: 8px; font-weight: 700; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; }
+.mkt-meta { flex: 1; min-width: 0; }
+.mkt-title { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mkt-channels { display: flex; gap: 4px; flex-wrap: wrap; }
+.mkt-ch-pill {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.mkt-ch-pill.telegram { background: rgba(0,212,255,0.12); color: var(--cyan); border: 1px solid rgba(0,212,255,0.25); }
+.mkt-ch-pill.x        { background: rgba(232,232,232,0.08); color: #e8e8e8; border: 1px solid rgba(232,232,232,0.2); }
+.mkt-ch-pill.linkedin { background: rgba(0,119,181,0.15); color: #4faaff; border: 1px solid rgba(0,119,181,0.3); }
+.mkt-ch-pill.reddit   { background: rgba(255,69,0,0.12); color: #ff7b3a; border: 1px solid rgba(255,69,0,0.25); }
+.mkt-type-badge {
+  font-size: 8px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 3px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  align-self: flex-start;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.mkt-type-launch     { background: rgba(0,255,136,0.12); color: var(--accent); border: 1px solid rgba(0,255,136,0.3); }
+.mkt-type-daily      { background: rgba(0,170,255,0.10); color: var(--blue); border: 1px solid rgba(0,170,255,0.25); }
+.mkt-type-buildinpublic { background: rgba(170,102,255,0.12); color: var(--purple); border: 1px solid rgba(170,102,255,0.3); }
+.mkt-type-milestone  { background: rgba(255,170,0,0.12); color: var(--warn); border: 1px solid rgba(255,170,0,0.3); }
+.mkt-type-loss       { background: rgba(255,68,102,0.10); color: var(--danger); border: 1px solid rgba(255,68,102,0.25); }
+.mkt-type-deepdive   { background: rgba(0,212,255,0.10); color: var(--cyan); border: 1px solid rgba(0,212,255,0.25); }
+.mkt-type-technical  { background: rgba(0,212,255,0.10); color: var(--cyan); border: 1px solid rgba(0,212,255,0.25); }
+.mkt-type-retrain    { background: rgba(170,102,255,0.12); color: var(--purple); border: 1px solid rgba(170,102,255,0.3); }
+.mkt-hook {
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.5;
+  margin-bottom: 8px;
+  opacity: 0.85;
+}
+.mkt-body-wrap {
+  display: none;
+  margin-top: 8px;
+}
+.mkt-card.expanded .mkt-body-wrap { display: block; }
+.mkt-body {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px 12px;
+  max-height: 260px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+}
+.mkt-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.mkt-btn {
+  padding: 5px 12px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  cursor: pointer;
+  border: 1px solid;
+  font-family: 'JetBrains Mono', monospace;
+  transition: all 0.15s;
+}
+.mkt-btn-copy { background: none; border-color: var(--border); color: var(--muted); }
+.mkt-btn-copy:hover { color: var(--text); border-color: rgba(255,255,255,0.3); }
+.mkt-btn-publish { background: rgba(0,212,255,0.10); border-color: rgba(0,212,255,0.4); color: var(--cyan); }
+.mkt-btn-publish:hover { background: rgba(0,212,255,0.18); box-shadow: 0 0 8px rgba(0,212,255,0.15); }
+.mkt-btn-publish:disabled { opacity: 0.3; cursor: not-allowed; }
+.mkt-status-pill {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  margin-left: auto;
+}
+.mkt-status-draft     { color: var(--muted); background: rgba(74,96,112,0.2); }
+.mkt-status-published { color: var(--accent); background: rgba(0,255,136,0.1); }
+.mkt-status-scheduled { color: var(--warn); background: rgba(255,170,0,0.1); }
+.mkt-toast {
+  position: fixed;
+  bottom: 24px; right: 24px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-size: 12px;
+  z-index: 9999;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: all 0.2s;
+  pointer-events: none;
+  max-width: 280px;
+}
+.mkt-toast.show { opacity: 1; transform: translateY(0); }
+.mkt-toast.ok   { border-color: rgba(0,255,136,0.4); color: var(--accent); }
+.mkt-toast.err  { border-color: rgba(255,68,102,0.4); color: var(--danger); }
+@media (max-width: 640px) {
+  .mkt-calendar { grid-template-columns: 1fr; }
+  .mkt-stat-channels { margin-left: 0; }
+}

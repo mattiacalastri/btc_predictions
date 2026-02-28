@@ -556,6 +556,45 @@ def health():
 
 
 
+# ── PUBLISH TELEGRAM ─────────────────────────────────────────────────────────
+
+@app.route("/publish-telegram", methods=["POST"])
+def publish_telegram():
+    """Pubblica un messaggio sul canale Telegram pubblico.
+    Protected by BOT_API_KEY. Rate-limited a 10/min.
+    Body JSON: {text: str, parse_mode?: str}
+    """
+    err = _check_api_key()
+    if err:
+        return err
+    _rl_key = f"pubtg:{request.headers.get('X-Api-Key', request.remote_addr)}"
+    if not _check_rate_limit(_rl_key, max_calls=10):
+        return jsonify({"error": "rate_limited"}), 429
+    data = request.get_json(force=True) or {}
+    text = str(data.get("text", "")).strip()
+    if not text:
+        return jsonify({"error": "text required"}), 400
+    if len(text) > 4096:
+        return jsonify({"error": "text too long (max 4096 chars)"}), 400
+    parse_mode = data.get("parse_mode", "HTML")
+    tg_token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    if not tg_token:
+        return jsonify({"error": "TELEGRAM_BOT_TOKEN not configured"}), 503
+    channel_id = "-1003762450968"
+    try:
+        resp = requests.post(
+            f"https://api.telegram.org/bot{tg_token}/sendMessage",
+            json={"chat_id": channel_id, "text": text, "parse_mode": parse_mode},
+            timeout=10,
+        )
+        result = resp.json()
+        if not result.get("ok"):
+            return jsonify({"error": result.get("description", "Telegram error")}), 502
+        return jsonify({"ok": True, "message_id": result["result"]["message_id"]})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 502
+
+
 # ── BALANCE ──────────────────────────────────────────────────────────────────
 
 @app.route("/balance", methods=["GET"])
