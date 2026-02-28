@@ -5789,11 +5789,24 @@ function renderEquityCurve(chronoBets, totalPnl) {
     eqTip.style.left = Math.min(clientX + 14, window.innerWidth - 220) + 'px';
     eqTip.style.top  = Math.max(10, clientY - 56) + 'px';
   }
-  svg.addEventListener('mousemove', e => eqHandlePointer(e.clientX, e.clientY));
-  svg.addEventListener('touchstart', e => { e.preventDefault(); eqHandlePointer(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
-  svg.addEventListener('touchmove',  e => { e.preventDefault(); eqHandlePointer(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
-  svg.addEventListener('touchend',   () => { eqTip.style.display = 'none'; eqDot.style.display = 'none'; });
-  svg.addEventListener('mouseleave', () => { eqTip.style.display = 'none'; eqDot.style.display = 'none'; });
+  // I-02: remove old listeners before re-adding (prevents accumulation every 60s render)
+  if (svg._eqMove) {
+    svg.removeEventListener('mousemove', svg._eqMove);
+    svg.removeEventListener('touchstart', svg._eqTouchStart);
+    svg.removeEventListener('touchmove', svg._eqTouchMove);
+    svg.removeEventListener('touchend', svg._eqTouchEnd);
+    svg.removeEventListener('mouseleave', svg._eqLeave);
+  }
+  svg._eqMove       = e => eqHandlePointer(e.clientX, e.clientY);
+  svg._eqTouchStart = e => { e.preventDefault(); eqHandlePointer(e.touches[0].clientX, e.touches[0].clientY); };
+  svg._eqTouchMove  = e => { e.preventDefault(); eqHandlePointer(e.touches[0].clientX, e.touches[0].clientY); };
+  svg._eqTouchEnd   = () => { eqTip.style.display = 'none'; eqDot.style.display = 'none'; };
+  svg._eqLeave      = () => { eqTip.style.display = 'none'; eqDot.style.display = 'none'; };
+  svg.addEventListener('mousemove', svg._eqMove);
+  svg.addEventListener('touchstart', svg._eqTouchStart, { passive: false });
+  svg.addEventListener('touchmove',  svg._eqTouchMove,  { passive: false });
+  svg.addEventListener('touchend',   svg._eqTouchEnd);
+  svg.addEventListener('mouseleave', svg._eqLeave);
   svg.style.cursor = 'crosshair';
   svg.style.touchAction = 'none';
 }
@@ -5850,11 +5863,24 @@ function renderRollingWrFull(chronoBets) {
     wrFTip.innerHTML='Bet #'+(idx+1)+'&nbsp;|&nbsp;<span style="color:'+dotColor+'">WR-20: '+v.toFixed(1)+'%</span>';
     wrFTip.style.display='block'; wrFTip.style.left=Math.min(cx+14,window.innerWidth-200)+'px'; wrFTip.style.top=Math.max(10,cy-56)+'px';
   }
-  svg.addEventListener('mousemove',e=>wrFHandle(e.clientX,e.clientY));
-  svg.addEventListener('touchstart',e=>{e.preventDefault();wrFHandle(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});
-  svg.addEventListener('touchmove',e=>{e.preventDefault();wrFHandle(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});
-  svg.addEventListener('touchend',()=>{wrFTip.style.display='none';wrFDot.style.display='none';});
-  svg.addEventListener('mouseleave',()=>{wrFTip.style.display='none';wrFDot.style.display='none';});
+  // I-02: remove old listeners before re-adding
+  if (svg._wrFMove) {
+    svg.removeEventListener('mousemove', svg._wrFMove);
+    svg.removeEventListener('touchstart', svg._wrFTouchStart);
+    svg.removeEventListener('touchmove', svg._wrFTouchMove);
+    svg.removeEventListener('touchend', svg._wrFTouchEnd);
+    svg.removeEventListener('mouseleave', svg._wrFLeave);
+  }
+  svg._wrFMove       = e=>wrFHandle(e.clientX,e.clientY);
+  svg._wrFTouchStart = e=>{e.preventDefault();wrFHandle(e.touches[0].clientX,e.touches[0].clientY);};
+  svg._wrFTouchMove  = e=>{e.preventDefault();wrFHandle(e.touches[0].clientX,e.touches[0].clientY);};
+  svg._wrFTouchEnd   = ()=>{wrFTip.style.display='none';wrFDot.style.display='none';};
+  svg._wrFLeave      = ()=>{wrFTip.style.display='none';wrFDot.style.display='none';};
+  svg.addEventListener('mousemove', svg._wrFMove);
+  svg.addEventListener('touchstart', svg._wrFTouchStart, {passive:false});
+  svg.addEventListener('touchmove',  svg._wrFTouchMove,  {passive:false});
+  svg.addEventListener('touchend',   svg._wrFTouchEnd);
+  svg.addEventListener('mouseleave', svg._wrFLeave);
   svg.style.cursor='crosshair'; svg.style.touchAction='none';
 }
 
@@ -5898,11 +5924,24 @@ function renderConfFull(chronoBets) {
     cfTip.innerHTML='Bet #'+(idx+1)+'&nbsp;|&nbsp;<span style="color:'+color+'">Conf: '+(v*100).toFixed(1)+'%</span>';
     cfTip.style.display='block'; cfTip.style.left=Math.min(cx+14,window.innerWidth-200)+'px'; cfTip.style.top=Math.max(10,cy-56)+'px';
   }
-  svg.addEventListener('mousemove',e=>cfHandle(e.clientX,e.clientY));
-  svg.addEventListener('touchstart',e=>{e.preventDefault();cfHandle(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});
-  svg.addEventListener('touchmove',e=>{e.preventDefault();cfHandle(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});
-  svg.addEventListener('touchend',()=>{cfTip.style.display='none';cfDot.style.display='none';});
-  svg.addEventListener('mouseleave',()=>{cfTip.style.display='none';cfDot.style.display='none';});
+  // I-02: remove old listeners before re-adding
+  if (svg._cfMove) {
+    svg.removeEventListener('mousemove', svg._cfMove);
+    svg.removeEventListener('touchstart', svg._cfTouchStart);
+    svg.removeEventListener('touchmove', svg._cfTouchMove);
+    svg.removeEventListener('touchend', svg._cfTouchEnd);
+    svg.removeEventListener('mouseleave', svg._cfLeave);
+  }
+  svg._cfMove       = e=>cfHandle(e.clientX,e.clientY);
+  svg._cfTouchStart = e=>{e.preventDefault();cfHandle(e.touches[0].clientX,e.touches[0].clientY);};
+  svg._cfTouchMove  = e=>{e.preventDefault();cfHandle(e.touches[0].clientX,e.touches[0].clientY);};
+  svg._cfTouchEnd   = ()=>{cfTip.style.display='none';cfDot.style.display='none';};
+  svg._cfLeave      = ()=>{cfTip.style.display='none';cfDot.style.display='none';};
+  svg.addEventListener('mousemove', svg._cfMove);
+  svg.addEventListener('touchstart', svg._cfTouchStart, {passive:false});
+  svg.addEventListener('touchmove',  svg._cfTouchMove,  {passive:false});
+  svg.addEventListener('touchend',   svg._cfTouchEnd);
+  svg.addEventListener('mouseleave', svg._cfLeave);
   svg.style.cursor='crosshair'; svg.style.touchAction='none';
 }
 
@@ -6000,11 +6039,24 @@ function renderRollingWinRate(chronoBets) {
     wrTip.style.left = Math.min(clientX + 14, window.innerWidth - 240) + 'px';
     wrTip.style.top  = Math.max(10, clientY - 56) + 'px';
   }
-  svg.addEventListener('mousemove', e => wrHandlePointer(e.clientX, e.clientY));
-  svg.addEventListener('touchstart', e => { e.preventDefault(); wrHandlePointer(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
-  svg.addEventListener('touchmove',  e => { e.preventDefault(); wrHandlePointer(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
-  svg.addEventListener('touchend',   () => { wrTip.style.display = 'none'; wrDot.style.display = 'none'; });
-  svg.addEventListener('mouseleave', () => { wrTip.style.display = 'none'; wrDot.style.display = 'none'; });
+  // I-02: remove old listeners before re-adding
+  if (svg._wrMove) {
+    svg.removeEventListener('mousemove', svg._wrMove);
+    svg.removeEventListener('touchstart', svg._wrTouchStart);
+    svg.removeEventListener('touchmove', svg._wrTouchMove);
+    svg.removeEventListener('touchend', svg._wrTouchEnd);
+    svg.removeEventListener('mouseleave', svg._wrLeave);
+  }
+  svg._wrMove       = e => wrHandlePointer(e.clientX, e.clientY);
+  svg._wrTouchStart = e => { e.preventDefault(); wrHandlePointer(e.touches[0].clientX, e.touches[0].clientY); };
+  svg._wrTouchMove  = e => { e.preventDefault(); wrHandlePointer(e.touches[0].clientX, e.touches[0].clientY); };
+  svg._wrTouchEnd   = () => { wrTip.style.display = 'none'; wrDot.style.display = 'none'; };
+  svg._wrLeave      = () => { wrTip.style.display = 'none'; wrDot.style.display = 'none'; };
+  svg.addEventListener('mousemove', svg._wrMove);
+  svg.addEventListener('touchstart', svg._wrTouchStart, { passive: false });
+  svg.addEventListener('touchmove',  svg._wrTouchMove,  { passive: false });
+  svg.addEventListener('touchend',   svg._wrTouchEnd);
+  svg.addEventListener('mouseleave', svg._wrLeave);
   svg.style.cursor = 'crosshair';
   svg.style.touchAction = 'none';
 }
