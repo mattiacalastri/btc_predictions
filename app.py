@@ -3925,19 +3925,22 @@ def resolve_prediction():
 def commit_inputs():
     """
     Committa hash degli input pre-LLM su Polygon.
-    Body JSON: { bet_id, btc_price, rsi14, fg_value, funding_rate, timestamp }
+    Body JSON: { btc_price, rsi14, fg_value, funding_rate, timestamp, [bet_id] }
+    - Se bet_id omesso o 0: usa timestamp+10_000_000_000 come onchain_id (pre-row)
+      → il tx viene restituito ma NON aggiornato in Supabase (bet_id sconosciuto)
+    - Se bet_id > 0: usa bet_id+10_000_000 e aggiorna onchain_inputs_tx in Supabase
     Prova che gli input di mercato erano reali PRIMA della chiamata LLM.
     """
     err = _check_api_key()
     if err:
         return err
     data = request.get_json(force=True) or {}
-    required = ["bet_id", "btc_price", "rsi14", "fg_value", "funding_rate", "timestamp"]
+    required = ["btc_price", "rsi14", "fg_value", "funding_rate", "timestamp"]
     missing = [f for f in required if f not in data]
     if missing:
         return jsonify({"ok": False, "error": f"Campi mancanti: {missing}"}), 400
 
-    bet_id    = int(data["bet_id"])
+    bet_id    = int(data.get("bet_id") or 0)
     btc_price = float(data["btc_price"])
     rsi14     = float(data["rsi14"])
     fg_value  = int(data["fg_value"])
@@ -3952,7 +3955,8 @@ def commit_inputs():
             app.logger.error(f"[ONCHAIN] config error: {cfg_err}")
             return jsonify({"ok": False, "error": "polygon_not_configured"}), 503
 
-        onchain_id = bet_id + 10_000_000
+        # bet_id=0 → usa timestamp come ID univoco per commit pre-row
+        onchain_id = (bet_id + 10_000_000) if bet_id > 0 else (ts + 10_000_000_000)
         commit_hash = Web3.solidity_keccak(
             ["uint256", "uint256", "int256", "int256", "int256", "uint256"],
             [bet_id, int(btc_price * 1e2), int(rsi14 * 1e6), fg_value,
@@ -3966,13 +3970,15 @@ def commit_inputs():
         signed = account.sign_transaction(tx)
         tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
         tx_hex = tx_hash.hex()
-        app.logger.info(f"[ONCHAIN] inputs bet #{bet_id} → tx {tx_hex}")
+        app.logger.info(f"[ONCHAIN] inputs onchain_id={onchain_id} → tx {tx_hex}")
 
-        try:
-            _supabase_update(bet_id, {"onchain_inputs_tx": tx_hex})
-        except Exception as sb_err:
-            app.logger.error(f"[ONCHAIN] Supabase update failed: {sb_err}")
-            return jsonify({"ok": True, "tx": tx_hex, "warning": "tx sent but Supabase update failed"})
+        if bet_id > 0:
+            try:
+                _supabase_update(bet_id, {"onchain_inputs_tx": tx_hex})
+            except Exception as sb_err:
+                app.logger.error(f"[ONCHAIN] Supabase update failed: {sb_err}")
+                return jsonify({"ok": True, "tx": tx_hex, "onchain_id": onchain_id,
+                                "warning": "tx sent but Supabase update failed"})
 
         return jsonify({"ok": True, "tx": tx_hex, "onchain_id": onchain_id})
 
