@@ -1,8 +1,9 @@
 flask
 gunicorn
+requests
 python-kraken-sdk
 xgboost
 scikit-learn
-web3
+web3==6.15.0
 sentry-sdk[flask]
 certifi
