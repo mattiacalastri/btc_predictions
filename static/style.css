@@ -588,6 +588,10 @@
   .status-dot.green  { background:var(--accent); box-shadow:0 0 4px rgba(0,255,136,0.6); animation:pulse 2s infinite; }
   .status-dot.red    { background:var(--danger);  box-shadow:0 0 4px rgba(255,68,102,0.6); }
   .status-dot.yellow { background:var(--warn);    box-shadow:0 0 4px rgba(255,170,0,0.6); animation:pulse 2.5s infinite; }
+  .msb-stxt { font-size:7px; font-weight:700; letter-spacing:0.3px; opacity:0.85; }
+  .msb-stxt-green  { color:var(--accent); }
+  .msb-stxt-red    { color:var(--danger); }
+  .msb-stxt-yellow { color:var(--warn);   }
   .msb-sep { width:1px; height:12px; background:var(--border); margin:0 1px; flex-shrink:0; }
   .msb-bigsep { width:1px; height:16px; background:rgba(255,255,255,0.1); margin:0 8px; flex-shrink:0; }
 
@@ -2181,27 +2185,17 @@
   /* ── TRON/MATRIX BURGER MENU ─────────────────────────────── */
   .tron-menu-btn {
     display: flex; align-items: center; justify-content: center;
-    width: 46px; height: 46px;
-    background: rgba(0,170,255,0.06);
-    border: 1px solid rgba(0,170,255,0.25);
+    width: 36px; height: 36px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
     border-radius: 3px; cursor: pointer;
-    position: fixed; top: 16px; right: 16px; z-index: 5001; overflow: hidden;
-    transition: all 0.2s;
+    flex-shrink: 0;
+    transition: background 0.2s, border-color 0.2s;
   }
   .tron-menu-btn:hover {
-    background: rgba(0,170,255,0.14);
-    border-color: rgba(0,170,255,0.55);
-    box-shadow: 0 0 14px rgba(0,170,255,0.25), inset 0 0 8px rgba(0,170,255,0.05);
+    background: rgba(255,255,255,0.09);
+    border-color: rgba(255,255,255,0.25);
   }
-  .tron-menu-btn::after {
-    content: '';
-    position: absolute; top: -100%; left: -100%;
-    width: 80%; height: 80%;
-    background: linear-gradient(135deg, transparent, rgba(0,170,255,0.1), transparent);
-    animation: tronBtnSweep 2.5s infinite;
-    pointer-events: none;
-  }
-  @keyframes tronBtnSweep { 0%{top:-100%;left:-100%} 100%{top:200%;left:200%} }
 
   /* Backdrop */
   #tronMenuBackdrop {

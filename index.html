@@ -182,15 +182,15 @@
   <div class="mini-status-bar" id="miniStatusBar">
     <!-- AGENTS -->
     <span class="msb-label">Agents</span>
-    <span class="msb-item" title="01A — Input Fetcher (dati mercato)"><span class="lsb-robot">🤖</span><span class="status-dot" id="statusWf01a"></span>FEEDS</span>
+    <span class="msb-item" title="01A — Input Fetcher (dati mercato)"><span class="lsb-robot">🤖</span><span class="status-dot" id="statusWf01a"></span>FEEDS<span class="msb-stxt" id="stxtWf01a"></span></span>
     <span class="msb-sep"></span>
-    <span class="msb-item" title="01B — AI Prediction Engine"><span class="lsb-robot">🤖</span><span class="status-dot" id="statusWf01b"></span>BRAIN</span>
+    <span class="msb-item" title="01B — AI Prediction Engine"><span class="lsb-robot">🤖</span><span class="status-dot" id="statusWf01b"></span>BRAIN<span class="msb-stxt" id="stxtWf01b"></span></span>
     <span class="msb-sep"></span>
-    <span class="msb-item" title="02 — Trade Desk (exit manager)"><span class="lsb-robot">🤖</span><span class="status-dot" id="statusWf02"></span>DESK</span>
+    <span class="msb-item" title="02 — Trade Desk (exit manager)"><span class="lsb-robot">🤖</span><span class="status-dot" id="statusWf02"></span>DESK<span class="msb-stxt" id="stxtWf02"></span></span>
     <span class="msb-sep"></span>
-    <span class="msb-item" title="07 — Commander (Telegram bot)"><span class="lsb-robot">🤖</span><span class="status-dot" id="statusWf07"></span>CMD</span>
+    <span class="msb-item" title="07 — Commander (Telegram bot)"><span class="lsb-robot">🤖</span><span class="status-dot" id="statusWf07"></span>CMD<span class="msb-stxt" id="stxtWf07"></span></span>
     <span class="msb-sep"></span>
-    <span class="msb-item" title="Railway API"><span class="status-dot" id="statusRailway"></span>API</span>
+    <span class="msb-item" title="Railway API"><span class="status-dot" id="statusRailway"></span>API<span class="msb-stxt" id="stxtRailway"></span></span>
     <!-- BOT -->
     <span class="msb-bigsep"></span>
     <span class="msb-label">Bot</span>
@@ -198,7 +198,7 @@
     <span class="msb-sep"></span>
     <span class="msb-item" title="Wallet equity on Kraken">💰 <span id="msbEquityVal">—</span></span>
     <span class="msb-sep"></span>
-    <span class="msb-item" title="Kraken exchange reachability"><span class="status-dot" id="statusKraken"></span>Kraken</span>
+    <span class="msb-item" title="Kraken exchange reachability"><span class="status-dot" id="statusKraken"></span>Kraken<span class="msb-stxt" id="stxtKraken"></span></span>
     <!-- LIVE -->
     <span class="msb-bigsep"></span>
     <span class="msb-label">Live</span>
@@ -253,7 +253,7 @@
       </div>
       <button class="intro-reopen-btn" id="introReopenBtn" onclick="showIntro()" title="What is this? — Info for new visitors" style="display:none">? ABOUT</button>
       <button class="tron-menu-btn" id="tronMenuBtn" onclick="toggleTronMenu()" title="Navigation Menu" aria-label="Open navigation menu">
-        <svg width="20" height="17" viewBox="0 0 16 14" fill="none"><path d="M0 1h16M0 7h16M0 13h16" stroke="#00aaff" stroke-width="1.5" stroke-linecap="square"/></svg>
+        <svg width="18" height="15" viewBox="0 0 16 14" fill="none"><path d="M0 1h16M0 7h16M0 13h16" stroke="rgba(255,255,255,0.75)" stroke-width="1.5" stroke-linecap="square"/></svg>
       </button>
     </div>
   </header>
@@ -320,11 +320,29 @@
         <div class="src-dot"></div>
         <div class="src-info"><span class="src-name">COINDESK</span><span class="src-cat">NEWS</span></div>
       </div>
-      <div class="src-chip" style="--src-color:#ff6b35" onclick="showSrcModal(this)"
-           data-src-modal-title="IL SOLE 24 ORE — News RSS"
-           data-src-modal-desc="Source: Il Sole 24 Ore RSS — Italian financial newspaper&lt;br&gt;Provides: 2 most recent financial news articles (broader macro context: ECB, rates, economy).&lt;br&gt;Used for: European macro sentiment that impacts risk assets including BTC.">
+      <div class="src-chip" style="--src-color:#f7931a" onclick="showSrcModal(this)"
+           data-src-modal-title="BINANCE — Open Interest"
+           data-src-modal-desc="Source: Binance Futures /fapi/v1/openInterest (BTCUSDT)&lt;br&gt;Provides: total open interest in USD — the aggregate value of all outstanding futures contracts.&lt;br&gt;Signal: rising OI in uptrend = trend continuation; falling OI = exhaustion. Combined with price action for conviction scoring.">
         <div class="src-dot"></div>
-        <div class="src-info"><span class="src-name">SOLE24ORE</span><span class="src-cat">NEWS</span></div>
+        <div class="src-info"><span class="src-name">OPEN INT.</span><span class="src-cat">DERIVATIVES</span></div>
+      </div>
+      <div class="src-chip" style="--src-color:#22d3ee" onclick="showSrcModal(this)"
+           data-src-modal-title="BINANCE — Taker Buy/Sell Flow"
+           data-src-modal-desc="Source: Binance Futures /fapi/v1/takerlongshortRatio (BTCUSDT, 5m)&lt;br&gt;Provides: ratio of aggressive buy vs sell volume — who is hitting the bid/ask.&lt;br&gt;Signal: buy ratio &gt;0.55 = institutional accumulation; &lt;0.45 = distribution. One of the strongest real-time flow signals.">
+        <div class="src-dot"></div>
+        <div class="src-info"><span class="src-name">TAKER FLOW</span><span class="src-cat">FLOW</span></div>
+      </div>
+      <div class="src-chip" style="--src-color:#02b875" onclick="showSrcModal(this)"
+           data-src-modal-title="COINTELEGRAPH — News RSS"
+           data-src-modal-desc="Source: CoinTelegraph RSS feed (cointelegraph.com/rss)&lt;br&gt;Provides: 3 most recent articles from the leading crypto news outlet.&lt;br&gt;Used for: breaking news, regulation updates, institutional moves. High signal-to-noise ratio for BTC price-moving events.">
+        <div class="src-dot"></div>
+        <div class="src-info"><span class="src-name">COINTELEGR.</span><span class="src-cat">NEWS</span></div>
+      </div>
+      <div class="src-chip" style="--src-color:#a855f7" onclick="showSrcModal(this)"
+           data-src-modal-title="XGBOOST — Internal ML Gate"
+           data-src-modal-desc="Source: Internal XGBoost model trained on historical signals&lt;br&gt;Provides: direction (UP/DOWN) and confidence score from 47 engineered features (RSI, EMA, ATR, ADX, funding, CVD, regime label…).&lt;br&gt;Dual-gate: a prediction is executed ONLY when LLM direction = XGBoost direction. Prevents false positives.">
+        <div class="src-dot"></div>
+        <div class="src-info"><span class="src-name">XGBOOST</span><span class="src-cat">ML GATE</span></div>
       </div>
       <div class="src-chip" style="--src-color:#ff44aa" onclick="showSrcModal(this)"
            data-src-modal-title="PATTERN MEMORY — Supabase"
@@ -5172,7 +5190,10 @@ fetch(CONFIG.RAILWAY_URL + '/health')
     'FEAR & GREED':{cat:'SENTIMENT',   color:'#00ff88', desc:'Crypto Fear & Greed Index (0–100). <25 = Extreme Fear, >75 = Extreme Greed. Contrarian signal.'},
     'CRYPTOCMP':   {cat:'NEWS',        color:'#ff9500', desc:'Latest crypto news from CryptoCompare API. Articles filtered for relevance before passing to AI.'},
     'COINDESK':    {cat:'NEWS',        color:'#ffcc00', desc:'CoinDesk RSS feed — leading crypto media. Top 3 recent headlines passed to the prediction agent.'},
-    'SOLE24ORE':   {cat:'NEWS',        color:'#ff6b35', desc:'Sole24Ore Italian financial news RSS. Captures European macro & regulatory sentiment on crypto.'},
+    'OPEN INT.':   {cat:'DERIVATIVES', color:'#f7931a', desc:'Binance Futures Open Interest (BTCUSDT). Rising OI in trend = conviction; falling OI = exhaustion signal.'},
+    'TAKER FLOW':  {cat:'FLOW',        color:'#22d3ee', desc:'Binance Futures taker buy/sell ratio (5m). Shows who hits the bid/ask — aggressive buyers vs sellers.'},
+    'COINTELEGR.': {cat:'NEWS',        color:'#02b875', desc:'CoinTelegraph RSS — top 3 crypto headlines. High signal-to-noise for BTC price-moving events.'},
+    'XGBOOST':     {cat:'ML GATE',     color:'#a855f7', desc:'Internal XGBoost model (47 features). Dual-gate: bets execute ONLY when LLM + XGBoost agree on direction.'},
     'PATTERNS':    {cat:'MEMORY',      color:'#ff44aa', desc:'Historical signal patterns from Supabase DB. Similar past setups and their outcomes inform the AI.'},
     'CNBC':        {cat:'NEWS',        color:'#e5251b', desc:'CNBC Finance RSS — US financial & markets headlines. Macro context from Wall Street perspective.'},
     'ORDER BOOK':  {cat:'MICROSTRUCTURE', color:'#00ccff', desc:'Order book imbalance calcolato su 5 livelli bid/ask dal Kraken Futures. Segnali: STRONG_BUY_PRESSURE / MILD_BUY / NEUTRAL / MILD_SELL / STRONG_SELL. Utile per rilevare pressione immediata sul prezzo.'},
@@ -5971,7 +5992,7 @@ function dismissIntro() {
   if (reopenBtn) { reopenBtn.style.opacity = '0'; reopenBtn.style.transition = 'opacity 0.3s'; }
   setTimeout(function() {
     if (h) { h.style.display = 'none'; h.setAttribute('aria-hidden', 'true'); }
-    if (reopenBtn) { reopenBtn.style.display = ''; reopenBtn.style.opacity = '1'; }
+    if (reopenBtn) { reopenBtn.style.display = ''; reopenBtn.style.opacity = '1'; reopenBtn.textContent = '? ABOUT'; reopenBtn.onclick = showIntro; }
     // First-time tutorial
     if (typeof startTutorial === 'function' && localStorage.getItem('btcp_tutorial_done') !== '1') {
       setTimeout(startTutorial, 300);
@@ -5991,7 +6012,7 @@ function showIntro() {
   h.style.maxHeight = '';
   h.style.padding = '';
   h.style.overflow = '';
-  if (reopenBtn) reopenBtn.style.display = 'none';
+  if (reopenBtn) { reopenBtn.style.display = ''; reopenBtn.textContent = '✕ CLOSE'; reopenBtn.onclick = dismissIntro; }
   // Trigger reflow then fade in
   void h.offsetHeight;
   h.style.transition = 'opacity 0.35s';
@@ -6044,32 +6065,41 @@ function populateIntroHero(data) {
    ────────────────────────────────────────────────────────────────────────── */
 var _msbLastSignalTs = null;
 
+function _msbSet(dotId, txtId, color, txt) {
+  var d = document.getElementById(dotId);
+  var t = document.getElementById(txtId);
+  if (d) d.className = 'status-dot ' + color;
+  if (t) { t.textContent = '(' + txt + ')'; t.className = 'msb-stxt msb-stxt-' + color; }
+}
 function updateMiniStatusBar(agentsData, railwayOk) {
-  var dotRailway = document.getElementById('statusRailway');
-  if (dotRailway) dotRailway.className = 'status-dot ' + (railwayOk ? 'green' : 'red');
+  _msbSet('statusRailway', 'stxtRailway', railwayOk ? 'green' : 'red', railwayOk ? 'OK' : 'ERR');
   if (!agentsData || agentsData.status !== 'ok') {
-    ['statusWf01a','statusWf01b','statusWf02','statusWf07'].forEach(function(id) {
-      var el = document.getElementById(id);
-      if (el) el.className = 'status-dot ' + (railwayOk ? 'yellow' : 'red');
-    });
+    var c = railwayOk ? 'yellow' : 'red', t = railwayOk ? '?' : 'ERR';
+    _msbSet('statusWf01a','stxtWf01a', c, t);
+    _msbSet('statusWf01b','stxtWf01b', c, t);
+    _msbSet('statusWf02', 'stxtWf02',  c, t);
+    _msbSet('statusWf07', 'stxtWf07',  c, t);
     return;
   }
   var wfs = agentsData.workflows || [];
-  var targets = { 'statusWf01a': ['01A'], 'statusWf01b': ['01B'], 'statusWf02': ['02'], 'statusWf07': ['07'] };
+  var targets = {
+    'statusWf01a': { prefixes: ['01A'], txt: 'stxtWf01a' },
+    'statusWf01b': { prefixes: ['01B'], txt: 'stxtWf01b' },
+    'statusWf02':  { prefixes: ['02'],  txt: 'stxtWf02'  },
+    'statusWf07':  { prefixes: ['07'],  txt: 'stxtWf07'  }
+  };
   Object.keys(targets).forEach(function(dotId) {
-    var prefixes = targets[dotId];
+    var cfg = targets[dotId];
     var match = wfs.find(function(wf) {
-      return prefixes.some(function(p) { return (wf.name||'').startsWith(p); });
+      return cfg.prefixes.some(function(p) { return (wf.name||'').startsWith(p); });
     });
-    var dotEl = document.getElementById(dotId);
-    if (!dotEl) return;
-    if (!match) { dotEl.className = 'status-dot yellow'; return; }
+    if (!match) { _msbSet(dotId, cfg.txt, 'yellow', '?'); return; }
     var isActive = match.active;
-    var lastStatus = match.last_execution && match.last_execution.status;
-    if (!isActive) { dotEl.className = 'status-dot red'; }
-    else if (lastStatus === 'success') { dotEl.className = 'status-dot green'; }
-    else if (lastStatus === 'crashed' || lastStatus === 'error') { dotEl.className = 'status-dot red'; }
-    else { dotEl.className = 'status-dot yellow'; }
+    var last = match.last_execution && match.last_execution.status;
+    if (!isActive)                              { _msbSet(dotId, cfg.txt, 'red',    'OFF'); }
+    else if (last === 'success')                { _msbSet(dotId, cfg.txt, 'green',  'OK');  }
+    else if (last === 'crashed' || last === 'error') { _msbSet(dotId, cfg.txt, 'red', 'ERR'); }
+    else                                        { _msbSet(dotId, cfg.txt, 'yellow', '…');   }
   });
 }
 
@@ -6117,7 +6147,7 @@ function refreshMiniStatusBarLive() {
         equityEl.style.color = eq >= 100 ? 'var(--accent)' : 'var(--danger)';
       }
       if (krakenDot) {
-        krakenDot.className = (h.wallet_equity > 0) ? 'status-dot green' : 'status-dot yellow';
+        _msbSet('statusKraken', 'stxtKraken', h.wallet_equity > 0 ? 'green' : 'yellow', h.wallet_equity > 0 ? 'OK' : '?');
       }
       if (dryDot && dryLabel) {
         if (h.dry_run) {
@@ -6272,8 +6302,7 @@ if (typeof renderAgents === 'function') {
 // After page load: populate all status bar sections
 window.addEventListener('load', function() {
   // Railway dot: green immediately (page loaded = API reachable)
-  var dotRailway = document.getElementById('statusRailway');
-  if (dotRailway) dotRailway.className = 'status-dot green';
+  _msbSet('statusRailway', 'stxtRailway', 'green', 'OK');
 
   // Agents section: n8n workflow status
   fetch(CONFIG.RAILWAY_URL + '/n8n-status', { signal: AbortSignal.timeout(12000) })
