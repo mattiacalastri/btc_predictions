@@ -2795,3 +2795,7 @@
   .mkt-calendar { grid-template-columns: 1fr; }
   .mkt-stat-channels { margin-left: 0; }
 }
+
+/* Pre-Day0 historical rows */
+.sl-pre-day0 { opacity: 0.75; }
+.sl-pre-day0:hover { opacity: 1; }

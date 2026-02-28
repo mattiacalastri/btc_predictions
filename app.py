@@ -1735,17 +1735,20 @@ def get_signals():
         if not supabase_url or not supabase_key:
             return jsonify({"error": "Supabase credentials not configured"}), 500
 
+        include_history = request.args.get("include_history", "false").lower() == "true"
+
         url = f"{supabase_url}/rest/v1/{SUPABASE_TABLE}?select=*&order=id.desc&limit={limit}"
         if days > 0:
             from datetime import datetime, timedelta, timezone
             since = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%SZ")
             url += f"&created_at=gte.{since}"
 
-        res = requests.get(url, headers={
+        sb_headers = {
             "apikey": supabase_key,
             "Authorization": f"Bearer {supabase_key}",
             "Prefer": "count=exact"
-        }, timeout=10)
+        }
+        res = requests.get(url, headers=sb_headers, timeout=10)
 
         if not res.ok:
             return jsonify({"error": f"Supabase HTTP {res.status_code}"}), 502
@@ -1762,6 +1765,20 @@ def get_signals():
         data = res.json()
         if total_count is None:
             total_count = len(data) if isinstance(data, list) else 0
+
+        # Merge pre-day0 historical bets if requested
+        if include_history and SUPABASE_TABLE == "btc_predictions":
+            hist_url = (f"{supabase_url}/rest/v1/btc_predictions_pre_day0"
+                        f"?select=*&bet_taken=eq.true&order=id.desc&limit=2000")
+            hist_res = requests.get(hist_url, headers=sb_headers, timeout=10)
+            if hist_res.ok:
+                hist_data = hist_res.json()
+                if isinstance(hist_data, list):
+                    for row in hist_data:
+                        row["_source"] = "pre_day0"
+                    data = data + hist_data
+                    data.sort(key=lambda r: r.get("id", 0), reverse=True)
+                    total_count += len(hist_data)
 
         return jsonify({
             "data": data,

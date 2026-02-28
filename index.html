@@ -691,6 +691,7 @@
         <button class="filter-btn"        data-filter="direction" data-value="down" onclick="setSignalFilter(this,'direction')">&#8595; DOWN</button>
       </div>
       <input type="text" id="signal-search" placeholder="&#128269; Cerca ID, conf..." oninput="applySignalFilters()">
+      <button id="historyToggleBtn" class="filter-btn" style="margin-left:auto;opacity:0.7;font-size:9px;letter-spacing:1px;padding:3px 8px;" onclick="toggleHistory(this)">⏳ HISTORY</button>
     </div>
     <div class="table-wrap">
       <table>
@@ -2539,16 +2540,19 @@ window._switchLpTab = function(idx) {
 
 // ── SIGNALS ──────────────────────────────────────────────────────────────────
 
-async function fetchData() {
+let _historyActive = false;
+
+async function fetchData(includeHistory) {
   try {
-    const res = await fetch(`${CONFIG.RAILWAY_URL}/signals?limit=${CONFIG.LIMIT}`, {
-      signal: AbortSignal.timeout(10000),
+    const hist = includeHistory ?? _historyActive;
+    const url = `${CONFIG.RAILWAY_URL}/signals?limit=${CONFIG.LIMIT}${hist ? '&include_history=true' : ''}`;
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(15000),
       headers: {'X-API-Key': CONFIG.READ_KEY}
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const j = await res.json();
     hideApiError();
-    // Support new {data, total_count} wrapper and legacy plain array
     const arr = Array.isArray(j) ? j : (j.data || []);
     dbTotalCount = j.total_count || arr.length;
     return arr;
@@ -2557,6 +2561,16 @@ async function fetchData() {
     showApiError(`⚡ The bot's server is waking up — showing cached data while it loads. (Usually takes 10–30s on first visit. ${e.message})`);
     return SAMPLE_DATA;
   }
+}
+
+async function toggleHistory(btn) {
+  _historyActive = !_historyActive;
+  btn.classList.toggle('active', _historyActive);
+  btn.style.opacity = _historyActive ? '1' : '0.7';
+  btn.textContent = _historyActive ? '⏳ HISTORY ON' : '⏳ HISTORY';
+  const fresh = await fetchData(_historyActive);
+  allData = fresh;
+  applySignalFilters();
 }
 
 function fmtTime(ts) {
@@ -3063,8 +3077,11 @@ function renderTable(data) {
           })();
       if (feeVal > 0) feeCell = `<span style="color:var(--warn);font-size:10px">-$${feeVal.toFixed(5)}</span>`;
     }
-    return `<tr class="${d.direction === 'UP' ? 'sl-up' : 'sl-down'}">
-      <td style="color:var(--muted)">${d.id}</td>
+    const preTag = d._source === 'pre_day0'
+      ? ' <span title="Pre-Day0 historical bet" style="font-size:8px;letter-spacing:1px;color:var(--muted);opacity:0.6;vertical-align:middle;border:1px solid var(--muted);border-radius:2px;padding:0 3px">PRE</span>'
+      : '';
+    return `<tr class="${d.direction === 'UP' ? 'sl-up' : 'sl-down'}${d._source === 'pre_day0' ? ' sl-pre-day0' : ''}">
+      <td style="color:var(--muted)">${d.id}${preTag}</td>
       <td style="color:var(--muted)">${fmtDate(d.created_at)}</td>
       <td class="${dirCls}">${dirIcon} ${escapeHtml(d.direction)}</td>
       <td>${fmtConf(d.confidence)}</td>
