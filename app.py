@@ -433,7 +433,9 @@ def health():
                 multiplier = 1.0
                 if recent_pnl < -0.15: multiplier = 0.25
                 elif streak_type == False and streak >= 2: multiplier = 0.5
-                elif streak_type == True and streak >= 3: multiplier = 1.5
+                elif streak_type == True and streak >= 3:
+                    _conf_h = float(request.args.get("confidence", 0.65))
+                    multiplier = 1.5 if _conf_h >= 0.75 else 1.2
                 base_size = round(max(0.001, min(0.005, 0.002 * multiplier)), 6)
     except Exception:
         pass
