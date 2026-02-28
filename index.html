@@ -4650,9 +4650,7 @@ function renderAccountSummary(data) {
   const posTag = document.getElementById('acctPositionTag');
 
   if (!pos.open) {
-    posTag.textContent = 'FLAT';
-    posTag.className = 'panel-tag';
-    posTag.style.cssText = 'background:rgba(74,96,112,0.15);color:var(--muted);border:1px solid rgba(74,96,112,0.3)';
+    if (posTag) { posTag.textContent = 'FLAT'; posTag.className = 'panel-tag'; posTag.style.cssText = 'background:rgba(74,96,112,0.15);color:var(--muted);border:1px solid rgba(74,96,112,0.3)'; }
     document.getElementById('acctPositionBody').innerHTML = `
       <div class="position-status flat">
         <div class="position-dot"></div>
@@ -4663,13 +4661,11 @@ function renderAccountSummary(data) {
     const side = pos.side || 'unknown';
     const pnl  = parseFloat(pos.pnl || 0);
     const pnlPct = parseFloat(pos.pnl_pct || 0);
-    posTag.textContent = side.toUpperCase();
-    if (side === 'long') {
-      posTag.className = 'panel-tag tag-green';
-    } else {
-      posTag.className = 'panel-tag tag-red';
+    if (posTag) {
+      posTag.textContent = side.toUpperCase();
+      posTag.className = side === 'long' ? 'panel-tag tag-green' : 'panel-tag tag-red';
+      posTag.style.cssText = '';
     }
-    posTag.style.cssText = '';
 
     const pnlIndicatorClass = pnl > 0 ? 'pos' : pnl < 0 ? 'neg' : 'zero';
 
@@ -4701,7 +4697,7 @@ function renderAccountSummary(data) {
   const oi = btc.open_interest;
 
   const btcTag = document.getElementById('acctBtcTag');
-  btcTag.textContent = mark > 0 ? fmtUsd(mark, 0) : '—';
+  if (btcTag) btcTag.textContent = mark > 0 ? fmtUsd(mark, 0) : '—';
 
   document.getElementById('acctBtcBody').innerHTML = `
     <div class="btc-mark-big">${mark > 0 ? fmtUsd(mark, 2) : '—'}</div>
@@ -4733,8 +4729,10 @@ function renderAccountSummary(data) {
   const totalFeesCost = Math.abs(parseFloat(activity.realized_pnl_recent || 0));
 
   const fillsTag = document.getElementById('acctFillsTag');
-  fillsTag.textContent = totalFeesCost > 0 ? '-$' + totalFeesCost.toFixed(5) : '+$0.0000';
-  fillsTag.className = 'panel-tag ' + (totalFeesCost > 0 ? 'tag-yellow' : 'tag-green');
+  if (fillsTag) {
+    fillsTag.textContent = totalFeesCost > 0 ? '-$' + totalFeesCost.toFixed(5) : '+$0.0000';
+    fillsTag.className = 'panel-tag ' + (totalFeesCost > 0 ? 'tag-yellow' : 'tag-green');
+  }
 
   if (!fills.length) {
     document.getElementById('acctFillsBody').innerHTML =
@@ -5477,7 +5475,7 @@ function showHeaderPopover(el, type) {
 }
 document.addEventListener('click', function(e) {
   const pop = document.getElementById('headerPopover');
-  if (pop.style.display !== 'block') return;
+  if (!pop || pop.style.display !== 'block') return;
   if (!pop.contains(e.target) && !e.target.closest('.live-badge') && !e.target.closest('#botStatus')) {
     pop.style.display = 'none'; _hpopActive = null;
   }
@@ -6629,10 +6627,8 @@ async function fetchBacktestReport() {
     fetch(CONFIG.RAILWAY_URL + '/xgb-report',      { signal: AbortSignal.timeout(8000) }).then(r => r.ok ? r.json() : null).catch(() => null),
     fetch(CONFIG.RAILWAY_URL + '/backtest-data',   { signal: AbortSignal.timeout(8000) }).then(r => r.ok ? r.json() : null).catch(() => null),
   ]).then(([btTxt, xgbTxt, btData]) => {
-    if (btTxt)  { preBT.innerHTML = syntaxHighlight(escapeHtml(btTxt.report || 'Vuoto.')); badgeBT.textContent = btTxt.lines + ' righe'; }
-    else          preBT.textContent = 'Report non disponibile.';
-    if (xgbTxt) { preXGB.innerHTML = syntaxHighlight(escapeHtml(xgbTxt.report || 'Vuoto.')); badgeXGB.textContent = xgbTxt.lines + ' righe'; }
-    else          preXGB.textContent = 'Report non disponibile.';
+    if (preBT)  { if (btTxt)  { preBT.innerHTML = syntaxHighlight(escapeHtml(btTxt.report || 'Vuoto.')); if (badgeBT) badgeBT.textContent = btTxt.lines + ' righe'; } else preBT.textContent = 'Report non disponibile.'; }
+    if (preXGB) { if (xgbTxt) { preXGB.innerHTML = syntaxHighlight(escapeHtml(xgbTxt.report || 'Vuoto.')); if (badgeXGB) badgeXGB.textContent = xgbTxt.lines + ' righe'; } else preXGB.textContent = 'Report non disponibile.'; }
 
     if (btData) renderBacktestDashboard(btData);
     // Update "last backtest" timestamp from report
@@ -6652,7 +6648,7 @@ let _backtestCooldownTimer = null;
 async function triggerBacktest() {
   const btn      = document.getElementById('btnRunBacktest');
   const statusEl = document.getElementById('backtestStatus');
-  if (!btn || btn.disabled) return;
+  if (!btn || !statusEl || btn.disabled) return;
 
   btn.disabled = true;
   btn.style.opacity = '0.5';
