@@ -6119,20 +6119,22 @@ function renderBtcPredictionsOverlay(chronoAll) {
   const toY = p => H - ((p - minP) / range) * (H - 14) - 7;
   const pricePts = pts.map((d, i) => `${toX(i).toFixed(1)},${toY(parseFloat(d.btc_price_entry)).toFixed(1)}`).join(' ');
   const markers = pts.map((d, i) => {
-    if (d.correct === null || d.classification !== 'BET') return '';
+    if (d.classification !== 'BET') return '';
     const x = toX(i), y = toY(parseFloat(d.btc_price_entry));
-    const color = d.correct ? 'var(--accent)' : 'var(--danger)';
-    const isUp = d.direction === 'UP';
+    // I-08: open bets (correct===null) shown in amber; closed bets green/red as before
+    const isOpen  = d.correct === null;
+    const color   = isOpen ? 'var(--warn)' : (d.correct ? 'var(--accent)' : 'var(--danger)');
+    const isUp    = d.direction === 'UP';
     const tri = isUp
       ? `${x.toFixed(1)},${(y-9).toFixed(1)} ${(x-4).toFixed(1)},${(y-1).toFixed(1)} ${(x+4).toFixed(1)},${(y-1).toFixed(1)}`
       : `${x.toFixed(1)},${(y+9).toFixed(1)} ${(x-4).toFixed(1)},${(y+1).toFixed(1)} ${(x+4).toFixed(1)},${(y+1).toFixed(1)}`;
-    const pnl = parseFloat(d.pnl_usd || 0);
-    const pnlStr = (pnl >= 0 ? '+' : '') + '$' + pnl.toFixed(2);
-    const conf = d.confidence ? (parseFloat(d.confidence) * 100).toFixed(0) + '%' : '—';
-    const escDir = escapeHtml(d.direction || '—');
-    const outcome = d.correct ? '✓ WIN' : '✗ LOSS';
+    const pnlStr  = isOpen ? '—' : ((parseFloat(d.pnl_usd || 0) >= 0 ? '+' : '') + '$' + parseFloat(d.pnl_usd || 0).toFixed(2));
+    const conf    = d.confidence ? (parseFloat(d.confidence) * 100).toFixed(0) + '%' : '—';
+    const escDir  = escapeHtml(d.direction || '—');
+    const outcome = isOpen ? '⏳ OPEN' : (d.correct ? '✓ WIN' : '✗ LOSS');
     const dataAttrs = `data-btc-x="${x.toFixed(1)}" data-btc-y="${y.toFixed(1)}" data-btc-color="${color}" data-btc-label="${escDir} ${conf} · ${pnlStr} · ${outcome}"`;
-    return `<polygon points="${tri}" fill="${color}" opacity="0.9"/>
+    const opacity = isOpen ? '1' : '0.9';
+    return `<polygon points="${tri}" fill="${color}" opacity="${opacity}"/>
 <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="10" fill="transparent" class="btc-hit" ${dataAttrs}/>`;
   }).join('');
   svg.innerHTML = `
