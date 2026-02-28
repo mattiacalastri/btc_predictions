@@ -530,6 +530,9 @@ def health():
         pass
 
     _clean_bets = _get_clean_bet_count()
+    _polygon_configured = bool(
+        os.environ.get("POLYGON_PRIVATE_KEY") and os.environ.get("POLYGON_CONTRACT_ADDRESS")
+    )
     return jsonify({
         "status": "ok",
         "ts": int(time.time()),
@@ -548,6 +551,7 @@ def health():
         "xgb_gate_active": _clean_bets >= _XGB_GATE_MIN_BETS,
         "xgb_clean_bets": _clean_bets,
         "xgb_min_bets": _XGB_GATE_MIN_BETS,
+        "polygon_configured": _polygon_configured,
     })
 
 
@@ -3794,7 +3798,11 @@ def commit_prediction():
 
     try:
         from web3 import Web3
-        w3, contract, account = _get_web3_contract()
+        try:
+            w3, contract, account = _get_web3_contract()
+        except RuntimeError as cfg_err:
+            app.logger.error(f"[ONCHAIN] config error: {cfg_err}")
+            return jsonify({"ok": False, "error": "polygon_not_configured"}), 503
 
         # Calcola hash deterministico della prediction
         commit_hash = Web3.solidity_keccak(
@@ -3861,7 +3869,11 @@ def resolve_prediction():
 
     try:
         from web3 import Web3
-        w3, contract, account = _get_web3_contract()
+        try:
+            w3, contract, account = _get_web3_contract()
+        except RuntimeError as cfg_err:
+            app.logger.error(f"[ONCHAIN] config error: {cfg_err}")
+            return jsonify({"ok": False, "error": "polygon_not_configured"}), 503
 
         resolve_hash = Web3.solidity_keccak(
             ["uint256", "uint256", "int256", "bool", "uint256"],
