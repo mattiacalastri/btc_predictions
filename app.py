@@ -3819,7 +3819,7 @@ def commit_prediction():
             "chainId": 137,
         })
         signed = account.sign_transaction(tx)
-        tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
+        tx_hash = w3.eth.send_raw_transaction(signed.rawTransaction)
         tx_hex = tx_hash.hex()
 
         commit_hash_hex = commit_hash.hex()
@@ -3889,7 +3889,7 @@ def resolve_prediction():
             "chainId": 137,
         })
         signed = account.sign_transaction(tx)
-        tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
+        tx_hash = w3.eth.send_raw_transaction(signed.rawTransaction)
         tx_hex = tx_hash.hex()
 
         resolve_hash_hex = resolve_hash.hex()
@@ -3968,7 +3968,7 @@ def commit_inputs():
             "gas": 80000, "gasPrice": w3.to_wei("30", "gwei"), "chainId": 137,
         })
         signed = account.sign_transaction(tx)
-        tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
+        tx_hash = w3.eth.send_raw_transaction(signed.rawTransaction)
         tx_hex = tx_hash.hex()
         app.logger.info(f"[ONCHAIN] inputs onchain_id={onchain_id} → tx {tx_hex}")
 
@@ -4027,7 +4027,7 @@ def commit_fill():
             "gas": 80000, "gasPrice": w3.to_wei("30", "gwei"), "chainId": 137,
         })
         signed = account.sign_transaction(tx)
-        tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
+        tx_hash = w3.eth.send_raw_transaction(signed.rawTransaction)
         tx_hex = tx_hash.hex()
         app.logger.info(f"[ONCHAIN] fill bet #{bet_id} price={fill_price} → tx {tx_hex}")
 
@@ -4085,7 +4085,7 @@ def commit_stops():
             "gas": 80000, "gasPrice": w3.to_wei("30", "gwei"), "chainId": 137,
         })
         signed = account.sign_transaction(tx)
-        tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
+        tx_hash = w3.eth.send_raw_transaction(signed.rawTransaction)
         tx_hex = tx_hash.hex()
         app.logger.info(f"[ONCHAIN] stops bet #{bet_id} sl={sl_price} tp={tp_price} → tx {tx_hex}")
 
