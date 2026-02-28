@@ -27,3 +27,5 @@ datasets/backup_*.csv
 .DS_Store
 .claude/worktrees/
 logs/
+opencode.json
+opencode.jsonc
