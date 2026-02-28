@@ -435,7 +435,7 @@ def _close_prev_bet_on_reverse(old_side: str, exit_price: float, closed_size: fl
 
 @app.route("/health", methods=["GET"])
 def health():
-    capital = float(os.environ.get("CAPITAL_USD", 100))
+    capital = float(os.environ.get("CAPITAL_USD") or os.environ.get("CAPITAL", 100))
 
     # wallet equity — fast, non-blocking
     wallet_equity = None
@@ -2426,7 +2426,7 @@ def equity_history():
     sb_url = os.environ.get("SUPABASE_URL", "")
     sb_key = os.environ.get("SUPABASE_KEY", "")
     sb_headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
-    capital_base = float(os.environ.get("CAPITAL", "100"))
+    capital_base = float(os.environ.get("CAPITAL_USD") or os.environ.get("CAPITAL", "100"))
 
     try:
         r = requests.get(
@@ -2512,7 +2512,7 @@ def risk_metrics():
                 break
         current_streak = {"result": streak_label, "count": count}
 
-    capital_base = float(os.environ.get("CAPITAL", "100"))
+    capital_base = float(os.environ.get("CAPITAL_USD") or os.environ.get("CAPITAL", "100"))
     max_drawdown_usd = 0.0
     if rows:
         peak = capital_base
