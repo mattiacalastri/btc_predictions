@@ -53,6 +53,7 @@ def _sb_config() -> tuple:
 _RATE_STORE: dict = {}  # key → (count, window_start)
 _RL_WINDOW = 60         # secondi per finestra
 _RL_MAX_DEFAULT = 100   # chiamate per finestra default
+_XGB_GATE_MIN_BETS = int(os.environ.get("XGB_MIN_BETS", "100"))  # bet pulite necessarie per attivare il gate
 
 
 def _check_rate_limit(key: str, max_calls: int = _RL_MAX_DEFAULT) -> bool:
@@ -74,6 +75,9 @@ def _check_rate_limit(key: str, max_calls: int = _RL_MAX_DEFAULT) -> bool:
 
 # ── XGBoost direction model (caricato una volta all'avvio) ────────────────────
 _XGB_MODEL = None
+_XGB_CLEAN_BET_COUNT: int | None = None   # cache count bet pulite (post-Day0)
+_XGB_CLEAN_BET_CHECKED_AT: float = 0.0   # timestamp ultimo check
+_XGB_CLEAN_CACHE_TTL = 600               # 10 min
 # _BIAS_MAP e TAKER_FEE importati da constants.py
 
 _XGB_FEATURE_COLS = [
@@ -525,13 +529,14 @@ def health():
     except Exception:
         pass
 
+    _clean_bets = _get_clean_bet_count()
     return jsonify({
         "status": "ok",
         "ts": int(time.time()),
         "serverTime": get_kraken_servertime(),
         "symbol": DEFAULT_SYMBOL,
         "api_key_set": bool(API_KEY),
-        "version": "2.5.1",
+        "version": "2.5.2",
         "dry_run": DRY_RUN,
         "supabase_table": SUPABASE_TABLE,
         "paused": _BOT_PAUSED,
@@ -539,7 +544,10 @@ def health():
         "capital": capital,
         "wallet_equity": wallet_equity,
         "base_size": base_size,
-        "confidence_threshold": float(os.environ.get("CONF_THRESHOLD", "0.75")),
+        "confidence_threshold": float(os.environ.get("CONF_THRESHOLD", "0.65")),
+        "xgb_gate_active": _clean_bets >= _XGB_GATE_MIN_BETS,
+        "xgb_clean_bets": _clean_bets,
+        "xgb_min_bets": _XGB_GATE_MIN_BETS,
     })
 
 
@@ -860,6 +868,40 @@ def resume_bot():
 
 # ── PLACE BET — helper privati ───────────────────────────────────────────────
 
+def _get_clean_bet_count() -> int:
+    """Restituisce il numero di bet con esito noto in SUPABASE_TABLE. Cache 10 min.
+    Usato dal gate XGBoost per sapere se il dataset è abbastanza grande da fidarsi del modello."""
+    global _XGB_CLEAN_BET_COUNT, _XGB_CLEAN_BET_CHECKED_AT
+    if (
+        _XGB_CLEAN_BET_COUNT is not None
+        and time.time() - _XGB_CLEAN_BET_CHECKED_AT < _XGB_CLEAN_CACHE_TTL
+    ):
+        return _XGB_CLEAN_BET_COUNT
+    try:
+        sb_url, sb_key = _sb_config()
+        if sb_url and sb_key:
+            r = requests.get(
+                f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
+                "?select=id&bet_taken=eq.true&correct=not.is.null",
+                headers={
+                    "apikey": sb_key,
+                    "Authorization": f"Bearer {sb_key}",
+                    "Prefer": "count=exact",
+                    "Range": "0-0",
+                },
+                timeout=3,
+            )
+            if r.status_code in (200, 206):
+                cr = r.headers.get("content-range", "")
+                count = int(cr.split("/")[1]) if "/" in cr else 0
+                _XGB_CLEAN_BET_COUNT = count
+                _XGB_CLEAN_BET_CHECKED_AT = time.time()
+                return count
+    except Exception:
+        pass
+    return _XGB_CLEAN_BET_COUNT or 0
+
+
 def _run_xgb_gate(direction: str, confidence: float, data: dict, current_hour_utc: int) -> tuple:
     """Esegue il dual-gate XGBoost. Restituisce (xgb_prob_up, early_exit_response_or_None).
     Se XGB non è disponibile o fallisce → (0.5, None) = continua normalmente."""
@@ -869,6 +911,16 @@ def _run_xgb_gate(direction: str, confidence: float, data: dict, current_hour_ut
     xgb_prob_up = 0.5
     if _XGB_MODEL is None:
         return xgb_prob_up, None
+
+    # Bypass gate se dataset pulito insufficiente (modello potenzialmente tautologico)
+    clean_count = _get_clean_bet_count()
+    if clean_count < _XGB_GATE_MIN_BETS:
+        app.logger.info(
+            f"[XGB] Gate bypass — {clean_count}/{_XGB_GATE_MIN_BETS} bet pulite. "
+            "Modello pre-Day0, gate disattivato fino a dataset sufficiente."
+        )
+        return xgb_prob_up, None
+
     try:
         _h = current_hour_utc
         _dow_xgb = _dt_xgb.utcnow().weekday()
