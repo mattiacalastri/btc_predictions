@@ -101,7 +101,6 @@ def train_and_eval(X, y, label_name: str, pos_label=None) -> dict:
         learning_rate=0.05,
         subsample=0.8,
         colsample_bytree=0.8,
-        use_label_encoder=False,
         eval_metric="logloss",
         random_state=42,
         verbosity=0,
@@ -121,7 +120,11 @@ def train_and_eval(X, y, label_name: str, pos_label=None) -> dict:
     print(f"\n  [{label_name}]")
     print(f"  CV Accuracy:  {cv_acc.mean():.3f} ± {cv_acc.std():.3f}")
     print(f"  CV AUC-ROC:   {cv_auc.mean():.3f} ± {cv_auc.std():.3f}")
-    print(f"  Train Acc:    {accuracy_score(y, y_pred):.3f}")
+    # T-02: train accuracy su dati di training è sempre ~1.000 (overfitted) — ignorare.
+    # Usare CV Accuracy sopra o Walkforward Validation nella sezione T-02.
+    train_acc = accuracy_score(y, y_pred)
+    marker = " ⚠️ (overfit)" if train_acc > 0.95 else ""
+    print(f"  Train Acc:    {train_acc:.3f}{marker}")
 
     return {"model": model, "cv_acc": cv_acc, "cv_auc": cv_auc}
 

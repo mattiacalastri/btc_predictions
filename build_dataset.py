@@ -422,6 +422,13 @@ def main():
     down_rows = [r for r in rows if r.get("direction") == "DOWN"]
     n_min = min(len(up_rows), len(down_rows))
     print(f"[{datetime.now():%H:%M:%S}] Bilanciamento: {len(up_rows)} UP, {len(down_rows)} DOWN → {n_min} per classe")
+    # B-04: guard contro n_min=0 (tutti i segnali nella stessa direzione).
+    # Succede nelle prime settimane di raccolta dati in forte bull/bear market.
+    if n_min == 0:
+        print(f"[{datetime.now():%H:%M:%S}] ⚠️  Bilanciamento impossibile: una classe ha 0 segnali.")
+        print("  Il dataset è troppo sbilanciato per addestrare un modello affidabile.")
+        print("  Attendi più dati (minimo ~20 UP + ~20 DOWN) prima di eseguire il retrain.")
+        return
     up_balanced   = random.sample(up_rows,   n_min)
     down_balanced = random.sample(down_rows, n_min)
     rows = up_balanced + down_balanced
