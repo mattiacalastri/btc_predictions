@@ -579,10 +579,96 @@ def close_position():
     try:
         pos = get_open_position(symbol)
         if not pos:
+            # A-11: SL potrebbe aver già chiuso la posizione su Kraken.
+            # Controlla se esiste un bet orfano in Supabase e risolvilo.
+            try:
+                _sb_url = os.environ.get("SUPABASE_URL", "")
+                _sb_key = os.environ.get("SUPABASE_KEY", "")
+                _sb_h   = {"apikey": _sb_key, "Authorization": f"Bearer {_sb_key}"}
+                _explicit = data.get("bet_id")
+                _oq = (
+                    f"{_sb_url}/rest/v1/{SUPABASE_TABLE}"
+                    f"?id=eq.{_explicit}&bet_taken=eq.true&correct=is.null"
+                    f"&select=id,entry_fill_price,btc_price_entry,bet_size,direction"
+                ) if _explicit else (
+                    f"{_sb_url}/rest/v1/{SUPABASE_TABLE}"
+                    f"?bet_taken=eq.true&correct=is.null"
+                    f"&order=id.desc&limit=1"
+                    f"&select=id,entry_fill_price,btc_price_entry,bet_size,direction"
+                )
+                _or = requests.get(_oq, headers=_sb_h, timeout=5)
+                _orphans = _or.json() if _or.ok else []
+            except Exception:
+                _orphans = []
+
+            if not _orphans:
+                return jsonify({
+                    "status": "no_position",
+                    "message": "Nessuna posizione aperta, nulla da chiudere.",
+                    "symbol": symbol
+                })
+
+            # Bet orfana trovata — SL ha già chiuso la posizione Kraken.
+            # Risolvi usando il prezzo corrente da Binance.
+            try:
+                _px = requests.get(
+                    "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT",
+                    timeout=5,
+                )
+                _cur_price = float(_px.json()["price"]) if _px.ok else 0.0
+            except Exception:
+                _cur_price = 0.0
+
+            _row = _orphans[0]
+            _obid = _row["id"]
+            _entry = float(_row.get("entry_fill_price") or _row.get("btc_price_entry") or 0)
+            _bsize = float(_row.get("bet_size") or 0.001)
+            _dir   = _row.get("direction", "UP")
+
+            if _cur_price > 0 and _entry > 0:
+                if _dir == "UP":
+                    _pg = (_cur_price - _entry) * _bsize
+                    _correct = _cur_price > _entry
+                    _adir = "UP" if _correct else "DOWN"
+                else:
+                    _pg = (_entry - _cur_price) * _bsize
+                    _correct = _cur_price < _entry
+                    _adir = "DOWN" if _correct else "UP"
+                _fee = _bsize * (_entry + _cur_price) * 0.00005
+                _pnl = round(_pg - _fee, 6)
+                _supabase_update(_obid, {
+                    "exit_fill_price":  _cur_price,
+                    "btc_price_exit":   _cur_price,
+                    "correct":          _correct,
+                    "actual_direction": _adir,
+                    "pnl_usd":          _pnl,
+                    "fees_total":       round(_fee, 6),
+                    "close_reason":     "sl_already_closed",
+                })
+                app.logger.info(
+                    f"[close-position] Orphan bet {_obid} risolta: "
+                    f"SL già eseguito su Kraken. pnl={_pnl}, correct={_correct}"
+                )
+                return jsonify({
+                    "status":          "resolved_orphan",
+                    "message":         "Posizione Kraken già chiusa da SL — bet orfana risolta.",
+                    "bet_id":          _obid,
+                    "exit_price_used": _cur_price,
+                    "pnl_usd":         _pnl,
+                    "correct":         _correct,
+                    "symbol":          symbol,
+                })
+
+            app.logger.warning(
+                f"[close-position] Orphan bet {_obid} trovata ma prezzo non disponibile "
+                f"(cur={_cur_price}, entry={_entry}) — wf02 riproverà."
+            )
             return jsonify({
-                "status": "no_position",
-                "message": "Nessuna posizione aperta, nulla da chiudere.",
-                "symbol": symbol
+                "status":        "no_position",
+                "message":       "Nessuna posizione aperta, nulla da chiudere.",
+                "orphan_bet_id": _obid,
+                "warning":       "Bet orfana trovata ma prezzo corrente non disponibile.",
+                "symbol":        symbol,
             })
 
         close_side = "sell" if pos["side"] == "long" else "buy"
