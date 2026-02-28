@@ -6406,14 +6406,15 @@ function _launchdNextRun(schedule) {
     next.setHours(7, 0, 0, 0);
     if (next <= now) next.setDate(next.getDate() + 1);
   } else if (schedule === 'sun_0800') {
-    const d = (7 - now.getDay()) % 7 || 7;
-    next.setDate(next.getDate() + d); next.setHours(8, 0, 0, 0);
+    // I-09: same pattern as daily_0700 — set target time, add 7d if already passed
+    next.setDate(next.getDate() + (7 - now.getDay()) % 7); next.setHours(8, 0, 0, 0);
+    if (next <= now) next.setDate(next.getDate() + 7);
   } else if (schedule === 'sun_0300') {
-    const d = (7 - now.getDay()) % 7 || 7;
-    next.setDate(next.getDate() + d); next.setHours(3, 0, 0, 0);
+    next.setDate(next.getDate() + (7 - now.getDay()) % 7); next.setHours(3, 0, 0, 0);
+    if (next <= now) next.setDate(next.getDate() + 7);
   } else if (schedule === 'sun_0930') {
-    const d = (7 - now.getDay()) % 7 || 7;
-    next.setDate(next.getDate() + d); next.setHours(9, 30, 0, 0);
+    next.setDate(next.getDate() + (7 - now.getDay()) % 7); next.setHours(9, 30, 0, 0);
+    if (next <= now) next.setDate(next.getDate() + 7);
   }
   const diff = next - now;
   const h = Math.floor(diff / 3600000);
