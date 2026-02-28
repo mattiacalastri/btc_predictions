@@ -3,7 +3,7 @@ import re
 import json
 import time
 import hmac as _hmac
-import pickle
+from joblib import load as joblib_load
 import requests
 import sentry_sdk
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -47,6 +47,30 @@ def _sb_config() -> tuple:
     key = os.environ.get("SUPABASE_SERVICE_KEY") or os.environ.get("SUPABASE_KEY", "")
     return url, key
 
+
+# ── Rate limiting (S-20) ──────────────────────────────────────────────────────
+_RATE_STORE: dict = {}  # key → (count, window_start)
+_RL_WINDOW = 60         # secondi per finestra
+_RL_MAX_DEFAULT = 100   # chiamate per finestra default
+
+
+def _check_rate_limit(key: str, max_calls: int = _RL_MAX_DEFAULT) -> bool:
+    """Restituisce True se la chiamata è consentita, False se rate-limited.
+    Utilizza finestre scorrevoli di _RL_WINDOW secondi, con cleanup automatico.
+    """
+    now = time.time()
+    # cleanup entries scadute (evita crescita illimitata)
+    expired = [k for k, v in _RATE_STORE.items() if now - v[1] >= _RL_WINDOW * 2]
+    for k in expired:
+        _RATE_STORE.pop(k, None)
+    count, ts = _RATE_STORE.get(key, (0, now))
+    if now - ts >= _RL_WINDOW:
+        count, ts = 0, now
+    count += 1
+    _RATE_STORE[key] = (count, ts)
+    return count <= max_calls
+
+
 # ── XGBoost direction model (caricato una volta all'avvio) ────────────────────
 _XGB_MODEL = None
 # _BIAS_MAP e TAKER_FEE importati da constants.py
@@ -64,8 +88,9 @@ def _load_xgb_model():
     global _XGB_MODEL
     model_path = os.path.join(os.path.dirname(__file__), "models", "xgb_direction.pkl")
     if os.path.exists(model_path):
-        with open(model_path, "rb") as f:
-            _XGB_MODEL = pickle.load(f)
+        _XGB_MODEL = joblib_load(model_path)
+        from xgboost import XGBClassifier
+        assert isinstance(_XGB_MODEL, XGBClassifier), "Direction model type mismatch"
         print(f"[XGB] Model loaded from {model_path}")
     else:
         print(f"[XGB] Model not found at {model_path} — /predict-xgb will return agree=True")
@@ -76,8 +101,9 @@ _load_xgb_model()
 _xgb_correctness = None
 try:
     _corr_path = os.path.join(os.path.dirname(__file__), "models", "xgb_correctness.pkl")
-    with open(_corr_path, "rb") as f:
-        _xgb_correctness = pickle.load(f)
+    _xgb_correctness = joblib_load(_corr_path)
+    from xgboost import XGBClassifier
+    assert isinstance(_xgb_correctness, XGBClassifier), "Correctness model type mismatch"
     print("[XGB] Correctness model loaded")
 except Exception as _e:
     print(f"[XGB] Correctness model NOT loaded: {_e}")
@@ -584,6 +610,9 @@ def close_position():
     err = _check_api_key()
     if err:
         return err
+    _rl_key = f"close:{request.headers.get('X-Api-Key', request.remote_addr)}"
+    if not _check_rate_limit(_rl_key, max_calls=50):
+        return jsonify({"error": "rate_limited"}), 429
     data = request.get_json(force=True) or {}
     symbol = data.get("symbol", DEFAULT_SYMBOL)
 
@@ -833,6 +862,9 @@ def place_bet():
     err = _check_api_key()
     if err:
         return err
+    _rl_key = f"bet:{request.headers.get('X-Api-Key', request.remote_addr)}"
+    if not _check_rate_limit(_rl_key, max_calls=50):
+        return jsonify({"error": "rate_limited"}), 429
     data = request.get_json(force=True) or {}
     direction = (data.get("direction") or "").upper()
     confidence = float(data.get("confidence", 0))
@@ -1968,6 +2000,9 @@ def rescue_orphaned():
     err = _check_api_key()
     if err:
         return err
+    _rl_key = f"rescue:{request.headers.get('X-Api-Key', request.remote_addr)}"
+    if not _check_rate_limit(_rl_key, max_calls=20):
+        return jsonify({"error": "rate_limited"}), 429
     n8n_key = os.environ.get("N8N_API_KEY", "")
     n8n_url = os.environ.get("N8N_URL", "https://n8n.srv1432354.hstgr.cloud")
     supabase_url, supabase_key = _sb_config()
