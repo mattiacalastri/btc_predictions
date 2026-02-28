@@ -116,8 +116,8 @@ def send_telegram(chat_id, text, command="", is_error=False):
             payload["reply_markup"] = keyboard
         try:
             requests.post(url, json=payload, timeout=15)
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[{datetime.now().isoformat()}] send_telegram fallita (chunk {idx}): {e}")
 
 
 def run_claude(command):
