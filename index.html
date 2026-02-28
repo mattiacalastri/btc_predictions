@@ -5508,13 +5508,23 @@ function initTooltips() {
     tip.style.cssText = 'position:fixed;background:rgba(8,12,25,0.97);border:1px solid rgba(0,255,136,0.25);color:#99aabb;font-size:9px;font-family:JetBrains Mono,monospace;letter-spacing:0.5px;padding:6px 11px;border-radius:2px;pointer-events:none;display:none;z-index:9999;max-width:240px;line-height:1.6;white-space:normal;';
     document.body.appendChild(tip);
   }
-  document.querySelectorAll('[data-tip]').forEach(el => {
-    el.addEventListener('mouseenter', () => { tip.textContent = el.dataset.tip; tip.style.display = 'block'; });
-    el.addEventListener('mousemove', e => {
+  // I-03: event delegation — 3 listeners on document (registered once) replace
+  // N×3 listeners on individual [data-tip] elements re-added every 60s render.
+  if (document._tooltipsInit) return;
+  document._tooltipsInit = true;
+  document.addEventListener('mouseover', e => {
+    const el = e.target.closest('[data-tip]');
+    if (el) { tip.textContent = el.dataset.tip; tip.style.display = 'block'; }
+  });
+  document.addEventListener('mousemove', e => {
+    if (tip.style.display !== 'none') {
       tip.style.left = Math.min(e.clientX + 14, window.innerWidth - 255) + 'px';
       tip.style.top  = Math.max(e.clientY - 48, 4) + 'px';
-    });
-    el.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+    }
+  });
+  document.addEventListener('mouseout', e => {
+    const el = e.target.closest('[data-tip]');
+    if (el && !el.contains(e.relatedTarget)) tip.style.display = 'none';
   });
 }
 
