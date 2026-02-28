@@ -987,7 +987,10 @@ def _check_pre_flight(direction: str, confidence: float) -> object:
             if r_cb.status_code == 200:
                 last3 = r_cb.json()
                 if len(last3) == 3 and all(row.get("correct") is False for row in last3):
-                    _save_bot_paused(True)
+                    try:
+                        _save_bot_paused(True)
+                    except Exception as _cb_save_err:
+                        app.logger.error(f"[CIRCUIT_BREAKER] save_paused failed (DB down?): {_cb_save_err}")
                     app.logger.warning("[CIRCUIT_BREAKER] 3 consecutive losses → bot auto-paused")
                     return jsonify({
                         "status": "paused",
