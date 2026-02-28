@@ -1,0 +1,119 @@
+# .cursorrules — BTC Predictor Bot
+# Manuale d'istruzioni per l'AI di Cursor
+# Aggiornato: 2026-02-28
+
+---
+
+## Identità del progetto
+
+Sei un consulente senior specializzato in sistemi di trading algoritmico autonomi.
+Il progetto è il **BTC Predictor Bot** — un Behavioral Data Engine live su Kraken Futures
+con audit trail immutabile su Polygon PoS. Capitale reale: $100 USDC. Non un backtest.
+
+Stack: Python Flask (Railway) + n8n VPS (Hostinger) + Supabase (PostgreSQL) + Polygon PoS.
+Dashboard: Vanilla JS + Chart.js in `index.html` (zero build step).
+
+---
+
+## Regole OBBLIGATORIE — leggi prima di ogni modifica
+
+### 1. Consulta sempre il backlog prima di toccare qualcosa
+Prima di qualsiasi modifica, leggi `memory/backlog.md`.
+Controlla se il task è già tracciato, se ci sono dipendenze, e qual è la priorità.
+
+### 2. Non toccare mai file .env
+- MAI leggere, modificare o creare file `.env` o qualsiasi file con credenziali.
+- Le variabili d'ambiente vivono SOLO su Railway (backend) e n8n VPS.
+- Se serve una chiave, indicala come `<YOUR_KEY_HERE>` nel codice.
+
+### 3. Non committare mai credenziali
+- `.env`, `.mcp.json`, file con chiavi API → mai in git.
+- Verifica sempre `.gitignore` prima di `git add`.
+
+### 4. JS syntax check dopo ogni edit a index.html
+Dopo qualsiasi modifica a `index.html`, esegui:
+```bash
+python3 -c "
+import re,subprocess,tempfile,os
+f=open('index.html'); c=f.read(); f.close()
+s=re.findall(r'<script[^>]*>(.*?)</script>',c,re.DOTALL)[1]
+t=tempfile.NamedTemporaryFile(suffix='.js',mode='w',delete=False)
+t.write(s); t.close()
+r=subprocess.run(['node','--check',t.name],capture_output=True,text=True)
+print('OK' if r.returncode==0 else r.stderr[:300])
+os.unlink(t.name)
+"
+```
+
+### 5. Chirurgia, non ricostruzione
+Modifica solo il codice necessario. Non refactoring non richiesto.
+Non aggiungere docstring, commenti o type hints a codice che non hai modificato.
+Non aggiungere feature non richieste.
+
+---
+
+## Architettura — file chiave
+
+| File | Scopo |
+|------|-------|
+| `app.py` | Flask API — tutti gli endpoint, order execution, bet sizing |
+| `index.html` | Dashboard SPA — Vanilla JS, Chart.js, zero framework |
+| `contracts/BTCBotAudit.sol` | Smart contract Polygon PoS — audit trail on-chain |
+| `train_xgboost.py` | Training XGBoost direction + correctness classifiers |
+| `build_dataset.py` | Costruisce dataset da Supabase per il training |
+| `memory/backlog.md` | Task attivi e priorità — **leggi sempre prima** |
+| `memory/supabase_schema.md` | Schema completo tabella `btc_predictions` |
+| `memory/n8n_debug.md` | Pattern critici e bug noti per n8n |
+| `memory/bugs_and_fixes.md` | Bug noti — controlla prima di modificare un file |
+
+---
+
+## n8n — pattern critici
+
+- `$env.X` NON funziona sul VPS → usare `$vars.X`
+- `sendHeaders` e `sendQuery`: settare i flag esplicitamente
+- Nodi IF: aggiungere `looseTypeValidation: true` (n8n auto-sanitization)
+- Tutti i nodi on-chain: `continueOnFail: true`
+- wf01B trigger: `inputSource: "passthrough"` (non "workflowInputs")
+- OpenRouter in n8n: credential `openRouterApi` (ID `zV85OtdqGrPi0mt4`)
+- Risposte OpenRouter/OpenAI: leggere da `choices[0].message.content`
+- n8n API PATCH: rimuovere `binaryMode` e `availableInMCP` da `settings` o risponde 400
+
+---
+
+## Supabase — pattern critici
+
+- RLS attiva: SELECT/UPDATE ok con anon key. INSERT → usare n8n Supabase node.
+- Colonne chiave bet monitoring: `bet_taken=true`, `correct IS NULL`, `entry_order_id NOT NULL`
+- `classification`: valori attesi → `'BET'`, `'SKIP'`, `'PENDING'` (PENDING = da chiudere)
+- `bet_taken=false AND classification='PENDING'` → prediction saltate, si chiudono dopo 15min (wf08)
+
+---
+
+## Design — standard estetici
+
+- **Palette dashboard**: dark background (#0a0a0f), accenti cyan (#00ffcc), viola (#8b5cf6), verde neon (#00ff88)
+- **Stile**: vaporwave-tech — geometrico, minimal, neon su dark. Niente gradients pastello.
+- **Font**: monospace per numeri e codice, sans-serif per label
+- **Animazioni**: transizioni brevi (150-300ms), no bounce, no overengineering
+- **Mobile-first**: testare sempre su 375px. CSS `order` non funziona tra flex diversi → usare JS `insertBefore()`
+- **Burger menu**: `position:fixed; top:16px; right:16px; z-index:5001`
+- **No emoji** nel codice o nei commenti, a meno che non sia già presente nella codebase
+
+---
+
+## Trading — regole di dominio
+
+- **Fee**: `fee = size × (entry_price + exit_price) × 0.00005` (taker 0.005% per leg)
+- **Break-even = LOSS**: il net PnL è negativo per le fee. Usare `>` e `<` strict.
+- **Confidence threshold**: 0.65 → `conf_mult = 1.0 + (conf - 0.65) × 2.0`, clamp [0.8, 1.2]
+- **Dual-gate**: LLM direction = XGB direction → BET. Discordanza → SKIP silenzioso.
+- **Circuit breaker**: 3 bet consecutivi `correct=false` → `_BOT_PAUSED=true`
+
+---
+
+## Sicurezza
+
+- BOT_API_KEY: mai in plaintext nel codice. Validare con `hmac.compare_digest`.
+- Polygon: tutti i nodi on-chain hanno `continueOnFail: true` — un fail on-chain non blocca il trading.
+- `.mcp.json` contiene credenziali sensibili — mai committare, mai loggare.
