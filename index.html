@@ -139,6 +139,9 @@
     --border: #1e2d3d;
     --accent: #00ff88;
     --blue: #00aaff;
+    --cyan: #00d4ff;
+    --orange: #f7931a;
+    --purple: #aa66ff;
     --text: #e8f0fe;
     --muted: #4a6070;
     --danger: #ff4466;
@@ -759,8 +762,30 @@
   ::-webkit-scrollbar-thumb { background: var(--border); }
 
   /* ── TOP LOADING BAR ─────────────────────────────────────── */
+  /* ── MAINTENANCE BANNER ──────────────────────────────────────── */
+  #maintenanceBanner {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 10000;
+    background: linear-gradient(90deg, #1a1100, #2a1a00, #1a1100);
+    border-bottom: 1px solid #ffaa00;
+    padding: 8px 16px;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    color: #ffaa00; letter-spacing: 0.04em;
+    animation: maintenancePulse 3s ease-in-out infinite;
+  }
+  #maintenanceBanner .mb-icon { font-size: 14px; flex-shrink: 0; }
+  #maintenanceBanner .mb-text { text-align: center; }
+  #maintenanceBanner .mb-text strong { color: #ffc940; }
+  #maintenanceBanner .mb-since { color: #a07020; font-size: 10px; }
+  @keyframes maintenancePulse {
+    0%, 100% { border-bottom-color: #ffaa00; box-shadow: 0 1px 8px rgba(255,170,0,0.15); }
+    50%       { border-bottom-color: #ffc940; box-shadow: 0 1px 18px rgba(255,170,0,0.35); }
+  }
+  /* Push page content down when banner is visible */
+  body.maintenance-mode { padding-top: 40px; }
+
   #topLoader {
-    position: fixed; top: 0; left: 0; z-index: 9999;
+    position: fixed; top: 40px; left: 0; z-index: 9999;
     height: 2px; width: 0%;
     background: linear-gradient(90deg, var(--cyan), var(--orange), var(--cyan));
     background-size: 200% 100%;
@@ -768,6 +793,7 @@
     opacity: 1;
     pointer-events: none;
   }
+  body:not(.maintenance-mode) #topLoader { top: 0; }
   #topLoader.indeterminate {
     animation: loaderSlide 1.4s linear infinite;
     width: 100% !important;
@@ -2625,8 +2651,18 @@
 #tutSkipFixed:hover { background: rgba(255,68,102,0.30); border-color: rgba(255,68,102,0.75); color: #ff6070; transform: scale(1.08); }
 </style>
 </head>
-<body>
+<body class="maintenance-mode">
 <div id="topLoader" class="indeterminate"></div>
+
+  <!-- MAINTENANCE BANNER — rimuovere quando il bot riprende a tradare -->
+  <div id="maintenanceBanner">
+    <span class="mb-icon">⚙️</span>
+    <span class="mb-text">
+      <strong>MANUTENZIONE IN CORSO</strong> — Il bot è in pausa. Nessun trade verrà eseguito.
+      <span class="mb-since">Attivo dal 2026-02-28 · Bug fix in corso</span>
+    </span>
+    <span class="mb-icon">⚙️</span>
+  </div>
 
   <!-- WELCOME INFOBOX — first-time visitors, closeable, localStorage, re-openable via "?" -->
   <div class="intro-hero" id="introHero">
@@ -3065,6 +3101,11 @@
       <div class="kpi-label">APR <span style="font-size:8px;opacity:0.5;letter-spacing:0.5px">annualized</span></div>
       <div class="kpi-value purple" id="kpiApr">—</div>
       <div class="kpi-sub" id="kpiAprSub">— days active</div>
+    </div>
+    <div class="kpi purple" data-tip-title="Session ROI" data-tip="Return on investment since session start (2026-02-24, $100 capital). Calculated as Total PnL / Capital.">
+      <div class="kpi-label">Session ROI</div>
+      <div class="kpi-value purple" id="kpiRoi">—</div>
+      <div class="kpi-sub" id="kpiRoiSub">since session start</div>
     </div>
     <div class="kpi yellow">
       <div class="kpi-label">Win Rate</div>
@@ -4520,7 +4561,8 @@ function pnlClass(v) {
 function renderAccountSummary(data) {
   if (!data || data.status !== 'ok') {
     ['acctWalletBody', 'acctPositionBody', 'acctBtcBody'].forEach(id => {
-      document.getElementById(id).innerHTML =
+      const el = document.getElementById(id);
+      if (el) el.innerHTML =
         '<div style="padding:16px;color:var(--danger);font-size:10px;letter-spacing:1px">⚠️ FETCH ERROR</div>';
     });
     return;
@@ -4537,7 +4579,7 @@ function renderAccountSummary(data) {
     liveWalletEquity = equity;
     // Update APR + ROI sub-labels with live equity context (value set by render())
     const daysAct = Math.max(1, (Date.now() - new Date(CONFIG.SESSION_START + 'T00:00:00Z')) / 86400000);
-    const roiPct  = (lastSessionPnl / equity) * 100;
+    const roiPct  = (lastSessionPnl / CONFIG.CAPITAL) * 100;  // I-05: fixed denominator $100, not live equity
     const aprSubEl2 = document.getElementById('kpiAprSub');
     if (aprSubEl2) aprSubEl2.textContent = `${Math.round(daysAct)}d active · ${fmtUsd(equity)} eq.`;
     const roiEl2 = document.getElementById('kpiRoi');
@@ -4554,8 +4596,10 @@ function renderAccountSummary(data) {
 
   // Tag: total equity
   const walletTag = document.getElementById('acctWalletTag');
-  walletTag.textContent = fmtUsd(equity);
-  walletTag.className = 'panel-tag ' + (equity >= CONFIG.CAPITAL ? 'tag-green' : 'tag-red');
+  if (walletTag) {
+    walletTag.textContent = fmtUsd(equity);
+    walletTag.className = 'panel-tag ' + (equity >= CONFIG.CAPITAL ? 'tag-green' : 'tag-red');
+  }
 
   // Margin bar color
   let marginBarColor = 'var(--accent)';
@@ -4565,6 +4609,7 @@ function renderAccountSummary(data) {
   const totalRoiPct = CONFIG.CAPITAL > 0 ? ((equity - CONFIG.CAPITAL) / CONFIG.CAPITAL * 100) : 0;
   const roiColor = totalRoiPct >= 0 ? 'var(--accent)' : 'var(--danger)';
   const walletBody = document.getElementById('acctWalletBody');
+  if (!walletBody) return;
   walletBody.style.cssText = 'padding:0;gap:0;';
   walletBody.innerHTML = `
     <!-- Hero equity section -->
@@ -5088,7 +5133,7 @@ function render(data) {
   const sessionBets = realBets.filter(d => d.created_at && d.created_at.slice(0, 10) >= CONFIG.SESSION_START);
   const sessionPnl  = sessionBets.reduce((s, d) => s + parseFloat(d.pnl_usd || 0), 0);
   lastSessionPnl = sessionPnl;
-  const roiPct      = (sessionPnl / capitalBase) * 100;
+  const roiPct      = (sessionPnl / CONFIG.CAPITAL) * 100;  // I-05: fixed denominator $100, not live equity
   // APR: always computed from full dataset (allData), independent of period chip
   const allRealBets    = allData.filter(d => d.bet_taken && d.pnl_usd !== null);
   const allSessionBets = allRealBets.filter(d => d.created_at && d.created_at.slice(0, 10) >= CONFIG.SESSION_START);
@@ -5561,7 +5606,7 @@ function renderGalaxy(data) {
       fill="${fill}" opacity="${opacity}"
       stroke="${strokeC}" stroke-width="${strokeW}"
       style="cursor:pointer;"
-      data-gtip="${tip.replace(/"/g, '&quot;')}"
+      data-gtip="${escapeHtml(tip)}"
     />`;
   });
 
@@ -6011,7 +6056,7 @@ function renderBtcPredictionsOverlay(chronoAll) {
     const pnl = parseFloat(d.pnl_usd || 0);
     const pnlStr = (pnl >= 0 ? '+' : '') + '$' + pnl.toFixed(2);
     const conf = d.confidence ? (parseFloat(d.confidence) * 100).toFixed(0) + '%' : '—';
-    const escDir = d.direction || '—';
+    const escDir = escapeHtml(d.direction || '—');
     const outcome = d.correct ? '✓ WIN' : '✗ LOSS';
     const dataAttrs = `data-btc-x="${x.toFixed(1)}" data-btc-y="${y.toFixed(1)}" data-btc-color="${color}" data-btc-label="${escDir} ${conf} · ${pnlStr} · ${outcome}"`;
     return `<polygon points="${tri}" fill="${color}" opacity="0.9"/>
@@ -6040,7 +6085,7 @@ function renderBtcPredictionsOverlay(chronoAll) {
     function btcShowTip(clientX, clientY) {
       const label = el.getAttribute('data-btc-label');
       const col   = el.getAttribute('data-btc-color');
-      btcTip.innerHTML = `<span style="color:${col}">${label}</span>`;
+      btcTip.innerHTML = `<span style="color:${col}">${escapeHtml(label)}</span>`;
       btcTip.style.display = 'block';
       btcTip.style.left = Math.min(clientX + 14, window.innerWidth - 240) + 'px';
       btcTip.style.top  = Math.max(10, clientY - 56) + 'px';
@@ -6133,7 +6178,8 @@ function switchTab(btn) {
   btn.classList.add('active');
   const targetTab = btn.dataset.tab;
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-  document.getElementById('tab-' + targetTab).classList.add('active');
+  const tabEl = document.getElementById('tab-' + targetTab);
+  if (tabEl) tabEl.classList.add('active');
   trackEvent('tab_view', { tab_name: targetTab });
   if (targetTab === 'agents')     refreshAgentsTab();
   if (targetTab === 'costs')      refreshCostsTab();
