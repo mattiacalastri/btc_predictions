@@ -196,8 +196,8 @@ DEFAULT_SYMBOL = os.environ.get("KRAKEN_DEFAULT_SYMBOL", "PF_XBTUSD")
 KRAKEN_BASE = "https://futures.kraken.com"
 DRY_RUN = os.environ.get("DRY_RUN", "false").lower() in ("true", "1", "yes")
 SUPABASE_TABLE = os.environ.get("SUPABASE_TABLE", "btc_predictions")
-_BOT_PAUSED = False              # runtime pause — persisted to Supabase bot_state
-_BOT_PAUSED_REFRESHED_AT = 0.0  # timestamp of last Supabase read
+_BOT_PAUSED = True               # fail-safe default: paused until Supabase confirms otherwise
+_BOT_PAUSED_REFRESHED_AT = 0.0  # timestamp of last Supabase read (0.0 → forces refresh on first call)
 _costs_cache = {"data": None, "ts": 0.0}
 
 # Startup security validation
@@ -206,7 +206,9 @@ if not os.environ.get("BOT_API_KEY"):
 
 
 def _refresh_bot_paused():
-    """Read paused state from Supabase bot_state. Called on restart and every 5 min."""
+    """Read paused state from Supabase bot_state. Called on restart and every 5 min.
+    Fail-safe: _BOT_PAUSED defaults True at boot; only set False when Supabase confirms.
+    """
     global _BOT_PAUSED, _BOT_PAUSED_REFRESHED_AT
     try:
         sb_url = os.environ.get("SUPABASE_URL", "")
@@ -218,10 +220,18 @@ def _refresh_bot_paused():
             headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
             timeout=3,
         )
-        if r.ok and r.json():
-            _BOT_PAUSED = r.json()[0].get("value", "false").lower() in ("true", "1")
-        _BOT_PAUSED_REFRESHED_AT = time.time()
+        if r.ok:
+            data = r.json()
+            if data:
+                _BOT_PAUSED = data[0].get("value", "false").lower() in ("true", "1")
+            else:
+                # Row doesn't exist → new install or row deleted → treat as not paused
+                _BOT_PAUSED = False
+            _BOT_PAUSED_REFRESHED_AT = time.time()
+        # If r not ok: leave _BOT_PAUSED unchanged, don't update timestamp → retry next call
     except Exception:
+        # Network error / timeout: leave _BOT_PAUSED unchanged (fail-safe True at boot)
+        # Don't update _BOT_PAUSED_REFRESHED_AT → will retry on next place_bet() call
         pass
 
 
