@@ -902,6 +902,33 @@ def place_bet():
             "confidence": confidence,
         }), 200
 
+    # Circuit breaker: 3 consecutive losses → auto-pause
+    try:
+        sb_url = os.environ.get("SUPABASE_URL", "")
+        sb_key = os.environ.get("SUPABASE_KEY", "")
+        if sb_url and sb_key:
+            r_cb = requests.get(
+                f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
+                "?select=correct&bet_taken=eq.true&correct=not.is.null"
+                "&order=id.desc&limit=3",
+                headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
+                timeout=5,
+            )
+            if r_cb.status_code == 200:
+                last3 = r_cb.json()
+                if len(last3) == 3 and all(row.get("correct") is False for row in last3):
+                    _save_bot_paused(True)
+                    app.logger.warning("[CIRCUIT_BREAKER] 3 consecutive losses → bot auto-paused")
+                    return jsonify({
+                        "status": "paused",
+                        "reason": "circuit_breaker",
+                        "message": "3 perdite consecutive — bot auto-pausato. Riattivare manualmente con /resume.",
+                        "direction": direction,
+                        "confidence": confidence,
+                    }), 200
+    except Exception as e:
+        app.logger.warning(f"[CIRCUIT_BREAKER] check failed: {e}")
+
     if DRY_RUN:
         fake_id = f"DRY_{int(time.time())}"
         return jsonify({
