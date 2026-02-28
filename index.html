@@ -4879,18 +4879,24 @@ function renderLivePosition() {
   if (entry > 0) document.getElementById('lpEntryLabel').textContent = 'ENTRY $' + entry.toLocaleString('en-US',{maximumFractionDigits:0});
   if (tp > 0)    document.getElementById('lpTpLabel').textContent    = 'TP $'    + tp.toLocaleString('en-US',{maximumFractionDigits:0});
 
-  document.getElementById('lpEntryMarker').style.left = entryPct + '%';
-  document.getElementById('lpLiveMarker').style.left  = livePct + '%';
-  document.getElementById('lpCurrentPrice').textContent = cur ? '$' + cur.toLocaleString('en-US',{maximumFractionDigits:0}) : '—';
-  document.getElementById('cubeFaceConf').textContent = Math.round(conf * 100) + '%';
+  const lpEntry = document.getElementById('lpEntryMarker');
+  const lpLive  = document.getElementById('lpLiveMarker');
+  if (lpEntry) lpEntry.style.left = entryPct + '%';
+  if (lpLive)  lpLive.style.left  = livePct + '%';
+  const lpCur = document.getElementById('lpCurrentPrice');
+  if (lpCur) lpCur.textContent = cur ? '$' + cur.toLocaleString('en-US',{maximumFractionDigits:0}) : '—';
+  const faceConf = document.getElementById('cubeFaceConf');
+  if (faceConf) faceConf.textContent = Math.round(conf * 100) + '%';
   const cube  = document.getElementById('aiCube');
   const state = pnlUsd > 0.05 ? 'profit' : pnlUsd < -0.05 ? 'loss' : 'neutral';
-  cube.dataset.state = state;
+  if (cube) cube.dataset.state = state;
 
   const aiText = document.getElementById('aiDecisionText');
-  if (Math.abs(pnlUsd) < 0.02) aiText.textContent = 'Flat — watching';
-  else if (pos) aiText.textContent = 'In profit — HOLD?';
-  else          aiText.textContent = 'In loss — evaluating';
+  if (aiText) {
+    if (Math.abs(pnlUsd) < 0.02) aiText.textContent = 'Flat — watching';
+    else if (pos) aiText.textContent = 'In profit — HOLD?';
+    else          aiText.textContent = 'In loss — evaluating';
+  }
 }
 
 window._switchLpTab = function(idx) {
@@ -7575,7 +7581,8 @@ fetch(CONFIG.RAILWAY_URL + '/health')
   .then(r => r.json())
   .then(data => {
     if (data.dry_run) {
-      document.getElementById('dry-run-banner').style.display = 'block';
+      const dryBanner = document.getElementById('dry-run-banner');
+      if (dryBanner) dryBanner.style.display = 'block';
     }
     // Store operational config globally
     window._botConfig = {
@@ -8981,7 +8988,8 @@ window.addEventListener('load', function() {
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
       toggleTronMenu(false);
-      if (document.getElementById('tutorialOverlay').classList.contains('tut-active')) skipTutorial();
+      const tutOvl = document.getElementById('tutorialOverlay');
+      if (tutOvl && tutOvl.classList.contains('tut-active')) skipTutorial();
     }
   });
 
