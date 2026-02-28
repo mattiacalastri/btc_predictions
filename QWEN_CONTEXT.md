@@ -68,9 +68,12 @@ technical_bias_score  INT    ordinale -2→+2 (da _BIAS_MAP in constants.py)
 signal_fg_fear        BOOL   true se fear_greed_value < 45
 funding_rate          FLOAT  tasso Binance Futures perpetui
 ls_ratio              FLOAT  Long/Short ratio
-onchain_commit_hash   TEXT   keccak hash commitato su Polygon
-onchain_commit_tx     TEXT   txHash Polygon del commit
-onchain_resolve_tx    TEXT   txHash Polygon del resolve
+onchain_commit_hash   TEXT   keccak hash commitato su Polygon (pre-fill)
+onchain_commit_tx     TEXT   txHash Polygon del commit (pre-fill)
+onchain_resolve_tx    TEXT   txHash Polygon del resolve (post-close)
+onchain_inputs_tx     TEXT   txHash Polygon commit inputs pre-LLM (fase 1)
+onchain_fill_tx       TEXT   txHash Polygon commit fill price (fase 3)
+onchain_stops_tx      TEXT   txHash Polygon commit SL/TP (fase 4)
 fetch_failed          BOOL   true se fetch macro calendar fallito
 pyramid_count         INT    numero add-on alla posizione
 sl_price              FLOAT  prezzo stop-loss reale piazzato su Kraken
@@ -82,20 +85,35 @@ rr_ratio              FLOAT  TP/SL distance ratio (default: 2.0)
 
 ## § 04 — On-Chain Audit (Polygon PoS)
 
-**Flusso**:
-1. `wf01B` → POST `/commit-prediction` → `BTCBotAudit.commit(bet_id, keccak_hash)` → salva `onchain_commit_tx`
-2. `wf02` → POST `/resolve-prediction` → `BTCBotAudit.resolve(bet_id, correct, pnl_scaled)` → salva `onchain_resolve_tx`
+**Flusso completo (6 fasi)**:
+1. `wf01A` → POST `/commit-inputs` → `commit(ts+10B, keccak_inputs)` → `onchain_inputs_tx` (pre-LLM)
+2. `wf01B` → POST `/commit-prediction` → `commit(bet_id, keccak_hash)` → `onchain_commit_tx` (pre-fill)
+3. `wf01B` → Kraken FILL → POST `/commit-fill` → `commit(bet_id+20M, keccak_fill)` → `onchain_fill_tx`
+4. `wf01B` → POST `/commit-stops` → `commit(bet_id+30M, keccak_stops)` → `onchain_stops_tx`
+5. `wf08` → monitor posizione ogni 3min (no commit on-chain — troppo costoso)
+6. `wf02` → POST `/resolve-prediction` → `resolve(bet_id, correct, pnl)` → `onchain_resolve_tx`
 
-**Hash deterministico** (codificato in Solidity keccak256):
-```python
-Web3.solidity_keccak(
-    ["uint256","string","uint256","uint256","uint256","uint256"],
-    [bet_id, direction, int(confidence*1e6), int(entry_price*1e2),
-     int(bet_size*1e8), ts]
-)
+**Convenzione offset bet_id** (usa existing `commit()` senza redeploy):
+```
+bet_id + 10_000_000  → fase prediction commit
+bet_id + 20_000_000  → fase fill confirm
+bet_id + 30_000_000  → fase SL/TP placement
+timestamp + 10_000_000_000 → fase inputs (bet_id non ancora noto)
 ```
 
-**Regola di sicurezza**: tutti i nodi n8n che chiamano `/commit-prediction` e `/resolve-prediction` hanno `continueOnFail: true`. Un fallimento on-chain non blocca il trading.
+**Hash formulas**:
+```python
+# /commit-prediction (pre-fill)
+keccak(bet_id, direction, confidence*1e6, entry_price*1e2, bet_size*1e8, ts)
+# /commit-inputs (pre-LLM)
+keccak(bet_id, btc_price*1e2, rsi14*1e6, fg_value, funding*1e8, ts)
+# /commit-fill (post-Kraken fill)
+keccak(bet_id, fill_price*1e2, ts_fill)
+# /commit-stops (post-SL placement)
+keccak(bet_id, sl_price*1e2, tp_price*1e2, ts)
+```
+
+**Regola di sicurezza**: tutti i nodi n8n on-chain hanno `continueOnFail: true`. Un fallimento on-chain non blocca il trading.
 
 **Env vars Railway richieste**: `POLYGON_PRIVATE_KEY`, `POLYGON_CONTRACT_ADDRESS`, `POLYGON_RPC_URL` (default: `https://polygon-bor-rpc.publicnode.com`), `POLYGON_CHAIN_ID` (137).
 
