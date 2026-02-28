@@ -140,7 +140,11 @@ def main():
         print("SUPABASE_ANON_KEY non impostata — uscita")
         return
 
-    task = fetch_pending()
+    try:
+        task = fetch_pending()
+    except Exception as e:
+        print(f"[{datetime.now().isoformat()}] fetch_pending fallita: {e} — uscita")
+        return  # C-02: Supabase giù, esci silenziosamente senza crash
     if not task:
         return  # nessun task pendente
 
