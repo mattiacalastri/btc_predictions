@@ -270,6 +270,23 @@ def _check_api_key():
     return None
 
 
+def _check_read_key():
+    """Auth per endpoint read-only (signals, account-summary, equity-history, risk-metrics).
+    Accetta READ_API_KEY (iniettato nel dashboard) oppure BOT_API_KEY (n8n/interni).
+    Se READ_API_KEY non configurata → endpoint rimane pubblico (backwards compat).
+    """
+    read_key = os.environ.get("READ_API_KEY", "")
+    if not read_key:
+        return None  # non configurato → pubblico
+    provided = request.headers.get("X-API-Key", "").encode()
+    if provided and _hmac.compare_digest(provided, read_key.encode()):
+        return None
+    bot_key = os.environ.get("BOT_API_KEY", "")
+    if bot_key and provided and _hmac.compare_digest(provided, bot_key.encode()):
+        return None
+    return jsonify({"error": "Unauthorized"}), 401
+
+
 def _make_contribution_token(contrib_id: int, action: str) -> str:
     """Genera un token HMAC-SHA256 per approve/reject link.
     Token specifico per contrib_id+action: non riutilizzabile su altri endpoint.
@@ -1212,7 +1229,9 @@ def get_execution_fees():
 
 @app.route("/account-summary", methods=["GET"])
 def account_summary():
-    # Public endpoint — dashboard needs it client-side (F-04: build in public read-only)
+    err = _check_read_key()
+    if err:
+        return err
     symbol = request.args.get("symbol", DEFAULT_SYMBOL)
     try:
         trade = get_trade_client()
@@ -1420,6 +1439,9 @@ def account_summary():
 
 @app.route("/signals", methods=["GET"])
 def get_signals():
+    err = _check_read_key()
+    if err:
+        return err
     try:
         try:
             limit = max(1, min(int(request.args.get("limit", 500)), 2000))
@@ -2398,6 +2420,9 @@ def costs():
 
 @app.route("/equity-history", methods=["GET"])
 def equity_history():
+    err = _check_read_key()
+    if err:
+        return err
     sb_url = os.environ.get("SUPABASE_URL", "")
     sb_key = os.environ.get("SUPABASE_KEY", "")
     sb_headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
@@ -2440,6 +2465,9 @@ def equity_history():
 
 @app.route("/risk-metrics", methods=["GET"])
 def risk_metrics():
+    err = _check_read_key()
+    if err:
+        return err
     sb_url = os.environ.get("SUPABASE_URL", "")
     sb_key = os.environ.get("SUPABASE_KEY", "")
     sb_headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
@@ -3977,7 +4005,8 @@ def dashboard():
     railway_url = f"{scheme}://{request.host}"
     with open("index.html", "r") as f:
         html = f.read()
-    inject = f'<script>window.RAILWAY_URL = {json.dumps(railway_url)};</script>'
+    read_key = os.environ.get("READ_API_KEY", "")
+    inject = f'<script>window.RAILWAY_URL = {json.dumps(railway_url)};window.READ_API_KEY = {json.dumps(read_key)};</script>'
     html = html.replace("</head>", inject + "\n</head>", 1)
     return html, 200, {"Content-Type": "text/html"}
 

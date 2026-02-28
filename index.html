@@ -4456,6 +4456,7 @@ function escapeHtml(s) {
 
 const CONFIG = {
   RAILWAY_URL: window.RAILWAY_URL || window.location.origin || 'https://web-production-e27d0.up.railway.app',
+  READ_KEY: window.READ_API_KEY || '',
   BTC_REFRESH: 10000,
   LIMIT: 2000,
   REFRESH_INTERVAL: 60000,
@@ -4487,7 +4488,8 @@ function hideApiError() {
 async function fetchAccountSummary() {
   try {
     const res = await fetch(`${CONFIG.RAILWAY_URL}/account-summary`, {
-      signal: AbortSignal.timeout(8000)
+      signal: AbortSignal.timeout(8000),
+      headers: {'X-API-Key': CONFIG.READ_KEY}
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     return await res.json();
@@ -4867,7 +4869,8 @@ window._switchLpTab = function(idx) {
 async function fetchData() {
   try {
     const res = await fetch(`${CONFIG.RAILWAY_URL}/signals?limit=${CONFIG.LIMIT}`, {
-      signal: AbortSignal.timeout(10000)
+      signal: AbortSignal.timeout(10000),
+      headers: {'X-API-Key': CONFIG.READ_KEY}
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const j = await res.json();
@@ -6145,7 +6148,7 @@ async function fetchExpectancyTab() {
   try {
     const [tsRes, sigRes] = await Promise.allSettled([
       fetch(`${CONFIG.RAILWAY_URL}/training-status`, { signal: AbortSignal.timeout(10000) }),
-      fetch(`${CONFIG.RAILWAY_URL}/signals?limit=${CONFIG.LIMIT}`,  { signal: AbortSignal.timeout(12000) })
+      fetch(`${CONFIG.RAILWAY_URL}/signals?limit=${CONFIG.LIMIT}`,  { signal: AbortSignal.timeout(12000), headers: {'X-API-Key': CONFIG.READ_KEY} })
     ]);
 
     // Build metrics from signals (closed bets only)
@@ -6824,7 +6827,7 @@ function _bt(id, text, color) {
 
 async function fetchEquityHistory() {
   try {
-    const res = await fetch(CONFIG.RAILWAY_URL + '/equity-history', { signal: AbortSignal.timeout(8000) });
+    const res = await fetch(CONFIG.RAILWAY_URL + '/equity-history', { signal: AbortSignal.timeout(8000), headers: {'X-API-Key': CONFIG.READ_KEY} });
     if (!res.ok) return;
     const d = await res.json();
     if (!d.history || d.history.length === 0) return;
@@ -8455,7 +8458,7 @@ function refreshMiniStatusBarLive() {
     });
 
   /* ── /signals?limit=1: last prediction age ── */
-  fetch(CONFIG.RAILWAY_URL + '/signals?limit=1', { signal: AbortSignal.timeout(8000) })
+  fetch(CONFIG.RAILWAY_URL + '/signals?limit=1', { signal: AbortSignal.timeout(8000), headers: {'X-API-Key': CONFIG.READ_KEY} })
     .then(function(r) { return r.ok ? r.json() : null; })
     .then(function(data) {
       var signals = (data && data.data) ? data.data : (Array.isArray(data) ? data : null);
@@ -8467,7 +8470,7 @@ function refreshMiniStatusBarLive() {
     .catch(function() {});
 
   /* ── /account-summary: open positions ── */
-  fetch(CONFIG.RAILWAY_URL + '/account-summary', { signal: AbortSignal.timeout(8000) })
+  fetch(CONFIG.RAILWAY_URL + '/account-summary', { signal: AbortSignal.timeout(8000), headers: {'X-API-Key': CONFIG.READ_KEY} })
     .then(function(r) { return r.ok ? r.json() : null; })
     .then(function(data) {
       if (!data) return;
