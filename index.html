@@ -3021,7 +3021,16 @@ function renderTable(data) {
       } else if (d.ghost_correct === false) {
         resultBadge = '<span title="Ghost outcome: wrong direction (not traded)" style="color:rgba(255,68,102,0.55);font-size:10px;letter-spacing:0.5px;font-family:monospace">(✗)</span>';
       } else {
-        resultBadge = '<span style="color:var(--muted);font-size:10px;">—</span>';
+        // No ghost result yet — show classification as outcome indicator
+        if (d.classification === 'SKIP') {
+          resultBadge = '<span title="Signal skipped — ghost result pending" style="color:var(--muted);font-size:9px;letter-spacing:1px;opacity:0.55">SKIP</span>';
+        } else if (d.classification === 'ALERT') {
+          resultBadge = '<span title="Alert signal — no trade placed" style="color:var(--warn);font-size:9px;letter-spacing:1px;opacity:0.65">ALERT</span>';
+        } else if (d.classification === 'PENDING') {
+          resultBadge = '<span style="color:var(--muted);font-size:9px;letter-spacing:1px;opacity:0.55">PEND</span>';
+        } else {
+          resultBadge = '<span title="No trade placed" style="color:var(--muted);font-size:9px;letter-spacing:1px;opacity:0.55">NO BET</span>';
+        }
       }
     }
     const pnlCls    = d.pnl_usd === null ? 'pnl-null' : parseFloat(d.pnl_usd) >= 0 ? 'pnl-pos' : 'pnl-neg';
