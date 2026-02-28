@@ -4541,6 +4541,19 @@ async function fetchAccountSummary() {
   }
 }
 
+// I-11: shared cache — eliminates duplicate /account-summary fetches every 30s
+// (refreshAccountSummary + refreshMiniStatusBarLive both ran on the same interval)
+let _acctSummaryCache    = null;
+let _acctSummaryCachedAt = 0;
+async function getAccountSummary() {
+  if (_acctSummaryCache && (Date.now() - _acctSummaryCachedAt) < 25000) {
+    return _acctSummaryCache;
+  }
+  const data = await fetchAccountSummary();
+  if (data) { _acctSummaryCache = data; _acctSummaryCachedAt = Date.now(); }
+  return data;
+}
+
 function fmtUsd(v, decimals = 2) {
   const n = Number(v);
   if (!isFinite(n)) return '—';
@@ -4793,7 +4806,7 @@ function renderAccountSummary(data) {
 }
 
 async function refreshAccountSummary() {
-  const data = await fetchAccountSummary();
+  const data = await getAccountSummary();
   if (data) renderAccountSummary(data);
 }
 
@@ -6270,16 +6283,21 @@ function switchTab(btn) {
 
 async function fetchExpectancyTab() {
   try {
-    const [tsRes, sigRes] = await Promise.allSettled([
-      fetch(`${CONFIG.RAILWAY_URL}/training-status`, { signal: AbortSignal.timeout(10000) }),
-      fetch(`${CONFIG.RAILWAY_URL}/signals?limit=${CONFIG.LIMIT}`,  { signal: AbortSignal.timeout(12000), headers: {'X-API-Key': CONFIG.READ_KEY} })
-    ]);
-
-    // Build metrics from signals (closed bets only)
+    // I-12: use allData if already in memory — avoids redundant /signals fetch
+    // on every Expectancy tab switch (allData loaded at startup by render()).
+    // Fallback: fetch /signals if allData is empty (first load race condition).
     let signals = [];
-    if (sigRes.status === 'fulfilled' && sigRes.value.ok) {
-      const j = await sigRes.value.json();
-      signals = (Array.isArray(j) ? j : (j.data || j.signals || []));
+    if (allData && allData.length > 0) {
+      signals = allData;
+    } else {
+      try {
+        const sigRes = await fetch(`${CONFIG.RAILWAY_URL}/signals?limit=${CONFIG.LIMIT}`,
+          { signal: AbortSignal.timeout(12000), headers: {'X-API-Key': CONFIG.READ_KEY} });
+        if (sigRes.ok) {
+          const j = await sigRes.json();
+          signals = (Array.isArray(j) ? j : (j.data || j.signals || []));
+        }
+      } catch(e) {}
     }
 
     const closedBets = signals.filter(s =>
@@ -8594,22 +8612,19 @@ function refreshMiniStatusBarLive() {
     })
     .catch(function() {});
 
-  /* ── /account-summary: open positions ── */
-  fetch(CONFIG.RAILWAY_URL + '/account-summary', { signal: AbortSignal.timeout(8000), headers: {'X-API-Key': CONFIG.READ_KEY} })
-    .then(function(r) { return r.ok ? r.json() : null; })
-    .then(function(data) {
-      if (!data) return;
-      var openBets = data.open_bets || [];
-      var n = openBets.length;
-      var posLabel = document.getElementById('msbOpenPosVal');
-      var posDot   = document.getElementById('statusOpenPos');
-      if (posLabel) posLabel.textContent = n + ' open';
-      if (posDot) {
-        posDot.className = n > 0 ? 'status-dot green' : 'status-dot';
-        if (n > 1) posDot.className = 'status-dot yellow';
-      }
-    })
-    .catch(function() {});
+  /* ── /account-summary: open positions (I-11: shared cache, no duplicate fetch) ── */
+  getAccountSummary().then(function(data) {
+    if (!data) return;
+    var openBets = data.open_bets || [];
+    var n = openBets.length;
+    var posLabel = document.getElementById('msbOpenPosVal');
+    var posDot   = document.getElementById('statusOpenPos');
+    if (posLabel) posLabel.textContent = n + ' open';
+    if (posDot) {
+      posDot.className = n > 0 ? 'status-dot green' : 'status-dot';
+      if (n > 1) posDot.className = 'status-dot yellow';
+    }
+  }).catch(function() {});
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
