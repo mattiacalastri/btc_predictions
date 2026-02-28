@@ -1855,7 +1855,8 @@ def performance_stats():
         return jsonify({"perf_stats_text": stats_text})
 
     except Exception as e:
-        return jsonify({"perf_stats_text": f"n/a ({str(e)[:60]})"})
+        app.logger.error("perf_stats error: %s", e)
+        return jsonify({"perf_stats_text": "n/a"})
 
 
 # ── XGB PREDICT ──────────────────────────────────────────────────────────────
@@ -1918,7 +1919,8 @@ def predict_xgb():
         })
 
     except Exception as e:
-        return jsonify({"xgb_direction": None, "agree": True, "reason": str(e)})
+        app.logger.error("predict_xgb error: %s", e)
+        return jsonify({"xgb_direction": None, "agree": True, "reason": "internal_error"})
 
 
 # ── BET SIZING ───────────────────────────────────────────────────────────────
@@ -4117,7 +4119,10 @@ def _supabase_update(bet_id: int, fields: dict):
         "Prefer": "return=minimal",
     }
     r = requests.patch(url, json=fields, headers=headers, timeout=10)
-    r.raise_for_status()
+    try:
+        r.raise_for_status()
+    except Exception as e:
+        app.logger.error("_supabase_update bet_id=%s error: %s", bet_id, e)
 
 
 # ── DASHBOARD ────────────────────────────────────────────────────────────────
