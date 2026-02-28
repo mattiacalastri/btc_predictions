@@ -855,91 +855,53 @@ def resume_bot():
     return jsonify({"paused": False, "message": "Bot riattivato — trading ripreso"}), 200
 
 
-# ── PLACE BET ────────────────────────────────────────────────────────────────
+# ── PLACE BET — helper privati ───────────────────────────────────────────────
 
-@app.route("/place-bet", methods=["POST"])
-def place_bet():
-    err = _check_api_key()
-    if err:
-        return err
-    _rl_key = f"bet:{request.headers.get('X-Api-Key', request.remote_addr)}"
-    if not _check_rate_limit(_rl_key, max_calls=50):
-        return jsonify({"error": "rate_limited"}), 429
-    data = request.get_json(force=True) or {}
-    direction = (data.get("direction") or "").upper()
-    confidence = float(data.get("confidence", 0))
-    symbol = data.get("symbol", DEFAULT_SYMBOL)
+def _run_xgb_gate(direction: str, confidence: float, data: dict, current_hour_utc: int) -> tuple:
+    """Esegue il dual-gate XGBoost. Restituisce (xgb_prob_up, early_exit_response_or_None).
+    Se XGB non è disponibile o fallisce → (0.5, None) = continua normalmente."""
+    import math as _math
+    from datetime import datetime as _dt_xgb
 
+    xgb_prob_up = 0.5
+    if _XGB_MODEL is None:
+        return xgb_prob_up, None
     try:
-        size = float(data.get("size", data.get("stake_usdc", 0.0001)))
-        if size <= 0:
-            size = 0.0001
-    except Exception:
-        return jsonify({"status": "failed", "error": "invalid_size"}), 400
+        _h = current_hour_utc
+        _dow_xgb = _dt_xgb.utcnow().weekday()
+        _session_xgb = 0 if _h < 8 else (1 if _h < 14 else 2)
+        feat_row = [[
+            confidence,
+            float(data.get("fear_greed", data.get("fear_greed_value", 50))),
+            float(data.get("rsi14", 50)),
+            float(data.get("technical_score", 0)),
+            _math.sin(2 * _math.pi * _h / 24),
+            _math.cos(2 * _math.pi * _h / 24),
+            float(_BIAS_MAP.get((data.get("technical_bias") or "").lower().strip(), 0)),
+            1.0 if float(data.get("fear_greed_value", data.get("fear_greed", 50)) or 50) < 45 else 0.0,
+            _math.sin(2 * _math.pi * _dow_xgb / 7),
+            _math.cos(2 * _math.pi * _dow_xgb / 7),
+            float(_session_xgb),
+        ]]
+        prob = _XGB_MODEL.predict_proba(feat_row)[0]  # [P(DOWN), P(UP)]
+        xgb_prob_up = float(prob[1])
+        xgb_direction = "UP" if prob[1] > 0.5 else "DOWN"
+        if xgb_direction != direction:
+            return xgb_prob_up, (jsonify({
+                "status": "skipped",
+                "reason": "xgb_disagree",
+                "llm_direction": direction,
+                "xgb_direction": xgb_direction,
+                "xgb_prob_up": round(float(prob[1]), 3),
+                "message": f"XGB predicts {xgb_direction}, LLM predicts {direction}. Skipping for safety.",
+            }), 200)
+    except Exception as e:
+        app.logger.warning(f"[XGB] Check failed: {e}")
+    return xgb_prob_up, None
 
-    if direction not in ("UP", "DOWN"):
-        return jsonify({"status": "failed", "error": "invalid_direction"}), 400
 
-    # P0.2 — filtro ore morte (WR storico < 45% UTC, aggiornato da /reload-calibration)
-    current_hour_utc = time.gmtime().tm_hour
-    if current_hour_utc in DEAD_HOURS_UTC:
-        return jsonify({
-            "status": "skipped",
-            "reason": "dead_hour",
-            "hour_utc": current_hour_utc,
-            "message": f"Hour {current_hour_utc}h UTC has historically low WR (<45%). Skipping bet."
-        }), 200
-
-    # Dual-gate: bet solo se XGB direction == LLM direction
-    xgb_prob_up = 0.5  # default, aggiornato dal blocco XGB sotto
-    if _XGB_MODEL is not None:
-        try:
-            import math as _math
-            from datetime import datetime as _dt_xgb
-            _h = current_hour_utc
-            _dow_xgb = _dt_xgb.utcnow().weekday()  # 0=Mon..6=Sun
-            _session_xgb = 0 if _h < 8 else (1 if _h < 14 else 2)  # 0=Asia 1=London 2=NY
-            feat_row = [[
-                confidence,
-                float(data.get("fear_greed", data.get("fear_greed_value", 50))),
-                float(data.get("rsi14", 50)),
-                float(data.get("technical_score", 0)),
-                _math.sin(2 * _math.pi * _h / 24),              # hour_sin
-                _math.cos(2 * _math.pi * _h / 24),              # hour_cos
-                float(_BIAS_MAP.get((data.get("technical_bias") or "").lower().strip(), 0)),
-                1.0 if float(data.get("fear_greed_value", data.get("fear_greed", 50)) or 50) < 45 else 0.0,
-                _math.sin(2 * _math.pi * _dow_xgb / 7),         # dow_sin
-                _math.cos(2 * _math.pi * _dow_xgb / 7),         # dow_cos
-                float(_session_xgb),                             # session
-            ]]
-            prob = _XGB_MODEL.predict_proba(feat_row)[0]  # [P(DOWN), P(UP)]
-            xgb_prob_up = float(prob[1])  # salva in scope per pyramid check
-            xgb_direction = "UP" if prob[1] > 0.5 else "DOWN"
-            if xgb_direction != direction:
-                return jsonify({
-                    "status": "skipped",
-                    "reason": "xgb_disagree",
-                    "llm_direction": direction,
-                    "xgb_direction": xgb_direction,
-                    "xgb_prob_up": round(float(prob[1]), 3),
-                    "message": f"XGB predicts {xgb_direction}, LLM predicts {direction}. Skipping for safety.",
-                }), 200
-        except Exception as e:
-            app.logger.warning(f"[XGB] Check failed: {e}")
-
-    desired_side = "long" if direction == "UP" else "short"
-
-    # Temporary DOWN-bet kill switch (env DISABLE_DOWN_BETS=true → skip all shorts)
-    if direction == "DOWN" and os.environ.get("DISABLE_DOWN_BETS", "").lower() == "true":
-        return jsonify({
-            "status": "skipped",
-            "reason": "DOWN bets disabled (DISABLE_DOWN_BETS=true)",
-            "direction": direction,
-            "confidence": confidence,
-            "symbol": symbol,
-        }), 200
-
-    # Refresh paused state from Supabase every 5 min (survives Railway restarts)
+def _check_pre_flight(direction: str, confidence: float) -> object:
+    """Verifica bot_paused + circuit breaker. Restituisce Flask response se deve fermarsi, None se ok."""
     global _BOT_PAUSED, _BOT_PAUSED_REFRESHED_AT
     if time.time() - _BOT_PAUSED_REFRESHED_AT > 300:
         _refresh_bot_paused()
@@ -977,6 +939,65 @@ def place_bet():
                     }), 200
     except Exception as e:
         app.logger.warning(f"[CIRCUIT_BREAKER] check failed: {e}")
+    return None
+
+
+# ── PLACE BET ────────────────────────────────────────────────────────────────
+
+@app.route("/place-bet", methods=["POST"])
+def place_bet():
+    err = _check_api_key()
+    if err:
+        return err
+    _rl_key = f"bet:{request.headers.get('X-Api-Key', request.remote_addr)}"
+    if not _check_rate_limit(_rl_key, max_calls=50):
+        return jsonify({"error": "rate_limited"}), 429
+    data = request.get_json(force=True) or {}
+    direction = (data.get("direction") or "").upper()
+    confidence = float(data.get("confidence", 0))
+    symbol = data.get("symbol", DEFAULT_SYMBOL)
+
+    try:
+        size = float(data.get("size", data.get("stake_usdc", 0.0001)))
+        if size <= 0:
+            size = 0.0001
+    except Exception:
+        return jsonify({"status": "failed", "error": "invalid_size"}), 400
+
+    if direction not in ("UP", "DOWN"):
+        return jsonify({"status": "failed", "error": "invalid_direction"}), 400
+
+    # P0.2 — filtro ore morte (WR storico < 45% UTC, aggiornato da /reload-calibration)
+    current_hour_utc = time.gmtime().tm_hour
+    if current_hour_utc in DEAD_HOURS_UTC:
+        return jsonify({
+            "status": "skipped",
+            "reason": "dead_hour",
+            "hour_utc": current_hour_utc,
+            "message": f"Hour {current_hour_utc}h UTC has historically low WR (<45%). Skipping bet."
+        }), 200
+
+    # Dual-gate: bet solo se XGB direction == LLM direction
+    xgb_prob_up, xgb_early_exit = _run_xgb_gate(direction, confidence, data, current_hour_utc)
+    if xgb_early_exit:
+        return xgb_early_exit
+
+    desired_side = "long" if direction == "UP" else "short"
+
+    # Temporary DOWN-bet kill switch (env DISABLE_DOWN_BETS=true → skip all shorts)
+    if direction == "DOWN" and os.environ.get("DISABLE_DOWN_BETS", "").lower() == "true":
+        return jsonify({
+            "status": "skipped",
+            "reason": "DOWN bets disabled (DISABLE_DOWN_BETS=true)",
+            "direction": direction,
+            "confidence": confidence,
+            "symbol": symbol,
+        }), 200
+
+    # Bot paused + circuit breaker
+    pre_flight = _check_pre_flight(direction, confidence)
+    if pre_flight:
+        return pre_flight
 
     if DRY_RUN:
         fake_id = f"DRY_{int(time.time())}"
