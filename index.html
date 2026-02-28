@@ -5237,10 +5237,13 @@ function render(data) {
   rrEl.style.color = avgRR === null ? 'var(--muted)' : avgRR >= 2 ? 'var(--accent)' : avgRR >= 1.5 ? 'var(--warn)' : 'var(--danger)';
 
   // Mobile-only: Expectancy, Profit Factor, Best Streak
-  const grossWins  = closedBets.filter(d => d.pnl_usd > 0).reduce((s, d) => s + parseFloat(d.pnl_usd || 0), 0);
-  const grossLoss  = Math.abs(closedBets.filter(d => d.pnl_usd < 0).reduce((s, d) => s + parseFloat(d.pnl_usd || 0), 0));
-  const expectancy = closedBets.length ? totalPnl / closedBets.length : null;
-  const profitFactor = grossLoss > 0 ? grossWins / grossLoss : null;
+  // I-10: use allData (full history) — period-filtered data (e.g. TODAY=2 bets) gives noisy/meaningless values
+  const allClosedBets  = allData.filter(d => d.classification === 'BET' && d.correct !== null);
+  const allTotalPnl    = allClosedBets.reduce((s, d) => s + parseFloat(d.pnl_usd || 0), 0);
+  const grossWins      = allClosedBets.filter(d => parseFloat(d.pnl_usd) > 0).reduce((s, d) => s + parseFloat(d.pnl_usd || 0), 0);
+  const grossLoss      = Math.abs(allClosedBets.filter(d => parseFloat(d.pnl_usd) < 0).reduce((s, d) => s + parseFloat(d.pnl_usd || 0), 0));
+  const expectancy     = allClosedBets.length ? allTotalPnl / allClosedBets.length : null;
+  const profitFactor   = grossLoss > 0 ? grossWins / grossLoss : null;
   const expEl = document.getElementById('kpiExpectancyVal');
   if (expEl) {
     expEl.textContent = expectancy !== null ? (expectancy >= 0 ? '+' : '') + '$' + expectancy.toFixed(3) : '—';
