@@ -2282,7 +2282,7 @@ def costs():
     trade_count = 0
     try:
         url = (f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
-               f"?select=fees_total&bet_taken=eq.true&correct=not.is.null")
+               f"?select=fees_total&bet_taken=eq.true&correct=not.is.null&limit=10000")
         res = requests.get(url, headers=sb_headers, timeout=5)
         rows = res.json() if res.ok else []
         fees_list = [float(r["fees_total"]) for r in rows if r.get("fees_total") is not None]
@@ -2300,7 +2300,7 @@ def costs():
     try:
         url = (f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
                f"?select=entry_slippage,bet_size"
-               f"&bet_taken=eq.true&correct=not.is.null&entry_slippage=not.is.null")
+               f"&bet_taken=eq.true&correct=not.is.null&entry_slippage=not.is.null&limit=10000")
         res = requests.get(url, headers=sb_headers, timeout=5)
         slip_rows = res.json() if res.ok else []
         slip_vals = [float(r["entry_slippage"]) for r in slip_rows if r.get("entry_slippage") is not None]
