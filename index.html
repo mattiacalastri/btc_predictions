@@ -269,7 +269,7 @@
 
   <!-- AI SIGNAL SOURCES -->
   <div class="sources-strip">
-    <div class="sources-label">AI FEEDS<br><em>13</em> SOURCES</div>
+    <div class="sources-label">AI FEEDS<br><em>16</em> SOURCES</div>
     <div class="sources-list">
       <div class="src-chip" style="--src-color:#00aaff" onclick="showSrcModal(this)"
            data-src-modal-title="KRAKEN FUTURES — Price"
@@ -547,6 +547,145 @@
     <button class="training-banner-close" onclick="dismissTrainingBanner()" title="Chiudi">✕</button>
   </div>
 
+  <!-- ═══════════════════════════════════════════
+       ACCOUNT SUMMARY SECTION — above the fold (Ops #17)
+  ═══════════════════════════════════════════ -->
+  <div class="section-divider" style="margin-bottom:12px;">
+    <div class="section-divider-label" style="font-size:11px;color:var(--accent);letter-spacing:3px;display:flex;align-items:center;gap:7px;">
+      <span style="width:7px;height:7px;border-radius:50%;background:var(--accent);display:inline-block;animation:pulse 2s infinite;flex-shrink:0;"></span>
+      LIVE ACCOUNT
+    </div>
+    <div class="section-divider-line"></div>
+    <div class="section-divider-ts" id="acctTs" style="font-size:9px;">Loading...</div>
+  </div>
+
+  <div class="account-summary-grid">
+
+    <!-- WALLET -->
+    <div class="acct-panel">
+      <div class="acct-panel-header">
+        <div class="acct-panel-title"><span class="icon">💰</span>Wallet</div>
+        <div class="panel-tag tag-blue" id="acctWalletTag">—</div>
+      </div>
+      <div class="acct-body" id="acctWalletBody">
+        <div class="acct-skeleton">
+          <div class="skeleton-line" style="width:100%"></div>
+          <div class="skeleton-line" style="width:80%"></div>
+          <div class="skeleton-line" style="width:60%"></div>
+          <div class="skeleton-line" style="width:90%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- POSITION -->
+    <div class="acct-panel">
+      <div class="acct-panel-header">
+        <div class="acct-panel-title"><span class="icon">📍</span>Position</div>
+        <div class="panel-tag" id="acctPositionTag" style="background:rgba(74,96,112,0.15);color:var(--muted);border:1px solid rgba(74,96,112,0.3)">FLAT</div>
+      </div>
+      <div class="acct-body" id="acctPositionBody">
+        <div class="acct-skeleton">
+          <div class="skeleton-line" style="width:100%"></div>
+          <div class="skeleton-line" style="width:70%"></div>
+          <div class="skeleton-line" style="width:85%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BTC PRICE -->
+    <div class="acct-panel">
+      <div class="acct-panel-header">
+        <div class="acct-panel-title"><span class="icon">₿</span>BTC Live</div>
+        <div class="panel-tag tag-green" id="acctBtcTag">—</div>
+      </div>
+      <div class="acct-body" id="acctBtcBody">
+        <div class="acct-skeleton">
+          <div class="skeleton-line" style="width:100%"></div>
+          <div class="skeleton-line" style="width:75%"></div>
+          <div class="skeleton-line" style="width:60%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RECENT FILLS -->
+    <div class="acct-panel">
+      <div class="acct-panel-header">
+        <div class="acct-panel-title"><span class="icon">🕐</span>Recent Fills</div>
+        <div class="panel-tag tag-yellow" id="acctFillsTag">—</div>
+      </div>
+      <div id="acctFillsBody" style="padding:0;">
+        <div class="acct-skeleton">
+          <div class="skeleton-line" style="width:100%;margin:14px 16px 0;width:calc(100% - 32px)"></div>
+          <div class="skeleton-line" style="width:90%;margin:0 16px;width:calc(90% - 32px)"></div>
+          <div class="skeleton-line" style="width:80%;margin:0 16px 14px;width:calc(80% - 32px)"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <!-- END ACCOUNT SUMMARY -->
+
+  <!-- Signal Log — full width -->
+  <div class="panel" id="signalLogPanel" style="margin-bottom:14px;">
+    <div class="panel-header">
+      <div class="panel-title" id="signalLogTitle">Signal Log <span id="nextSignalTimer" class="next-signal-badge"></span></div>
+      <div class="filters-row">
+        <select id="filterDir"   class="filter-sel"><option value="ALL">ALL DIR</option><option value="UP">UP</option><option value="DOWN">DOWN</option></select>
+        <select id="filterClass" class="filter-sel"><option value="ALL">ALL</option><option value="BET">BETS</option><option value="NO_BET">NO-BET</option></select>
+      </div>
+    </div>
+    <!-- SIGNAL LOG FILTER BAR -->
+    <div class="signal-filters" id="signalFiltersBar">
+      <div class="filter-group">
+        <button class="filter-btn active" data-filter="type" data-value="all" onclick="setSignalFilter(this,'type')">Tutti</button>
+        <button class="filter-btn"        data-filter="type" data-value="bet"   onclick="setSignalFilter(this,'type')">BET</button>
+        <button class="filter-btn"        data-filter="type" data-value="skip"  onclick="setSignalFilter(this,'type')">SKIP</button>
+        <button class="filter-btn"        data-filter="type" data-value="nobet" onclick="setSignalFilter(this,'type')">NO BET</button>
+      </div>
+      <div class="filter-group-sep"></div>
+      <div class="filter-group">
+        <button class="filter-btn active" data-filter="outcome" data-value="all"  onclick="setSignalFilter(this,'outcome')">Tutti</button>
+        <button class="filter-btn"        data-filter="outcome" data-value="win"  onclick="setSignalFilter(this,'outcome')">WIN</button>
+        <button class="filter-btn"        data-filter="outcome" data-value="loss" onclick="setSignalFilter(this,'outcome')">LOSS</button>
+        <button class="filter-btn"        data-filter="outcome" data-value="open" onclick="setSignalFilter(this,'outcome')">Aperte</button>
+      </div>
+      <div class="filter-group-sep"></div>
+      <div class="filter-group">
+        <button class="filter-btn active" data-filter="direction" data-value="all"  onclick="setSignalFilter(this,'direction')">Entrambe</button>
+        <button class="filter-btn"        data-filter="direction" data-value="up"   onclick="setSignalFilter(this,'direction')">&#8593; UP</button>
+        <button class="filter-btn"        data-filter="direction" data-value="down" onclick="setSignalFilter(this,'direction')">&#8595; DOWN</button>
+      </div>
+      <input type="text" id="signal-search" placeholder="&#128269; Cerca ID, conf..." oninput="applySignalFilters()">
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>DATE/TIME</th>
+            <th>DIR</th>
+            <th>CONF</th>
+            <th>ENTRY $</th>
+            <th>EXIT $</th>
+            <th>RSI</th>
+            <th>EMA</th>
+            <th>SCORE</th>
+            <th>SIZE</th>
+            <th>TYPE</th>
+            <th>RESULT</th>
+            <th>PNL $ / THR%</th>
+            <th>FEE $</th>
+            <th>SL/TP</th>
+            <th title="On-chain audit trail — Polygon PoS">⛓</th>
+          </tr>
+        </thead>
+        <tbody id="signalTable"></tbody>
+      </table>
+      <div class="mobile-bet-list" id="mobileBetList"></div>
+    </div>
+  </div>
+
+
   <!-- 9 KPI tiles + Satoshi Sculpture -->
   <div class="kpi-grid">
     <div class="kpi blue">
@@ -746,146 +885,7 @@
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════
-       ACCOUNT SUMMARY SECTION — above the fold (Ops #17)
-  ═══════════════════════════════════════════ -->
-  <div class="section-divider" style="margin-bottom:12px;">
-    <div class="section-divider-label" style="font-size:11px;color:var(--accent);letter-spacing:3px;display:flex;align-items:center;gap:7px;">
-      <span style="width:7px;height:7px;border-radius:50%;background:var(--accent);display:inline-block;animation:pulse 2s infinite;flex-shrink:0;"></span>
-      LIVE ACCOUNT
-    </div>
-    <div class="section-divider-line"></div>
-    <div class="section-divider-ts" id="acctTs" style="font-size:9px;">Loading...</div>
-  </div>
-
-  <div class="account-summary-grid">
-
-    <!-- WALLET -->
-    <div class="acct-panel">
-      <div class="acct-panel-header">
-        <div class="acct-panel-title"><span class="icon">💰</span>Wallet</div>
-        <div class="panel-tag tag-blue" id="acctWalletTag">—</div>
-      </div>
-      <div class="acct-body" id="acctWalletBody">
-        <div class="acct-skeleton">
-          <div class="skeleton-line" style="width:100%"></div>
-          <div class="skeleton-line" style="width:80%"></div>
-          <div class="skeleton-line" style="width:60%"></div>
-          <div class="skeleton-line" style="width:90%"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- POSITION -->
-    <div class="acct-panel">
-      <div class="acct-panel-header">
-        <div class="acct-panel-title"><span class="icon">📍</span>Position</div>
-        <div class="panel-tag" id="acctPositionTag" style="background:rgba(74,96,112,0.15);color:var(--muted);border:1px solid rgba(74,96,112,0.3)">FLAT</div>
-      </div>
-      <div class="acct-body" id="acctPositionBody">
-        <div class="acct-skeleton">
-          <div class="skeleton-line" style="width:100%"></div>
-          <div class="skeleton-line" style="width:70%"></div>
-          <div class="skeleton-line" style="width:85%"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- BTC PRICE -->
-    <div class="acct-panel">
-      <div class="acct-panel-header">
-        <div class="acct-panel-title"><span class="icon">₿</span>BTC Live</div>
-        <div class="panel-tag tag-green" id="acctBtcTag">—</div>
-      </div>
-      <div class="acct-body" id="acctBtcBody">
-        <div class="acct-skeleton">
-          <div class="skeleton-line" style="width:100%"></div>
-          <div class="skeleton-line" style="width:75%"></div>
-          <div class="skeleton-line" style="width:60%"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- RECENT FILLS -->
-    <div class="acct-panel">
-      <div class="acct-panel-header">
-        <div class="acct-panel-title"><span class="icon">🕐</span>Recent Fills</div>
-        <div class="panel-tag tag-yellow" id="acctFillsTag">—</div>
-      </div>
-      <div id="acctFillsBody" style="padding:0;">
-        <div class="acct-skeleton">
-          <div class="skeleton-line" style="width:100%;margin:14px 16px 0;width:calc(100% - 32px)"></div>
-          <div class="skeleton-line" style="width:90%;margin:0 16px;width:calc(90% - 32px)"></div>
-          <div class="skeleton-line" style="width:80%;margin:0 16px 14px;width:calc(80% - 32px)"></div>
-        </div>
-      </div>
-    </div>
-
-  </div>
-  <!-- END ACCOUNT SUMMARY -->
-
   <div id="dashboardMain">
-
-  <!-- Signal Log — full width -->
-  <div class="panel" id="signalLogPanel" style="margin-bottom:14px;">
-    <div class="panel-header">
-      <div class="panel-title" id="signalLogTitle">Signal Log <span id="nextSignalTimer" class="next-signal-badge"></span></div>
-      <div class="filters-row">
-        <select id="filterDir"   class="filter-sel"><option value="ALL">ALL DIR</option><option value="UP">UP</option><option value="DOWN">DOWN</option></select>
-        <select id="filterClass" class="filter-sel"><option value="ALL">ALL</option><option value="BET">BETS</option><option value="NO_BET">NO-BET</option></select>
-      </div>
-    </div>
-    <!-- SIGNAL LOG FILTER BAR -->
-    <div class="signal-filters" id="signalFiltersBar">
-      <div class="filter-group">
-        <button class="filter-btn active" data-filter="type" data-value="all" onclick="setSignalFilter(this,'type')">Tutti</button>
-        <button class="filter-btn"        data-filter="type" data-value="bet"   onclick="setSignalFilter(this,'type')">BET</button>
-        <button class="filter-btn"        data-filter="type" data-value="skip"  onclick="setSignalFilter(this,'type')">SKIP</button>
-        <button class="filter-btn"        data-filter="type" data-value="nobet" onclick="setSignalFilter(this,'type')">NO BET</button>
-      </div>
-      <div class="filter-group-sep"></div>
-      <div class="filter-group">
-        <button class="filter-btn active" data-filter="outcome" data-value="all"  onclick="setSignalFilter(this,'outcome')">Tutti</button>
-        <button class="filter-btn"        data-filter="outcome" data-value="win"  onclick="setSignalFilter(this,'outcome')">WIN</button>
-        <button class="filter-btn"        data-filter="outcome" data-value="loss" onclick="setSignalFilter(this,'outcome')">LOSS</button>
-        <button class="filter-btn"        data-filter="outcome" data-value="open" onclick="setSignalFilter(this,'outcome')">Aperte</button>
-      </div>
-      <div class="filter-group-sep"></div>
-      <div class="filter-group">
-        <button class="filter-btn active" data-filter="direction" data-value="all"  onclick="setSignalFilter(this,'direction')">Entrambe</button>
-        <button class="filter-btn"        data-filter="direction" data-value="up"   onclick="setSignalFilter(this,'direction')">&#8593; UP</button>
-        <button class="filter-btn"        data-filter="direction" data-value="down" onclick="setSignalFilter(this,'direction')">&#8595; DOWN</button>
-      </div>
-      <input type="text" id="signal-search" placeholder="&#128269; Cerca ID, conf..." oninput="applySignalFilters()">
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>DATE/TIME</th>
-            <th>DIR</th>
-            <th>CONF</th>
-            <th>ENTRY $</th>
-            <th>EXIT $</th>
-            <th>RSI</th>
-            <th>EMA</th>
-            <th>SCORE</th>
-            <th>SIZE</th>
-            <th>TYPE</th>
-            <th>RESULT</th>
-            <th>PNL $ / THR%</th>
-            <th>FEE $</th>
-            <th>SL/TP</th>
-            <th title="On-chain audit trail — Polygon PoS">⛓</th>
-          </tr>
-        </thead>
-        <tbody id="signalTable"></tbody>
-      </table>
-      <div class="mobile-bet-list" id="mobileBetList"></div>
-    </div>
-  </div>
-
   <!-- Small panels row: Prediction Galaxy · Signal Quality · Confidence Distribution -->
   <div id="dashSmallPanels" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;">
 
@@ -2993,7 +2993,7 @@ const _hpopContent = {
       { key: 'BTC Price',   val: 'Kraken Futures mark price · refreshes every 10s' },
       { key: 'Signals',     val: 'Dashboard polls Railway backend every 60s' },
       { key: 'Account',     val: 'Wallet equity + positions · refreshes every 30s' },
-      { key: 'Sources',     val: '13 AI feeds: Binance, CoinGecko, F&G, news, order book…' },
+      { key: 'Sources',     val: '16 AI feeds: Binance, CoinGecko, F&G, news, order book, OI, taker flow…' },
       { key: 'On-Chain',    val: 'Each prediction committed to Polygon PoS in real-time' },
     ]
   },
