@@ -222,13 +222,6 @@ def refresh_dead_hours():
         app.logger.exception("Calibration refresh error")
         return {"ok": False, "error": "refresh_error"}
 
-# Refresh calibration all'avvio (non-blocking)
-try:
-    refresh_calibration()
-    refresh_dead_hours()
-except Exception:
-    pass
-
 API_KEY = os.environ.get("KRAKEN_FUTURES_API_KEY", "")
 API_SECRET = os.environ.get("KRAKEN_FUTURES_API_SECRET", "")
 DEFAULT_SYMBOL = os.environ.get("KRAKEN_DEFAULT_SYMBOL", "PF_XBTUSD")
@@ -245,6 +238,13 @@ _costs_cache = {"data": None, "ts": 0.0}
 # Startup security validation
 if not os.environ.get("BOT_API_KEY"):
     print("[SECURITY WARNING] BOT_API_KEY not set — all protected endpoints are unauthenticated!")
+
+# Refresh calibration all'avvio — DOPO la definizione di SUPABASE_TABLE
+try:
+    refresh_calibration()
+    refresh_dead_hours()
+except Exception:
+    pass
 
 
 def _refresh_bot_paused():
