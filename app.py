@@ -3752,7 +3752,7 @@ def _get_web3_contract():
     """Restituisce (w3, contract, account) oppure raise RuntimeError se non configurato."""
     try:
         from web3 import Web3
-        from web3.middleware import ExtraDataToPOAMiddleware
+        from web3.middleware import geth_poa_middleware
     except ImportError:
         raise RuntimeError("web3 non installato")
 
@@ -3763,7 +3763,7 @@ def _get_web3_contract():
 
     rpc_url = os.environ.get("POLYGON_RPC_URL", "https://polygon-bor-rpc.publicnode.com")
     w3 = Web3(Web3.HTTPProvider(rpc_url, request_kwargs={"timeout": 15}))
-    w3.middleware_onion.inject(ExtraDataToPOAMiddleware, layer=0)
+    w3.middleware_onion.inject(geth_poa_middleware, layer=0)
 
     account = w3.eth.account.from_key(private_key)
     contract = w3.eth.contract(
