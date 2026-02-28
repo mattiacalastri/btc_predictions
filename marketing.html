@@ -396,6 +396,48 @@
   .pnl-pos  { color:var(--green); }
   .pnl-neg  { color:var(--red); }
 
+  /* ── NEWS FEED ────────────────────────────────────────────────── */
+  .news-grid { display:flex; flex-direction:column; gap:10px; }
+  .news-item {
+    display:grid; grid-template-columns:auto 1fr;
+    gap:12px; align-items:start;
+    background:var(--bg3); border:1px solid var(--border);
+    border-radius:8px; padding:14px 16px;
+    transition:border-color .2s;
+  }
+  .news-item:hover { border-color:rgba(247,147,26,.2); }
+  .news-source-badge {
+    font-size:9px; text-transform:uppercase; letter-spacing:.1em;
+    padding:2px 8px; border-radius:3px; white-space:nowrap;
+    background:rgba(0,212,255,.08); color:var(--cyan);
+    border:1px solid rgba(0,212,255,.2); font-weight:600;
+    margin-top:2px;
+  }
+  .news-title {
+    font-size:13px; font-weight:500; color:var(--text); line-height:1.4;
+    margin-bottom:5px;
+  }
+  .news-title a { color:inherit; text-decoration:none; }
+  .news-title a:hover { color:var(--orange); text-decoration:underline; }
+  .news-meta { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .news-date { color:var(--muted); font-size:10px; }
+  .news-summary { color:var(--muted); font-size:11px; line-height:1.5; margin-top:4px; }
+  .news-source-dot {
+    width:6px; height:6px; border-radius:50%; flex-shrink:0; margin-top:5px;
+  }
+  .source-coindesk    { background:#f7931a; }
+  .source-cointelegraph { background:#00d4ff; }
+  .source-btcmag      { background:#ff9500; }
+  .source-decrypt     { background:#a855f7; }
+  .news-filters { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px; }
+  .filter-btn {
+    font-family:'JetBrains Mono',monospace; font-size:10px; text-transform:uppercase;
+    letter-spacing:.08em; padding:4px 12px; border-radius:3px; cursor:pointer;
+    background:var(--bg3); border:1px solid var(--border); color:var(--muted);
+    transition:all .15s;
+  }
+  .filter-btn:hover, .filter-btn.active { color:var(--text); border-color:rgba(247,147,26,.4); background:rgba(247,147,26,.06); }
+
   /* ── UTILS ────────────────────────────────────────────────────── */
   .mono { font-family: 'JetBrains Mono', monospace; }
   .loading { color: var(--muted); font-style: italic; }
@@ -495,6 +537,7 @@
   <button class="tab-btn" onclick="showTab('donations')" id="tab-btn-donations">🤑 Donations</button>
   <button class="tab-btn" onclick="showTab('agents')" id="tab-btn-agents">🤖 AI Agents</button>
   <button class="tab-btn" onclick="showTab('onchain')" id="tab-btn-onchain">⛓ Proof Chain</button>
+  <button class="tab-btn" onclick="showTab('news')" id="tab-btn-news">📰 News</button>
 </div>
 
 <!-- ════════════════════════════════════════════════════════════ -->
@@ -731,24 +774,11 @@
     </div>
   </div>
 
-  <div class="stat-row">
-    <div class="stat-box">
-      <div class="stat-box-label">Tx ricevute</div>
-      <div class="stat-box-val dot-ok" id="txCount">—</div>
+  <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:16px 20px;margin-bottom:20px;">
+    <div style="color:var(--muted);font-size:11px;margin-bottom:10px;">
+      Verifica storico transazioni direttamente su Polygonscan — nessuna API key necessaria.
     </div>
-    <div class="stat-box">
-      <div class="stat-box-label">Totale MATIC</div>
-      <div class="stat-box-val" id="totalMatic" style="color:var(--purple);">—</div>
-    </div>
-  </div>
-
-  <div class="section-hdr">
-    <h2>Ultime Transazioni Ricevute</h2>
-    <span>via PolygonScan public API</span>
-  </div>
-
-  <div class="tx-list" id="txList">
-    <div class="tx-empty loading">Caricamento transazioni…</div>
+    <a class="btn-sm btn-scan" href="https://polygonscan.com/address/0x7Ac896F18ce52a0520dA49C3129520f7B70d51f0" target="_blank" style="text-decoration:none;">🔍 Vedi su Polygonscan ↗</a>
   </div>
 
 </div>
@@ -1029,6 +1059,32 @@
 
 </div>
 
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- TAB 6 — NEWS FEED                                           -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<div class="tab-pane" id="pane-news">
+
+  <div class="section-hdr">
+    <h2>📰 Crypto News Live</h2>
+    <span>stesse sorgenti di wf01A · cache 10 min</span>
+  </div>
+
+  <div class="news-filters">
+    <button class="filter-btn active" onclick="filterNews('all', this)">Tutte</button>
+    <button class="filter-btn" onclick="filterNews('CoinDesk', this)">CoinDesk</button>
+    <button class="filter-btn" onclick="filterNews('CoinTelegraph', this)">CoinTelegraph</button>
+    <button class="filter-btn" onclick="filterNews('Bitcoin Magazine', this)">BTC Mag</button>
+    <button class="filter-btn" onclick="filterNews('Decrypt', this)">Decrypt</button>
+  </div>
+
+  <div class="news-grid" id="newsList">
+    <div style="padding:24px;text-align:center;color:var(--muted);font-style:italic;">
+      Caricamento news…
+    </div>
+  </div>
+
+</div>
+
 <script>
 /* ── GNAV ── */
 function toggleGnav(){
@@ -1048,6 +1104,7 @@ document.addEventListener('keydown',function(e){
 
 /* ── TABS ── */
 var _onchainLoaded = false;
+var _newsLoaded    = false;
 function showTab(id) {
   document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
   document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
@@ -1055,10 +1112,8 @@ function showTab(id) {
   var btn  = document.getElementById('tab-btn-' + id);
   if(pane) pane.classList.add('active');
   if(btn)  btn.classList.add('active');
-  if(id === 'onchain' && !_onchainLoaded) {
-    _onchainLoaded = true;
-    loadOnChainAudit();
-  }
+  if(id === 'onchain' && !_onchainLoaded) { _onchainLoaded = true; loadOnChainAudit(); }
+  if(id === 'news'    && !_newsLoaded)    { _newsLoaded    = true; loadNews(); }
 }
 
 /* ── NEXT EVENT ── */
@@ -1188,25 +1243,8 @@ function loadStats() {
         rtEl.className = 'sw-value dot-warn';
       }
 
-      /* ── DONATIONS TAB ── */
-      var txs = (wallet.recent_txs || []);
-      document.getElementById('txCount').textContent = wallet.received_tx_count || txs.length || '0';
-      var totalMatic = txs.reduce(function(s, tx){ return s + (tx.value_matic || 0); }, 0);
-      document.getElementById('totalMatic').textContent = totalMatic.toFixed(4) + ' MATIC';
-
-      var txList = document.getElementById('txList');
-      if(txs.length === 0) {
-        txList.innerHTML = '<div class="tx-empty">Nessuna transazione ricevuta trovata (o API limit raggiunto)</div>';
-      } else {
-        txList.innerHTML = txs.map(function(tx) {
-          return '<div class="tx-item">' +
-            '<a class="tx-hash" href="https://polygonscan.com/tx/' + (tx.hash_full || '') + '" target="_blank">' +
-            (tx.hash || truncAddr(tx.hash_full || '')) + ' ↗</a>' +
-            '<span class="tx-val">+' + (tx.value_matic || 0).toFixed(4) + ' MATIC</span>' +
-            '<span class="tx-date">' + fmtTs(tx.timestamp) + '</span>' +
-            '</div>';
-        }).join('');
-      }
+      /* ── DONATIONS TAB: wallet badge only ── */
+      // tx data rimossa (PolygonScan V1 deprecato, nessuna API key)
 
     })
     .catch(function(err) {
@@ -1220,7 +1258,8 @@ function loadOnChainAudit() {
   fetch('/on-chain-audit')
     .then(function(r){ return r.json(); })
     .then(function(d) {
-      if(d.error) { console.warn('on-chain-audit:', d.error); return; }
+      if(d.error) { console.warn('on-chain-audit:', d.error); showMaintenanceState(); return; }
+      if(d.maintenance_mode) { showMaintenanceState(); return; }
 
       /* gauge */
       var score = d.integrity_score;
@@ -1324,6 +1363,98 @@ function loadOnChainAudit() {
       }).join('');
     })
     .catch(function(err){ console.warn('on-chain-audit error:', err); });
+}
+
+/* ── PROOF CHAIN: EMPTY STATE per bot in pausa ── */
+function showMaintenanceState() {
+  var gaugePct = document.getElementById('gaugePct');
+  var gaugeArc = document.getElementById('gaugeArc');
+  if(gaugePct) gaugePct.textContent = '—';
+  if(gaugeArc) gaugeArc.setAttribute('stroke-dashoffset', '301.6');
+  ['pcCommits','pcResolves','pcFull'].forEach(function(id){
+    var e = document.getElementById(id); if(e) e.textContent = '0';
+  });
+  var le = document.getElementById('auditLedger');
+  if(le) le.innerHTML = '<div style="padding:28px;text-align:center;">' +
+    '<div style="font-size:28px;margin-bottom:10px;">🔧</div>' +
+    '<div style="color:var(--yellow);font-size:13px;font-weight:600;margin-bottom:6px;">Sistema in Manutenzione</div>' +
+    '<div style="color:var(--muted);font-size:12px;line-height:1.7;">' +
+    'Il bot è in pausa dal 28 Feb 2026.<br>' +
+    'L\'audit ledger si popolerà automaticamente al go-live (1° Marzo).<br>' +
+    'Le colonne <span style="color:var(--purple)">onchain_commit_tx / resolve_tx</span> sono già nel DB ✓' +
+    '</div></div>';
+  // pipeline in pausa
+  ['pipeInputs','pipeBrain','pipeFill','pipeMonitor'].forEach(function(id){
+    var e = document.getElementById(id);
+    if(e) { e.className='pipe-led warn'; }
+  });
+  var c = document.getElementById('pipeCommit');
+  var rv = document.getElementById('pipeResolve');
+  if(c)  { c.style.background='var(--muted)'; c.style.boxShadow='none'; c.style.animation='none'; }
+  if(rv) { rv.style.background='var(--muted)'; rv.style.boxShadow='none'; rv.style.animation='none'; }
+}
+
+/* ── NEWS FEED ── */
+var _allNewsItems = [];
+
+function renderNews(filter) {
+  var list = document.getElementById('newsList');
+  if(!list) return;
+  var items = filter && filter !== 'all'
+    ? _allNewsItems.filter(function(i){ return i.source === filter; })
+    : _allNewsItems;
+  if(items.length === 0) {
+    list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted);font-style:italic;">Nessun articolo disponibile per questo filtro.</div>';
+    return;
+  }
+  var sourceDotClass = {
+    'CoinDesk': 'source-coindesk',
+    'CoinTelegraph': 'source-cointelegraph',
+    'Bitcoin Magazine': 'source-btcmag',
+    'Decrypt': 'source-decrypt',
+  };
+  list.innerHTML = items.map(function(item) {
+    var dotClass = sourceDotClass[item.source] || 'source-coindesk';
+    var dateStr = '—';
+    try {
+      var d = new Date(item.pub);
+      var diffMin = Math.round((Date.now() - d.getTime()) / 60000);
+      if(diffMin < 60) dateStr = diffMin + 'min fa';
+      else if(diffMin < 1440) dateStr = Math.round(diffMin/60) + 'h fa';
+      else dateStr = Math.round(diffMin/1440) + 'g fa';
+    } catch(e) { dateStr = item.pub || '—'; }
+    return '<div class="news-item">' +
+      '<div><div class="news-source-dot ' + dotClass + '"></div></div>' +
+      '<div>' +
+        '<div class="news-title"><a href="' + item.link + '" target="_blank" rel="noopener">' + item.title + ' ↗</a></div>' +
+        '<div class="news-meta">' +
+          '<span class="news-source-badge">' + item.source + '</span>' +
+          '<span class="news-date">' + dateStr + '</span>' +
+        '</div>' +
+        (item.summary ? '<div class="news-summary">' + item.summary + '</div>' : '') +
+      '</div>' +
+      '</div>';
+  }).join('');
+}
+
+function filterNews(source, btn) {
+  document.querySelectorAll('.filter-btn').forEach(function(b){ b.classList.remove('active'); });
+  if(btn) btn.classList.add('active');
+  renderNews(source);
+}
+
+function loadNews() {
+  var list = document.getElementById('newsList');
+  if(list) list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted);font-style:italic;">Caricamento news…</div>';
+  fetch('/news-feed')
+    .then(function(r){ return r.json(); })
+    .then(function(d) {
+      _allNewsItems = d.items || [];
+      renderNews('all');
+    })
+    .catch(function(err) {
+      if(list) list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--red);">Errore caricamento news: ' + err.message + '</div>';
+    });
 }
 
 /* ── INIT ── */

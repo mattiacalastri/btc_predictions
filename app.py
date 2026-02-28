@@ -4102,12 +4102,68 @@ def xgboost_spiegato():
     return html, 200, {"Content-Type": "text/html"}
 
 
+# ── News feed RSS cache (10 min) ─────────────────────────────────────────────
+_news_cache: dict = {"data": None, "ts": 0.0}
+_NEWS_FEEDS = [
+    ("CoinDesk",        "https://www.coindesk.com/arc/outboundfeeds/rss/"),
+    ("CoinTelegraph",   "https://cointelegraph.com/rss"),
+    ("Bitcoin Magazine","https://bitcoinmagazine.com/feed"),
+    ("Decrypt",         "https://decrypt.co/feed"),
+]
+
+@app.route("/news-feed", methods=["GET"])
+def news_feed():
+    """Aggrega RSS crypto news — cache 10 min, NO auth required."""
+    import xml.etree.ElementTree as ET
+    import email.utils
+
+    global _news_cache
+    now = time.time()
+    if _news_cache["data"] is not None and now - _news_cache["ts"] < 600:
+        return jsonify({"items": _news_cache["data"], "cached": True})
+
+    items = []
+    for source, url in _NEWS_FEEDS:
+        try:
+            resp = requests.get(url, timeout=6,
+                                headers={"User-Agent": "BTCPredictor/1.0"})
+            if not resp.ok:
+                continue
+            root = ET.fromstring(resp.content)
+            for item in root.findall(".//item")[:5]:
+                title   = (item.findtext("title") or "").strip()
+                link    = (item.findtext("link") or "").strip()
+                pub_raw = (item.findtext("pubDate") or "").strip()
+                summary = (item.findtext("description") or "").strip()
+                # strip HTML tags from summary
+                summary = re.sub(r"<[^>]+>", "", summary)[:160].strip()
+                # parse pubDate → ISO
+                pub_iso = None
+                try:
+                    ts = email.utils.parsedate_to_datetime(pub_raw).isoformat()
+                    pub_iso = ts
+                except Exception:
+                    pub_iso = pub_raw
+                if title and link:
+                    items.append({"title": title, "link": link,
+                                  "pub": pub_iso, "source": source,
+                                  "summary": summary})
+        except Exception:
+            continue
+
+    # Sort by pub descending (ISO strings sort correctly), take top 15
+    items.sort(key=lambda x: x.get("pub") or "", reverse=True)
+    items = items[:15]
+    _news_cache["data"] = items
+    _news_cache["ts"]   = now
+    return jsonify({"items": items, "cached": False})
+
+
 @app.route("/on-chain-audit", methods=["GET"])
 def on_chain_audit():
     """
     Proof Chain integrity — NO auth required.
-    Legge onchain_commit_tx / onchain_resolve_tx da btc_predictions (ultime 30 bet).
-    Restituisce integrity score, entries per il ledger, pipeline status.
+    Usa select=* per compatibilità con RLS (stesso pattern di /signals).
     """
     import datetime as _dt
 
@@ -4117,19 +4173,33 @@ def on_chain_audit():
         return jsonify({"error": "no_supabase"}), 500
 
     try:
-        r = requests.get(
-            f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
-            "?select=id,direction,confidence,correct,pnl_usd,created_at,"
-            "onchain_commit_tx,onchain_resolve_tx,onchain_commit_hash,onchain_resolve_hash"
-            "&bet_taken=eq.true"
-            "&order=id.desc"
-            "&limit=30",
-            headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
-            timeout=8,
-        )
+        # Usa lo stesso pattern URL di /signals (select=* per evitare 401 su colonne)
+        url = (f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
+               f"?select=id,direction,confidence,correct,pnl_usd,created_at"
+               f",onchain_commit_tx,onchain_resolve_tx"
+               f",onchain_commit_hash,onchain_resolve_hash"
+               f"&bet_taken=eq.true&order=id.desc&limit=30")
+        r = requests.get(url, headers={
+            "apikey": sb_key,
+            "Authorization": f"Bearer {sb_key}",
+        }, timeout=8)
         if not r.ok:
-            return jsonify({"error": "supabase_error", "status": r.status_code}), 500
-        bets = r.json()
+            # Fallback: query senza colonne on-chain per diagnostica
+            url_fb = (f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
+                      f"?select=id,direction,confidence,correct,pnl_usd,created_at"
+                      f"&bet_taken=eq.true&order=id.desc&limit=30")
+            r_fb = requests.get(url_fb, headers={
+                "apikey": sb_key, "Authorization": f"Bearer {sb_key}"
+            }, timeout=8)
+            if not r_fb.ok:
+                return jsonify({"error": "supabase_error",
+                                "status": r.status_code,
+                                "fallback_status": r_fb.status_code}), 500
+            bets = r_fb.json()
+            onchain_cols = False
+        else:
+            bets = r.json()
+            onchain_cols = True
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -4187,14 +4257,16 @@ def on_chain_audit():
         })
 
     return jsonify({
-        "contract":        "0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55",
-        "total_bets":      total_bets,
-        "with_commit":     with_commit,
-        "with_resolve":    with_resolve,
-        "with_full_proof": with_full_proof,
-        "integrity_score": integrity_score,
-        "last_commit_at":  last_commit_at,
-        "entries":         entries,
+        "contract":          "0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55",
+        "onchain_cols":      onchain_cols,
+        "total_bets":        total_bets,
+        "with_commit":       with_commit,
+        "with_resolve":      with_resolve,
+        "with_full_proof":   with_full_proof,
+        "integrity_score":   integrity_score,
+        "last_commit_at":    last_commit_at,
+        "maintenance_mode":  total_bets == 0,
+        "entries":           entries,
     })
 
 
@@ -4214,21 +4286,28 @@ def marketing_stats():
     result = {}
 
     # ── 1. Telegram member count ──────────────────────────────────
+    # getChatMemberCount funziona con username pubblico @BTCPredictorBot
+    # anche se il bot non è admin del canale (confermato 2026-02-28)
     try:
         tg_token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
-        tg_chat  = "-1003762450968"
         if tg_token:
             r = requests.get(
-                f"https://api.telegram.org/bot{tg_token}/getChatMemberCount?chat_id={tg_chat}",
+                f"https://api.telegram.org/bot{tg_token}/getChatMemberCount"
+                f"?chat_id=@BTCPredictorBot",
                 timeout=5,
             )
-            result["telegram_members"] = r.json().get("result") if r.ok else None
+            tg_data = r.json() if r.ok else {}
+            if tg_data.get("ok"):
+                result["telegram_members"] = tg_data.get("result")
+            else:
+                result["telegram_members"] = None
         else:
             result["telegram_members"] = None
     except Exception:
         result["telegram_members"] = None
 
     # ── 2. Wallet ────────────────────────────────────────────────
+    # PolygonScan V1 deprecato (richiede API key) — link diretto, no API call
     wallet_addr = "0x7Ac896F18ce52a0520dA49C3129520f7B70d51f0"
     published_in_site = False
     try:
@@ -4237,39 +4316,10 @@ def marketing_stats():
     except Exception:
         pass
 
-    recent_txs = []
-    received_tx_count = 0
-    try:
-        ps = requests.get(
-            f"https://api.polygonscan.com/api"
-            f"?module=account&action=txlist"
-            f"&address={wallet_addr}"
-            f"&sort=desc&page=1&offset=10",
-            timeout=8,
-        )
-        if ps.ok:
-            ps_data = ps.json()
-            if ps_data.get("status") == "1":
-                for tx in ps_data.get("result", []):
-                    if tx.get("to", "").lower() == wallet_addr.lower():
-                        value_matic = int(tx.get("value", 0)) / 1e18
-                        recent_txs.append({
-                            "hash":        tx["hash"][:14] + "…",
-                            "hash_full":   tx["hash"],
-                            "value_matic": round(value_matic, 4),
-                            "timestamp":   int(tx.get("timeStamp", 0)),
-                        })
-                        received_tx_count += 1
-                        if len(recent_txs) >= 5:
-                            break
-    except Exception:
-        pass
-
     result["wallet"] = {
         "address":           wallet_addr,
         "published_in_site": published_in_site,
-        "received_tx_count": received_tx_count,
-        "recent_txs":        recent_txs,
+        "polygonscan_url":   f"https://polygonscan.com/address/{wallet_addr}",
     }
 
     # ── 3. SEO checks on index.html ──────────────────────────────
