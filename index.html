@@ -1431,9 +1431,6 @@
     <!-- Calendar grid (rendered by JS) -->
     <div id="mktCalendar" class="mkt-calendar"></div>
 
-    <!-- Toast notification -->
-    <div class="mkt-toast" id="mktToast"></div>
-
   </div><!-- /#tab-marketing -->
 
   <!-- COSTS TAB -->
@@ -4474,7 +4471,7 @@ function renderMarketingCalendar() {
 function _mktCardHTML(post) {
   const channels = post.channels.map(ch => `<span class="mkt-ch-pill ${ch}">${ch.toUpperCase()}</span>`).join('');
   const typeLabel = post.type.replace('buildinpublic', 'build-in-public').replace('deepdive', 'deep-dive');
-  const hasTG = post.channels.includes('telegram');
+  const hasTG = post.channels.includes('telegram'); // kept for future badge use
   return `<div class="mkt-card" id="mktCard_${post.id}" data-id="${post.id}" data-channels="${post.channels.join(',')}" onclick="mktToggleExpand('${post.id}', event)">
     <div class="mkt-card-head">
       <div class="mkt-day-badge">
@@ -4491,8 +4488,6 @@ function _mktCardHTML(post) {
     <div class="mkt-body-wrap">
       <div class="mkt-body" id="mktBody_${post.id}">${post.body}</div>
       <div class="mkt-actions">
-        <button class="mkt-btn mkt-btn-copy" onclick="mktCopy('${post.id}', event)">⎘ Copy</button>
-        <button class="mkt-btn mkt-btn-publish" ${hasTG ? '' : 'disabled title="No Telegram channel"'} onclick="mktPublishTelegram('${post.id}', event)">📡 Publish to TG</button>
         <span class="mkt-status-pill mkt-status-${post.status}" id="mktStatus_${post.id}">${post.status}</span>
       </div>
     </div>
@@ -4500,7 +4495,6 @@ function _mktCardHTML(post) {
 }
 
 function mktToggleExpand(id, event) {
-  if (event && event.target.classList.contains('mkt-btn')) return;
   const card = document.getElementById('mktCard_' + id);
   if (!card) return;
   const wasExpanded = card.classList.contains('expanded');
@@ -4518,64 +4512,7 @@ function mktFilterChannel(btn) {
   });
 }
 
-function mktCopy(id, event) {
-  if (event) { event.stopPropagation(); }
-  const post = EDITORIAL_CALENDAR.find(p => p.id === id);
-  if (!post) return;
-  navigator.clipboard.writeText(post.body).then(() => {
-    _mktShowToast('Copied to clipboard ✓', 'ok');
-  }).catch(() => {
-    _mktShowToast('Copy failed — try manually', 'err');
-  });
-}
-
-async function mktPublishTelegram(id, event) {
-  if (event) { event.stopPropagation(); }
-  const post = EDITORIAL_CALENDAR.find(p => p.id === id);
-  if (!post) return;
-  const apiKey = window._BOT_API_KEY || '';
-  if (!apiKey) { _mktShowToast('API key not set', 'err'); return; }
-  const btn = document.querySelector(`#mktCard_${id} .mkt-btn-publish`);
-  if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
-  try {
-    const resp = await fetch('/publish-telegram', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
-      body: JSON.stringify({ text: post.body, parse_mode: 'HTML' })
-    });
-    const data = await resp.json();
-    if (resp.ok) {
-      post.status = 'published';
-      const pill = document.getElementById('mktStatus_' + id);
-      if (pill) { pill.className = 'mkt-status-pill mkt-status-published'; pill.textContent = 'published'; }
-      _mktShowToast('Published to Telegram ✓', 'ok');
-      _mktUpdateStats();
-    } else {
-      _mktShowToast('Error: ' + (data.error || resp.status), 'err');
-    }
-  } catch (e) {
-    _mktShowToast('Network error', 'err');
-  } finally {
-    if (btn) { btn.disabled = false; btn.innerHTML = '📡 Publish to TG'; }
-  }
-}
-
-function _mktUpdateStats() {
-  const published = EDITORIAL_CALENDAR.filter(p => p.status === 'published').length;
-  const el_pub = document.getElementById('mktPublished');
-  const el_pen = document.getElementById('mktPending');
-  if (el_pub) el_pub.textContent = published;
-  if (el_pen) el_pen.textContent = EDITORIAL_CALENDAR.length - published;
-}
-
-function _mktShowToast(msg, type) {
-  const t = document.getElementById('mktToast');
-  if (!t) return;
-  t.textContent = msg;
-  t.className = `mkt-toast ${type} show`;
-  clearTimeout(t._timer);
-  t._timer = setTimeout(() => { t.classList.remove('show'); }, 3000);
-}
+// mktCopy / mktPublishTelegram rimossi — pubblicazione solo da marketing.html (ops interno)
 
 // ── EXPECTANCY TAB ────────────────────────────────────────────────────────────
 

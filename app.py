@@ -79,15 +79,9 @@ _XGB_CLEAN_BET_COUNT: int | None = None   # cache count bet pulite (post-Day0)
 _XGB_CLEAN_BET_CHECKED_AT: float = 0.0   # timestamp ultimo check
 _XGB_CLEAN_CACHE_TTL = 600               # 10 min
 # _BIAS_MAP e TAKER_FEE importati da constants.py
-
-_XGB_FEATURE_COLS = [
-    "confidence", "fear_greed_value", "rsi14", "technical_score",
-    "hour_sin", "hour_cos",        # encoding ciclico ora UTC
-    "technical_bias_score",        # ordinale -2→+2 (ex technical_bias_bullish binary)
-    "signal_fg_fear",              # 1 se fear_greed_value < 45
-    "dow_sin", "dow_cos",          # encoding ciclico giorno settimana (T-01)
-    "session",                     # 0=Asia 1=London 2=NY (T-01)
-]
+# Feature order per XGBoost (usare stessa sequenza in feat_row): vedi _run_xgb_gate() riga ~974
+# [confidence, fear_greed, rsi14, technical_score, hour_sin, hour_cos,
+#  technical_bias_score, signal_fg_fear, dow_sin, dow_cos, session]
 
 def _load_xgb_model():
     global _XGB_MODEL
