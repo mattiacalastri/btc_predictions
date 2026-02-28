@@ -3877,7 +3877,7 @@
       <div class="tab-intro-icon">💸</div>
       <div class="tab-intro-text">
         <div class="tab-intro-title">Operational Costs</div>
-        <div class="tab-intro-desc">Real-time breakdown of all costs to run the bot: Kraken trading fees (0.005% taker per fill), Anthropic API usage, n8n self-hosted VPS orchestration (unlimited executions), Railway hosting, and Claude Code development. Profit only counts after all costs are covered.</div>
+        <div class="tab-intro-desc">Real-time breakdown of all costs to run the bot: Kraken trading fees, Anthropic API, n8n VPS, Railway hosting, and Claude Code. Includes one-time build cost ($709.48 Claude Code sessions, Feb 2026). Monthly operational cost: ~$11/mo. Profit only counts after all costs are covered.</div>
       </div>
     </div>
 
@@ -3903,7 +3903,7 @@
         <div class="kpi-value purple" id="costKpiClaudeApiVal">—</div>
         <div class="kpi-sub" id="costKpiClaudeApiSub">loading...</div>
       </div>
-      <div class="kpi" style="--kc:#e5251b" id="costKpiClaudeCode" data-tip="Claude Code subscription (this assistant!).<br>Set manually — not tracked automatically.<br>Used for bot development and maintenance.">
+      <div class="kpi" style="--kc:#e5251b" id="costKpiClaudeCode" data-tip="Claude Code CLI — development sessions.<br>One-time build cost: $709.48 (Feb 2026, 409 commits, 29.6k lines added).<br>Monthly dev maintenance: set manually.">
         <div class="kpi-label">Claude Code</div>
         <div class="kpi-value" style="color:#e5251b" id="costKpiClaudeCodeVal">—</div>
         <div class="kpi-sub" id="costKpiClaudeCodeSub">loading...</div>
@@ -3958,6 +3958,81 @@
         <button class="agents-refresh-btn" onclick="refreshCostsTab()">↻ Refresh</button>
       </div>
       <div id="costBreakdownBody" style="padding:16px">Loading...</div>
+    </div>
+
+  
+    <!-- Development History -->
+    <div class="panel" style="margin-top:16px;border-left:3px solid #e5251b">
+      <div class="panel-header">
+        <div class="panel-title">🛠 Development History — Build Cost</div>
+        <div class="panel-tag" style="background:rgba(229,37,27,0.15);color:#e5251b;border:1px solid rgba(229,37,27,0.3)">ONE-TIME</div>
+      </div>
+      <div style="padding:16px 20px">
+
+        <!-- Summary row -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">Total Build Cost</div>
+            <div style="font-size:28px;font-weight:800;font-family:'Syne',sans-serif;color:#e5251b">$709.48</div>
+            <div style="font-size:9px;color:var(--muted)">Claude Code CLI sessions</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">Lines of Code</div>
+            <div style="font-size:28px;font-weight:800;font-family:'Syne',sans-serif;color:var(--accent)">29,683</div>
+            <div style="font-size:9px;color:var(--muted)">added · 4,755 removed</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">Git Commits</div>
+            <div style="font-size:28px;font-weight:800;font-family:'Syne',sans-serif;color:var(--warn)">409</div>
+            <div style="font-size:9px;color:var(--muted)">main branch</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">Build Duration</div>
+            <div style="font-size:28px;font-weight:800;font-family:'Syne',sans-serif;color:#00cccc">~30d</div>
+            <div style="font-size:9px;color:var(--muted)">Feb 2026 · from scratch</div>
+          </div>
+        </div>
+
+        <!-- Session breakdown -->
+        <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Session Breakdown</div>
+        <table class="cost-table">
+          <thead>
+            <tr>
+              <th>Session</th>
+              <th>Model</th>
+              <th>Cost</th>
+              <th>API Time</th>
+              <th>Code Changes</th>
+              <th>Note</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="color:var(--muted);font-size:10px">94969f8e</td>
+              <td><span style="font-size:9px;color:#e5251b">claude-sonnet-4-6</span></td>
+              <td style="font-weight:700;color:#e5251b">$709.48</td>
+              <td style="color:var(--muted);font-size:10px">1d 4h 29m</td>
+              <td style="color:var(--accent);font-size:10px">+29,683 / -4,755</td>
+              <td style="color:var(--muted);font-size:10px">Full system build · Feb 2026</td>
+            </tr>
+            <tr>
+              <td colspan="2" style="color:var(--muted);font-size:10px">Monthly dev maintenance</td>
+              <td style="font-weight:700;color:var(--warn)">~$0–20</td>
+              <td colspan="3" style="color:var(--muted);font-size:10px">Bug fixes · features · optimizations</td>
+            </tr>
+            <tr>
+              <td colspan="2" style="font-weight:700">TOTAL BUILD COST</td>
+              <td style="font-weight:700;color:#e5251b">$709.48</td>
+              <td colspan="3" style="font-size:10px;color:var(--muted)">one-time · operational cost ~$11/mo</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style="margin-top:12px;padding:10px 14px;background:rgba(229,37,27,0.05);border:1px solid rgba(229,37,27,0.15);border-radius:4px;font-size:11px;color:var(--muted);line-height:1.6">
+          💡 <strong style="color:var(--text)">Build in Public.</strong> This system was built entirely with Claude Code CLI in February 2026, starting from a whiteboard sketch. The $709.48 is the full transparent cost of development — no hidden expenses. Monthly operational cost going forward is ~$11/mo (VPS + Railway + domain).
+        </div>
+
+      </div>
     </div>
 
   </div><!-- /#tab-costs -->
