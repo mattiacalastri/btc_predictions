@@ -1293,12 +1293,6 @@ def get_btc_price():
         return jsonify({"error": str(e)}), 500
 
 
-# ── ALIAS: /live-btc-price → /btc-price ─────────────────────────────────────
-
-@app.route("/live-btc-price", methods=["GET"])
-def live_btc_price_alias():
-    return get_btc_price()
-
 
 # ── EXECUTION FEES ───────────────────────────────────────────────────────────
 
@@ -3499,12 +3493,6 @@ def trading_stats():
 
 # Cache in memoria: {"data": [...], "ts": float}
 _macro_cache: dict = {"data": None, "ts": 0.0}
-# ── ALIAS: /stats → /trading-stats ──────────────────────────────────────────
-
-@app.route("/stats", methods=["GET"])
-def stats_alias():
-    return trading_stats()
-
 
 _MACRO_CACHE_TTL = 3600  # 1 ora
 _MACRO_CALENDAR_URL = "https://nfs.faireconomy.media/ff_calendar_thisweek.json"

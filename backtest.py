@@ -31,16 +31,15 @@ import math
 from datetime import datetime
 import urllib.request
 import urllib.parse
+import certifi
 
 import pandas as pd
 import numpy as np
 from xgboost import XGBClassifier
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 
-# ─── SSL bypass macOS ──────────────────────────────────────────────────────────
-_SSL_CTX = ssl.create_default_context()
-_SSL_CTX.check_hostname = False
-_SSL_CTX.verify_mode = ssl.CERT_NONE
+# ─── SSL context con certifi CA bundle ─────────────────────────────────────────
+_SSL_CTX = ssl.create_default_context(cafile=certifi.where())
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
