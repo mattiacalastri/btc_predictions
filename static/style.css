@@ -590,6 +590,17 @@
   .status-dot.yellow { background:var(--warn);    box-shadow:0 0 4px rgba(255,170,0,0.6); animation:pulse 2.5s infinite; }
   .tagline-break { display:inline; }
   @media (max-width:640px) { .tagline-break { display:block; padding-left:1.2rem; } }
+
+  /* ABOUT overlay — intro aperto da bottone appare in-place */
+  #introHero.intro-overlay {
+    position: fixed; inset: 0; z-index: 8500;
+    overflow-y: auto; -webkit-overflow-scrolling: touch;
+    background: var(--bg);
+    max-height: none !important;
+    padding: 32px 20px 40px !important;
+    margin: 0 !important;
+  }
+  body.intro-open { overflow: hidden; }
   .msb-stxt { font-size:7px; font-weight:700; letter-spacing:0.3px; opacity:0.85; }
   .msb-stxt-green  { color:var(--accent); }
   .msb-stxt-red    { color:var(--danger); }
@@ -1994,6 +2005,9 @@
     color: #00ff41;
     letter-spacing: 3px;
     text-shadow: 0 0 16px rgba(0,255,65,0.5);
+  }
+  @media (max-width: 640px) {
+    #warRoomTitle { font-size: 22px; letter-spacing: 2px; }
   }
   #warRoomClock {
     font-family: 'JetBrains Mono', monospace;

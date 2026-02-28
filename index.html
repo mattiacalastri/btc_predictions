@@ -5991,7 +5991,8 @@ function dismissIntro() {
   h.style.overflow = 'hidden';
   if (reopenBtn) { reopenBtn.style.opacity = '0'; reopenBtn.style.transition = 'opacity 0.3s'; }
   setTimeout(function() {
-    if (h) { h.style.display = 'none'; h.setAttribute('aria-hidden', 'true'); }
+    if (h) { h.style.display = 'none'; h.setAttribute('aria-hidden', 'true'); h.classList.remove('intro-overlay'); }
+    document.body.classList.remove('intro-open');
     if (reopenBtn) { reopenBtn.style.display = ''; reopenBtn.style.opacity = '1'; reopenBtn.textContent = '? ABOUT'; reopenBtn.onclick = showIntro; }
     // First-time tutorial
     if (typeof startTutorial === 'function' && localStorage.getItem('btcp_tutorial_done') !== '1') {
@@ -6005,6 +6006,8 @@ function showIntro() {
   var reopenBtn = document.getElementById('introReopenBtn');
   if (!h) return;
   localStorage.removeItem('introDismissed');
+  h.classList.add('intro-overlay');
+  document.body.classList.add('intro-open');
   h.style.display = '';
   h.removeAttribute('aria-hidden');
   h.style.transition = 'none';
@@ -6013,11 +6016,9 @@ function showIntro() {
   h.style.padding = '';
   h.style.overflow = '';
   if (reopenBtn) { reopenBtn.style.display = ''; reopenBtn.textContent = '✕ CLOSE'; reopenBtn.onclick = dismissIntro; }
-  // Trigger reflow then fade in
   void h.offsetHeight;
-  h.style.transition = 'opacity 0.35s';
+  h.style.transition = 'opacity 0.28s';
   h.style.opacity = '1';
-  h.scrollIntoView({ behavior: 'smooth', block: 'start' });
   if (allData && allData.length) populateIntroHero(allData);
 }
 
