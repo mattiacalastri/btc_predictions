@@ -2,6 +2,7 @@ import os
 import re
 import json
 import time
+import datetime as _dt
 import hmac as _hmac
 from joblib import load as joblib_load
 import requests
@@ -182,7 +183,6 @@ def refresh_dead_hours():
     if not sb_url or not sb_key:
         return {"ok": False, "error": "no_supabase_env"}
     try:
-        import datetime
         r = requests.get(
             f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
             "?select=created_at,correct&bet_taken=eq.true&correct=not.is.null",
@@ -200,7 +200,7 @@ def refresh_dead_hours():
             if c is None or not ts:
                 continue
             try:
-                h = datetime.datetime.fromisoformat(ts.replace("Z", "+00:00")).hour
+                h = _dt.datetime.fromisoformat(ts.replace("Z", "+00:00")).hour
                 hour_data[h].append(1 if c else 0)
             except Exception:
                 continue
@@ -231,6 +231,9 @@ DEFAULT_SYMBOL = os.environ.get("KRAKEN_DEFAULT_SYMBOL", "PF_XBTUSD")
 KRAKEN_BASE = "https://futures.kraken.com"
 DRY_RUN = os.environ.get("DRY_RUN", "false").lower() in ("true", "1", "yes")
 SUPABASE_TABLE = os.environ.get("SUPABASE_TABLE", "btc_predictions")
+_ALLOWED_TABLES = {"btc_predictions", "sandbox_btc_predictions"}
+if SUPABASE_TABLE not in _ALLOWED_TABLES:
+    raise ValueError(f"SUPABASE_TABLE '{SUPABASE_TABLE}' not in whitelist {_ALLOWED_TABLES}")
 _BOT_PAUSED = True               # fail-safe default: paused until Supabase confirms otherwise
 _BOT_PAUSED_REFRESHED_AT = 0.0  # timestamp of last Supabase read (0.0 → forces refresh on first call)
 _costs_cache = {"data": None, "ts": 0.0}
@@ -2052,7 +2055,7 @@ def rescue_orphaned():
 
     # 2. Per ogni bet orfana, controlla se wf02 è già attivo per quella bet
     #    (esecuzioni in waiting nelle ultime 40 minuti)
-    WF02_ID = "NnjfpzgdIyleMVBO"
+    WF02_ID = os.environ.get("WF02_ID", "NnjfpzgdIyleMVBO")
     rescued = []
     skipped = []
 
@@ -2070,9 +2073,8 @@ def rescue_orphaned():
             started = ex.get("startedAt", "")
             if started:
                 try:
-                    import datetime
-                    age_min = (datetime.datetime.utcnow() -
-                               datetime.datetime.fromisoformat(started.replace("Z",""))).total_seconds() / 60
+                    age_min = (_dt.datetime.utcnow() -
+                               _dt.datetime.fromisoformat(started.replace("Z",""))).total_seconds() / 60
                     if age_min < 40:
                         active_ids.add(ex.get("id"))  # execution id, non bet id
                 except Exception:
@@ -2089,16 +2091,15 @@ def rescue_orphaned():
     RESCUE_WEBHOOK_URL = f"{n8n_url}/webhook/rescue-wf02"
     MAX_BET_HOURS = float(os.environ.get("MAX_BET_DURATION_HOURS", "4"))
     for bet in orphaned:
-        import datetime
         bet_id = bet.get("id")
 
         # ── Stale bet path: risoluzione diretta senza wf02 ──────────────────
         bet_created = bet.get("created_at", "")
         try:
-            created_dt = datetime.datetime.fromisoformat(
+            created_dt = _dt.datetime.fromisoformat(
                 bet_created.replace("Z", "").split("+")[0]
             )
-            age_hours = (datetime.datetime.utcnow() - created_dt).total_seconds() / 3600
+            age_hours = (_dt.datetime.utcnow() - created_dt).total_seconds() / 3600
         except Exception:
             age_hours = 0
 
@@ -2854,7 +2855,6 @@ def orphaned_bets():
     err = _check_api_key()
     if err:
         return err
-    import datetime
     sb_url, sb_key = _sb_config()
     sb_headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
 
@@ -2870,12 +2870,12 @@ def orphaned_bets():
     except Exception as e:
         return jsonify({"error": f"Supabase: {e}"}), 500
 
-    now = datetime.datetime.utcnow()
+    now = _dt.datetime.utcnow()
     result = []
     for row in rows:
         minutes_open = 0
         try:
-            created = datetime.datetime.fromisoformat(row["created_at"].replace("Z", ""))
+            created = _dt.datetime.fromisoformat(row["created_at"].replace("Z", ""))
             minutes_open = int((now - created).total_seconds() / 60)
         except Exception:
             pass
@@ -3563,22 +3563,26 @@ _MACRO_CACHE_TTL = 3600  # 1 ora
 _MACRO_CALENDAR_URL = "https://nfs.faireconomy.media/ff_calendar_thisweek.json"
 
 
-def _fetch_macro_calendar() -> list:
-    """Fetcha il calendario ForexFactory con cache 1h. Ritorna lista eventi o []."""
+def _fetch_macro_calendar() -> dict:
+    """Fetcha il calendario ForexFactory con cache 1h.
+    Ritorna {"data": [...], "fetch_failed": bool}.
+    fetch_failed=True se la rete ha fallito e non c'è cache.
+    """
     global _macro_cache
     now_ts = time.time()
     if _macro_cache["data"] is not None and (now_ts - _macro_cache["ts"]) < _MACRO_CACHE_TTL:
-        return _macro_cache["data"]
+        return {"data": _macro_cache["data"], "fetch_failed": False}
     try:
         r = requests.get(_MACRO_CALENDAR_URL, timeout=5)
         if r.ok:
             data = r.json()
             _macro_cache = {"data": data, "ts": now_ts}
-            return data
+            return {"data": data, "fetch_failed": False}
     except Exception:
         pass
     # Ritorna cache scaduta se disponibile (meglio che niente)
-    return _macro_cache["data"] or []
+    cached = _macro_cache["data"]
+    return {"data": cached or [], "fetch_failed": cached is None}
 
 
 @app.route("/macro-guard", methods=["GET"])
@@ -3594,18 +3598,15 @@ def macro_guard():
     if err:
         return err
 
-    import datetime
-
-    try:
-        events = _fetch_macro_calendar()
-    except Exception:
-        return jsonify({"blocked": False, "error": "calendar_unavailable"})
-
+    cal = _fetch_macro_calendar()
+    events = cal["data"]
+    if cal["fetch_failed"]:
+        return jsonify({"blocked": False, "error": "calendar_fetch_error"})
     if not events:
         return jsonify({"blocked": False, "error": "calendar_unavailable"})
 
-    now_utc = datetime.datetime.now(datetime.timezone.utc)
-    window_end = now_utc + datetime.timedelta(hours=2)
+    now_utc = _dt.datetime.now(_dt.timezone.utc)
+    window_end = now_utc + _dt.timedelta(hours=2)
 
     for event in events:
         # Filtra solo USD ad alto impatto
@@ -3620,9 +3621,9 @@ def macro_guard():
 
         try:
             # La data è ISO 8601 con offset, es. "2026-02-26T08:30:00-05:00"
-            event_dt = datetime.datetime.fromisoformat(raw_date)
+            event_dt = _dt.datetime.fromisoformat(raw_date)
             # Normalizza a UTC
-            event_dt_utc = event_dt.astimezone(datetime.timezone.utc)
+            event_dt_utc = event_dt.astimezone(_dt.timezone.utc)
         except Exception:
             continue
 
