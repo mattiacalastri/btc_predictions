@@ -294,15 +294,27 @@ def _check_read_key():
     return jsonify({"error": "Unauthorized"}), 401
 
 
-def _make_contribution_token(contrib_id: int, action: str) -> str:
-    """Genera un token HMAC-SHA256 per approve/reject link.
-    Token specifico per contrib_id+action: non riutilizzabile su altri endpoint.
-    Non espone BOT_API_KEY nell'URL.
+def _make_contribution_token(contrib_id: int, action: str, hour_bucket: int = None) -> str:
+    """Genera un token HMAC-SHA256 per approve/reject link con scadenza 2h.
+    Token specifico per contrib_id+action+hour_bucket: non riutilizzabile su altri endpoint.
+    Non espone BOT_API_KEY nell'URL. Il bucket orario scade entro 2h (S-16).
     """
     import hashlib as _hl
+    if hour_bucket is None:
+        hour_bucket = int(time.time()) // 3600
     bot_key = os.environ.get("BOT_API_KEY", "anonymous")
-    raw = f"{bot_key}:{contrib_id}:{action}"
+    raw = f"{bot_key}:{contrib_id}:{action}:{hour_bucket}"
     return _hl.sha256(raw.encode()).hexdigest()[:32]
+
+
+def _valid_contribution_token(token: str, contrib_id: int, action: str) -> bool:
+    """Valida token HMAC accettando bucket ora corrente e precedente (finestra 2h)."""
+    now_bucket = int(time.time()) // 3600
+    for bucket in (now_bucket, now_bucket - 1):
+        expected = _make_contribution_token(contrib_id, action, bucket)
+        if _hmac.compare_digest(token, expected):
+            return True
+    return False
 
 
 # ── SDK clients ──────────────────────────────────────────────────────────────
@@ -423,7 +435,8 @@ def _close_prev_bet_on_reverse(old_side: str, exit_price: float, closed_size: fl
         fee = bet_size * (entry_price + exit_price) * TAKER_FEE  # entry + exit taker fee
         pnl_net = round(pnl_gross - fee, 6)
 
-        patch_url = f"{supabase_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{bet_id}"
+        # &correct=is.null → atomicità ottimistica: nessuna doppia risoluzione (S-17)
+        patch_url = f"{supabase_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{bet_id}&correct=is.null"
         patch_headers = {**headers, "Content-Type": "application/json", "Prefer": "return=minimal"}
         requests.patch(patch_url, json={
             "btc_price_exit":     exit_price,
@@ -2060,9 +2073,9 @@ def rescue_orphaned():
                     gross_delta = -gross_delta
                 correct = gross_delta > 0
                 pnl = round((exit_price - entry) / entry * 100, 4) if entry else 0
-                # Aggiorna Supabase
+                # Aggiorna Supabase — &correct=is.null previene doppia risoluzione (S-17)
                 upd = requests.patch(
-                    f"{supabase_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{bet_id}",
+                    f"{supabase_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{bet_id}&correct=is.null",
                     headers={
                         "apikey": supabase_key,
                         "Authorization": f"Bearer {supabase_key}",
@@ -3221,7 +3234,7 @@ def public_contributions():
 def approve_contribution(contrib_id):
     """Owner-only: approve a contribution. Called via link in Telegram."""
     token = request.args.get("token", "")
-    if not _hmac.compare_digest(token, _make_contribution_token(contrib_id, "approve")):
+    if not _valid_contribution_token(token, contrib_id, "approve"):
         return jsonify({"error": "Unauthorized"}), 401
     supabase_url, supabase_key = _sb_config()
     try:
@@ -3244,7 +3257,7 @@ def approve_contribution(contrib_id):
 def reject_contribution(contrib_id):
     """Owner-only: reject (delete) a contribution. Called via link in email."""
     token = request.args.get("token", "")
-    if not _hmac.compare_digest(token, _make_contribution_token(contrib_id, "reject")):
+    if not _valid_contribution_token(token, contrib_id, "reject"):
         return jsonify({"error": "Unauthorized"}), 401
     supabase_url, supabase_key = _sb_config()
     try:
