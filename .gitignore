@@ -16,10 +16,11 @@ backfill_*.py
 check_orphaned_bets.py
 prepare_finetune.py
 
-# Modelli ML — committiamo solo quelli in models/ per Railway
+# Modelli ML — committiamo solo i pkl per Railway; i report sono artefatti locali
 *.pkl
 !models/xgb_direction.pkl
 !models/xgb_correctness.pkl
+models/xgb_report.txt
 
 # Dati sensibili
 datasets/features.csv
