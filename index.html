@@ -252,7 +252,7 @@
         </div>
       </div>
       <button class="intro-reopen-btn" id="introReopenBtn" onclick="showIntro()" title="What is this? — Info for new visitors" style="display:none">? ABOUT</button>
-      <button class="tron-menu-btn" id="tronMenuBtn" onclick="toggleTronMenu()" title="Navigation Menu" aria-label="Open navigation menu" style="top:30px">
+      <button class="tron-menu-btn" id="tronMenuBtn" onclick="toggleTronMenu()" title="Navigation Menu" aria-label="Open navigation menu">
         <svg width="22" height="18" viewBox="0 0 20 16" fill="none"><path d="M0 1h20M0 8h20M0 15h20" stroke="rgba(255,255,255,0.8)" stroke-width="1.8" stroke-linecap="square"/></svg>
       </button>
     </div>
@@ -398,14 +398,14 @@
       <button class="tab-btn"        data-tab="backtest"    onclick="switchTab(this)">📊 Backtest</button>
     </div>
     <div class="tab-controls" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-      <button class="war-room-btn" id="warRoomToggle" onclick="toggleWarRoom(this)">&#9876;&#65039; War Room</button>
-      <div class="tab-controls-sep" style="width:1px;height:20px;background:var(--border);"></div>
       <span class="period-label" style="font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-right:4px">PERIOD</span>
       <button class="time-pill desktop-period-pill"        data-period="ALL"   onclick="setTimePeriod(this)">ALL</button>
       <button class="time-pill desktop-period-pill"        data-period="7D"    onclick="setTimePeriod(this)">7D</button>
       <button class="time-pill desktop-period-pill"        data-period="3D"    onclick="setTimePeriod(this)">3D</button>
       <button class="time-pill desktop-period-pill"        data-period="24H"   onclick="setTimePeriod(this)">24H</button>
       <button class="time-pill desktop-period-pill active" data-period="TODAY" onclick="setTimePeriod(this)">TODAY</button>
+      <div class="tab-controls-sep" style="width:1px;height:20px;background:var(--border);"></div>
+      <button class="war-room-btn" id="warRoomToggle" onclick="toggleWarRoom(this)">&#9876;&#65039; War Room</button>
     </div>
   </div>
 
@@ -1218,14 +1218,23 @@
       <div class="tab-intro-icon">🤖</div>
       <div class="tab-intro-text">
         <div class="tab-intro-title">Automation Agents</div>
-        <div class="tab-intro-desc">12 n8n workflows orchestrate the entire trading pipeline — from data ingestion to AI prediction, trade execution, Telegram notifications, on-chain audit, and social media publishing. The launchd agents run locally on Mac for maintenance, reporting, and orphan bet rescue.</div>
+        <div class="tab-intro-desc">17 n8n workflows orchestrate the entire trading pipeline — from data ingestion to AI prediction, trade execution, Telegram notifications, on-chain audit, and social media publishing. The launchd agents run locally on Mac for maintenance, reporting, and orphan bet rescue.</div>
       </div>
     </div>
 
     <!-- n8n Workflows -->
     <div class="agents-section-header">
       <span>n8n Workflows</span>
-      <button class="agents-refresh-btn" onclick="refreshAgentsTab()">↻ Refresh</button>
+      <div style="display:flex;align-items:center;gap:6px">
+        <div id="agentStatusFilters" style="display:flex;align-items:center;gap:4px">
+          <button class="agent-filter-btn active" data-filter="all"      onclick="filterAgentsByStatus('all')">ALL</button>
+          <button class="agent-filter-btn"        data-filter="active"   onclick="filterAgentsByStatus('active')">ACTIVE</button>
+          <button class="agent-filter-btn"        data-filter="inactive" onclick="filterAgentsByStatus('inactive')">INACTIVE</button>
+          <button class="agent-filter-btn"        data-filter="error"    onclick="filterAgentsByStatus('error')">ERROR</button>
+        </div>
+        <div style="width:1px;height:16px;background:var(--border)"></div>
+        <button class="agents-refresh-btn" onclick="refreshAgentsTab()">↻ Refresh</button>
+      </div>
     </div>
     <div id="n8nWorkflowsGrid" class="wf-grid">
       <div style="grid-column:1/-1;padding:20px;color:var(--muted);font-size:11px;letter-spacing:1px">
@@ -1403,7 +1412,7 @@
         <div class="kpi-value yellow" id="costKpiKrakenVal">—</div>
         <div class="kpi-sub" id="costKpiKrakenSub">loading...</div>
       </div>
-      <div class="kpi blue" id="costKpiN8n" data-tip="n8n VPS (Hostinger KVM1) — orchestrates 12 workflows.<br>Unlimited executions · self-hosted on Ubuntu 24.04.<br>Migrated from n8n Cloud 2026-02-26.">
+      <div class="kpi blue" id="costKpiN8n" data-tip="n8n VPS (Hostinger KVM1) — orchestrates 17 workflows.<br>Unlimited executions · self-hosted on Ubuntu 24.04.<br>Migrated from n8n Cloud 2026-02-26.">
         <div class="kpi-label">n8n Plan</div>
         <div class="kpi-value blue" id="costKpiN8nVal">—</div>
         <div class="kpi-sub" id="costKpiN8nSub">loading...</div>
@@ -4069,6 +4078,21 @@ setInterval(() => {
   if (clk) clk.textContent = new Date().toLocaleTimeString('it-IT');
 }, 1000);
 
+function filterAgentsByStatus(status) {
+  document.querySelectorAll('.agent-filter-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.filter === status));
+  document.querySelectorAll('#n8nWorkflowsGrid .wf-card').forEach(card => {
+    const active = card.dataset.active === 'true';
+    const st     = card.dataset.status || 'none';
+    const isErr  = st === 'error' || st === 'crashed';
+    const show   = status === 'all'
+                || (status === 'active'   && active)
+                || (status === 'inactive' && !active)
+                || (status === 'error'    && isErr);
+    card.style.display = show ? '' : 'none';
+  });
+}
+
 async function refreshAgentsTab() {
   const grid = document.getElementById('n8nWorkflowsGrid');
   grid.innerHTML = '<div style="grid-column:1/-1;padding:20px;color:var(--muted);font-size:11px;letter-spacing:1px">Loading n8n workflows<span class="loading">...</span></div>';
@@ -4180,7 +4204,7 @@ function renderAgents(data, errorMsg) {
     const absT = lastEx?.started_at ? new Date(lastEx.started_at).toLocaleString('it-IT') : '';
 
     return `
-    <div class="wf-card" style="border-left:3px solid ${borderCol};padding-left:12px">
+    <div class="wf-card" data-active="${isActive}" data-status="${status || 'none'}" style="border-left:3px solid ${borderCol};padding-left:12px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
         <div style="display:flex;align-items:center;gap:7px;min-width:0">
           <span style="width:7px;height:7px;border-radius:50%;background:${dotCol};box-shadow:${dotGlow};flex-shrink:0"></span>
