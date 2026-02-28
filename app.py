@@ -9,6 +9,7 @@ import sentry_sdk
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import Flask, request, jsonify, redirect
 from kraken.futures import Trade, User
+from constants import TAKER_FEE, _BIAS_MAP
 
 sentry_sdk.init(
     dsn=os.environ.get("SENTRY_DSN", ""),
@@ -30,17 +31,7 @@ def set_security_headers(response):
 
 # ── XGBoost direction model (caricato una volta all'avvio) ────────────────────
 _XGB_MODEL = None
-# Encoding ordinale technical_bias: strong_bearish=-2 → strong_bullish=+2.
-# Deve essere identico a build_dataset.py/_BIAS_MAP.
-_BIAS_MAP = {
-    "strong_bearish": -2,
-    "mild_bearish":   -1,
-    "bearish":        -1,
-    "neutral":         0,
-    "mild_bullish":    1,
-    "bullish":         1,
-    "strong_bullish":  2,
-}
+# _BIAS_MAP e TAKER_FEE importati da constants.py
 
 _XGB_FEATURE_COLS = [
     "confidence", "fear_greed_value", "rsi14", "technical_score",
@@ -414,7 +405,7 @@ def _close_prev_bet_on_reverse(old_side: str, exit_price: float, closed_size: fl
             pnl_gross = (entry_price - exit_price) * bet_size
             correct = exit_price < entry_price   # break-even = LOSS
 
-        fee = bet_size * (entry_price + exit_price) * 0.00005  # entry + exit taker fee
+        fee = bet_size * (entry_price + exit_price) * TAKER_FEE  # entry + exit taker fee
         pnl_net = round(pnl_gross - fee, 6)
 
         patch_url = f"{supabase_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{bet_id}"
@@ -634,7 +625,7 @@ def close_position():
                     _pg = (_entry - _cur_price) * _bsize
                     _correct = _cur_price < _entry
                     _adir = "DOWN" if _correct else "UP"
-                _fee = _bsize * (_entry + _cur_price) * 0.00005
+                _fee = _bsize * (_entry + _cur_price) * TAKER_FEE
                 _pnl = round(_pg - _fee, 6)
                 _supabase_update(_obid, {
                     "exit_fill_price":  _cur_price,
@@ -747,7 +738,7 @@ def close_position():
                         correct = exit_fill_price < entry_price   # break-even = LOSS
                         actual_direction = "DOWN" if exit_fill_price < entry_price else "UP"
 
-                    fee = bet_size * (entry_price + exit_fill_price) * 0.00005
+                    fee = bet_size * (entry_price + exit_fill_price) * TAKER_FEE
                     pnl_net = round(pnl_gross - fee, 6)
 
                     _supabase_update(bet_id, {
@@ -1313,10 +1304,9 @@ def get_execution_fees():
 
         order_fills = [f for f in fills if f.get("order_id") == order_id]
 
-        TAKER_RATE = 0.00005  # 0.005% Kraken Futures taker fee
         total_fee = sum(
             float(f.get("fee", 0) or 0) or
-            (float(f.get("size", 0)) * float(f.get("price", 0)) * TAKER_RATE)
+            (float(f.get("size", 0)) * float(f.get("price", 0)) * TAKER_FEE)
             for f in order_fills
         )
 
@@ -1456,13 +1446,12 @@ def account_summary():
                 f for f in fills_raw
                 if (f.get("symbol") or "").upper() == symbol.upper()
             ][:5]  # ultimi 5
-            TAKER_RATE = 0.00005  # Kraken Futures taker fee 0.005%
             for f in symbol_fills:
                 # Kraken fills don't return 'fee' or 'pnl' fields — calculate fee manually
                 size_f  = float(f.get("size",  0) or 0)
                 price_f = float(f.get("price", 0) or 0)
                 fee_raw = float(f.get("fee",   0) or 0)
-                fee = fee_raw if fee_raw > 0 else round(size_f * price_f * TAKER_RATE, 6)
+                fee = fee_raw if fee_raw > 0 else round(size_f * price_f * TAKER_FEE, 6)
                 realized_pnl_recent -= fee  # fees are a cost (negative contribution)
                 recent_fills.append({
                     "order_id":  f.get("order_id"),
@@ -2878,7 +2867,7 @@ def backfill_bet(bet_id):
     else:
         pnl_gross = (entry_price - exit_price) * bet_size
 
-    fee_est = bet_size * (entry_price + exit_price) * 0.00005  # entry + exit taker fee
+    fee_est = bet_size * (entry_price + exit_price) * TAKER_FEE  # entry + exit taker fee
     pnl_usd = pnl_gross - fee_est
     pnl_pct = round(pnl_gross / (entry_price * bet_size) * 100, 4) if entry_price * bet_size != 0 else 0.0
 

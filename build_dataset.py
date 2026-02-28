@@ -25,6 +25,7 @@ import certifi
 from datetime import datetime
 import urllib.request
 import urllib.parse
+from constants import _BIAS_MAP
 
 _SSL_CTX = ssl.create_default_context(cafile=certifi.where())
 
@@ -44,19 +45,7 @@ Rules:
 - Never add extra fields or text outside the JSON"""
 
 OPPOSITE = {"UP": "DOWN", "DOWN": "UP"}
-
-# Encoding ordinale di technical_bias: preserva la gradazione semantica.
-# Range: -2 (forte ribassista) → 0 (neutro) → +2 (forte rialzista).
-# Sostituisce il vecchio binary "bull" match che collassava neutral=bearish.
-_BIAS_MAP = {
-    "strong_bearish": -2,
-    "mild_bearish":   -1,
-    "bearish":        -1,
-    "neutral":         0,
-    "mild_bullish":    1,
-    "bullish":         1,
-    "strong_bullish":  2,
-}
+# _BIAS_MAP importato da constants.py
 
 # Colonne numeriche per features.csv
 NUMERIC_FEATURES = [

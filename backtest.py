@@ -37,6 +37,7 @@ import pandas as pd
 import numpy as np
 from xgboost import XGBClassifier
 from sklearn.model_selection import StratifiedKFold, cross_val_score
+from constants import TAKER_FEE, _BIAS_MAP
 
 # ─── SSL context con certifi CA bundle ─────────────────────────────────────────
 _SSL_CTX = ssl.create_default_context(cafile=certifi.where())
@@ -44,8 +45,8 @@ _SSL_CTX = ssl.create_default_context(cafile=certifi.where())
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 
-TAKER_RATE  = 0.00005  # Kraken Futures taker fee 0.005% per lato
 BASE_SIZE   = 0.002    # BTC fisso per confronto equo tra strategie
+# TAKER_FEE importato da constants.py
 
 FEATURE_COLS = [
     "confidence", "fear_greed_value", "rsi14", "technical_score",
@@ -110,9 +111,7 @@ def fetch_bets() -> pd.DataFrame:
     df["hour_utc"] = df["created_at"].str[11:13].astype(int, errors="ignore")
 
     df["ema_trend_up"]          = (df["ema_trend"].str.upper() == "UP").astype(int)
-    _bias_map = {"strong_bearish":-2,"mild_bearish":-1,"bearish":-1,
-                 "neutral":0,"mild_bullish":1,"bullish":1,"strong_bullish":2}
-    df["technical_bias_score"]  = df["technical_bias"].str.lower().str.strip().map(_bias_map).fillna(0)
+    df["technical_bias_score"]  = df["technical_bias"].str.lower().str.strip().map(_BIAS_MAP).fillna(0)
     df["signal_technical_buy"]  = (df["signal_technical"].str.upper() == "BUY").astype(int)
     df["signal_sentiment_pos"]  = df["signal_sentiment"].str.upper().isin(["POSITIVE","POS","BUY"]).astype(int)
     df["signal_fg_fear"]        = (df["fear_greed_value"].fillna(50).astype(float) < 45).astype(int)
