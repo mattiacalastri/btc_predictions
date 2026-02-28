@@ -1,0 +1,1333 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marketing Ops — btcpredictor.io</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='15' fill='%230d0d0d'/%3E%3Ctext x='50' y='72' font-size='70' text-anchor='middle' fill='%2300ff88' font-family='Arial'%3E%E2%82%BF%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:      #0a0a0f;
+    --bg2:     #0d0d15;
+    --bg3:     #111120;
+    --bg4:     #161628;
+    --orange:  #f7931a;
+    --cyan:    #00d4ff;
+    --green:   #00ff88;
+    --red:     #ff4466;
+    --yellow:  #ffd700;
+    --purple:  #a855f7;
+    --text:    #e8e0d0;
+    --muted:   rgba(232,224,208,0.45);
+    --dim:     rgba(232,224,208,0.2);
+    --border:  rgba(232,224,208,0.07);
+    --border-o: rgba(247,147,26,0.2);
+    --border-c: rgba(0,212,255,0.2);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    padding-top: 52px;
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  /* ── GNAV ─────────────────────────────────────────────────────── */
+  .gnav {
+    position: fixed; width: 100%; top: 0; z-index: 1000;
+    height: 52px; background: rgba(10,10,15,.97);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(247,147,26,.12);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 28px;
+  }
+  .gnav-logo {
+    display: flex; align-items: center; gap: 9px;
+    text-decoration: none; color: #fff;
+    font-size: 11px; font-weight: 700; letter-spacing: .18em;
+    text-transform: uppercase; font-family: 'JetBrains Mono', monospace;
+  }
+  .gnav-pulse {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #00ff88; box-shadow: 0 0 8px #00ff88; flex-shrink: 0;
+    animation: gnavPulse 2s ease-in-out infinite;
+  }
+  @keyframes gnavPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.85)} }
+  .gnav-links {
+    display: flex; flex-direction: column; gap: 0; list-style: none;
+    margin: 0; padding: 16px 0; position: fixed; top: 52px; right: 0; bottom: 0;
+    width: 240px; background: rgba(10,10,15,.99);
+    border-left: 1px solid rgba(247,147,26,.15); z-index: 999;
+    transform: translateX(110%); transition: transform .28s cubic-bezier(.4,0,.2,1);
+    overflow-y: auto;
+  }
+  .gnav-links.gnav-open { transform: translateX(0); }
+  .gnav-links a {
+    text-decoration: none; color: rgba(255,255,255,.45);
+    font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+    padding: 13px 24px; display: block;
+    transition: color .18s, background .18s;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .gnav-links a:hover { color: #fff; background: rgba(255,255,255,.05); }
+  .gnav-links a.gnav-active { color: rgba(255,255,255,.9); }
+  .gnav-links a.gnav-investors { color: #f7931a; border-left: 2px solid rgba(247,147,26,.4); padding: 13px 22px; }
+  .gnav-links a.gnav-investors:hover { background: rgba(247,147,26,.07); border-left-color: rgba(247,147,26,.7); }
+  .gnav-links a.gnav-marketing { color: var(--cyan); border-left: 2px solid rgba(0,212,255,.4); padding: 13px 22px; }
+  .gnav-links a.gnav-marketing:hover { background: rgba(0,212,255,.07); border-left-color: rgba(0,212,255,.7); }
+  .gnav-burger {
+    display: flex; align-items: center; justify-content: center;
+    background: none; border: 1px solid rgba(255,255,255,.15);
+    color: rgba(255,255,255,.7); font-size: 14px; cursor: pointer;
+    padding: 5px 9px; border-radius: 3px; transition: border-color .2s;
+  }
+  .gnav-burger:hover { border-color: rgba(255,255,255,.4); }
+
+  /* ── STATUS BAR ───────────────────────────────────────────────── */
+  .status-bar {
+    display: flex; gap: 10px; padding: 14px 24px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border-o);
+    flex-wrap: wrap;
+  }
+  .sw {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 6px; padding: 10px 16px;
+    flex: 1; min-width: 200px;
+    transition: border-color .2s;
+  }
+  .sw:hover { border-color: rgba(247,147,26,.25); }
+  .sw-icon { font-size: 16px; flex-shrink: 0; }
+  .sw-label { color: var(--muted); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; display: block; }
+  .sw-value { color: var(--text); font-size: 13px; font-weight: 500; display: block; }
+  .sw-body { display: flex; flex-direction: column; gap: 2px; }
+  .dot-ok   { color: var(--green); }
+  .dot-err  { color: var(--red); }
+  .dot-warn { color: var(--yellow); }
+  .dot-load { color: var(--muted); }
+
+  /* ── TABS ─────────────────────────────────────────────────────── */
+  .tab-nav {
+    display: flex; gap: 0; flex-wrap: wrap;
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px; background: var(--bg2);
+    position: sticky; top: 52px; z-index: 100;
+  }
+  .tab-btn {
+    padding: 14px 18px; cursor: pointer;
+    border: none; background: none;
+    color: var(--muted); font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+    border-bottom: 2px solid transparent;
+    transition: color .2s, border-color .2s;
+    white-space: nowrap;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--orange); border-bottom-color: var(--orange); }
+
+  /* ── TAB CONTENT ──────────────────────────────────────────────── */
+  .tab-pane { display: none; padding: 28px 24px 60px; max-width: 860px; margin: 0 auto; }
+  .tab-pane.active { display: block; }
+
+  /* ── SECTION HEADER ───────────────────────────────────────────── */
+  .section-hdr {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 20px; padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-hdr h2 { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; }
+  .section-hdr span { color: var(--muted); font-size: 12px; }
+
+  /* ── CARD ─────────────────────────────────────────────────────── */
+  .card {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px 20px; margin-bottom: 12px;
+  }
+  .card-title { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .card-value { font-size: 15px; font-weight: 500; color: var(--text); }
+
+  /* ── CALENDAR ─────────────────────────────────────────────────── */
+  .schedule-list { display: flex; flex-direction: column; gap: 8px; }
+  .sch-item {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 6px; padding: 12px 16px;
+    transition: border-color .2s;
+  }
+  .sch-item:hover { border-color: rgba(247,147,26,.2); }
+  .sch-time { color: var(--orange); font-size: 12px; font-weight: 700; width: 100px; flex-shrink: 0; }
+  .sch-chan { font-size: 16px; flex-shrink: 0; }
+  .sch-desc { color: var(--text); flex: 1; }
+  .sch-type {
+    font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+    padding: 2px 8px; border-radius: 3px; flex-shrink: 0;
+  }
+  .sch-type.auto    { background: rgba(0,255,136,.1); color: var(--green); border: 1px solid rgba(0,255,136,.2); }
+  .sch-type.content { background: rgba(247,147,26,.1); color: var(--orange); border: 1px solid rgba(247,147,26,.2); }
+  .sch-type.sys     { background: rgba(0,212,255,.1); color: var(--cyan); border: 1px solid rgba(0,212,255,.2); }
+  .sch-status-ok  { color: var(--green); font-size: 10px; }
+  .sch-status-sch { color: var(--yellow); font-size: 10px; }
+  .next-event {
+    background: linear-gradient(135deg, rgba(247,147,26,.08), rgba(0,212,255,.05));
+    border: 1px solid rgba(247,147,26,.3);
+    border-radius: 8px; padding: 14px 18px; margin-bottom: 20px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .next-event-label { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .1em; }
+  .next-event-val { color: var(--orange); font-size: 14px; font-weight: 600; }
+
+  /* ── CHANNELS ─────────────────────────────────────────────────── */
+  .channels-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+  .chan-card {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px;
+    display: flex; flex-direction: column; gap: 10px;
+    transition: border-color .2s;
+  }
+  .chan-card:hover { border-color: rgba(247,147,26,.2); }
+  .chan-header { display: flex; align-items: center; gap: 10px; }
+  .chan-icon { font-size: 24px; }
+  .chan-name { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; }
+  .chan-handle { color: var(--muted); font-size: 11px; }
+  .chan-stat { display: flex; justify-content: space-between; align-items: center; }
+  .chan-stat-label { color: var(--muted); font-size: 11px; }
+  .chan-stat-val { font-size: 15px; font-weight: 600; }
+  .chan-soon { color: var(--muted); font-size: 11px; font-style: italic; }
+  .chan-live { color: var(--green); font-size: 10px; text-transform: uppercase; letter-spacing: .1em; }
+  .chan-link { color: var(--cyan); font-size: 11px; text-decoration: none; }
+  .chan-link:hover { text-decoration: underline; }
+
+  /* ── DONATIONS ────────────────────────────────────────────────── */
+  .wallet-card {
+    background: linear-gradient(135deg, rgba(168,85,247,.08), rgba(0,212,255,.05));
+    border: 1px solid rgba(168,85,247,.3);
+    border-radius: 8px; padding: 20px 22px; margin-bottom: 20px;
+  }
+  .wallet-addr {
+    font-size: 13px; color: var(--cyan); word-break: break-all;
+    margin: 8px 0 12px;
+  }
+  .wallet-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn-sm {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+    padding: 6px 14px; border-radius: 4px; cursor: pointer;
+    border: 1px solid; transition: all .2s; text-decoration: none;
+    display: inline-block;
+  }
+  .btn-copy { background: rgba(0,212,255,.08); color: var(--cyan); border-color: rgba(0,212,255,.3); }
+  .btn-copy:hover { background: rgba(0,212,255,.15); }
+  .btn-scan { background: rgba(168,85,247,.08); color: var(--purple); border-color: rgba(168,85,247,.3); }
+  .btn-scan:hover { background: rgba(168,85,247,.15); }
+  .badge-pub {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 10px; text-transform: uppercase; letter-spacing: .1em;
+    padding: 3px 10px; border-radius: 3px;
+  }
+  .badge-pub.ok  { background: rgba(0,255,136,.1); color: var(--green); border: 1px solid rgba(0,255,136,.2); }
+  .badge-pub.err { background: rgba(255,68,102,.1); color: var(--red); border: 1px solid rgba(255,68,102,.2); }
+  .tx-list { display: flex; flex-direction: column; gap: 8px; }
+  .tx-item {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 6px; padding: 10px 14px;
+  }
+  .tx-hash { color: var(--cyan); font-size: 11px; flex: 1; }
+  .tx-val { color: var(--green); font-size: 13px; font-weight: 600; white-space: nowrap; }
+  .tx-date { color: var(--muted); font-size: 11px; white-space: nowrap; }
+  .tx-empty { color: var(--muted); font-style: italic; padding: 20px; text-align: center; }
+  .stat-row { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+  .stat-box {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 6px; padding: 12px 18px; flex: 1; min-width: 120px;
+  }
+  .stat-box-label { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 4px; }
+  .stat-box-val { font-size: 18px; font-weight: 700; }
+
+  /* ── AI AGENTS ────────────────────────────────────────────────── */
+  .agent-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+  .agent-card {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .agent-card.live { border-color: rgba(0,255,136,.25); }
+  .agent-card.building { border-color: rgba(247,147,26,.2); }
+  .agent-card.concept { border-color: rgba(168,85,247,.2); }
+  .agent-name { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; }
+  .agent-desc { color: var(--muted); font-size: 12px; line-height: 1.5; }
+  .agent-status {
+    font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+    padding: 2px 8px; border-radius: 3px; align-self: flex-start;
+  }
+  .agent-status.live     { background: rgba(0,255,136,.1); color: var(--green); border: 1px solid rgba(0,255,136,.2); }
+  .agent-status.building { background: rgba(247,147,26,.1); color: var(--orange); border: 1px solid rgba(247,147,26,.2); }
+  .agent-status.concept  { background: rgba(168,85,247,.1); color: var(--purple); border: 1px solid rgba(168,85,247,.2); }
+  .contract-box {
+    background: var(--bg4); border: 1px solid rgba(0,212,255,.2);
+    border-radius: 8px; padding: 16px 20px; margin-bottom: 20px;
+  }
+  .contract-box .label { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .12em; margin-bottom: 6px; }
+  .contract-addr { color: var(--cyan); font-size: 12px; word-break: break-all; margin-bottom: 10px; }
+  .contract-stats { display: flex; gap: 16px; flex-wrap: wrap; }
+  .c-stat { display: flex; flex-direction: column; gap: 2px; }
+  .c-stat-label { color: var(--muted); font-size: 10px; text-transform: uppercase; }
+  .c-stat-val { color: var(--text); font-size: 14px; font-weight: 600; }
+  .marketplace-tease {
+    background: linear-gradient(135deg, rgba(168,85,247,.08), rgba(0,212,255,.05));
+    border: 1px solid rgba(168,85,247,.25); border-radius: 8px; padding: 24px;
+    text-align: center; margin-top: 8px;
+  }
+  .marketplace-tease h3 { font-family: 'Syne', sans-serif; font-size: 16px; margin-bottom: 8px; color: var(--purple); }
+  .marketplace-tease p { color: var(--muted); font-size: 12px; line-height: 1.7; }
+
+  /* ── SEO CHIPS ────────────────────────────────────────────────── */
+  .seo-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .seo-chip {
+    font-size: 10px; text-transform: uppercase; letter-spacing: .1em;
+    padding: 3px 9px; border-radius: 3px;
+  }
+  .seo-chip.ok  { background: rgba(0,255,136,.1); color: var(--green); border: 1px solid rgba(0,255,136,.2); }
+  .seo-chip.err { background: rgba(255,68,102,.1); color: var(--red); border: 1px solid rgba(255,68,102,.2); }
+
+  /* ── ON-CHAIN / PROOF CHAIN ───────────────────────────────────── */
+  .proof-hero {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 28px; align-items: center;
+    background: linear-gradient(135deg, rgba(0,212,255,.05), rgba(168,85,247,.05));
+    border: 1px solid rgba(0,212,255,.2);
+    border-radius: 10px; padding: 24px 28px; margin-bottom: 24px;
+  }
+  @media(max-width:600px){ .proof-hero { grid-template-columns:1fr; } }
+  .gauge-wrap { display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .gauge-label { font-size:9px; text-transform:uppercase; letter-spacing:.14em; color:var(--muted); }
+  .proof-meta { display:flex; flex-direction:column; gap:14px; }
+  .proof-meta-title { font-family:'Syne',sans-serif; font-size:16px; font-weight:700; color:var(--cyan); }
+  .proof-stats-row { display:flex; gap:20px; flex-wrap:wrap; }
+  .pstat { display:flex; flex-direction:column; gap:2px; }
+  .pstat-label { font-size:10px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); }
+  .pstat-val { font-size:18px; font-weight:700; }
+
+  /* pipeline */
+  .pipeline {
+    display:flex; align-items:center; gap:0;
+    background:var(--bg3); border:1px solid var(--border);
+    border-radius:8px; padding:16px 20px; margin-bottom:20px;
+    overflow-x:auto; flex-wrap:nowrap;
+  }
+  .pipe-node {
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+    min-width:80px; text-align:center; flex-shrink:0;
+  }
+  .pipe-icon { font-size:22px; }
+  .pipe-name { font-size:9px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); }
+  .pipe-led {
+    width:8px; height:8px; border-radius:50%; flex-shrink:0;
+    box-shadow:0 0 6px;
+  }
+  .pipe-led.ok     { background:var(--green); box-shadow:0 0 6px var(--green); animation:ledPulse 2s ease-in-out infinite; }
+  .pipe-led.warn   { background:var(--yellow); box-shadow:0 0 6px var(--yellow); }
+  .pipe-led.err    { background:var(--red); box-shadow:0 0 6px var(--red); }
+  .pipe-led.dim    { background:var(--muted); box-shadow:none; }
+  @keyframes ledPulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .pipe-arrow {
+    color:var(--border); font-size:16px; padding:0 6px; flex-shrink:0;
+    align-self:flex-start; margin-top:12px;
+  }
+  .pipe-chain {
+    font-size:9px; text-transform:uppercase; letter-spacing:.08em;
+    padding:2px 6px; border-radius:3px; margin-top:2px;
+  }
+  .pipe-chain.onchain  { background:rgba(168,85,247,.15); color:var(--purple); border:1px solid rgba(168,85,247,.3); }
+  .pipe-chain.offchain { background:rgba(232,224,208,.05); color:var(--muted); border:1px solid var(--border); }
+
+  /* audit ledger */
+  .ledger-header {
+    display:grid;
+    grid-template-columns: 56px 52px 64px 90px 90px 72px auto;
+    gap:0; font-size:9px; text-transform:uppercase; letter-spacing:.1em;
+    color:var(--muted); padding:8px 14px; border-bottom:1px solid var(--border);
+  }
+  .ledger-row {
+    display:grid;
+    grid-template-columns: 56px 52px 64px 90px 90px 72px auto;
+    gap:0; padding:10px 14px;
+    border-bottom:1px solid var(--border);
+    transition:background .15s;
+    align-items:center;
+  }
+  .ledger-row:hover { background:rgba(255,255,255,.02); }
+  .ledger-row:last-child { border-bottom:none; }
+  @media(max-width:700px){
+    .ledger-header,.ledger-row { grid-template-columns:50px 44px 56px 1fr; }
+    .ledger-cell.hide-mobile { display:none; }
+  }
+  .ledger-wrap {
+    background:var(--bg3); border:1px solid var(--border);
+    border-radius:8px; overflow:hidden; margin-bottom:20px;
+  }
+  .ledger-cell { font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .proof-badge {
+    font-size:9px; text-transform:uppercase; letter-spacing:.08em;
+    padding:2px 7px; border-radius:3px; white-space:nowrap; font-weight:600;
+  }
+  .proof-badge.full     { background:rgba(0,255,136,.12); color:var(--green); border:1px solid rgba(0,255,136,.25); }
+  .proof-badge.pending  { background:rgba(255,215,0,.1); color:var(--yellow); border:1px solid rgba(255,215,0,.2); }
+  .proof-badge.missing  { background:rgba(255,68,102,.1); color:var(--red); border:1px solid rgba(255,68,102,.2); }
+  .proof-badge.noproof  { background:rgba(255,255,255,.04); color:var(--muted); border:1px solid var(--border); }
+  .tx-link { color:var(--cyan); text-decoration:none; font-size:11px; font-family:'JetBrains Mono',monospace; }
+  .tx-link:hover { text-decoration:underline; }
+  .no-tx { color:var(--muted); font-size:11px; }
+  .dir-up   { color:var(--green); font-weight:700; }
+  .dir-down { color:var(--red); font-weight:700; }
+  .pnl-pos  { color:var(--green); }
+  .pnl-neg  { color:var(--red); }
+
+  /* ── UTILS ────────────────────────────────────────────────────── */
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .loading { color: var(--muted); font-style: italic; }
+  .error-note { color: var(--red); font-size: 11px; }
+  .refresh-btn {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase;
+    letter-spacing: .1em; padding: 5px 12px; border-radius: 4px; cursor: pointer;
+    background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.12);
+    color: var(--muted); transition: all .2s;
+  }
+  .refresh-btn:hover { color: var(--text); border-color: rgba(255,255,255,.25); }
+  .page-header {
+    padding: 22px 24px 0;
+    max-width: 860px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 10px;
+  }
+  .page-header h1 { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; }
+  .page-header .sub { color: var(--muted); font-size: 12px; }
+  .last-updated { color: var(--dim); font-size: 11px; }
+  hr.divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
+
+  @media (max-width: 600px) {
+    .status-bar { padding: 10px 12px; gap: 8px; }
+    .sw { min-width: 140px; padding: 8px 12px; }
+    .tab-pane { padding: 16px 12px 60px; }
+    .tab-btn { padding: 12px 12px; font-size: 10px; }
+    .page-header { padding: 16px 12px 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── GNAV ──────────────────────────────────────────────────────── -->
+<nav class="gnav">
+  <a href="https://btcpredictor.io" class="gnav-logo"><span class="gnav-pulse"></span>BTCPREDICTOR.IO</a>
+  <button class="gnav-burger" id="gnavBurger" onclick="toggleGnav()" aria-label="Menu">☰</button>
+</nav>
+<ul class="gnav-links" id="gnavLinks">
+  <li><a href="https://btcpredictor.io/dashboard">Dashboard</a></li>
+  <li><a href="https://btcpredictor.io/xgboost-spiegato">How It Works</a></li>
+  <li><a href="https://btcpredictor.io/investors" class="gnav-investors">Investors</a></li>
+  <li><a href="https://btcpredictor.io/contributors">Contributors</a></li>
+  <li><a href="https://btcpredictor.io/aureo" style="color:#C9A84C;border:1px solid rgba(201,168,76,.3);padding:5px 14px;border-radius:3px;">AUREO</a></li>
+  <li><a href="https://btcpredictor.io/marketing" class="gnav-marketing">Marketing Ops</a></li>
+</ul>
+<div id="gnavBackdrop" onclick="toggleGnav()" style="display:none;position:fixed;inset:0;z-index:998;background:rgba(0,0,0,0.45);"></div>
+
+<!-- ── STATUS BAR ──────────────────────────────────────────────── -->
+<div class="status-bar" id="statusBar">
+  <div class="sw">
+    <div class="sw-icon">🦊</div>
+    <div class="sw-body">
+      <span class="sw-label">Wallet on-site</span>
+      <span class="sw-value dot-load" id="swWallet">caricamento…</span>
+    </div>
+  </div>
+  <div class="sw">
+    <div class="sw-icon">🔍</div>
+    <div class="sw-body">
+      <span class="sw-label">SEO-AI</span>
+      <span class="sw-value dot-load" id="swSeo">caricamento…</span>
+    </div>
+  </div>
+  <div class="sw">
+    <div class="sw-icon">📡</div>
+    <div class="sw-body">
+      <span class="sw-label">Telegram Members</span>
+      <span class="sw-value dot-load" id="swTg">caricamento…</span>
+    </div>
+  </div>
+  <div class="sw">
+    <div class="sw-icon">🧠</div>
+    <div class="sw-body">
+      <span class="sw-label">Last Retrain</span>
+      <span class="sw-value dot-load" id="swRetrain">caricamento…</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── PAGE HEADER ─────────────────────────────────────────────── -->
+<div class="page-header">
+  <div>
+    <h1>🐙 Marketing Ops</h1>
+    <div class="sub">Build-in-public dashboard — btcpredictor.io</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <span class="last-updated" id="lastUpdated">—</span>
+    <button class="refresh-btn" onclick="loadStats()">↻ Refresh</button>
+  </div>
+</div>
+
+<!-- ── TAB NAV ────────────────────────────────────────────────── -->
+<div class="tab-nav">
+  <button class="tab-btn active" onclick="showTab('calendar')" id="tab-btn-calendar">📅 Calendar</button>
+  <button class="tab-btn" onclick="showTab('channels')" id="tab-btn-channels">📡 Channels</button>
+  <button class="tab-btn" onclick="showTab('donations')" id="tab-btn-donations">🤑 Donations</button>
+  <button class="tab-btn" onclick="showTab('agents')" id="tab-btn-agents">🤖 AI Agents</button>
+  <button class="tab-btn" onclick="showTab('onchain')" id="tab-btn-onchain">⛓ Proof Chain</button>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- TAB 1 — CALENDAR                                            -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<div class="tab-pane active" id="pane-calendar">
+
+  <div class="next-event">
+    <span style="font-size:20px;">⏱</span>
+    <div>
+      <div class="next-event-label">Prossimo evento</div>
+      <div class="next-event-val" id="nextEvent">Calcolo…</div>
+    </div>
+  </div>
+
+  <div class="section-hdr">
+    <h2>Schedule Ricorrente</h2>
+    <span>UTC — timezone base del bot</span>
+  </div>
+
+  <div class="schedule-list">
+    <div class="sch-item">
+      <div class="sch-time">Ogni 15 min</div>
+      <div class="sch-chan">🤖</div>
+      <div class="sch-desc">Position monitor — wf08 BTC_Position_Monitor<br><span style="color:var(--muted);font-size:11px;">Controlla posizioni aperte, trigger rescue se necessario</span></div>
+      <span class="sch-type auto">auto</span>
+    </div>
+    <div class="sch-item">
+      <div class="sch-time">Ogni ora</div>
+      <div class="sch-chan">🤖</div>
+      <div class="sch-desc">System watchdog — wf06 BTC_System_Watchdog<br><span style="color:var(--muted);font-size:11px;">Health check infrastruttura, alert se wf critici offline</span></div>
+      <span class="sch-type sys">system</span>
+    </div>
+    <div class="sch-item">
+      <div class="sch-time">00:00 / 08:00 / 16:00</div>
+      <div class="sch-chan">📊</div>
+      <div class="sch-desc">Funding rate settlement (Binance perp)<br><span style="color:var(--muted);font-size:11px;">Pattern: pressione buy post-settlement quando funding era positivo</span></div>
+      <span class="sch-type sys">market</span>
+    </div>
+    <div class="sch-item">
+      <div class="sch-time">Daily 07:00</div>
+      <div class="sch-chan">📬</div>
+      <div class="sch-desc">Morning Telegram update — wf04 BTC_Talker<br><span style="color:var(--muted);font-size:11px;">Report giornaliero su @BTCPredictorBot</span></div>
+      <span class="sch-type content">content</span>
+    </div>
+    <div class="sch-item">
+      <div class="sch-time">Daily 08:00</div>
+      <div class="sch-chan">📣</div>
+      <div class="sch-desc">Social content — wf11 BTC_Channel_Content<br><span style="color:var(--muted);font-size:11px;">Generazione contenuti social con AI → pubblicazione automatica</span></div>
+      <span class="sch-type content">content</span>
+    </div>
+    <div class="sch-item">
+      <div class="sch-time">Venerdì (expiry)</div>
+      <div class="sch-chan">⚡</div>
+      <div class="sch-desc">Options expiry BTC/ETH — finestra ad alta volatilità<br><span style="color:var(--muted);font-size:11px;">Bias contrarian: spesso spike pre-expiry + reversal post-settlement</span></div>
+      <span class="sch-type market">market</span>
+    </div>
+    <div class="sch-item">
+      <div class="sch-time">Dom 03:00</div>
+      <div class="sch-chan">🧠</div>
+      <div class="sch-desc">XGBoost retrain — /force-retrain automatico<br><span style="color:var(--muted);font-size:11px;">Retrain su dataset aggiornato → push model su Railway → reload</span></div>
+      <span class="sch-type sys">ML retrain</span>
+    </div>
+    <div class="sch-item">
+      <div class="sch-time">Dom 09:30</div>
+      <div class="sch-chan">💾</div>
+      <div class="sch-desc">n8n VPS backup — launchd Mac<br><span style="color:var(--muted);font-size:11px;">Backup SQLite dei workflow da VPS Hostinger</span></div>
+      <span class="sch-type sys">system</span>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <div class="section-hdr" style="margin-top:18px;">
+    <h2>Prossimi Post Pianificati</h2>
+    <span>da Supabase <code>social_posts</code> — integ. futura wf11</span>
+  </div>
+
+  <div id="socialPostsList">
+    <div class="card" style="border-style:dashed;opacity:.5;text-align:center;">
+      <div class="card-title">🗓 Placeholder</div>
+      <div class="card-value" style="color:var(--muted);font-size:12px;">
+        Integrazione wf11 → Supabase <code>social_posts</code> in arrivo.<br>
+        I post pianificati appariranno qui automaticamente.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- TAB 2 — CHANNELS                                            -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<div class="tab-pane" id="pane-channels">
+
+  <div class="section-hdr">
+    <h2>Canali di Distribuzione</h2>
+    <span>metriche live dove disponibili</span>
+  </div>
+
+  <div class="channels-grid">
+
+    <!-- Telegram -->
+    <div class="chan-card" style="border-color:rgba(0,212,255,.25);">
+      <div class="chan-header">
+        <div class="chan-icon">✈️</div>
+        <div>
+          <div class="chan-name">Telegram</div>
+          <div class="chan-handle">@BTCPredictorBot</div>
+        </div>
+      </div>
+      <div class="chan-stat">
+        <span class="chan-stat-label">Members</span>
+        <span class="chan-stat-val dot-ok" id="tgMemberCount">—</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span class="chan-live">● live</span>
+        <a href="https://t.me/BTCPredictorBot" target="_blank" class="chan-link">t.me/BTCPredictorBot ↗</a>
+      </div>
+      <div style="color:var(--muted);font-size:11px;">Canale pubblico build-in-public storytelling. Canale principale.</div>
+    </div>
+
+    <!-- X / Twitter -->
+    <div class="chan-card">
+      <div class="chan-header">
+        <div class="chan-icon">𝕏</div>
+        <div>
+          <div class="chan-name">X / Twitter</div>
+          <div class="chan-handle">@btcpredictor_io</div>
+        </div>
+      </div>
+      <div class="chan-stat">
+        <span class="chan-stat-label">Followers</span>
+        <span class="chan-stat-val" style="color:var(--muted);">—</span>
+      </div>
+      <div><span class="chan-soon">Integration coming soon</span></div>
+      <div style="color:var(--muted);font-size:11px;">Thread tecnici + performance update settimanale via wf09A.</div>
+    </div>
+
+    <!-- LinkedIn -->
+    <div class="chan-card">
+      <div class="chan-header">
+        <div class="chan-icon">💼</div>
+        <div>
+          <div class="chan-name">LinkedIn</div>
+          <div class="chan-handle">Mattia Calastri</div>
+        </div>
+      </div>
+      <div class="chan-stat">
+        <span class="chan-stat-label">Connections</span>
+        <span class="chan-stat-val" style="color:var(--muted);">—</span>
+      </div>
+      <div><span class="chan-soon">Integration coming soon</span></div>
+      <div style="color:var(--muted);font-size:11px;">Angolo investor + professional audience. Target: fintech, crypto.</div>
+    </div>
+
+    <!-- Reddit -->
+    <div class="chan-card">
+      <div class="chan-header">
+        <div class="chan-icon">🤘</div>
+        <div>
+          <div class="chan-name">Reddit</div>
+          <div class="chan-handle">r/algotrading</div>
+        </div>
+      </div>
+      <div class="chan-stat">
+        <span class="chan-stat-label">Post karma</span>
+        <span class="chan-stat-val" style="color:var(--muted);">—</span>
+      </div>
+      <div><span class="chan-soon">Integration coming soon</span></div>
+      <div style="color:var(--muted);font-size:11px;">r/algotrading, r/BitcoinMarkets — community engagement.</div>
+    </div>
+
+    <!-- btcpredictor.io -->
+    <div class="chan-card" style="border-color:rgba(247,147,26,.2);">
+      <div class="chan-header">
+        <div class="chan-icon">🌐</div>
+        <div>
+          <div class="chan-name">btcpredictor.io</div>
+          <div class="chan-handle">sito principale</div>
+        </div>
+      </div>
+      <div class="chan-stat">
+        <span class="chan-stat-label">SEO Status</span>
+        <span class="chan-stat-val" id="chanSeoVal">—</span>
+      </div>
+      <div>
+        <a href="https://btcpredictor.io" target="_blank" class="chan-link">btcpredictor.io ↗</a>
+      </div>
+      <div style="color:var(--muted);font-size:11px;">Organic traffic + email leads via Satoshi widget.</div>
+    </div>
+
+    <!-- AUREO -->
+    <div class="chan-card" style="border-color:rgba(201,168,76,.25);">
+      <div class="chan-header">
+        <div class="chan-icon">🎩</div>
+        <div>
+          <div class="chan-name">AUREO</div>
+          <div class="chan-handle">@aureo.io</div>
+        </div>
+      </div>
+      <div class="chan-stat">
+        <span class="chan-stat-label">Status</span>
+        <span class="chan-stat-val" style="color:#C9A84C;">Building</span>
+      </div>
+      <div>
+        <a href="https://btcpredictor.io/aureo" target="_blank" class="chan-link" style="color:#C9A84C;">btcpredictor.io/aureo ↗</a>
+      </div>
+      <div style="color:var(--muted);font-size:11px;">Educazione finanziaria IT gratuita on-chain. Per Aspera ad Astra.</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- TAB 3 — DONATIONS                                           -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<div class="tab-pane" id="pane-donations">
+
+  <div class="section-hdr">
+    <h2>Wallet Donazioni</h2>
+    <span>Polygon PoS</span>
+  </div>
+
+  <div class="wallet-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);">Polygon PoS Wallet</div>
+      <span class="badge-pub ok" id="walletBadge">✅ Published on site</span>
+    </div>
+    <div class="wallet-addr" id="walletAddrDisplay">0x7Ac896F18ce52a0520dA49C3129520f7B70d51f0</div>
+    <div class="wallet-actions">
+      <button class="btn-sm btn-copy" onclick="copyWallet()">📋 Copia</button>
+      <a class="btn-sm btn-scan" href="https://polygonscan.com/address/0x7Ac896F18ce52a0520dA49C3129520f7B70d51f0" target="_blank">🔍 Polygonscan ↗</a>
+    </div>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat-box">
+      <div class="stat-box-label">Tx ricevute</div>
+      <div class="stat-box-val dot-ok" id="txCount">—</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-box-label">Totale MATIC</div>
+      <div class="stat-box-val" id="totalMatic" style="color:var(--purple);">—</div>
+    </div>
+  </div>
+
+  <div class="section-hdr">
+    <h2>Ultime Transazioni Ricevute</h2>
+    <span>via PolygonScan public API</span>
+  </div>
+
+  <div class="tx-list" id="txList">
+    <div class="tx-empty loading">Caricamento transazioni…</div>
+  </div>
+
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- TAB 4 — AI AGENTS                                           -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<div class="tab-pane" id="pane-agents">
+
+  <div class="section-hdr">
+    <h2>On-Chain Audit Contract</h2>
+    <span>BTCBotAudit.sol — Polygon PoS</span>
+  </div>
+
+  <div class="contract-box">
+    <div class="label">Contract Address</div>
+    <div class="contract-addr">0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55</div>
+    <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+      <a class="btn-sm btn-copy" href="https://polygonscan.com/address/0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55" target="_blank" style="text-decoration:none;">🔍 Polygonscan ↗</a>
+    </div>
+    <div class="contract-stats">
+      <div class="c-stat">
+        <span class="c-stat-label">Rete</span>
+        <span class="c-stat-val" style="color:var(--purple);">Polygon PoS</span>
+      </div>
+      <div class="c-stat">
+        <span class="c-stat-label">Finalità</span>
+        <span class="c-stat-val" style="color:var(--green);">~2s</span>
+      </div>
+      <div class="c-stat">
+        <span class="c-stat-label">Funzioni</span>
+        <span class="c-stat-val">commitPrediction / resolvePrediction</span>
+      </div>
+      <div class="c-stat">
+        <span class="c-stat-label">Gas/tx</span>
+        <span class="c-stat-val" style="color:var(--green);">&lt; $0.01</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-hdr">
+    <h2>AI Agents Attivi</h2>
+    <span>16 workflow n8n sul VPS Hostinger</span>
+  </div>
+
+  <div class="agent-grid">
+    <div class="agent-card live">
+      <div class="agent-name">🤖 Brain — wf01B</div>
+      <span class="agent-status live">live</span>
+      <div class="agent-desc">AI prediction engine. Claude/Gemini + XGBoost dual-gate. Commit on-chain ogni segnale.</div>
+    </div>
+    <div class="agent-card live">
+      <div class="agent-name">📊 Inputs — wf01A</div>
+      <span class="agent-status live">live</span>
+      <div class="agent-desc">Fetch 20+ input: RSI, CVD, Fear&amp;Greed, funding, orderbook. Formatta per LLM.</div>
+    </div>
+    <div class="agent-card live">
+      <div class="agent-name">🔍 Trade Checker — wf02</div>
+      <span class="agent-status live">live</span>
+      <div class="agent-desc">Rescue PENDING, resolve on-chain, calcola PnL, circuit breaker 3 loss.</div>
+    </div>
+    <div class="agent-card live">
+      <div class="agent-name">📬 Talker — wf04</div>
+      <span class="agent-status live">live</span>
+      <div class="agent-desc">Report giornaliero Telegram. Statistica WR, PnL, segnali recenti.</div>
+    </div>
+    <div class="agent-card live">
+      <div class="agent-name">🎙 Social Manager — wf09A</div>
+      <span class="agent-status live">live</span>
+      <div class="agent-desc">AI content generation (Gemini Flash). Gestisce coda post per X/Telegram.</div>
+    </div>
+    <div class="agent-card live">
+      <div class="agent-name">📣 Channel Content — wf11</div>
+      <span class="agent-status live">live</span>
+      <div class="agent-desc">Genera e pubblica contenuti storytelling build-in-public su @BTCPredictorBot.</div>
+    </div>
+    <div class="agent-card building">
+      <div class="agent-name">🔮 Regime Detector</div>
+      <span class="agent-status building">building</span>
+      <div class="agent-desc">Labelling trend/ranging/volatile con vol 4h normalizzata. Feature P1 per XGBoost.</div>
+    </div>
+    <div class="agent-card building">
+      <div class="agent-name">🧮 On-chain Signal Audit</div>
+      <span class="agent-status building">building</span>
+      <div class="agent-desc">commitSignal() per ghost/SKIP. Dataset di training verificabile on-chain.</div>
+    </div>
+    <div class="agent-card concept">
+      <div class="agent-name">🏦 Whale Alert Agent</div>
+      <span class="agent-status concept">concept</span>
+      <div class="agent-desc">Monitor transazioni &gt;1000 BTC. Spike volatilità predictor. On-chain trigger.</div>
+    </div>
+    <div class="agent-card concept">
+      <div class="agent-name">📐 SOPR / MVRV Agent</div>
+      <span class="agent-status concept">concept</span>
+      <div class="agent-desc">On-chain metrics: SOPR &lt;1 = capitolation, MVRV Z-score &gt;7 = peak zone.</div>
+    </div>
+  </div>
+
+  <div class="marketplace-tease">
+    <div style="font-size:28px;margin-bottom:10px;">🐙</div>
+    <h3>Agent Marketplace — Coming Soon</h3>
+    <p>
+      Un marketplace on-chain dove sviluppatori terzi possono deployare agenti specializzati
+      (sentiment, on-chain, cross-asset) che si integrano nel dual-gate.<br>
+      Ogni agente è un modulo verificabile on-chain con revenue share automatico.<br><br>
+      <span style="color:var(--purple);">Status: concept design · ETA: Q3 2026</span>
+    </p>
+  </div>
+
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- TAB 5 — PROOF CHAIN                                         -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<div class="tab-pane" id="pane-onchain">
+
+  <!-- HERO: gauge + stats -->
+  <div class="proof-hero">
+    <div class="gauge-wrap">
+      <svg viewBox="0 0 120 120" width="110" height="110" style="overflow:visible">
+        <!-- track -->
+        <circle cx="60" cy="60" r="48" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="9"/>
+        <!-- glow ring -->
+        <circle cx="60" cy="60" r="48" fill="none" stroke="rgba(0,212,255,.1)" stroke-width="14"/>
+        <!-- progress arc — dashoffset set by JS -->
+        <circle id="gaugeArc" cx="60" cy="60" r="48" fill="none"
+          stroke="url(#gaugeGrad)" stroke-width="9"
+          stroke-dasharray="301.6" stroke-dashoffset="301.6"
+          stroke-linecap="round"
+          transform="rotate(-90 60 60)"
+          style="transition:stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1)"/>
+        <defs>
+          <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#00d4ff"/>
+            <stop offset="100%" stop-color="#00ff88"/>
+          </linearGradient>
+        </defs>
+        <!-- center text -->
+        <text id="gaugePct" x="60" y="56" text-anchor="middle"
+          font-size="24" fill="#e8e0d0" font-family="JetBrains Mono,monospace" font-weight="700">—</text>
+        <text x="60" y="70" text-anchor="middle"
+          font-size="8" fill="rgba(232,224,208,.4)" font-family="JetBrains Mono,monospace"
+          text-transform="uppercase" letter-spacing="2">integrity</text>
+      </svg>
+      <div class="gauge-label">proof chain score</div>
+    </div>
+
+    <div class="proof-meta">
+      <div>
+        <div class="proof-meta-title">⛓ On-Chain Audit Integrity</div>
+        <div style="color:var(--muted);font-size:11px;margin-top:4px;">
+          Ogni prediction ha un <span style="color:var(--purple)">commit</span> on-chain PRIMA del fill Kraken
+          e un <span style="color:var(--cyan)">resolve</span> DOPO la chiusura. Immutabile, verificabile, trustless.
+        </div>
+      </div>
+      <div class="proof-stats-row">
+        <div class="pstat">
+          <span class="pstat-label">Commits</span>
+          <span class="pstat-val" id="pcCommits" style="color:var(--purple);">—</span>
+        </div>
+        <div class="pstat">
+          <span class="pstat-label">Resolves</span>
+          <span class="pstat-val" id="pcResolves" style="color:var(--cyan);">—</span>
+        </div>
+        <div class="pstat">
+          <span class="pstat-label">Full Proof</span>
+          <span class="pstat-val" id="pcFull" style="color:var(--green);">—</span>
+        </div>
+        <div class="pstat">
+          <span class="pstat-label">Ultimo commit</span>
+          <span class="pstat-val" id="pcLastCommit" style="color:var(--text);font-size:13px;">—</span>
+        </div>
+      </div>
+      <div id="pcLiveBadge" style="display:none;align-items:center;gap:6px;">
+        <span style="width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:ledPulse 2s ease-in-out infinite;display:inline-block;"></span>
+        <span style="font-size:11px;color:var(--green);">Sistema attivo — audit registrati nelle ultime 24h</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- PIPELINE FLOW -->
+  <div class="section-hdr">
+    <h2>Pipeline Audit Flow</h2>
+    <span>ogni step verificabile on-chain</span>
+  </div>
+
+  <div class="pipeline">
+    <div class="pipe-node">
+      <div class="pipe-icon">📊</div>
+      <div class="pipe-led ok" id="pipeInputs"></div>
+      <div class="pipe-name">wf01A<br>Inputs</div>
+      <div class="pipe-chain offchain">off-chain</div>
+    </div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-node">
+      <div class="pipe-icon">🧠</div>
+      <div class="pipe-led ok" id="pipeBrain"></div>
+      <div class="pipe-name">wf01B<br>AI Decision</div>
+      <div class="pipe-chain offchain">off-chain</div>
+    </div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-node">
+      <div class="pipe-icon">⛓</div>
+      <div class="pipe-led" id="pipeCommit" style="background:var(--purple);box-shadow:0 0 6px var(--purple);animation:ledPulse 2s ease-in-out infinite;"></div>
+      <div class="pipe-name">COMMIT<br>Polygon</div>
+      <div class="pipe-chain onchain">on-chain</div>
+    </div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-node">
+      <div class="pipe-icon">⚡</div>
+      <div class="pipe-led ok" id="pipeFill"></div>
+      <div class="pipe-name">Kraken<br>Fill</div>
+      <div class="pipe-chain offchain">off-chain</div>
+    </div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-node">
+      <div class="pipe-icon">🔍</div>
+      <div class="pipe-led ok" id="pipeMonitor"></div>
+      <div class="pipe-name">wf08<br>Monitor</div>
+      <div class="pipe-chain offchain">off-chain</div>
+    </div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-node">
+      <div class="pipe-icon">⛓</div>
+      <div class="pipe-led" id="pipeResolve" style="background:var(--cyan);box-shadow:0 0 6px var(--cyan);animation:ledPulse 2s ease-in-out infinite;"></div>
+      <div class="pipe-name">RESOLVE<br>Polygon</div>
+      <div class="pipe-chain onchain">on-chain</div>
+    </div>
+  </div>
+
+  <!-- AUDIT LEDGER -->
+  <div class="section-hdr" style="margin-top:18px;">
+    <h2>Audit Ledger</h2>
+    <span id="ledgerMeta">ultime 30 bet con proof status</span>
+  </div>
+
+  <div class="ledger-wrap">
+    <div class="ledger-header">
+      <div>#</div>
+      <div>Dir</div>
+      <div>Conf</div>
+      <div class="hide-mobile">Commit TX</div>
+      <div class="hide-mobile">Resolve TX</div>
+      <div class="hide-mobile">PnL</div>
+      <div>Status</div>
+    </div>
+    <div id="auditLedger">
+      <div style="padding:24px;text-align:center;color:var(--muted);font-style:italic;">
+        Caricamento audit trail…
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTRACT INSPECTOR -->
+  <div class="section-hdr" style="margin-top:18px;">
+    <h2>Contract Inspector</h2>
+    <span>BTCBotAudit.sol — verifica manuale</span>
+  </div>
+
+  <div style="background:var(--bg3);border:1px solid rgba(168,85,247,.2);border-radius:8px;padding:18px 20px;">
+    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:6px;">Contratto</div>
+    <div style="color:var(--cyan);font-size:12px;word-break:break-all;margin-bottom:12px;">0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <a class="btn-sm btn-scan" href="https://polygonscan.com/address/0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55" target="_blank" style="text-decoration:none;">🔍 Explorer ↗</a>
+      <a class="btn-sm" href="https://polygonscan.com/address/0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55#readContract" target="_blank" style="text-decoration:none;background:rgba(0,255,136,.07);color:var(--green);border:1px solid rgba(0,255,136,.25);">📖 Read Contract ↗</a>
+    </div>
+    <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border);">
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:8px;">Come verificare una prediction</div>
+      <div style="color:var(--text);font-size:11px;line-height:1.8;">
+        1. Copia il <span style="color:var(--purple)">commit TX hash</span> dalla riga sopra<br>
+        2. Cerca su <a href="https://polygonscan.com" target="_blank" style="color:var(--cyan);">polygonscan.com</a> — verifica il timestamp<br>
+        3. Il timestamp on-chain deve essere <strong>precedente</strong> al fill Kraken<br>
+        4. Il <span style="color:var(--cyan)">resolve TX</span> deve matchare l'outcome reale<br>
+        5. Impossibile retrodatare: l'hash è deterministico e immutabile ⛓
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ── GNAV ── */
+function toggleGnav(){
+  var l=document.getElementById('gnavLinks');
+  var b=document.getElementById('gnavBackdrop');
+  var btn=document.getElementById('gnavBurger');
+  var open=l.classList.toggle('gnav-open');
+  b.style.display=open?'block':'none';
+  btn.textContent=open?'✕':'☰';
+}
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'){
+    var l=document.getElementById('gnavLinks');
+    if(l&&l.classList.contains('gnav-open'))toggleGnav();
+  }
+});
+
+/* ── TABS ── */
+var _onchainLoaded = false;
+function showTab(id) {
+  document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  var pane = document.getElementById('pane-' + id);
+  var btn  = document.getElementById('tab-btn-' + id);
+  if(pane) pane.classList.add('active');
+  if(btn)  btn.classList.add('active');
+  if(id === 'onchain' && !_onchainLoaded) {
+    _onchainLoaded = true;
+    loadOnChainAudit();
+  }
+}
+
+/* ── NEXT EVENT ── */
+function computeNextEvent() {
+  var now = new Date();
+  var utcH = now.getUTCHours(), utcM = now.getUTCMinutes(), utcD = now.getUTCDay();
+  var events = [
+    { label: 'Position monitor (wf08)', minuteOffset: 15 - (now.getUTCMinutes() % 15) },
+  ];
+  // Daily events
+  var daily = [
+    { h: 0,  m: 0,  label: 'Funding settlement 00:00 UTC' },
+    { h: 7,  m: 0,  label: 'Morning Telegram post (wf04)' },
+    { h: 8,  m: 0,  label: 'Social content (wf11)' },
+    { h: 8,  m: 0,  label: 'Funding settlement 08:00 UTC' },
+    { h: 16, m: 0,  label: 'Funding settlement 16:00 UTC' },
+  ];
+  var best = null, bestMin = Infinity;
+  daily.forEach(function(ev) {
+    var diff = (ev.h - utcH) * 60 + (ev.m - utcM);
+    if(diff <= 0) diff += 1440;
+    if(diff < bestMin) { bestMin = diff; best = ev.label; }
+  });
+  // Compare with position monitor
+  var monMin = 15 - (now.getUTCMinutes() % 15);
+  if(monMin < bestMin) { bestMin = monMin; best = 'Position monitor (wf08)'; }
+  var h = Math.floor(bestMin / 60), m = bestMin % 60;
+  var parts = [];
+  if(h > 0) parts.push(h + 'h');
+  parts.push(m + 'min');
+  document.getElementById('nextEvent').textContent = best + ' — tra ' + parts.join(' ');
+}
+computeNextEvent();
+
+/* ── UTILS ── */
+function fmtTs(ts) {
+  if(!ts) return '—';
+  var d = new Date(ts * 1000);
+  return d.toLocaleDateString('it-IT', { day:'2-digit', month:'2-digit', year:'numeric' }) +
+         ' ' + d.toLocaleTimeString('it-IT', { hour:'2-digit', minute:'2-digit' });
+}
+
+function truncAddr(addr) {
+  if(!addr || addr.length < 16) return addr;
+  return addr.slice(0, 8) + '…' + addr.slice(-6);
+}
+
+/* ── COPY WALLET ── */
+function copyWallet() {
+  navigator.clipboard.writeText('0x7Ac896F18ce52a0520dA49C3129520f7B70d51f0').then(function() {
+    var btn = document.querySelector('.btn-copy');
+    if(btn) { btn.textContent = '✅ Copiato!'; setTimeout(function(){ btn.textContent = '📋 Copia'; }, 2000); }
+  });
+}
+
+/* ── LOAD MARKETING STATS ── */
+function loadStats() {
+  document.getElementById('lastUpdated').textContent = 'aggiornamento…';
+  document.querySelectorAll('.sw-value').forEach(function(el){ el.textContent = 'caricamento…'; el.className = 'sw-value dot-load'; });
+
+  fetch('/marketing-stats')
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      var now = new Date();
+      document.getElementById('lastUpdated').textContent = 'aggiornato ' + now.toLocaleTimeString('it-IT');
+
+      /* ── STATUS BAR ── */
+      // Wallet
+      var wallet = data.wallet || {};
+      var wEl = document.getElementById('swWallet');
+      if(wallet.published_in_site) {
+        wEl.textContent = '✅ ' + truncAddr(wallet.address);
+        wEl.className = 'sw-value dot-ok';
+      } else {
+        wEl.textContent = '❌ Non presente in index.html';
+        wEl.className = 'sw-value dot-err';
+      }
+      var badge = document.getElementById('walletBadge');
+      if(badge) {
+        badge.textContent = wallet.published_in_site ? '✅ Published on site' : '❌ Not published';
+        badge.className = 'badge-pub ' + (wallet.published_in_site ? 'ok' : 'err');
+      }
+
+      // SEO
+      var seo = data.seo || {};
+      var seoEl = document.getElementById('swSeo');
+      var seoKeys = ['og_image','meta_description','json_ld','canonical'];
+      var seoLabels = {'og_image':'og:img','meta_description':'meta-desc','json_ld':'JSON-LD','canonical':'canonical'};
+      var seoAll = seoKeys.every(function(k){ return seo[k]; });
+      if(seoAll) {
+        seoEl.textContent = '✅ 4/4 pass';
+        seoEl.className = 'sw-value dot-ok';
+      } else {
+        var failed = seoKeys.filter(function(k){ return !seo[k]; }).map(function(k){ return seoLabels[k]; });
+        seoEl.textContent = '⚠ fail: ' + failed.join(', ');
+        seoEl.className = 'sw-value dot-warn';
+      }
+      // Channels tab SEO
+      var chanSeo = document.getElementById('chanSeoVal');
+      if(chanSeo) {
+        chanSeo.textContent = seoAll ? '✅ 4/4 pass' : '⚠ ' + (4 - Object.keys(seo).filter(function(k){ return seo[k]; }).length) + ' issues';
+        chanSeo.className = seoAll ? 'chan-stat-val dot-ok' : 'chan-stat-val dot-warn';
+      }
+      // SEO chips in donations (hidden — could add to channels card)
+
+      // Telegram
+      var tgEl = document.getElementById('swTg');
+      var tgCount = document.getElementById('tgMemberCount');
+      if(data.telegram_members !== null && data.telegram_members !== undefined) {
+        var val = data.telegram_members.toLocaleString('it-IT');
+        tgEl.textContent = '📡 ' + val + ' members';
+        tgEl.className = 'sw-value dot-ok';
+        if(tgCount) { tgCount.textContent = val; }
+      } else {
+        tgEl.textContent = '— (token mancante)';
+        tgEl.className = 'sw-value dot-warn';
+        if(tgCount) { tgCount.textContent = '—'; }
+      }
+
+      // Retrain
+      var rtEl = document.getElementById('swRetrain');
+      if(data.last_retrain) {
+        rtEl.textContent = '🧠 ' + data.last_retrain;
+        rtEl.className = 'sw-value dot-ok';
+      } else {
+        rtEl.textContent = '— (no report)';
+        rtEl.className = 'sw-value dot-warn';
+      }
+
+      /* ── DONATIONS TAB ── */
+      var txs = (wallet.recent_txs || []);
+      document.getElementById('txCount').textContent = wallet.received_tx_count || txs.length || '0';
+      var totalMatic = txs.reduce(function(s, tx){ return s + (tx.value_matic || 0); }, 0);
+      document.getElementById('totalMatic').textContent = totalMatic.toFixed(4) + ' MATIC';
+
+      var txList = document.getElementById('txList');
+      if(txs.length === 0) {
+        txList.innerHTML = '<div class="tx-empty">Nessuna transazione ricevuta trovata (o API limit raggiunto)</div>';
+      } else {
+        txList.innerHTML = txs.map(function(tx) {
+          return '<div class="tx-item">' +
+            '<a class="tx-hash" href="https://polygonscan.com/tx/' + (tx.hash_full || '') + '" target="_blank">' +
+            (tx.hash || truncAddr(tx.hash_full || '')) + ' ↗</a>' +
+            '<span class="tx-val">+' + (tx.value_matic || 0).toFixed(4) + ' MATIC</span>' +
+            '<span class="tx-date">' + fmtTs(tx.timestamp) + '</span>' +
+            '</div>';
+        }).join('');
+      }
+
+    })
+    .catch(function(err) {
+      document.getElementById('lastUpdated').textContent = '⚠ errore caricamento';
+      console.error('marketing-stats error:', err);
+    });
+}
+
+/* ── PROOF CHAIN / ON-CHAIN AUDIT ── */
+function loadOnChainAudit() {
+  fetch('/on-chain-audit')
+    .then(function(r){ return r.json(); })
+    .then(function(d) {
+      if(d.error) { console.warn('on-chain-audit:', d.error); return; }
+
+      /* gauge */
+      var score = d.integrity_score;
+      var gaugePct = document.getElementById('gaugePct');
+      var gaugeArc = document.getElementById('gaugeArc');
+      if(gaugePct && gaugeArc && score !== null && score !== undefined) {
+        var CIRC = 301.6;
+        var offset = CIRC * (1 - score / 100);
+        gaugePct.textContent = score.toFixed(0) + '%';
+        // color by score
+        var col = score >= 85 ? 'url(#gaugeGrad)' : score >= 60 ? '#ffd700' : '#ff4466';
+        gaugeArc.setAttribute('stroke', col);
+        // animate after short delay to let CSS transition fire
+        setTimeout(function(){ gaugeArc.setAttribute('stroke-dashoffset', offset.toFixed(1)); }, 120);
+      } else if(gaugePct) {
+        gaugePct.textContent = '—';
+      }
+
+      /* stats */
+      function setEl(id, val){ var e=document.getElementById(id); if(e) e.textContent=val; }
+      setEl('pcCommits', d.with_commit !== undefined ? d.with_commit : '—');
+      setEl('pcResolves', d.with_resolve !== undefined ? d.with_resolve : '—');
+      setEl('pcFull', d.with_full_proof !== undefined ? d.with_full_proof : '—');
+      if(d.last_commit_at) {
+        var dt = new Date(d.last_commit_at);
+        setEl('pcLastCommit', dt.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit'}) +
+          ' ' + dt.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}));
+        // live badge if last commit < 24h
+        var diffH = (Date.now() - dt.getTime()) / 3600000;
+        var badge = document.getElementById('pcLiveBadge');
+        if(badge && diffH < 24) badge.style.display = 'flex';
+      }
+
+      /* pipeline status: if last commit < 4h → green, else warn */
+      function pipeStatus(id, ok) {
+        var el = document.getElementById(id);
+        if(!el) return;
+        el.className = 'pipe-led ' + (ok ? 'ok' : 'warn');
+      }
+      var lastCommitH = d.last_commit_at ? (Date.now() - new Date(d.last_commit_at).getTime()) / 3600000 : 999;
+      var botActive = lastCommitH < 4;
+      pipeStatus('pipeInputs',  botActive);
+      pipeStatus('pipeBrain',   botActive);
+      pipeStatus('pipeFill',    botActive);
+      pipeStatus('pipeMonitor', botActive);
+      if(!botActive) {
+        var c = document.getElementById('pipeCommit');
+        var rv = document.getElementById('pipeResolve');
+        if(c)  { c.style.background='var(--yellow)'; c.style.boxShadow='0 0 6px var(--yellow)'; c.style.animation='none'; }
+        if(rv) { rv.style.background='var(--yellow)'; rv.style.boxShadow='0 0 6px var(--yellow)'; rv.style.animation='none'; }
+      }
+
+      /* audit ledger */
+      var entries = d.entries || [];
+      var meta = document.getElementById('ledgerMeta');
+      if(meta) meta.textContent = 'ultime ' + entries.length + ' bet · proof status live';
+
+      var ledger = document.getElementById('auditLedger');
+      if(!ledger) return;
+      if(entries.length === 0) {
+        ledger.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-style:italic;">Nessun dato disponibile</div>';
+        return;
+      }
+
+      var PS_BASE = 'https://polygonscan.com/tx/';
+      ledger.innerHTML = entries.map(function(e) {
+        var dirClass = e.direction === 'UP' ? 'dir-up' : 'dir-down';
+        var dirLabel = e.direction === 'UP' ? '↑ UP' : '↓ DN';
+        var conf = e.confidence ? (parseFloat(e.confidence)*100).toFixed(0)+'%' : '—';
+        var commitCell = e.commit_tx
+          ? '<a class="tx-link" href="' + PS_BASE + e.commit_tx + '" target="_blank">' + e.commit_tx.slice(0,8)+'…</a>'
+          : '<span class="no-tx">—</span>';
+        var resolveCell = e.resolve_tx
+          ? '<a class="tx-link" href="' + PS_BASE + e.resolve_tx + '" target="_blank">' + e.resolve_tx.slice(0,8)+'…</a>'
+          : (e.correct === null ? '<span style="color:var(--yellow);font-size:11px;">⏳ open</span>' : '<span class="no-tx">—</span>');
+        var pnl = e.pnl_usd !== null && e.pnl_usd !== undefined
+          ? '<span class="' + (e.pnl_usd >= 0 ? 'pnl-pos' : 'pnl-neg') + '">' +
+            (e.pnl_usd >= 0 ? '+' : '') + parseFloat(e.pnl_usd).toFixed(4) + '</span>'
+          : '<span style="color:var(--muted);">—</span>';
+
+        var badge, badgeClass;
+        if(e.status === 'full_proof') {
+          badge = '⛓ Full Proof'; badgeClass = 'full';
+        } else if(e.status === 'pending_resolve') {
+          badge = '⏳ Pending'; badgeClass = 'pending';
+        } else if(e.status === 'missing_resolve') {
+          badge = '⚠ No Resolve'; badgeClass = 'missing';
+        } else {
+          badge = '○ No Proof'; badgeClass = 'noproof';
+        }
+
+        return '<div class="ledger-row">' +
+          '<div class="ledger-cell" style="color:var(--muted);">#' + e.id + '</div>' +
+          '<div class="ledger-cell ' + dirClass + '">' + dirLabel + '</div>' +
+          '<div class="ledger-cell" style="color:var(--text);">' + conf + '</div>' +
+          '<div class="ledger-cell hide-mobile">' + commitCell + '</div>' +
+          '<div class="ledger-cell hide-mobile">' + resolveCell + '</div>' +
+          '<div class="ledger-cell hide-mobile">' + pnl + '</div>' +
+          '<div class="ledger-cell"><span class="proof-badge ' + badgeClass + '">' + badge + '</span></div>' +
+          '</div>';
+      }).join('');
+    })
+    .catch(function(err){ console.warn('on-chain-audit error:', err); });
+}
+
+/* ── INIT ── */
+loadStats();
+</script>
+</body>
+</html>

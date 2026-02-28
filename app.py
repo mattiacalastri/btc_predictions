@@ -4102,6 +4102,213 @@ def xgboost_spiegato():
     return html, 200, {"Content-Type": "text/html"}
 
 
+@app.route("/on-chain-audit", methods=["GET"])
+def on_chain_audit():
+    """
+    Proof Chain integrity — NO auth required.
+    Legge onchain_commit_tx / onchain_resolve_tx da btc_predictions (ultime 30 bet).
+    Restituisce integrity score, entries per il ledger, pipeline status.
+    """
+    import datetime as _dt
+
+    sb_url = os.environ.get("SUPABASE_URL", "")
+    sb_key = os.environ.get("SUPABASE_KEY", "")
+    if not sb_url or not sb_key:
+        return jsonify({"error": "no_supabase"}), 500
+
+    try:
+        r = requests.get(
+            f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
+            "?select=id,direction,confidence,correct,pnl_usd,created_at,"
+            "onchain_commit_tx,onchain_resolve_tx,onchain_commit_hash,onchain_resolve_hash"
+            "&bet_taken=eq.true"
+            "&order=id.desc"
+            "&limit=30",
+            headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
+            timeout=8,
+        )
+        if not r.ok:
+            return jsonify({"error": "supabase_error", "status": r.status_code}), 500
+        bets = r.json()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    total_bets  = len(bets)
+    with_commit = sum(1 for b in bets if b.get("onchain_commit_tx"))
+    with_resolve = sum(1 for b in bets if b.get("onchain_resolve_tx"))
+
+    closed_bets = [b for b in bets if b.get("correct") is not None]
+    closed_with_commit = sum(1 for b in closed_bets if b.get("onchain_commit_tx"))
+    with_full_proof = sum(
+        1 for b in closed_bets
+        if b.get("onchain_commit_tx") and b.get("onchain_resolve_tx")
+    )
+
+    # Integrity score = full_proof / closed_bets_with_commit
+    if closed_with_commit > 0:
+        integrity_score = round(with_full_proof / closed_with_commit * 100, 1)
+    elif closed_bets:
+        integrity_score = 0.0
+    else:
+        integrity_score = None
+
+    # Last commit timestamp
+    last_commit_at = None
+    for b in bets:
+        if b.get("onchain_commit_tx"):
+            last_commit_at = b.get("created_at")
+            break
+
+    entries = []
+    for b in bets:
+        has_commit  = bool(b.get("onchain_commit_tx"))
+        has_resolve = bool(b.get("onchain_resolve_tx"))
+        is_closed   = b.get("correct") is not None
+        if is_closed and has_commit and has_resolve:
+            status = "full_proof"
+        elif not is_closed and has_commit:
+            status = "pending_resolve"
+        elif is_closed and has_commit and not has_resolve:
+            status = "missing_resolve"
+        else:
+            status = "no_proof"
+        entries.append({
+            "id":           b["id"],
+            "direction":    b.get("direction"),
+            "confidence":   b.get("confidence"),
+            "correct":      b.get("correct"),
+            "pnl_usd":      b.get("pnl_usd"),
+            "created_at":   b.get("created_at"),
+            "commit_tx":    b.get("onchain_commit_tx"),
+            "resolve_tx":   b.get("onchain_resolve_tx"),
+            "commit_hash":  b.get("onchain_commit_hash"),
+            "resolve_hash": b.get("onchain_resolve_hash"),
+            "status":       status,
+        })
+
+    return jsonify({
+        "contract":        "0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55",
+        "total_bets":      total_bets,
+        "with_commit":     with_commit,
+        "with_resolve":    with_resolve,
+        "with_full_proof": with_full_proof,
+        "integrity_score": integrity_score,
+        "last_commit_at":  last_commit_at,
+        "entries":         entries,
+    })
+
+
+@app.route("/marketing", methods=["GET"])
+def marketing():
+    with open("marketing.html", "r") as f:
+        html = f.read()
+    return html, 200, {"Content-Type": "text/html"}
+
+
+@app.route("/marketing-stats", methods=["GET"])
+def marketing_stats():
+    """Dati pubblici/marketing — NO auth required."""
+    import datetime as _dt
+    import re as _re
+
+    result = {}
+
+    # ── 1. Telegram member count ──────────────────────────────────
+    try:
+        tg_token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+        tg_chat  = "-1003762450968"
+        if tg_token:
+            r = requests.get(
+                f"https://api.telegram.org/bot{tg_token}/getChatMemberCount?chat_id={tg_chat}",
+                timeout=5,
+            )
+            result["telegram_members"] = r.json().get("result") if r.ok else None
+        else:
+            result["telegram_members"] = None
+    except Exception:
+        result["telegram_members"] = None
+
+    # ── 2. Wallet ────────────────────────────────────────────────
+    wallet_addr = "0x7Ac896F18ce52a0520dA49C3129520f7B70d51f0"
+    published_in_site = False
+    try:
+        with open(os.path.join(os.path.dirname(__file__), "index.html"), "r") as _f:
+            published_in_site = wallet_addr[:12] in _f.read()
+    except Exception:
+        pass
+
+    recent_txs = []
+    received_tx_count = 0
+    try:
+        ps = requests.get(
+            f"https://api.polygonscan.com/api"
+            f"?module=account&action=txlist"
+            f"&address={wallet_addr}"
+            f"&sort=desc&page=1&offset=10",
+            timeout=8,
+        )
+        if ps.ok:
+            ps_data = ps.json()
+            if ps_data.get("status") == "1":
+                for tx in ps_data.get("result", []):
+                    if tx.get("to", "").lower() == wallet_addr.lower():
+                        value_matic = int(tx.get("value", 0)) / 1e18
+                        recent_txs.append({
+                            "hash":        tx["hash"][:14] + "…",
+                            "hash_full":   tx["hash"],
+                            "value_matic": round(value_matic, 4),
+                            "timestamp":   int(tx.get("timeStamp", 0)),
+                        })
+                        received_tx_count += 1
+                        if len(recent_txs) >= 5:
+                            break
+    except Exception:
+        pass
+
+    result["wallet"] = {
+        "address":           wallet_addr,
+        "published_in_site": published_in_site,
+        "received_tx_count": received_tx_count,
+        "recent_txs":        recent_txs,
+    }
+
+    # ── 3. SEO checks on index.html ──────────────────────────────
+    seo = {"og_image": False, "meta_description": False, "json_ld": False, "canonical": False}
+    try:
+        with open(os.path.join(os.path.dirname(__file__), "index.html"), "r") as _f:
+            idx = _f.read()
+        seo["og_image"]         = 'og:image' in idx
+        seo["meta_description"] = 'name="description"' in idx
+        seo["json_ld"]          = 'application/ld+json' in idx
+        seo["canonical"]        = 'rel="canonical"' in idx
+    except Exception:
+        pass
+    result["seo"] = seo
+
+    # ── 4. Last retrain ──────────────────────────────────────────
+    last_retrain = None
+    base        = os.path.dirname(__file__)
+    report_path = os.path.join(base, "datasets", "xgb_report.txt")
+    model_path  = os.path.join(base, "models", "xgb_direction.pkl")
+    if os.path.exists(report_path):
+        try:
+            txt = open(report_path).read()
+            m = _re.search(r"Generated:\s*(\d{4}-\d{2}-\d{2})", txt)
+            if m:
+                last_retrain = m.group(1)
+        except Exception:
+            pass
+    if not last_retrain and os.path.exists(model_path):
+        try:
+            mtime = os.path.getmtime(model_path)
+            last_retrain = _dt.datetime.utcfromtimestamp(mtime).strftime("%Y-%m-%d")
+        except Exception:
+            pass
+    result["last_retrain"] = last_retrain
+
+    return jsonify(result)
+
+
 @app.route("/privacy", methods=["GET"])
 def privacy():
     with open("privacy.html", "r") as f:
