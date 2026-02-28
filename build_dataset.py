@@ -78,7 +78,7 @@ def supabase_get(table: str, params: dict) -> list:
         "Content-Type": "application/json",
         "Prefer": "count=exact",
     })
-    with urllib.request.urlopen(req, context=_SSL_CTX) as resp:
+    with urllib.request.urlopen(req, context=_SSL_CTX, timeout=10) as resp:
         return json.loads(resp.read().decode())
 
 
