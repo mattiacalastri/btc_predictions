@@ -646,12 +646,27 @@
 
   <!-- Signal Log — full width -->
   <div class="panel" id="signalLogPanel" style="margin-bottom:14px;">
-    <div class="panel-header">
-      <div class="panel-title" id="signalLogTitle">Signal Log <span id="nextSignalTimer" class="next-signal-badge"></span></div>
-      <div class="filters-row">
-        <select id="filterDir"   class="filter-sel"><option value="ALL">ALL DIR</option><option value="UP">UP</option><option value="DOWN">DOWN</option></select>
-        <select id="filterClass" class="filter-sel"><option value="ALL">ALL</option><option value="BET">BETS</option><option value="NO_BET">NO-BET</option></select>
+    <div class="sl-board-header">
+      <div class="sl-board-title">
+        <span class="sl-live-dot"></span>
+        <span id="signalLogTitle">SIGNAL LOG BOARD</span>
+        <span id="nextSignalTimer" class="next-signal-badge"></span>
       </div>
+      <div class="sl-board-controls">
+        <select id="filterDir"   class="filter-sel"><option value="ALL">ALL DIR</option><option value="UP">↑ UP</option><option value="DOWN">↓ DOWN</option></select>
+        <select id="filterClass" class="filter-sel"><option value="ALL">ALL</option><option value="BET">BET</option><option value="NO_BET">NO-BET</option></select>
+      </div>
+    </div>
+    <div id="slStats" class="sl-stats-bar">
+      <div class="sl-stat-item"><div class="sl-stat-label">SIGNALS</div><div class="sl-stat-val" id="slStatTotal">—</div></div>
+      <div class="sl-stat-sep"></div>
+      <div class="sl-stat-item"><div class="sl-stat-label">BETS</div><div class="sl-stat-val" id="slStatBets">—</div></div>
+      <div class="sl-stat-sep"></div>
+      <div class="sl-stat-item sl-stat-wr"><div class="sl-stat-label">WIN RATE</div><div class="sl-stat-val" id="slStatWR">—</div></div>
+      <div class="sl-stat-sep"></div>
+      <div class="sl-stat-item"><div class="sl-stat-label">AVG CONF</div><div class="sl-stat-val" id="slStatConf">—</div></div>
+      <div class="sl-stat-sep"></div>
+      <div class="sl-stat-item"><div class="sl-stat-label">AVG PNL/BET</div><div class="sl-stat-val" id="slStatAvgPnl">—</div></div>
     </div>
     <!-- SIGNAL LOG FILTER BAR -->
     <div class="signal-filters" id="signalFiltersBar">
@@ -2647,12 +2662,39 @@ function renderAll(data) {
   const filtered = filterByPeriod(data);
   const titleEl  = document.getElementById('signalLogTitle');
   titleEl.textContent = currentPeriod === 'ALL'
-    ? 'Signal Log'
-    : `Signal Log · ${filtered.length} signals (${currentPeriod})`;
+    ? 'SIGNAL LOG BOARD'
+    : `SIGNAL LOG BOARD · ${filtered.length} (${currentPeriod})`;
+  _updateSlStats(filtered);
   render(filtered);
   renderLivePosition(); // mostra widget se c'è posizione aperta
   // Populate intro hero KPIs (populateIntroHero is hoisted — safe to call here)
   if (typeof populateIntroHero === 'function') populateIntroHero(data);
+}
+
+function _updateSlStats(data) {
+  const total   = data.length;
+  const bets    = data.filter(d => d.bet_taken).length;
+  const closed  = data.filter(d => d.bet_taken && d.correct !== null);
+  const wins    = closed.filter(d => d.correct === true).length;
+  const wr      = closed.length ? Math.round(wins / closed.length * 100) : null;
+  const confs   = data.filter(d => d.confidence).map(d => parseFloat(d.confidence));
+  const avgConf = confs.length ? Math.round(confs.reduce((a,b)=>a+b,0)/confs.length*100) : null;
+  const pnls    = closed.map(d => parseFloat(d.pnl_usd)).filter(v => !isNaN(v));
+  const avgPnl  = pnls.length ? pnls.reduce((a,b)=>a+b,0)/pnls.length : null;
+
+  const et = document.getElementById('slStatTotal');   if (et) et.textContent = total;
+  const eb = document.getElementById('slStatBets');    if (eb) eb.textContent = bets;
+  const ew = document.getElementById('slStatWR');
+  if (ew) {
+    ew.textContent = wr !== null ? wr + '%' : '—';
+    ew.style.color = wr !== null ? (wr >= 50 ? 'var(--accent)' : 'var(--danger)') : '';
+  }
+  const ec = document.getElementById('slStatConf');    if (ec) ec.textContent = avgConf !== null ? avgConf + '%' : '—';
+  const ep = document.getElementById('slStatAvgPnl');
+  if (ep) {
+    ep.textContent = avgPnl !== null ? (avgPnl >= 0 ? '+$' : '-$') + Math.abs(avgPnl).toFixed(3) : '—';
+    ep.style.color = avgPnl !== null ? (avgPnl >= 0 ? 'var(--accent)' : 'var(--danger)') : '';
+  }
 }
 
 // ── Next Signal countdown timer ───────────────────────────────────────────────
@@ -2969,7 +3011,7 @@ function renderTable(data) {
           })();
       if (feeVal > 0) feeCell = `<span style="color:var(--warn);font-size:10px">-$${feeVal.toFixed(5)}</span>`;
     }
-    return `<tr>
+    return `<tr class="${d.direction === 'UP' ? 'sl-up' : 'sl-down'}">
       <td style="color:var(--muted)">${d.id}</td>
       <td style="color:var(--muted)">${fmtDate(d.created_at)}</td>
       <td class="${dirCls}">${dirIcon} ${escapeHtml(d.direction)}</td>
@@ -4066,6 +4108,9 @@ const _WF_META = {
   '09':  { code: 'SOC', role: 'Social Media',          accent: '#ff6fd8' },
   '09A': { code: 'SOC', role: 'Social Media Manager',  accent: '#ff6fd8', name: '09A_BTC_Social_Media_Manager',    emoji: '📱', desc: 'AI Social Media Manager',             trigger: 'Triggered by wf02' },
   '09B': { code: 'PUB', role: 'Social Publisher',      accent: '#ff6fd8', name: '09B_BTC_Social_Publisher',        emoji: '📤', desc: 'Social post publisher helper',        trigger: 'Called by 09A' },
+  '10':  { code: 'ANA', role: 'Analytics & Reports',   accent: '#4a9fff' },
+  '11':  { code: 'CNT', role: 'Channel Content',        accent: '#ff9f4a' },
+  '12':  { code: 'EML', role: 'Email Handler',           accent: '#4affea' },
 };
 
 function renderAgents(data, errorMsg) {
@@ -5946,6 +5991,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 document.addEventListener('DOMContentLoaded', function() {
+  // Popola launchd tasks immediatamente (non solo al tab switch)
+  renderLaunchdTasks();
   // Patch renderTable per catturare _signalCurrentData e applicare i filtri pill
   _origRenderTable = window.renderTable;
   if (_origRenderTable) {

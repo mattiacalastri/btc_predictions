@@ -3080,11 +3080,16 @@ def n8n_status():
         "K4pzVU0SCc7apPKh",  # 03_BTC_Wallet_Checker
         "my8xac5Vs2q3wN4G",  # 04_BTC_Talker
         "3YSec3NytjxfbG08",  # 05_BTC_Prediction_Verifier
-        "O1JlHp7tgVFBfrwm",  # 06_Nightly_Maintenance
+        "O1JlHp7tgVFBfrwm",  # 06_BTC_System_Watchdog
         "nzMMmMC6Q9eysUBP",  # 07_BTC_Commander
         "Fjk7M3cOEcL1aAVf",  # 08_BTC_Position_Monitor
         "EQ5AuKbbM9DNWWXw",  # 09A_BTC_Social_Media_Manager
         "l1t7NAtR9BiF80Bi",  # 09B_BTC_Social_Publisher
+        "eWGpJa3dsw6XxnC4",  # 10_GA4_Daily_Report
+        "mKC0Y4YDjUf3I2dp",  # 11_BTC_Channel_Content
+        "SR2gtlT3xnTZVIOx",  # 12_Email_Handler
+        "Te09gFLnfVhC7ugt",  # 10_Sentry_Alert_Handler
+        "wT8XdaLs0HHlXZjX",  # 10_BTC_Compliance_Reminder
     ]
 
     headers = {"X-N8N-API-KEY": n8n_key}

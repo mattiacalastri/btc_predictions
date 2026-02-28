@@ -2026,6 +2026,61 @@
   }
 
   /* ═══════════════════════════════════════
+     SIGNAL LOG BOARD — header + stats bar
+  ═══════════════════════════════════════ */
+  .sl-board-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 11px 16px 9px; border-bottom: 1px solid var(--border);
+    gap: 12px; flex-wrap: wrap;
+  }
+  .sl-board-title {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; font-weight: 800; letter-spacing: 2.5px;
+    text-transform: uppercase; color: var(--text);
+  }
+  .sl-live-dot {
+    width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+    background: var(--accent); box-shadow: 0 0 6px var(--accent);
+    animation: pulse 2s infinite;
+  }
+  .sl-board-controls { display: flex; gap: 6px; align-items: center; }
+  .sl-stats-bar {
+    display: flex; align-items: stretch; gap: 0;
+    background: rgba(0,255,136,0.018); border-bottom: 1px solid var(--border);
+    overflow-x: auto; scrollbar-width: none;
+  }
+  .sl-stats-bar::-webkit-scrollbar { display: none; }
+  .sl-stat-item {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 5px 16px; gap: 2px; flex-shrink: 0;
+    border-right: 1px solid var(--border);
+  }
+  .sl-stat-item:last-child { border-right: none; }
+  .sl-stat-label {
+    font-size: 7px; font-weight: 800; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--muted); white-space: nowrap;
+  }
+  .sl-stat-val {
+    font-size: 14px; font-weight: 700; color: var(--text);
+    font-family: 'JetBrains Mono', monospace; letter-spacing: 0.5px; line-height: 1.2;
+  }
+  .sl-stat-wr .sl-stat-val { color: var(--accent); }
+  .sl-stat-sep { display: none; }
+  tr.sl-up   { border-left: 2px solid rgba(0,255,136,0.45); }
+  tr.sl-down { border-left: 2px solid rgba(255,55,80,0.45); }
+  tr.sl-up:hover   { background: rgba(0,255,136,0.025) !important; }
+  tr.sl-down:hover { background: rgba(255,55,80,0.025) !important; }
+  body.war-room .sl-board-header { background: #060a06; }
+  body.war-room .sl-stats-bar { background: rgba(0,255,65,0.02); }
+  body.war-room tr.sl-up   { border-left-color: rgba(0,255,65,0.55); }
+  body.war-room tr.sl-down { border-left-color: rgba(255,0,80,0.55); }
+  @media (max-width: 640px) {
+    .sl-board-header { padding: 9px 12px 8px; }
+    .sl-stat-item { padding: 4px 10px; }
+    .sl-stat-val { font-size: 12px; }
+  }
+
+  /* ═══════════════════════════════════════
      SIGNAL LOG FILTERS
   ═══════════════════════════════════════ */
   .signal-filters {
