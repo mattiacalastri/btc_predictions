@@ -2956,6 +2956,9 @@ def submit_contribution():
     # ── Rate limit by IP (in-memory, not stored) ──
     ip = request.headers.get("X-Forwarded-For", request.remote_addr or "unknown").split(",")[0].strip()
     now = time.time()
+    # Purge stale entries to prevent unbounded growth (memory leak A-08)
+    for _k in [k for k, v in list(_CONTRIBUTION_RATE.items()) if now - v >= _CONTRIBUTION_COOLDOWN]:
+        _CONTRIBUTION_RATE.pop(_k, None)
     last = _CONTRIBUTION_RATE.get(ip, 0)
     if now - last < _CONTRIBUTION_COOLDOWN:
         remaining = int(_CONTRIBUTION_COOLDOWN - (now - last))
