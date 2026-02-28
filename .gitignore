@@ -5,8 +5,6 @@ __pycache__/
 .env.*
 !.env.example
 datasets/
-!datasets/*.txt
-!datasets/*.json
 *.jsonl
 
 # Credenziali e config locali — non committare
@@ -23,7 +21,6 @@ prepare_finetune.py
 models/xgb_report.txt
 
 # Dati sensibili
-datasets/features.csv
 datasets/backup_*.csv
 
 # macOS + Claude Code local state
