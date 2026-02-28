@@ -4398,6 +4398,8 @@ def privacy():
     return html, 200, {"Content-Type": "text/html"}
 
 
+_CACHE_BUST = os.environ.get("RAILWAY_GIT_COMMIT_SHA", "1")[:8]
+
 @app.route("/dashboard", methods=["GET"])
 def dashboard():
     # Use the actual request host so API calls always go same-origin.
@@ -4409,6 +4411,8 @@ def dashboard():
         html = f.read()
     read_key = os.environ.get("READ_API_KEY", "")
     inject = f'<script>window.RAILWAY_URL = {json.dumps(railway_url)};window.READ_API_KEY = {json.dumps(read_key)};</script>'
+    # Sostituisci placeholder cache_bust nel link CSS
+    html = html.replace("__CACHE_BUST__", _CACHE_BUST)
     html = html.replace("</head>", inject + "\n</head>", 1)
     return html, 200, {"Content-Type": "text/html"}
 
