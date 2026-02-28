@@ -3762,9 +3762,6 @@
 
     <!-- Launch Backtest -->
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
-      <button id="btnRunBacktest" onclick="triggerBacktest()" style="background:var(--accent);color:#000;border:none;padding:8px 18px;border-radius:6px;font-size:12px;font-weight:700;letter-spacing:.5px;cursor:pointer;display:flex;align-items:center;gap:6px">
-        🔬 Lancia Backtest
-      </button>
       <span id="backtestStatus" style="font-size:11px;color:var(--muted)">Ultimo backtest: caricamento...</span>
     </div>
 
@@ -4170,16 +4167,6 @@
     </div>
 
     <!-- ── CALIBRATION STRIP ── -->
-    <div style="padding:12px 18px 14px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;border-bottom:1px solid rgba(255,255,255,0.05)">
-      <button id="trnRetrainBtn" class="trn-retrain-btn" onclick="trnForceRetrain()" disabled>
-        <span style="font-size:15px;line-height:1">🧠</span>
-        <span>Force Recalibrate</span>
-      </button>
-      <div id="trnRetrainHint" style="font-size:9px;color:var(--muted);line-height:1.7">
-        Aggiorna conf threshold + dead hours dai dati live.<br>
-        <span style="color:rgba(255,170,0,0.6)">⚠ Non è un retrain XGBoost — indipendente dal counter 39/30</span>
-      </div>
-    </div>
 
     <div class="trn-section-sep"></div>
 
