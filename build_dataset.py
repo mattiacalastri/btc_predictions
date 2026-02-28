@@ -47,6 +47,19 @@ Rules:
 
 OPPOSITE = {"UP": "DOWN", "DOWN": "UP"}
 
+# Encoding ordinale di technical_bias: preserva la gradazione semantica.
+# Range: -2 (forte ribassista) → 0 (neutro) → +2 (forte rialzista).
+# Sostituisce il vecchio binary "bull" match che collassava neutral=bearish.
+_BIAS_MAP = {
+    "strong_bearish": -2,
+    "mild_bearish":   -1,
+    "bearish":        -1,
+    "neutral":         0,
+    "mild_bullish":    1,
+    "bullish":         1,
+    "strong_bullish":  2,
+}
+
 # Colonne numeriche per features.csv
 NUMERIC_FEATURES = [
     "confidence", "btc_price_entry", "fear_greed_value",
@@ -361,10 +374,15 @@ def row_to_csv_dict(row: dict, cvd_6m_pct: float | None = None) -> dict:
         "cvd_6m_pct": cvd_6m_pct if cvd_6m_pct is not None else "",
         # Categoriche (encoded)
         "ema_trend_up": 1 if (row.get("ema_trend") or "").upper() == "UP" else 0,
-        "technical_bias_bullish": 1 if "bull" in (row.get("technical_bias") or "").lower() else 0,
+        # Ordinale -2→+2: preserva gradazione bearish/neutral/bullish.
+        # Sostituisce il vecchio binary 1/0 che trattava neutral = strong_bearish.
+        "technical_bias_score": _BIAS_MAP.get((row.get("technical_bias") or "").lower().strip(), 0),
         "signal_technical_buy": 1 if (row.get("signal_technical") or "").upper() == "BUY" else 0,
         "signal_sentiment_pos": 1 if (row.get("signal_sentiment") or "").upper() in ("POSITIVE", "POS", "BUY") else 0,
-        "signal_fg_fear": 1 if (row.get("signal_fear_greed") or "").upper() == "FEAR" else 0,
+        # Derivato dal valore numerico fear_greed_value (0-100), non dal testo LLM.
+        # fear_greed_value < 45 = zona Fear/Extreme Fear (0-44). Più affidabile
+        # del campo testuale signal_fear_greed che il LLM spesso inverte.
+        "signal_fg_fear": 1 if float(row.get("fear_greed_value") or 50) < 45 else 0,
         "signal_volume_high": 1 if "high" in (row.get("signal_volume") or "").lower() else 0,
         "classification": row.get("classification", ""),
     }

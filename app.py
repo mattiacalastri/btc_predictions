@@ -30,12 +30,25 @@ def set_security_headers(response):
 
 # ── XGBoost direction model (caricato una volta all'avvio) ────────────────────
 _XGB_MODEL = None
+# Encoding ordinale technical_bias: strong_bearish=-2 → strong_bullish=+2.
+# Deve essere identico a build_dataset.py/_BIAS_MAP.
+_BIAS_MAP = {
+    "strong_bearish": -2,
+    "mild_bearish":   -1,
+    "bearish":        -1,
+    "neutral":         0,
+    "mild_bullish":    1,
+    "bullish":         1,
+    "strong_bullish":  2,
+}
+
 _XGB_FEATURE_COLS = [
     "confidence", "fear_greed_value", "rsi14", "technical_score",
-    "hour_sin", "hour_cos",       # encoding ciclico ora UTC
-    "technical_bias_bullish", "signal_fg_fear",
-    "dow_sin", "dow_cos",         # encoding ciclico giorno settimana (T-01)
-    "session",                    # 0=Asia 1=London 2=NY (T-01)
+    "hour_sin", "hour_cos",        # encoding ciclico ora UTC
+    "technical_bias_score",        # ordinale -2→+2 (ex technical_bias_bullish binary)
+    "signal_fg_fear",              # 1 se fear_greed_value < 45
+    "dow_sin", "dow_cos",          # encoding ciclico giorno settimana (T-01)
+    "session",                     # 0=Asia 1=London 2=NY (T-01)
 ]
 
 def _load_xgb_model():
@@ -715,8 +728,8 @@ def place_bet():
                 float(data.get("technical_score", 0)),
                 _math.sin(2 * _math.pi * _h / 24),              # hour_sin
                 _math.cos(2 * _math.pi * _h / 24),              # hour_cos
-                float(data.get("technical_bias_bullish", data.get("technical_bias", 0))),
-                float(data.get("signal_fg_fear", data.get("signal_fg", 0))),
+                float(_BIAS_MAP.get((data.get("technical_bias") or "").lower().strip(), 0)),
+                1.0 if float(data.get("fear_greed_value", data.get("fear_greed", 50)) or 50) < 45 else 0.0,
                 _math.sin(2 * _math.pi * _dow_xgb / 7),         # dow_sin
                 _math.cos(2 * _math.pi * _dow_xgb / 7),         # dow_cos
                 float(_session_xgb),                             # session
@@ -1601,8 +1614,8 @@ def predict_xgb():
             float(request.args.get("technical_score", 0)),
             _math2.sin(2 * _math2.pi * _h2 / 24),          # hour_sin
             _math2.cos(2 * _math2.pi * _h2 / 24),          # hour_cos
-            1 if "bull" in tech_bias else 0,                # technical_bias_bullish
-            1 if sig_fg == "fear" else 0,                   # signal_fg_fear
+            float(_BIAS_MAP.get(tech_bias.strip(), 0)),        # technical_bias_score
+            1.0 if float(request.args.get("fear_greed_value", 50) or 50) < 45 else 0.0,  # signal_fg_fear
             _math2.sin(2 * _math2.pi * _dow2 / 7),         # dow_sin
             _math2.cos(2 * _math2.pi * _dow2 / 7),         # dow_cos
             float(_session2),                               # session
@@ -1644,10 +1657,10 @@ def bet_sizing():
     sig_vol     = request.args.get("signal_volume", "").lower()
 
     ema_trend_up       = 1 if ("bullish" in ema_trend or "bull" in ema_trend or ema_trend == "up") else 0
-    tech_bias_bullish  = 1 if "bull" in tech_bias else 0
+    tech_bias_score    = float(_BIAS_MAP.get(tech_bias.strip(), 0))
     sig_tech_buy       = 1 if sig_tech in ("buy", "bullish") else 0
     sig_sent_pos       = 1 if sig_sent in ("positive", "pos", "buy", "bullish") else 0
-    sig_fg_fear        = 1 if sig_fg == "fear" else 0
+    sig_fg_fear        = 1.0 if fear_greed < 45 else 0.0
     sig_vol_high       = 1 if "high" in sig_vol else 0
 
     try:
@@ -1732,7 +1745,7 @@ def bet_sizing():
                     rsi14, tech_score,
                     _math3.sin(2 * _math3.pi * hour_utc / 24),  # hour_sin
                     _math3.cos(2 * _math3.pi * hour_utc / 24),  # hour_cos
-                    tech_bias_bullish,                           # technical_bias_bullish
+                    tech_bias_score,                             # technical_bias_score
                     sig_fg_fear,                                 # signal_fg_fear
                     _math3.sin(2 * _math3.pi * _dow3 / 7),      # dow_sin
                     _math3.cos(2 * _math3.pi * _dow3 / 7),      # dow_cos

@@ -51,7 +51,7 @@ BASE_SIZE   = 0.002    # BTC fisso per confronto equo tra strategie
 FEATURE_COLS = [
     "confidence", "fear_greed_value", "rsi14", "technical_score",
     "hour_sin", "hour_cos",
-    "technical_bias_bullish", "signal_fg_fear",
+    "technical_bias_score", "signal_fg_fear",
     # T-01: encoding ciclico giorno settimana + sessione liquidità
     "dow_sin", "dow_cos",   # sin/cos del giorno della settimana (0=lun, 6=dom)
     "session",              # 0=Asia(0-7 UTC), 1=London(8-13 UTC), 2=NY(14-23 UTC)
@@ -111,10 +111,12 @@ def fetch_bets() -> pd.DataFrame:
     df["hour_utc"] = df["created_at"].str[11:13].astype(int, errors="ignore")
 
     df["ema_trend_up"]          = (df["ema_trend"].str.upper() == "UP").astype(int)
-    df["technical_bias_bullish"]= df["technical_bias"].str.lower().str.contains("bull", na=False).astype(int)
+    _bias_map = {"strong_bearish":-2,"mild_bearish":-1,"bearish":-1,
+                 "neutral":0,"mild_bullish":1,"bullish":1,"strong_bullish":2}
+    df["technical_bias_score"]  = df["technical_bias"].str.lower().str.strip().map(_bias_map).fillna(0)
     df["signal_technical_buy"]  = (df["signal_technical"].str.upper() == "BUY").astype(int)
     df["signal_sentiment_pos"]  = df["signal_sentiment"].str.upper().isin(["POSITIVE","POS","BUY"]).astype(int)
-    df["signal_fg_fear"]        = (df["signal_fear_greed"].str.upper() == "FEAR").astype(int)
+    df["signal_fg_fear"]        = (df["fear_greed_value"].fillna(50).astype(float) < 45).astype(int)
     df["signal_volume_high"]    = df["signal_volume"].str.lower().str.contains("high", na=False).astype(int)
 
     return df

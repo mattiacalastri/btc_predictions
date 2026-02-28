@@ -50,7 +50,12 @@ FEATURE_COLS = [
     # Encoding ciclico dell'ora UTC (sostituisce hour_utc intero)
     "hour_sin",   # sin(2π * hour_utc / 24)
     "hour_cos",   # cos(2π * hour_utc / 24)
-    "technical_bias_bullish",
+    # Ordinale -2→+2: strong_bearish=-2, mild_bearish/bearish=-1,
+    # neutral=0, mild_bullish/bullish=+1, strong_bullish=+2.
+    # Sostituisce technical_bias_bullish (binary) — info loss ridotto.
+    "technical_bias_score",
+    # 1 se fear_greed_value < 45 (Fear/Extreme Fear), derivato dal valore
+    # numerico in build_dataset.py (non dal testo LLM, che era inaffidabile).
     "signal_fg_fear",
     # T-01: Giorno della settimana — encoding ciclico
     # I mercati crypto hanno pattern settimanali (es. dump del lunedì,
