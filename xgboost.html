@@ -794,16 +794,74 @@
 
     .flow-label.no { color: #ff5555; border-color: rgba(255,85,85,0.3); background: rgba(255,85,85,0.05); }
 
-    .flow-branch {
+    /* Gate row: YES path goes down centre, NO exit shoots right */
+    .fl-gate-row {
       display: flex;
-      gap: 40px;
+      flex-direction: row;
       align-items: flex-start;
+      justify-content: center;
+      width: 100%;
+      opacity: 0;
+      transition: opacity 0.5s;
+      padding: 2px 0;
     }
+    .fl-gate-row.flow-animated { opacity: 1; }
 
-    .flow-branch-path {
+    .fl-gate-main {
       display: flex;
       flex-direction: column;
       align-items: center;
+      flex-shrink: 0;
+    }
+
+    .fl-yes-pill {
+      padding: 4px 14px;
+      border: 1px solid rgba(0,255,65,0.45);
+      background: rgba(0,255,65,0.06);
+      color: var(--green);
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      border-radius: 2px;
+      letter-spacing: 0.8px;
+      white-space: nowrap;
+    }
+
+    .fl-gate-exit {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 6px;
+      padding-top: 3px;
+      flex-shrink: 0;
+    }
+
+    .fl-exit-line {
+      width: 36px;
+      height: 2px;
+      background: linear-gradient(90deg, rgba(255,85,85,0.2), rgba(255,85,85,0.6));
+      flex-shrink: 0;
+    }
+
+    .fl-no-pill {
+      padding: 4px 10px;
+      border: 1px solid rgba(255,85,85,0.35);
+      background: rgba(255,85,85,0.05);
+      color: #ff5555;
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      border-radius: 2px;
+      letter-spacing: 0.8px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .fl-exit-node {
+      opacity: 1 !important;
+      transform: none !important;
+      min-width: 110px !important;
+      font-size: 11px !important;
+      padding: 8px 14px !important;
+      text-align: center;
     }
 
     /* =============================================
@@ -981,7 +1039,9 @@
       .neon-card { padding: 20px; }
       .terminal pre { font-size: 10px; }
       .chain-links { flex-wrap: wrap; justify-content: center; }
-      .flow-branch { flex-direction: column; gap: 0; align-items: center; }
+      .fl-gate-exit { gap: 4px; }
+      .fl-exit-line  { width: 20px; }
+      .fl-exit-node  { min-width: 80px !important; font-size: 10px !important; padding: 6px 8px !important; }
     }
 
     /* =============================================
@@ -1446,46 +1506,52 @@
       <div class="flow-diagram">
         <div class="flow-container" id="flow-container">
 
+          <!-- Step 0: Start -->
           <div class="flow-node start" data-flow="0">MERCATO BTC (Kraken Futures)</div>
           <div class="flow-arrow" data-flow="1"><div class="flow-arrow-line"></div><div class="flow-arrow-head"></div></div>
 
+          <!-- Step 2: Data -->
           <div class="flow-node data" data-flow="2">RACCOLTA DATI — 13 fonti in parallelo</div>
           <div class="flow-arrow" data-flow="3"><div class="flow-arrow-line"></div><div class="flow-arrow-head"></div></div>
 
+          <!-- Step 4: LLM -->
           <div class="flow-node llm" data-flow="4">CLAUDE LLM — Analisi &amp; Confidence Score</div>
-          <div class="flow-arrow" data-flow="5">
-            <div class="flow-arrow-line"></div>
-            <div class="flow-label">conf &ge; 0.75?</div>
-            <div class="flow-arrow-head"></div>
+
+          <!-- Gate 1: conf ≥ 0.75? — YES continues down, NO exits right -->
+          <div class="fl-gate-row" data-flow="5">
+            <div class="fl-gate-main">
+              <div class="fl-yes-pill">YES &middot; conf &ge; 0.75</div>
+              <div class="flow-arrow-line" style="height:18px;"></div>
+            </div>
+            <div class="fl-gate-exit">
+              <div class="fl-exit-line"></div>
+              <div class="fl-no-pill">NO</div>
+              <div class="flow-node skip fl-exit-node">SEGNALE<br>SCARTATO</div>
+            </div>
           </div>
 
-          <div class="flow-branch" data-flow="6" style="opacity:0; transition: opacity 0.5s;">
-            <div class="flow-branch-path">
-              <div style="padding: 6px 16px; border: 1px solid rgba(0,255,65,0.4); font-size: 11px; color: var(--green); font-family: 'Space Mono', monospace; border-radius: 2px; margin-bottom: 8px;">YES</div>
-              <div class="flow-node xgb" style="min-width:180px;">XGBOOST<br>VERIFICA</div>
-              <div class="flow-arrow" style="opacity:1;">
-                <div class="flow-arrow-line"></div>
-                <div class="flow-label">LLM dir = XGB dir?</div>
-                <div class="flow-arrow-head"></div>
-              </div>
-              <div class="flow-branch" style="gap: 24px;">
-                <div class="flow-branch-path">
-                  <div style="padding: 4px 12px; border: 1px solid rgba(0,255,65,0.4); font-size: 10px; color: var(--green); font-family: 'Space Mono', monospace; border-radius: 2px; margin-bottom: 6px;">YES</div>
-                  <div class="flow-node trade" style="min-width: 150px;">TRADE<br>ESEGUITO</div>
-                  <div class="flow-arrow" style="opacity:1;"><div class="flow-arrow-line"></div><div class="flow-arrow-head"></div></div>
-                  <div class="flow-node onchain" style="min-width: 150px; font-size: 11px;">ON-CHAIN<br>COMMIT (Polygon)</div>
-                </div>
-                <div class="flow-branch-path">
-                  <div style="padding: 4px 12px; border: 1px solid rgba(255,85,85,0.3); font-size: 10px; color: #ff5555; font-family: 'Space Mono', monospace; border-radius: 2px; margin-bottom: 6px;">NO</div>
-                  <div class="flow-node skip" style="min-width: 120px;">SKIP</div>
-                </div>
-              </div>
+          <!-- Step 6: XGBoost -->
+          <div class="flow-node xgb" data-flow="6">XGBOOST VERIFICA</div>
+
+          <!-- Gate 2: LLM dir = XGB dir? — YES continues down, NO exits right -->
+          <div class="fl-gate-row" data-flow="7">
+            <div class="fl-gate-main">
+              <div class="fl-yes-pill">YES &middot; concordano</div>
+              <div class="flow-arrow-line" style="height:18px;"></div>
             </div>
-            <div class="flow-branch-path">
-              <div style="padding: 6px 16px; border: 1px solid rgba(255,85,85,0.3); font-size: 11px; color: #ff5555; font-family: 'Space Mono', monospace; border-radius: 2px; margin-bottom: 8px;">NO</div>
-              <div class="flow-node skip" style="min-width: 180px;">SEGNALE SCARTATO</div>
+            <div class="fl-gate-exit">
+              <div class="fl-exit-line"></div>
+              <div class="fl-no-pill">NO</div>
+              <div class="flow-node skip fl-exit-node">SKIP</div>
             </div>
           </div>
+
+          <!-- Step 8: Trade -->
+          <div class="flow-node trade" data-flow="8">TRADE ESEGUITO</div>
+          <div class="flow-arrow" data-flow="9"><div class="flow-arrow-line"></div><div class="flow-arrow-head"></div></div>
+
+          <!-- Step 10: On-chain -->
+          <div class="flow-node onchain" data-flow="10">ON-CHAIN COMMIT (Polygon)</div>
 
         </div>
       </div>
