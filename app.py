@@ -1145,7 +1145,7 @@ def resume_bot():
     global _BOT_PAUSED, _BOT_PAUSED_REFRESHED_AT, _RESUMED_AT
     _BOT_PAUSED = False
     _BOT_PAUSED_REFRESHED_AT = time.time()
-    _RESUMED_AT = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    _RESUMED_AT = _dt.datetime.now(_dt.timezone.utc).isoformat()
     _save_bot_paused(False)
     return jsonify({"paused": False, "message": "Bot riattivato — trading ripreso", "resumed_at": _RESUMED_AT}), 200
 
