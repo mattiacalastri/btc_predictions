@@ -18,6 +18,8 @@ if(localStorage.getItem('btcp_ga_consent')==='granted'){
 }
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- reCAPTCHA v3 (anti-bot) -->
+<script src="https://www.google.com/recaptcha/api.js?render=6LcxXHwsAAAAAPLXvyh0lDdMI9StRq3glnC1KPjJ" defer></script>
 <title>I Tanti Padri — btcpredictor.io</title>
 <meta name="description" content="I Tanti Padri di BTC Predictor: le menti, le intuizioni e i contributi che hanno costruito il bot autonomo di trading Bitcoin con Claude AI, XGBoost e blockchain Polygon. Una storia di collaborazione e scoperta.">
 <meta name="robots" content="index, follow">
@@ -1851,10 +1853,15 @@ if(localStorage.getItem('btcp_ga_consent')==='granted'){
     feedback.style.display = 'none';
 
     try {
+      // reCAPTCHA v3 token
+      let rcToken = '';
+      if (typeof grecaptcha !== 'undefined') {
+        rcToken = await new Promise(res => grecaptcha.ready(() => grecaptcha.execute('6LcxXHwsAAAAAPLXvyh0lDdMI9StRq3glnC1KPjJ', {action: 'submit_contribution'}).then(res).catch(() => res(''))));
+      }
       const r = await fetch(BASE_URL + '/submit-contribution', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role, insight, consent: true }),
+        body: JSON.stringify({ role, insight, consent: true, recaptcha_token: rcToken }),
         signal: AbortSignal.timeout(12000),
       });
       const data = await r.json();

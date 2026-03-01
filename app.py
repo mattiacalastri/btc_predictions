@@ -44,10 +44,13 @@ def set_security_headers(response):
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
         "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com "
-        "https://js-de.sentry-cdn.com https://www.googletagmanager.com https://www.clarity.ms; "
+        "https://js-de.sentry-cdn.com https://www.googletagmanager.com https://www.clarity.ms "
+        "https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ "
+        "https://challenges.cloudflare.com; "
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
         "font-src 'self' https://fonts.gstatic.com; "
         "img-src 'self' data: https:; "
+        "frame-src https://www.google.com/recaptcha/ https://challenges.cloudflare.com; "
         "connect-src 'self' https://*.railway.app https://oimlamjilivrcnhztwvj.supabase.co "
         "https://sentry.io https://*.sentry-cdn.com https://www.clarity.ms "
         "https://www.google-analytics.com https://n8n.srv1432354.hstgr.cloud;"
@@ -3590,6 +3593,12 @@ def submit_contribution():
         pass  # email is best-effort; Telegram already notified
 
     return jsonify({"ok": True, "message": "Contributo ricevuto — verrà pubblicato dopo revisione. Grazie!"})
+
+
+@app.route("/contribute", methods=["POST"])
+def contribute_alias():
+    """Alias for /submit-contribution — used by investors.html."""
+    return submit_contribution()
 
 
 @app.route("/public-contributions", methods=["GET"])

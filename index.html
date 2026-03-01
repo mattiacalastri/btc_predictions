@@ -144,6 +144,8 @@
 <link rel="stylesheet" href="/static/style.css?v=__CACHE_BUST__">
 <!-- Cloudflare Turnstile (invisible CAPTCHA — Satoshi lead) -->
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" defer></script>
+<!-- reCAPTCHA v3 (all forms) -->
+<script src="https://www.google.com/recaptcha/api.js?render=6LcxXHwsAAAAAPLXvyh0lDdMI9StRq3glnC1KPjJ" defer></script>
 </head>
 <body>
 <div id="topLoader" class="indeterminate"></div>
@@ -7241,11 +7243,25 @@ window.addEventListener('load', function() {
   function doSaveEmail(email,cfToken){
     emailDone=true;
     trackEvent('lead_submit', { method: 'satoshi_widget', has_token: !!cfToken });
-    fetch('/satoshi-lead',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({email:email,source:'satoshi_widget',metadata:{exchanges:exchanges},cf_turnstile_token:cfToken||''})
-    }).catch(function(){});
+    // reCAPTCHA v3 token (primary) + Turnstile (fallback)
+    var rcKey='6LcxXHwsAAAAAPLXvyh0lDdMI9StRq3glnC1KPjJ';
+    if(typeof grecaptcha!=='undefined'){
+      grecaptcha.ready(function(){
+        grecaptcha.execute(rcKey,{action:'satoshi_lead'}).then(function(rcToken){
+          fetch('/satoshi-lead',{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({email:email,source:'satoshi_widget',metadata:{exchanges:exchanges},cf_turnstile_token:cfToken||'',recaptcha_token:rcToken})
+          }).catch(function(){});
+        });
+      });
+    }else{
+      fetch('/satoshi-lead',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({email:email,source:'satoshi_widget',metadata:{exchanges:exchanges},cf_turnstile_token:cfToken||'',recaptcha_token:''})
+      }).catch(function(){});
+    }
     botSay(EMAIL_OK,350);
   }
 

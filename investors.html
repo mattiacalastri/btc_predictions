@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- reCAPTCHA v3 (anti-bot) -->
+  <script src="https://www.google.com/recaptcha/api.js?render=6LcxXHwsAAAAAPLXvyh0lDdMI9StRq3glnC1KPjJ" defer></script>
   <title>The Case — btcpredictor.io</title>
   <meta name="description" content="An honest investment case for a live AI trading system. Real numbers. Real money. Everything verifiable on-chain.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1497,6 +1499,11 @@
         status.style.display = 'none';
 
         try {
+          // reCAPTCHA v3 token
+          let rcToken = '';
+          if (typeof grecaptcha !== 'undefined') {
+            rcToken = await new Promise(res => grecaptcha.ready(() => grecaptcha.execute('6LcxXHwsAAAAAPLXvyh0lDdMI9StRq3glnC1KPjJ', {action: 'submit_contribution'}).then(res).catch(() => res(''))));
+          }
           const res = await fetch('https://web-production-e27d0.up.railway.app/contribute', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1504,7 +1511,9 @@
               name: name,
               role: type,
               insight: `[INVESTORS PAGE]\nEmail: ${email}\nType: ${type}\n\n${message}`,
-              source: 'investors_page'
+              source: 'investors_page',
+              recaptcha_token: rcToken,
+              consent: true
             })
           });
 
