@@ -577,7 +577,7 @@
   .mini-status-bar {
     display: flex; align-items: center; gap: 8px;
     background: rgba(255,255,255,0.01); border-bottom: 1px solid rgba(255,255,255,0.04);
-    padding: 5px 72px 5px 24px; height: 28px;
+    padding: 5px 76px 5px 24px; height: 38px;
     overflow-x: auto; scrollbar-width: none;
   }
   .mini-status-bar::-webkit-scrollbar { display: none; }
@@ -2281,16 +2281,19 @@
   /* ── TRON/MATRIX BURGER MENU ─────────────────────────────── */
   .tron-menu-btn {
     display: flex; align-items: center; justify-content: center;
-    width: 44px; height: 44px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.14);
-    border-radius: 4px; cursor: pointer;
-    position: fixed; top: 16px; right: 24px; z-index: 5001;
-    transition: background 0.2s, border-color 0.2s;
+    width: 38px; height: 38px; padding: 0;
+    background: rgba(20,20,28,0.82);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 6px; cursor: pointer;
+    position: fixed; top: 5px; right: 20px; z-index: 5001;
+    transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+    box-shadow: 0 2px 14px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06);
+    backdrop-filter: blur(6px);
   }
   .tron-menu-btn:hover {
     background: rgba(255,255,255,0.09);
-    border-color: rgba(255,255,255,0.28);
+    border-color: rgba(255,255,255,0.32);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.1);
   }
 
   /* Backdrop */

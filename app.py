@@ -3,6 +3,7 @@ import re
 import json
 import math
 import time
+import hashlib
 import threading
 import datetime as _dt
 import hmac as _hmac
@@ -4265,6 +4266,155 @@ def _supabase_update(bet_id: int, fields: dict):
         r.raise_for_status()
     except Exception as e:
         app.logger.error("_supabase_update bet_id=%s error: %s", bet_id, e)
+
+
+# ── NEWS BLOCKCHAIN FACT-CHECK ────────────────────────────────────────────────
+#
+# Committa l'hash di una news su Polygon PRIMA della pubblicazione marketing.
+# Crea prova crittografica immutabile che la fonte esisteva prima del post.
+# Convention onchain_id: 50_000_000 + news_db_id (distinguibile da bet IDs).
+# Hash formula: sha256(url + "|" + headline + "|" + str(unix_timestamp))
+
+@app.route("/news-fact-check", methods=["POST"])
+def news_fact_check():
+    """
+    Registra l'hash di una news su Polygon prima della pubblicazione.
+    Body JSON: { url, headline, content_snippet?, source?, news_published_at? }
+    Returns: { ok, id, hash, onchain_id, tx_hash, polygonscan_url }
+    """
+    err = _check_api_key()
+    if err:
+        return err
+    data = request.get_json(force=True) or {}
+    url = str(data.get("url", "")).strip()
+    headline = str(data.get("headline", "")).strip()
+    if not url:
+        return jsonify({"ok": False, "error": "url richiesto"}), 400
+
+    content_snippet = str(data.get("content_snippet", ""))[:500]
+    source = str(data.get("source", ""))[:100]
+    news_published_at = data.get("news_published_at")  # ISO string o null
+
+    # Calcola timestamp di riferimento per l'hash
+    try:
+        if news_published_at:
+            import datetime as _dt_nfc
+            ts_nfc = int(_dt_nfc.datetime.fromisoformat(
+                news_published_at.replace("Z", "+00:00")).timestamp())
+        else:
+            ts_nfc = int(_dt.datetime.utcnow().timestamp())
+    except Exception:
+        ts_nfc = int(_dt.datetime.utcnow().timestamp())
+
+    # Hash SHA-256 della news (deterministico: stessa news = stesso hash)
+    raw_nfc = f"{url}|{headline}|{ts_nfc}".encode("utf-8")
+    hash_hex = hashlib.sha256(raw_nfc).hexdigest()
+
+    # Insert in Supabase (ottieni ID per onchain_id convention)
+    supabase_url, supabase_key = _sb_config()
+    news_id = None
+    try:
+        row = {
+            "url": url,
+            "headline": headline,
+            "content_snippet": content_snippet,
+            "source": source,
+            "news_published_at": news_published_at,
+            "hash_sha256": hash_hex,
+            "status": "pending",
+        }
+        resp = requests.post(
+            f"{supabase_url}/rest/v1/news_fact_checks",
+            headers={
+                "apikey": supabase_key,
+                "Authorization": f"Bearer {supabase_key}",
+                "Content-Type": "application/json",
+                "Prefer": "return=representation",
+            },
+            json=row,
+            timeout=8,
+        )
+        if resp.ok:
+            news_id = resp.json()[0]["id"]
+        else:
+            app.logger.warning(f"[NEWS-FC] Supabase insert failed: {resp.status_code}")
+    except Exception as e:
+        app.logger.warning(f"[NEWS-FC] Supabase insert error: {e}")
+
+    onchain_id = 50_000_000 + (news_id or 0)
+
+    # Commit su Polygon
+    try:
+        w3, contract, account = _get_web3_contract()
+        commit_hash_bytes = hashlib.sha256(raw_nfc).digest()  # 32 bytes
+        nonce = w3.eth.get_transaction_count(account.address, "pending")
+        tx = contract.functions.commit(onchain_id, commit_hash_bytes).build_transaction({
+            "from": account.address,
+            "nonce": nonce,
+            "gas": 80000,
+            "gasPrice": w3.to_wei("30", "gwei"),
+            "chainId": 137,
+        })
+        signed = account.sign_transaction(tx)
+        tx_hash_raw = w3.eth.send_raw_transaction(signed.rawTransaction)
+        tx_hex = tx_hash_raw.hex()
+        polygonscan_url = f"https://polygonscan.com/tx/{tx_hex}"
+        app.logger.info(f"[NEWS-FC] id={news_id} onchain_id={onchain_id} → tx {tx_hex}")
+
+        # Aggiorna Supabase con tx
+        if news_id:
+            try:
+                requests.patch(
+                    f"{supabase_url}/rest/v1/news_fact_checks?id=eq.{news_id}",
+                    headers={
+                        "apikey": supabase_key,
+                        "Authorization": f"Bearer {supabase_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "onchain_id": onchain_id,
+                        "polygon_tx_hash": tx_hex,
+                        "polygonscan_url": polygonscan_url,
+                        "status": "committed",
+                    },
+                    timeout=8,
+                )
+            except Exception as e_upd:
+                app.logger.warning(f"[NEWS-FC] Supabase update error: {e_upd}")
+
+        return jsonify({
+            "ok": True,
+            "id": news_id,
+            "hash": hash_hex,
+            "onchain_id": onchain_id,
+            "tx_hash": tx_hex,
+            "polygonscan_url": polygonscan_url,
+        })
+
+    except Exception as e:
+        app.logger.error(f"[NEWS-FC] Polygon commit failed: {e}")
+        # Aggiorna status failed su Supabase
+        if news_id:
+            try:
+                requests.patch(
+                    f"{supabase_url}/rest/v1/news_fact_checks?id=eq.{news_id}",
+                    headers={
+                        "apikey": supabase_key,
+                        "Authorization": f"Bearer {supabase_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json={"status": "failed"},
+                    timeout=8,
+                )
+            except Exception:
+                pass
+        return jsonify({
+            "ok": False,
+            "id": news_id,
+            "hash": hash_hex,
+            "error": str(e),
+            "note": "Hash salvato in Supabase ma non committato on-chain",
+        }), 500
 
 
 # ── DASHBOARD ────────────────────────────────────────────────────────────────
