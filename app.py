@@ -3452,6 +3452,36 @@ _CONTRIBUTION_MAX_CHARS = 500
 _CONTRIBUTION_RATE = {}   # ip → last_submit timestamp (in-memory, ephemeral)
 _CONTRIBUTION_COOLDOWN = 300  # 5 min between submissions per IP
 
+# ── reCAPTCHA v3 ────────────────────────────────────────────────
+_RECAPTCHA_SECRET = os.environ.get("RECAPTCHA_SECRET_KEY", "")
+_RECAPTCHA_THRESHOLD = 0.5  # score 0.0 (bot) → 1.0 (human)
+
+
+def _verify_recaptcha(token: str, action: str = "") -> bool:
+    """Verify reCAPTCHA v3 token server-side. Returns True if valid."""
+    if not _RECAPTCHA_SECRET:
+        return True  # fail open if not configured
+    if not token:
+        return False
+    try:
+        r = requests.post(
+            "https://www.google.com/recaptcha/api/siteverify",
+            data={"secret": _RECAPTCHA_SECRET, "response": token},
+            timeout=5,
+        )
+        result = r.json()
+        if not result.get("success"):
+            return False
+        if result.get("score", 0) < _RECAPTCHA_THRESHOLD:
+            app.logger.warning("recaptcha low score=%.2f action=%s", result.get("score"), action)
+            return False
+        if action and result.get("action") != action:
+            return False
+        return True
+    except Exception as exc:
+        app.logger.error("recaptcha verify error: %s", exc)
+        return True  # fail open on network error
+
 
 @app.route("/submit-contribution", methods=["POST"])
 def submit_contribution():
@@ -3474,6 +3504,11 @@ def submit_contribution():
     _CONTRIBUTION_RATE[ip] = now
 
     data = request.get_json(silent=True) or {}
+
+    # ── reCAPTCHA v3 ──
+    if not _verify_recaptcha(data.get("recaptcha_token", ""), "submit_contribution"):
+        return jsonify({"ok": False, "error": "Verifica anti-bot fallita. Ricarica la pagina."}), 400
+
     role    = str(data.get("role", "other"))[:20].strip()
     insight = str(data.get("insight", ""))[:_CONTRIBUTION_MAX_CHARS].strip()
     consent = bool(data.get("consent", False))
@@ -4873,25 +4908,28 @@ def satoshi_lead():
     """Salva email raccolta dal widget Satoshi in Supabase leads."""
     data = request.get_json(silent=True) or {}
 
-    # ── Cloudflare Turnstile verification ──────────────────────────────
-    ts_secret = os.environ.get("TURNSTILE_SECRET_KEY", "")
-    if ts_secret:
-        cf_token = str(data.get("cf_turnstile_token", "")).strip()
-        if not cf_token:
+    # ── reCAPTCHA v3 (primary) + Turnstile fallback ───────────────────
+    recaptcha_ok = _verify_recaptcha(data.get("recaptcha_token", ""), "satoshi_lead")
+    if not recaptcha_ok:
+        ts_secret = os.environ.get("TURNSTILE_SECRET_KEY", "")
+        if ts_secret:
+            cf_token = str(data.get("cf_turnstile_token", "")).strip()
+            if not cf_token:
+                return jsonify({"ok": False, "error": "captcha_required"}), 400
+            try:
+                ts_resp = requests.post(
+                    "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+                    json={"secret": ts_secret, "response": cf_token},
+                    timeout=5,
+                )
+                if not ts_resp.json().get("success"):
+                    app.logger.warning("satoshi_lead: captcha failed ip=%s",
+                                       request.remote_addr)
+                    return jsonify({"ok": False, "error": "captcha_failed"}), 400
+            except Exception as exc:
+                app.logger.error("satoshi_lead: turnstile error %s", exc)
+        elif _RECAPTCHA_SECRET:
             return jsonify({"ok": False, "error": "captcha_required"}), 400
-        try:
-            ts_resp = requests.post(
-                "https://challenges.cloudflare.com/turnstile/v0/siteverify",
-                json={"secret": ts_secret, "response": cf_token},
-                timeout=5,
-            )
-            if not ts_resp.json().get("success"):
-                app.logger.warning("satoshi_lead: turnstile failed ip=%s",
-                                   request.remote_addr)
-                return jsonify({"ok": False, "error": "captcha_failed"}), 400
-        except Exception as exc:
-            app.logger.error("satoshi_lead: turnstile error %s", exc)
-            # fail open — non bloccare lead per timeout Cloudflare
     # ────────────────────────────────────────────────────────────────────
 
     email = str(data.get("email", "")).strip().lower()
@@ -5346,6 +5384,8 @@ def cockpit_agents():
                             "next_action": row.get("next_action", ""),
                             "next_action_time": row.get("next_action_time", ""),
                             "result_summary": row.get("result_summary", ""),
+                            "notes": row.get("notes", ""),
+                            "priority": bool(row.get("priority", False)),
                         })
                     # All rows become events
                     events.append({
@@ -5370,10 +5410,10 @@ def cockpit_overview():
         return err
 
     overview = {
-        "bot_paused": os.environ.get("BOT_PAUSED", "").lower() == "true",
+        "bot_paused": bool(_BOT_PAUSED),
         "dry_run": os.environ.get("DRY_RUN", "").lower() == "true",
         "mode": "DRY RUN" if os.environ.get("DRY_RUN", "").lower() == "true" else (
-            "PAUSED" if os.environ.get("BOT_PAUSED", "").lower() == "true" else "LIVE"
+            "PAUSED" if _BOT_PAUSED else "LIVE"
         ),
         "open_positions": 0,
         "position_detail": "",
@@ -5524,6 +5564,108 @@ def cockpit_overview():
         app.logger.warning("[COCKPIT] Overview error: %s", e)
 
     return jsonify(overview), 200
+
+
+@app.route("/cockpit/api/bot-toggle", methods=["POST"])
+def cockpit_bot_toggle():
+    """Toggle bot paused state. No body needed — it's a toggle."""
+    err = _check_cockpit_auth()
+    if err:
+        return err
+    global _BOT_PAUSED, _BOT_PAUSED_REFRESHED_AT
+    _refresh_bot_paused()
+    _BOT_PAUSED = not _BOT_PAUSED
+    _BOT_PAUSED_REFRESHED_AT = time.time()
+    _save_bot_paused(_BOT_PAUSED)
+    app.logger.info("[COCKPIT] Bot toggled → paused=%s", _BOT_PAUSED)
+    return jsonify({"paused": _BOT_PAUSED}), 200
+
+
+@app.route("/cockpit/api/agents/reset", methods=["POST"])
+def cockpit_agents_reset():
+    """Reset one or all agents in cockpit_events to pending state."""
+    err = _check_cockpit_auth()
+    if err:
+        return err
+    data = request.get_json(force=True) or {}
+    clone_id = data.get("clone_id")
+    sb_url, sb_key = _sb_config()
+    if not sb_url or not sb_key:
+        return jsonify({"error": "supabase_not_configured"}), 503
+
+    headers = {
+        "apikey": sb_key,
+        "Authorization": f"Bearer {sb_key}",
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal",
+    }
+    patch_body = {
+        "status": "pending",
+        "last_message": "",
+        "result_summary": "",
+        "cost_usd": 0,
+        "elapsed_sec": 0,
+        "notes": "",
+        "priority": False,
+    }
+    url = f"{sb_url}/rest/v1/cockpit_events"
+    if clone_id:
+        url += f"?clone_id=eq.{clone_id}"
+    else:
+        url += "?clone_id=neq.___"  # match all rows
+
+    try:
+        resp = requests.patch(url, json=patch_body, headers=headers, timeout=5)
+        if not resp.ok:
+            return jsonify({"error": "supabase_error", "detail": resp.text}), 502
+    except Exception as e:
+        return jsonify({"error": str(e)}), 502
+
+    reset_ids = [clone_id] if clone_id else ["c1", "c2", "c3", "c4", "c5", "c6"]
+    app.logger.info("[COCKPIT] Agents reset: %s", reset_ids)
+    return jsonify({"reset": reset_ids}), 200
+
+
+@app.route("/cockpit/api/agents/update", methods=["POST"])
+def cockpit_agents_update():
+    """Update agent note or priority flag."""
+    err = _check_cockpit_auth()
+    if err:
+        return err
+    data = request.get_json(force=True) or {}
+    clone_id = data.get("clone_id")
+    action = data.get("action")
+    value = data.get("value")
+
+    if not clone_id or action not in ("note", "priority"):
+        return jsonify({"error": "invalid_params", "msg": "clone_id + action(note|priority) required"}), 400
+
+    sb_url, sb_key = _sb_config()
+    if not sb_url or not sb_key:
+        return jsonify({"error": "supabase_not_configured"}), 503
+
+    headers = {
+        "apikey": sb_key,
+        "Authorization": f"Bearer {sb_key}",
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal",
+    }
+    if action == "note":
+        patch_body = {"notes": str(value or "")[:500]}
+    else:
+        patch_body = {"priority": bool(value)}
+
+    try:
+        resp = requests.patch(
+            f"{sb_url}/rest/v1/cockpit_events?clone_id=eq.{clone_id}",
+            json=patch_body, headers=headers, timeout=5,
+        )
+        if not resp.ok:
+            return jsonify({"error": "supabase_error", "detail": resp.text}), 502
+    except Exception as e:
+        return jsonify({"error": str(e)}), 502
+
+    return jsonify({"ok": True}), 200
 
 
 @app.route("/cockpit/api/ghosts", methods=["GET"])

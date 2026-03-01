@@ -33,5 +33,9 @@ CREATE INDEX IF NOT EXISTS idx_cockpit_events_updated
 -- ALTER TABLE cockpit_events ENABLE ROW LEVEL SECURITY;
 -- CREATE POLICY cockpit_service ON cockpit_events FOR ALL USING (true);
 
+-- v3: notes and priority columns for agent action buttons
+ALTER TABLE cockpit_events ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT '';
+ALTER TABLE cockpit_events ADD COLUMN IF NOT EXISTS priority BOOLEAN DEFAULT false;
+
 -- Nota: il cockpit usa UPSERT (Prefer: resolution=merge-duplicates)
 -- quindi clone_id come PK garantisce una sola riga per agent.

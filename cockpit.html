@@ -354,7 +354,7 @@ body.heartbeat-offline { animation: hb-flat 4s linear infinite; }
 .agent-expand {
   max-height: 0; overflow: hidden; transition: max-height 0.35s ease;
 }
-.agent-card.expanded .agent-expand { max-height: 300px; }
+.agent-card.expanded .agent-expand { max-height: 500px; }
 .agent-expand-inner {
   padding-top: 12px; margin-top: 12px; border-top: 1px solid var(--border);
   font-size: 12px; color: var(--text-secondary);
@@ -518,6 +518,67 @@ body.heartbeat-offline { animation: hb-flat 4s linear infinite; }
   .metrics { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
   .davide-big { font-size: 64px; }
 }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   COCKPIT v3 — Agent Action Buttons + Global Controls
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+/* Global actions bar */
+.global-actions {
+  display: flex; gap: 8px; margin-bottom: 14px;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  padding-bottom: 4px;
+}
+.global-actions .action-btn {
+  white-space: nowrap; flex-shrink: 0;
+  padding: 10px 16px; border-radius: 8px;
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  border: 1px solid var(--border); background: transparent;
+  color: var(--text-secondary); transition: all 0.2s;
+  min-height: 44px; display: inline-flex; align-items: center; gap: 6px;
+}
+.global-actions .action-btn:hover { border-color: var(--text-muted); }
+.global-actions .action-btn.accent { border-color: var(--accent); color: var(--accent); }
+.global-actions .action-btn.accent:hover { background: var(--accent-dim); }
+.global-actions .action-btn.warn { border-color: var(--yellow); color: var(--yellow); }
+.global-actions .action-btn.warn:hover { background: var(--yellow-dim); }
+.global-actions .action-btn.danger { border-color: var(--red); color: var(--red); }
+.global-actions .action-btn.danger:hover { background: var(--red-dim); }
+
+/* Agent action buttons row */
+.agent-actions {
+  display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap;
+}
+.agent-action-btn {
+  padding: 6px 12px; border-radius: 6px; font-size: 11px;
+  border: 1px solid var(--border); background: transparent;
+  color: var(--text-secondary); cursor: pointer; min-height: 32px;
+  transition: all 0.2s; font-weight: 500;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.agent-action-btn:hover { border-color: var(--text-muted); }
+.agent-action-btn.danger { border-color: var(--red); color: var(--red); }
+.agent-action-btn.danger:hover { background: var(--red-dim); }
+.agent-action-btn.accent { border-color: var(--accent); color: var(--accent); }
+.agent-action-btn.accent:hover { background: var(--accent-dim); }
+.agent-action-btn.priority-active { border-color: var(--yellow); color: var(--yellow); background: var(--yellow-dim); }
+.agent-action-btn.blue { border-color: var(--blue); color: var(--blue); }
+.agent-action-btn.blue:hover { background: var(--blue-dim); }
+
+/* Agent note display */
+.agent-note {
+  font-size: 11px; font-style: italic; color: var(--text-secondary);
+  padding: 4px 8px; margin-top: 6px; border-radius: 4px;
+  background: var(--accent-dim); line-height: 1.4;
+}
+
+/* Agent priority indicator */
+.agent-card.priority { border-right: 3px solid var(--yellow); }
+.priority-star { color: var(--yellow); margin-left: 4px; font-size: 12px; }
+
+/* Expand to full log (remove max-height) */
+.agent-card.full-log .agent-task,
+.agent-card.full-log .agent-thought { max-height: none; }
 </style>
 </head>
 <body>
@@ -689,6 +750,12 @@ body.heartbeat-offline { animation: hb-flat 4s linear infinite; }
 
     <!-- TAB: AGENTS -->
     <div class="tab-panel" id="panel-agents">
+      <div class="global-actions">
+        <button class="action-btn accent" id="btn-bot-toggle" onclick="toggleBotPause()">&#9208; Pause Bot</button>
+        <button class="action-btn danger" onclick="resetAllAgents()">&#8635; Reset All</button>
+        <button class="action-btn" onclick="downloadReport()">&#8615; Report</button>
+        <button class="action-btn" onclick="refreshAll()">&#8635; Refresh</button>
+      </div>
       <div class="agents-grid" id="agents-grid">
         <!-- Populated by JS -->
       </div>
@@ -767,6 +834,7 @@ body.heartbeat-offline { animation: hb-flat 4s linear infinite; }
           <kbd>Space</kbd> Toggle auto-refresh<br>
           <kbd>G</kbd> Ghost mode &nbsp;&nbsp;
           <kbd>D</kbd> Davide mode &nbsp;&nbsp;
+          <kbd>P</kbd> Pause/Resume bot &nbsp;&nbsp;
           <kbd>Esc</kbd> Back to Overview
         </div>
       </div>
@@ -976,6 +1044,20 @@ function renderMetrics(overview) {
   else { bs.textContent = 'ACTIVE'; bs.style.color = 'var(--green)'; }
   document.getElementById('m-bot-mode').textContent = overview.mode || '';
 
+  // Sync bot toggle button (v3)
+  const toggleBtn = document.getElementById('btn-bot-toggle');
+  if (toggleBtn) {
+    if (overview.bot_paused) {
+      toggleBtn.innerHTML = '&#9654; Resume Bot';
+      toggleBtn.classList.remove('accent');
+      toggleBtn.classList.add('warn');
+    } else {
+      toggleBtn.innerHTML = '&#9208; Pause Bot';
+      toggleBtn.classList.remove('warn');
+      toggleBtn.classList.add('accent');
+    }
+  }
+
   document.getElementById('m-positions').textContent = overview.open_positions ?? '-';
   document.getElementById('m-positions-detail').textContent = overview.position_detail || '';
 
@@ -1146,11 +1228,18 @@ function renderAgents(agents) {
       return `<div class="expand-task-item"><div class="expand-task-dot" style="background:${dotColor}"></div>${escapeHtml(t.name || t.subject || t.status)}</div>`;
     }).join('');
 
+    const cid = a.clone_id;
+    const isPriority = a.priority;
+    const noteText = a.notes || '';
+    const priorityClass = isPriority ? ' priority' : '';
+    const priorityStar = isPriority ? '<span class="priority-star">&#9733;</span>' : '';
+    const priorityBtnClass = isPriority ? ' priority-active' : '';
+
     return `
-    <div class="agent-card ${status}" onclick="toggleExpand(this)">
+    <div class="agent-card ${status}${priorityClass}" onclick="toggleExpand(this)" data-clone="${escapeHtml(cid)}">
       <div class="agent-header">
         <div>
-          <div class="agent-name">${escapeHtml(a.name || a.clone_id)}<span class="asimov-badge ${asimov}">${asimov}</span></div>
+          <div class="agent-name">${escapeHtml(a.name || a.clone_id)}${priorityStar}<span class="asimov-badge ${asimov}">${asimov}</span></div>
           <div class="agent-role">${escapeHtml(a.role || '')}</div>
         </div>
         <div class="agent-status">
@@ -1164,6 +1253,7 @@ function renderAgents(agents) {
         <div class="agent-task">${escapeHtml(a.current_task || a.last_message || 'In attesa...')}</div>
         ${a.thought ? `<div class="agent-thought">${escapeHtml(a.thought)}</div>` : ''}
       </div>
+      ${noteText ? `<div class="agent-note">${escapeHtml(noteText)}</div>` : ''}
       <div class="agent-footer">
         <div>
           <span class="agent-cost">$${(a.cost_usd || 0).toFixed(2)}</span>
@@ -1178,6 +1268,12 @@ function renderAgents(agents) {
           ${a.next_action ? `<div class="expand-row"><span class="expand-label">Next</span><span class="expand-val">${escapeHtml(a.next_action)}</span></div>` : ''}
           ${a.next_action_time ? `<div class="expand-row"><span class="expand-label">Next at</span><span class="expand-val">${escapeHtml(a.next_action_time)}</span></div>` : ''}
           ${expandTasks ? `<div class="expand-tasks">${expandTasks}</div>` : ''}
+          <div class="agent-actions">
+            <button class="agent-action-btn danger" onclick="event.stopPropagation();resetAgent('${escapeHtml(cid)}')">Reset</button>
+            <button class="agent-action-btn accent" onclick="event.stopPropagation();annotateAgent('${escapeHtml(cid)}')">Note</button>
+            <button class="agent-action-btn${priorityBtnClass}" onclick="event.stopPropagation();togglePriority('${escapeHtml(cid)}',${isPriority ? 'true' : 'false'})">&#9733; Priority</button>
+            <button class="agent-action-btn blue" onclick="event.stopPropagation();toggleFullLog(this)">Full Log</button>
+          </div>
         </div>
       </div>
     </div>`;
@@ -1350,8 +1446,126 @@ document.addEventListener('keydown', (e) => {
     document.getElementById('set-davide').checked = !STATE.davideMode;
     toggleSetting('davideMode');
   }
+  else if (key === 'p') {
+    if (confirm('Toggle bot pause?')) toggleBotPause();
+  }
   else if (key === 'escape') { switchTab('overview'); }
 });
+
+// ── API POST HELPER (v3) ──
+async function apiPost(path, body) {
+  const resp = await fetch(`${API_BASE}${path}`, {
+    method: 'POST',
+    headers: { 'X-Cockpit-Token': STATE.authToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body || {})
+  });
+  if (resp.status === 403) { logout(); throw new Error('Unauthorized'); }
+  return resp.json();
+}
+
+// ── GLOBAL ACTIONS (v3) ──
+async function toggleBotPause() {
+  try {
+    const data = await apiPost('/cockpit/api/bot-toggle');
+    const btn = document.getElementById('btn-bot-toggle');
+    if (data.paused) {
+      btn.innerHTML = '&#9654; Resume Bot';
+      btn.classList.remove('accent');
+      btn.classList.add('warn');
+    } else {
+      btn.innerHTML = '&#9208; Pause Bot';
+      btn.classList.remove('warn');
+      btn.classList.add('accent');
+    }
+    refreshAll();
+  } catch (e) { console.error('Bot toggle error:', e); }
+}
+
+function resetAllAgents() {
+  if (!confirm('Reset ALL agents to pending? This clears messages, costs, and notes.')) return;
+  apiPost('/cockpit/api/agents/reset').then(() => refreshAll()).catch(e => console.error('Reset all error:', e));
+}
+
+function downloadReport() {
+  const agents = document.querySelectorAll('.agent-card');
+  let report = 'COCKPIT REPORT — ' + new Date().toISOString() + '\n' + '='.repeat(50) + '\n\n';
+  agents.forEach(card => {
+    const name = card.querySelector('.agent-name')?.textContent || '-';
+    const status = card.querySelector('.agent-status')?.textContent?.trim() || '-';
+    const cost = card.querySelector('.agent-cost')?.textContent || '-';
+    const task = card.querySelector('.agent-task')?.textContent || '-';
+    const note = card.querySelector('.agent-note')?.textContent || '';
+    report += `${name}\n  Status: ${status}\n  Cost: ${cost}\n  Task: ${task}\n`;
+    if (note) report += `  Note: ${note}\n`;
+    report += '\n';
+  });
+  const blob = new Blob([report], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `cockpit-report-${new Date().toISOString().slice(0,10)}.txt`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ── AGENT CARD ACTIONS (v3) ──
+function resetAgent(cloneId) {
+  if (!confirm(`Reset agent ${cloneId}?`)) return;
+  apiPost('/cockpit/api/agents/reset', { clone_id: cloneId }).then(() => refreshAll()).catch(e => console.error('Reset error:', e));
+}
+
+function annotateAgent(cloneId) {
+  const note = prompt('Note for ' + cloneId + ':');
+  if (note === null) return;
+  apiPost('/cockpit/api/agents/update', { clone_id: cloneId, action: 'note', value: note }).then(() => {
+    // Update card inline without full refresh
+    const card = document.querySelector(`.agent-card[data-clone="${cloneId}"]`);
+    if (card) {
+      let noteEl = card.querySelector('.agent-note');
+      if (note) {
+        if (!noteEl) {
+          noteEl = document.createElement('div');
+          noteEl.className = 'agent-note';
+          card.querySelector('.agent-body').insertAdjacentElement('afterend', noteEl);
+        }
+        noteEl.textContent = note;
+      } else if (noteEl) {
+        noteEl.remove();
+      }
+    }
+  }).catch(e => console.error('Note error:', e));
+}
+
+function togglePriority(cloneId, current) {
+  const newVal = !current;
+  apiPost('/cockpit/api/agents/update', { clone_id: cloneId, action: 'priority', value: newVal }).then(() => {
+    const card = document.querySelector(`.agent-card[data-clone="${cloneId}"]`);
+    if (card) {
+      card.classList.toggle('priority', newVal);
+      // Update star in name
+      const nameEl = card.querySelector('.agent-name');
+      const existing = nameEl.querySelector('.priority-star');
+      if (newVal && !existing) {
+        nameEl.insertAdjacentHTML('afterbegin', '');
+        const star = document.createElement('span');
+        star.className = 'priority-star';
+        star.innerHTML = '&#9733;';
+        const asimov = nameEl.querySelector('.asimov-badge');
+        if (asimov) nameEl.insertBefore(star, asimov);
+        else nameEl.appendChild(star);
+      } else if (!newVal && existing) {
+        existing.remove();
+      }
+      // Update button state
+      const btn = card.querySelector('.agent-action-btn:nth-child(3)');
+      if (btn) btn.classList.toggle('priority-active', newVal);
+    }
+  }).catch(e => console.error('Priority error:', e));
+}
+
+function toggleFullLog(btn) {
+  const card = btn.closest('.agent-card');
+  if (card) card.classList.toggle('full-log');
+}
 
 // ── UTILS ──
 function formatElapsed(sec) {
