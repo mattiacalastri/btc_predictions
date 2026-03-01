@@ -2368,8 +2368,8 @@ def ghost_evaluate():
         return jsonify({"status": "error", "error": "Supabase not configured"}), 503
 
     now = _dt.datetime.now(_dt.timezone.utc)
-    cutoff_recent = (now - _dt.timedelta(minutes=30)).isoformat()
-    cutoff_old = (now - _dt.timedelta(hours=48)).isoformat()
+    cutoff_recent = (now - _dt.timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    cutoff_old = (now - _dt.timedelta(hours=48)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     try:
         resp = requests.get(
