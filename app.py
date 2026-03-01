@@ -4600,17 +4600,35 @@ def commit_prediction():
         app.logger.info(f"[ONCHAIN] commit bet #{bet_id} → tx {tx_hex}")
 
         # Aggiorna Supabase — errore non critico (tx già inviata on-chain)
+        sb_warning = None
         try:
             _supabase_update(bet_id, {
                 "onchain_commit_hash": commit_hash_hex,
                 "onchain_commit_tx": tx_hex,
             })
+            # Verify the update actually persisted
+            sb_url, sb_key = _sb_config()
+            _vr = requests.get(
+                f"{sb_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{bet_id}&select=onchain_commit_tx",
+                headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
+                timeout=5,
+            )
+            _rows = _vr.json() if _vr.ok else []
+            if not _rows or not _rows[0].get("onchain_commit_tx"):
+                sb_warning = "tx sent but Supabase verification failed — onchain_commit_tx still NULL"
+                app.logger.error(f"[ONCHAIN] bet #{bet_id}: {sb_warning}")
+                _push_cockpit_log("app", "error", f"Commit hash NULL for bet #{bet_id}",
+                                  sb_warning, {"bet_id": bet_id, "tx": tx_hex})
         except Exception as sb_err:
+            sb_warning = "tx sent but Supabase update failed"
             app.logger.error(f"[ONCHAIN] Supabase update failed for bet #{bet_id}: {sb_err}")
-            return jsonify({"ok": True, "commit_hash": commit_hash_hex, "tx": tx_hex,
-                            "warning": "tx sent but Supabase update failed"})
+            _push_cockpit_log("app", "error", f"Commit Supabase write failed #{bet_id}",
+                              str(sb_err), {"bet_id": bet_id, "tx": tx_hex})
 
-        return jsonify({"ok": True, "commit_hash": commit_hash_hex, "tx": tx_hex})
+        resp = {"ok": True, "commit_hash": commit_hash_hex, "tx": tx_hex}
+        if sb_warning:
+            resp["warning"] = sb_warning
+        return jsonify(resp)
 
     except Exception as e:
         app.logger.error(f"[ONCHAIN] commit_prediction error: {e}")
@@ -4669,17 +4687,35 @@ def resolve_prediction():
         app.logger.info(f"[ONCHAIN] resolve bet #{bet_id} won={won} → tx {tx_hex}")
 
         # Aggiorna Supabase — errore non critico (tx già inviata on-chain)
+        sb_warning = None
         try:
             _supabase_update(bet_id, {
                 "onchain_resolve_hash": resolve_hash_hex,
                 "onchain_resolve_tx": tx_hex,
             })
+            # Verify the update actually persisted
+            sb_url, sb_key = _sb_config()
+            _vr = requests.get(
+                f"{sb_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{bet_id}&select=onchain_resolve_tx",
+                headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
+                timeout=5,
+            )
+            _rows = _vr.json() if _vr.ok else []
+            if not _rows or not _rows[0].get("onchain_resolve_tx"):
+                sb_warning = "tx sent but Supabase verification failed — onchain_resolve_tx still NULL"
+                app.logger.error(f"[ONCHAIN] bet #{bet_id}: {sb_warning}")
+                _push_cockpit_log("app", "error", f"Resolve hash NULL for bet #{bet_id}",
+                                  sb_warning, {"bet_id": bet_id, "tx": tx_hex})
         except Exception as sb_err:
+            sb_warning = "tx sent but Supabase update failed"
             app.logger.error(f"[ONCHAIN] Supabase update failed for bet #{bet_id}: {sb_err}")
-            return jsonify({"ok": True, "resolve_hash": resolve_hash_hex, "tx": tx_hex,
-                            "warning": "tx sent but Supabase update failed"})
+            _push_cockpit_log("app", "error", f"Resolve Supabase write failed #{bet_id}",
+                              str(sb_err), {"bet_id": bet_id, "tx": tx_hex})
 
-        return jsonify({"ok": True, "resolve_hash": resolve_hash_hex, "tx": tx_hex})
+        resp = {"ok": True, "resolve_hash": resolve_hash_hex, "tx": tx_hex}
+        if sb_warning:
+            resp["warning"] = sb_warning
+        return jsonify(resp)
 
     except Exception as e:
         app.logger.error(f"[ONCHAIN] resolve_prediction error: {e}")
