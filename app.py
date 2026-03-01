@@ -4686,6 +4686,28 @@ _EMAIL_RE = re.compile(r'^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$')
 def satoshi_lead():
     """Salva email raccolta dal widget Satoshi in Supabase leads."""
     data = request.get_json(silent=True) or {}
+
+    # ── Cloudflare Turnstile verification ──────────────────────────────
+    ts_secret = os.environ.get("TURNSTILE_SECRET_KEY", "")
+    if ts_secret:
+        cf_token = str(data.get("cf_turnstile_token", "")).strip()
+        if not cf_token:
+            return jsonify({"ok": False, "error": "captcha_required"}), 400
+        try:
+            ts_resp = requests.post(
+                "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+                json={"secret": ts_secret, "response": cf_token},
+                timeout=5,
+            )
+            if not ts_resp.json().get("success"):
+                app.logger.warning("satoshi_lead: turnstile failed ip=%s",
+                                   request.remote_addr)
+                return jsonify({"ok": False, "error": "captcha_failed"}), 400
+        except Exception as exc:
+            app.logger.error("satoshi_lead: turnstile error %s", exc)
+            # fail open — non bloccare lead per timeout Cloudflare
+    # ────────────────────────────────────────────────────────────────────
+
     email = str(data.get("email", "")).strip().lower()
     if not _EMAIL_RE.match(email):
         return jsonify({"ok": False, "error": "invalid_email"}), 400

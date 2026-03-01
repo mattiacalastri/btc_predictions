@@ -132,6 +132,8 @@
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='15' fill='%230d0d0d'/%3E%3Ctext x='50' y='72' font-size='70' text-anchor='middle' fill='%2300ff88' font-family='Arial'%3E%E2%82%BF%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="/static/style.css?v=__CACHE_BUST__">
+<!-- Cloudflare Turnstile (invisible CAPTCHA — Satoshi lead) -->
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" defer></script>
 </head>
 <body>
 <div id="topLoader" class="indeterminate"></div>
@@ -6966,6 +6968,8 @@ window.addEventListener('load', function() {
              onkeydown="if(event.key==='Enter')satEmailSubmit()">
       <button id="satEmailBtn" onclick="satEmailSubmit()">✓</button>
     </div>
+    <!-- Turnstile invisible widget (rendered by JS) -->
+    <div id="satTurnstileContainer" style="display:none;"></div>
     <div id="satGdpr">Cliccando ✓ acconsenti al trattamento dell'email ai sensi del GDPR · <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a></div>
   </div>
   <div id="satAv" onclick="satToggle()" title="Parla con Satoshi">₿</div>
@@ -7104,6 +7108,28 @@ window.addEventListener('load', function() {
     });
   };
 
+  /* ── Turnstile invisible CAPTCHA ── */
+  var _satTsId=null, _satTsPending=null;
+
+  function _satTsInit(){
+    if(_satTsId!==null||typeof turnstile==='undefined')return;
+    // REPLACE 'TURNSTILE_SITE_KEY' with your actual Cloudflare Turnstile site key
+    var sitekey=window.TURNSTILE_SITE_KEY||'TURNSTILE_SITE_KEY';
+    _satTsId=turnstile.render('#satTurnstileContainer',{
+      sitekey:sitekey,
+      size:'invisible',
+      callback:function(token){
+        if(_satTsPending){doSaveEmail(_satTsPending,token);_satTsPending=null;}
+      },
+      'error-callback':function(){
+        if(_satTsPending){doSaveEmail(_satTsPending,'');_satTsPending=null;}
+      },
+      'expired-callback':function(){
+        if(_satTsId!==null)turnstile.reset(_satTsId);
+      }
+    });
+  }
+
   /* ── email submit ── */
   window.satEmailSubmit=function(){
     var e=$i('satEmailInp').value.trim();
@@ -7112,15 +7138,22 @@ window.addEventListener('load', function() {
     $i('satEmailWrap').classList.remove('se-show');
     $i('satInpWrap').style.display='flex';
     addMsg(e,'user');
-    doSaveEmail(e);
+    // Try Turnstile challenge first; fall back if not loaded
+    _satTsInit();
+    if(typeof turnstile!=='undefined'&&_satTsId!==null){
+      _satTsPending=e;
+      turnstile.execute(_satTsId);
+    }else{
+      doSaveEmail(e,'');
+    }
   };
 
-  function doSaveEmail(email){
+  function doSaveEmail(email,cfToken){
     emailDone=true;
     fetch('/satoshi-lead',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({email:email,source:'satoshi_widget',metadata:{exchanges:exchanges}})
+      body:JSON.stringify({email:email,source:'satoshi_widget',metadata:{exchanges:exchanges},cf_turnstile_token:cfToken||''})
     }).catch(function(){});
     botSay(EMAIL_OK,350);
   }
