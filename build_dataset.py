@@ -155,6 +155,44 @@ def created_at_to_ms(created_at: str) -> int:
         return 0
 
 
+def fetch_ghost_signals() -> list:
+    """
+    M-4: Fetch ghost signals (bet_taken=false) con ghost_correct valutato.
+    Normalizza ghost_correct → correct per renderli compatibili col pipeline ML.
+    Questi segnali hanno WR storico ~56.5% e arricchiscono il training set XGBoost.
+    """
+    columns = ",".join([
+        "id", "created_at", "direction", "confidence", "ghost_correct",
+        "classification", "btc_price_entry",
+        "fear_greed_value",
+        "ema_trend", "rsi14", "technical_score", "technical_bias",
+        "candle_pattern",
+        "signal_technical", "signal_sentiment",
+        "signal_fear_greed", "signal_volume",
+        "reasoning",
+    ])
+    all_rows = []
+    offset = 0
+    page_size = 1000
+    while True:
+        rows = supabase_get("btc_predictions", {
+            "select": columns,
+            "bet_taken": "eq.false",
+            "ghost_correct": "not.is.null",
+            "order": "created_at.asc",
+            "limit": page_size,
+            "offset": offset,
+        })
+        all_rows.extend(rows)
+        if len(rows) < page_size:
+            break
+        offset += page_size
+    # Normalizza: copia ghost_correct in correct per compatibilità con row_to_csv_dict / row_to_jsonl
+    for r in all_rows:
+        r["correct"] = r.pop("ghost_correct")
+    return all_rows
+
+
 def fetch_resolved_predictions() -> list:
     """Fetch all predictions with correct IS NOT NULL, ordered by created_at."""
     columns = ",".join([
@@ -389,6 +427,14 @@ def main():
             "Disabilitato di default per compatibilità con dataset esistenti."
         ),
     )
+    parser.add_argument(
+        "--include-ghost", action="store_true",
+        help=(
+            "M-4: Includi ghost signals (SKIP con ghost_correct valutato) nel dataset. "
+            "Aggiunge segnali con WR ~56.5% al training set XGBoost. "
+            "Disabilitato di default per retrocompatibilità con modelli esistenti."
+        ),
+    )
     args = parser.parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)
@@ -400,6 +446,21 @@ def main():
     if not rows:
         print("Nessuna predizione trovata. Controlla SUPABASE_URL e SUPABASE_KEY.")
         return
+
+    # ── M-4: Ghost signals ─────────────────────────────────────────────────────
+    if args.include_ghost:
+        ghost_rows = fetch_ghost_signals()
+        if ghost_rows:
+            g_wins   = sum(1 for r in ghost_rows if r.get("correct") is True)
+            g_losses = sum(1 for r in ghost_rows if r.get("correct") is False)
+            g_wr     = g_wins / len(ghost_rows) * 100 if ghost_rows else 0
+            print(f"[{datetime.now():%H:%M:%S}] Ghost signals inclusi: {len(ghost_rows)} "
+                  f"({g_wins} WIN, {g_losses} LOSS, WR {g_wr:.1f}%)")
+            rows = rows + ghost_rows
+            # Ri-ordina per created_at (walk-forward CV richiede ordine cronologico)
+            rows.sort(key=lambda r: r.get("created_at", ""))
+        else:
+            print(f"[{datetime.now():%H:%M:%S}] ℹ️  Nessun ghost signal con ghost_correct trovato.")
 
     total = len(rows)
     wins = sum(1 for r in rows if r.get("correct") is True)
@@ -503,6 +564,10 @@ def main():
     print(f"       --model gpt-4o-mini-2024-07-18")
     print()
     print("  2. Oppure usa features.csv con XGBoost:")
+    print(f"     python train_xgboost.py --data {csv_path}")
+    print()
+    print("  2b. Con ghost signals (M-4) per arricchire il training set:")
+    print(f"     python build_dataset.py --include-ghost")
     print(f"     python train_xgboost.py --data {csv_path}")
     print()
     print("  3. Aggiorna MODEL_ID in app.py dopo il fine-tuning.")
