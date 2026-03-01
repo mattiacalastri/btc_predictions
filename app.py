@@ -180,6 +180,83 @@ def _load_xgb_model():
 
 _load_xgb_model()
 
+# Regime labels (per /btc-regime e logging)
+_REGIME_LABELS = {0: "RANGING", 1: "TRENDING", 2: "VOLATILE"}
+
+def _compute_regime_4h_live() -> dict:
+    """
+    Calcola il regime di mercato BTC corrente da Binance 4h klines.
+
+    Returns dict con keys:
+        regime_label (int): 0=RANGING, 1=TRENDING, 2=VOLATILE
+        regime_name  (str): "RANGING" | "TRENDING" | "VOLATILE"
+        atr_4h_pct   (float): ATR(14) normalizzato sul prezzo (%)
+        trend_strength (float): |EMA5-EMA20|/EMA20 × 100 (%)
+    """
+    try:
+        import urllib.request as _ureq
+        import urllib.parse as _uparse
+        import ssl as _ssl
+        _ctx = _ssl.create_default_context()
+        params = _uparse.urlencode({
+            "symbol": "BTCUSDT",
+            "interval": "4h",
+            "limit": 22,
+        })
+        url = f"https://api.binance.com/api/v3/klines?{params}"
+        req = _ureq.Request(url, headers={"User-Agent": "btcbot/1.0"})
+        with _ureq.urlopen(req, context=_ctx, timeout=8) as resp:
+            import json as _json
+            klines = _json.loads(resp.read().decode())
+
+        if len(klines) < 16:
+            return {"regime_label": 0, "regime_name": "RANGING", "atr_4h_pct": 0.0, "trend_strength": 0.0, "error": "insufficient_data"}
+
+        closes = [float(k[4]) for k in klines]
+        highs  = [float(k[2]) for k in klines]
+        lows   = [float(k[3]) for k in klines]
+
+        trs = []
+        for i in range(1, len(klines)):
+            tr = max(
+                highs[i] - lows[i],
+                abs(highs[i] - closes[i - 1]),
+                abs(lows[i]  - closes[i - 1]),
+            )
+            trs.append(tr)
+        atr14 = sum(trs[-14:]) / 14 if len(trs) >= 14 else sum(trs) / max(len(trs), 1)
+        atr_4h_pct = round((atr14 / closes[-1]) * 100.0, 4) if closes[-1] > 0 else 0.0
+
+        def _ema(vals, period):
+            k = 2.0 / (period + 1)
+            e = vals[0]
+            for v in vals[1:]:
+                e = v * k + e * (1.0 - k)
+            return e
+
+        ema5  = _ema(closes[-5:],  5)  if len(closes) >= 5  else closes[-1]
+        ema20 = _ema(closes[-20:], 20) if len(closes) >= 20 else closes[-1]
+        trend_strength = round(abs(ema5 - ema20) / ema20 * 100.0, 4) if ema20 > 0 else 0.0
+
+        if trend_strength > 0.5:
+            label = 1  # TRENDING
+        elif atr_4h_pct > 1.5:
+            label = 2  # VOLATILE
+        else:
+            label = 0  # RANGING
+
+        return {
+            "regime_label":   label,
+            "regime_name":    _REGIME_LABELS[label],
+            "atr_4h_pct":     atr_4h_pct,
+            "trend_strength": trend_strength,
+        }
+
+    except Exception as e:
+        app.logger.warning("_compute_regime_4h_live error: %s", e)
+        return {"regime_label": 0, "regime_name": "RANGING", "atr_4h_pct": 0.0, "trend_strength": 0.0, "error": str(e)}
+
+
 # ── XGBoost correctness model (caricato una volta all'avvio) ─────────────────
 _xgb_correctness = None
 try:
@@ -2106,7 +2183,13 @@ def predict_xgb():
         _dow2 = _dt_xgb2.utcnow().weekday()  # 0=Mon..6=Sun
         _session2 = 0 if _h2 < 8 else (1 if _h2 < 14 else 2)  # 0=Asia 1=London 2=NY
         _fg2 = _safe_float(request.args.get("fear_greed_value", 50), default=50.0, min_v=0.0, max_v=100.0)
-        features = [[
+
+        # P1: Regime di mercato 4h — calcolato live da Binance
+        _regime_data = _compute_regime_4h_live()
+        _regime_label = float(_regime_data["regime_label"])
+
+        # Feature base (11 features — modelli precedenti al retrain P1)
+        _feat_base = [
             _safe_float(request.args.get("confidence", 0.62), default=0.62, min_v=0.0, max_v=1.0),
             _fg2,
             _safe_float(request.args.get("rsi14", 50), default=50.0, min_v=0.0, max_v=100.0),
@@ -2118,23 +2201,46 @@ def predict_xgb():
             math.sin(2 * math.pi * _dow2 / 7),             # dow_sin
             math.cos(2 * math.pi * _dow2 / 7),             # dow_cos
             float(_session2),                               # session
-        ]]
+        ]
+
+        # Aggiungi regime_label solo se il modello è stato addestrato con questa feature
+        _model_features = list(getattr(_XGB_MODEL, "feature_names_in_", []))
+        if _model_features and "regime_label" in _model_features:
+            _feat_base.append(_regime_label)
+
+        features = [_feat_base]
 
         prob = _XGB_MODEL.predict_proba(features)[0]  # [P(DOWN), P(UP)]
         xgb_dir = "UP" if prob[1] > prob[0] else "DOWN"
         agree = (xgb_dir == claude_dir) or (claude_dir in ("NO_BET", ""))
 
         return jsonify({
-            "xgb_direction": xgb_dir,
-            "xgb_prob_up":   round(float(prob[1]), 3),
-            "xgb_prob_down": round(float(prob[0]), 3),
+            "xgb_direction":  xgb_dir,
+            "xgb_prob_up":    round(float(prob[1]), 3),
+            "xgb_prob_down":  round(float(prob[0]), 3),
             "claude_direction": claude_dir,
-            "agree": agree,
+            "agree":          agree,
+            "regime":         _regime_data["regime_name"],
+            "regime_label":   int(_regime_label),
         })
 
     except Exception as e:
         app.logger.error("predict_xgb error: %s", e)
         return jsonify({"xgb_direction": None, "agree": True, "reason": "internal_error"})
+
+
+@app.route("/btc-regime", methods=["GET"])
+def btc_regime():
+    """
+    Calcola il regime di mercato BTC corrente da Binance 4h klines.
+    Returns: { regime_label, regime_name, atr_4h_pct, trend_strength }
+      regime_label: 0=RANGING, 1=TRENDING, 2=VOLATILE
+    """
+    err = _check_api_key()
+    if err:
+        return err
+    result = _compute_regime_4h_live()
+    return jsonify(result)
 
 
 # ── BET SIZING ───────────────────────────────────────────────────────────────

@@ -140,6 +140,74 @@ def fetch_cvd_6m(timestamp_ms: int) -> float | None:
         return None
 
 
+def fetch_regime_4h(timestamp_ms: int) -> int | None:
+    """
+    Calcola il regime di mercato BTC su 20 kline 4h di Binance fino a timestamp_ms.
+
+    Algoritmo:
+      - ATR(14) su 4h normalizzato sul close (atr_4h_pct)
+      - Trend strength: |EMA5 - EMA20| / EMA20 × 100
+
+    Regime (encoding intero per XGBoost):
+      0 = RANGING  — bassa volatilità, nessuna direzione chiara
+      1 = TRENDING — trend_strength > 0.5%
+      2 = VOLATILE — atr_4h_pct > 1.5%, senza trend chiaro
+
+    Returns:
+        0, 1 o 2, oppure None in caso di errore/dati insufficienti.
+    """
+    try:
+        params = urllib.parse.urlencode({
+            "symbol": "BTCUSDT",
+            "interval": "4h",
+            "endTime": timestamp_ms,
+            "limit": 22,
+        })
+        url = f"https://api.binance.com/api/v3/klines?{params}"
+        req = urllib.request.Request(url, headers={"User-Agent": "btcbot/1.0"})
+        with urllib.request.urlopen(req, context=_SSL_CTX, timeout=8) as resp:
+            klines = json.loads(resp.read().decode())
+
+        if len(klines) < 16:
+            return None
+
+        closes = [float(k[4]) for k in klines]
+        highs  = [float(k[2]) for k in klines]
+        lows   = [float(k[3]) for k in klines]
+
+        trs = []
+        for i in range(1, len(klines)):
+            tr = max(
+                highs[i] - lows[i],
+                abs(highs[i] - closes[i - 1]),
+                abs(lows[i]  - closes[i - 1]),
+            )
+            trs.append(tr)
+        atr14 = sum(trs[-14:]) / 14 if len(trs) >= 14 else sum(trs) / max(len(trs), 1)
+        atr_4h_pct = (atr14 / closes[-1]) * 100.0 if closes[-1] > 0 else 0.0
+
+        def _ema(vals: list, period: int) -> float:
+            k = 2.0 / (period + 1)
+            e = vals[0]
+            for v in vals[1:]:
+                e = v * k + e * (1.0 - k)
+            return e
+
+        ema5  = _ema(closes[-5:],  5)  if len(closes) >= 5  else closes[-1]
+        ema20 = _ema(closes[-20:], 20) if len(closes) >= 20 else closes[-1]
+        trend_strength = abs(ema5 - ema20) / ema20 * 100.0 if ema20 > 0 else 0.0
+
+        if trend_strength > 0.5:
+            return 1  # TRENDING
+        elif atr_4h_pct > 1.5:
+            return 2  # VOLATILE
+        else:
+            return 0  # RANGING
+
+    except Exception:
+        return None
+
+
 def created_at_to_ms(created_at: str) -> int:
     """Converte 'created_at' ISO 8601 da Supabase in Unix timestamp milliseconds."""
     # Formato atteso: "2024-10-15T09:34:12.123456+00:00" oppure "...Z"
@@ -327,14 +395,15 @@ def row_to_jsonl(row: dict) -> dict:
     }
 
 
-def row_to_csv_dict(row: dict, cvd_6m_pct: float | None = None) -> dict:
+def row_to_csv_dict(row: dict, cvd_6m_pct: float | None = None, regime_label: int | None = None) -> dict:
     """
     Converte una riga Supabase in dizionario per features.csv (ML approach).
 
     Args:
-        row:         riga raw da Supabase.
-        cvd_6m_pct:  CVD proxy normalizzato (opzionale, calcolato da fetch_cvd_6m).
-                     Se None, la colonna viene inclusa come stringa vuota.
+        row:          riga raw da Supabase.
+        cvd_6m_pct:   CVD proxy normalizzato (opzionale, calcolato da fetch_cvd_6m).
+        regime_label: regime di mercato 4h (0=RANGING, 1=TRENDING, 2=VOLATILE).
+                      Se None, la colonna viene inclusa come stringa vuota.
     """
     # ── Ora UTC ────────────────────────────────────────────────────────────────
     hour = 0
@@ -397,6 +466,10 @@ def row_to_csv_dict(row: dict, cvd_6m_pct: float | None = None) -> dict:
         # Popolato solo se build_dataset.py eseguito con --cvd flag.
         # Range: da -100 (tutto vendita) a +100 (tutto acquisto).
         "cvd_6m_pct": cvd_6m_pct if cvd_6m_pct is not None else "",
+        # P1: regime di mercato 4h — 0=RANGING, 1=TRENDING, 2=VOLATILE
+        # Generato da: python build_dataset.py --regime
+        # Calcolato su ATR(14) 4h normalizzato + trend strength EMA5/EMA20.
+        "regime_label": regime_label if regime_label is not None else "",
         # Categoriche (encoded)
         "ema_trend_up": 1 if (row.get("ema_trend") or "").upper() == "UP" else 0,
         # Ordinale -2→+2: preserva gradazione bearish/neutral/bullish.
@@ -433,6 +506,14 @@ def main():
             "M-4: Includi ghost signals (SKIP con ghost_correct valutato) nel dataset. "
             "Aggiunge segnali con WR ~56.5% al training set XGBoost. "
             "Disabilitato di default per retrocompatibilità con modelli esistenti."
+        ),
+    )
+    parser.add_argument(
+        "--regime", action="store_true",
+        help=(
+            "P1: Fetch regime di mercato 4h da Binance per ogni riga. "
+            "Aggiunge colonna regime_label (0=RANGING, 1=TRENDING, 2=VOLATILE). "
+            "~1 req HTTP per riga. Disabilitato di default."
         ),
     )
     args = parser.parse_args()
@@ -513,10 +594,9 @@ def main():
 
     # ── CSV per ML ────────────────────────────────────────────────────────────
     # Se --cvd è abilitato, recupera il CVD proxy da Binance per ogni riga.
-    # Ogni chiamata è ~1 req HTTP; su 400 righe impiega ~20-60s.
+    cvd_map: dict[str, float | None] = {}
     if args.cvd:
         print(f"[{datetime.now():%H:%M:%S}] --cvd attivo: fetching CVD da Binance per {len(rows)} righe...")
-        cvd_map: dict[str, float | None] = {}
         for i, r in enumerate(rows):
             ts_ms = created_at_to_ms(r.get("created_at", ""))
             cvd_val = fetch_cvd_6m(ts_ms) if ts_ms else None
@@ -526,10 +606,34 @@ def main():
                 print(f"  {i+1}/{len(rows)} — {filled} CVD ok")
         filled_total = sum(1 for v in cvd_map.values() if v is not None)
         print(f"[{datetime.now():%H:%M:%S}] CVD fetch completato: {filled_total}/{len(rows)} righe con dato")
-        csv_rows = [row_to_csv_dict(r, cvd_6m_pct=cvd_map.get(r.get("id", ""), None)) for r in rows]
-    else:
-        # CVD non richiesto: colonna inclusa ma vuota (compatibilità forward)
-        csv_rows = [row_to_csv_dict(r) for r in rows]
+
+    # Se --regime è abilitato, recupera il regime 4h da Binance per ogni riga.
+    regime_map: dict[str, int | None] = {}
+    if args.regime:
+        print(f"[{datetime.now():%H:%M:%S}] --regime attivo: fetching regime 4h da Binance per {len(rows)} righe...")
+        for i, r in enumerate(rows):
+            ts_ms = created_at_to_ms(r.get("created_at", ""))
+            reg_val = fetch_regime_4h(ts_ms) if ts_ms else None
+            regime_map[r.get("id", str(i))] = reg_val
+            if (i + 1) % 20 == 0:
+                filled = sum(1 for v in regime_map.values() if v is not None)
+                print(f"  {i+1}/{len(rows)} — {filled} regime ok")
+        filled_total = sum(1 for v in regime_map.values() if v is not None)
+        reg_counts = {0: 0, 1: 0, 2: 0}
+        for v in regime_map.values():
+            if v is not None:
+                reg_counts[v] = reg_counts.get(v, 0) + 1
+        print(f"[{datetime.now():%H:%M:%S}] Regime fetch completato: {filled_total}/{len(rows)} righe")
+        print(f"  RANGING={reg_counts[0]}  TRENDING={reg_counts[1]}  VOLATILE={reg_counts[2]}")
+
+    csv_rows = [
+        row_to_csv_dict(
+            r,
+            cvd_6m_pct=cvd_map.get(r.get("id", ""), None),
+            regime_label=regime_map.get(r.get("id", ""), None),
+        )
+        for r in rows
+    ]
 
     csv_path = os.path.join(args.output_dir, "features.csv")
     if csv_rows:

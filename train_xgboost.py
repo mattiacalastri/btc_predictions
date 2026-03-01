@@ -72,6 +72,11 @@ OPTIONAL_FEATURE_COLS = [
     # Range: -100 (tutto vendita) → +100 (tutto acquisto).
     # Generato da: python build_dataset.py --cvd
     "cvd_6m_pct",
+    # P1: Regime di mercato 4h — 0=RANGING, 1=TRENDING, 2=VOLATILE
+    # Calcolato su ATR(14) 4h normalizzato + trend strength EMA5/EMA20.
+    # Generato da: python build_dataset.py --regime
+    # La feature più predittiva per il context-switching della confidence.
+    "regime_label",
 ]
 
 # XGB_PARAMS importato da constants.py — unica sorgente di verità.
