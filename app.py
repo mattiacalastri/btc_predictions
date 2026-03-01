@@ -391,6 +391,10 @@ API_SECRET = os.environ.get("KRAKEN_FUTURES_API_SECRET", "")
 DEFAULT_SYMBOL = os.environ.get("KRAKEN_DEFAULT_SYMBOL", "PF_XBTUSD")
 KRAKEN_BASE = "https://futures.kraken.com"
 DRY_RUN = os.environ.get("DRY_RUN", "false").lower() in ("true", "1", "yes")
+SLIPPAGE_MAX_PCT = _safe_float(
+    os.environ.get("SLIPPAGE_MAX_PCT", "0.005"),
+    default=0.005, min_v=0.0, max_v=0.1
+)
 SUPABASE_TABLE = os.environ.get("SUPABASE_TABLE", "btc_predictions")
 _ALLOWED_TABLES = {"btc_predictions", "sandbox_btc_predictions"}
 if SUPABASE_TABLE not in _ALLOWED_TABLES:
@@ -1235,6 +1239,34 @@ def _check_pre_flight(direction: str, confidence: float) -> object:
     return None
 
 
+def _check_price_drift(signal_price, symbol, direction, confidence):
+    """Pre-trade slippage guard. Returns (drift_pct, flask_response_or_None)."""
+    if not signal_price or signal_price <= 0:
+        return 0.0, None          # guard disabled — no signal price
+
+    mark = _get_mark_price(symbol)
+    if mark <= 0:
+        return 0.0, None          # Kraken API failed — fail open
+
+    drift = abs(mark - signal_price) / signal_price
+
+    if drift > SLIPPAGE_MAX_PCT:
+        _push_cockpit_log("app", "warning",
+            f"Slippage guard: {drift:.4%} drift",
+            f"signal={signal_price:.1f} mark={mark:.1f} threshold={SLIPPAGE_MAX_PCT:.4%} dir={direction}",
+            {"direction": direction, "confidence": confidence,
+             "signal_price": signal_price, "mark_price": mark,
+             "drift_pct": round(drift, 6), "threshold": SLIPPAGE_MAX_PCT})
+        return drift, (jsonify({
+            "status": "skipped", "reason": "price_drift",
+            "signal_price": signal_price, "mark_price": mark,
+            "drift_pct": round(drift, 6), "threshold": SLIPPAGE_MAX_PCT,
+            "direction": direction, "confidence": confidence,
+        }), 200)
+
+    return drift, None
+
+
 # ── PLACE BET ────────────────────────────────────────────────────────────────
 
 @app.route("/place-bet", methods=["POST"])
@@ -1254,6 +1286,9 @@ def place_bet():
     size = _safe_float(raw_size, default=0.0001, min_v=0.0)
     if size <= 0:
         size = 0.0001
+
+    _raw_sp = data.get("signal_price")
+    signal_price = _safe_float(_raw_sp, default=0.0, min_v=0.0) if _raw_sp is not None else 0.0
 
     if direction not in ("UP", "DOWN"):
         return jsonify({"status": "failed", "error": "invalid_direction"}), 400
@@ -1289,6 +1324,42 @@ def place_bet():
     pre_flight = _check_pre_flight(direction, confidence)
     if pre_flight:
         return pre_flight
+
+    # Slippage guard: resolve signal_price from Supabase if not in POST body
+    _sp_bet_id = None
+    if signal_price <= 0:
+        try:
+            sb_url, sb_key = _sb_config()
+            if sb_url and sb_key:
+                r_sp = requests.get(
+                    f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
+                    f"?select=id,signal_price,btc_price_entry"
+                    f"&direction=eq.{direction}&bet_taken=eq.false"
+                    f"&order=id.desc&limit=1",
+                    headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
+                    timeout=3)
+                if r_sp.status_code == 200 and r_sp.json():
+                    _sp_row = r_sp.json()[0]
+                    _sp_bet_id = _sp_row.get("id")
+                    signal_price = float(_sp_row.get("signal_price") or _sp_row.get("btc_price_entry") or 0)
+        except Exception:
+            pass  # fail open
+
+    price_drift_pct, drift_exit = _check_price_drift(signal_price, symbol, direction, confidence)
+    if drift_exit:
+        if _sp_bet_id and signal_price > 0:
+            try:
+                sb_url, sb_key = _sb_config()
+                if sb_url and sb_key:
+                    requests.patch(
+                        f"{sb_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{_sp_bet_id}",
+                        json={"price_drift_pct": round(price_drift_pct, 6)},
+                        headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}",
+                                 "Content-Type": "application/json", "Prefer": "return=minimal"},
+                        timeout=3)
+            except Exception:
+                pass
+        return drift_exit
 
     if DRY_RUN:
         fake_id = f"DRY_{int(time.time())}"
@@ -1609,6 +1680,19 @@ def place_bet():
                               f"Size={size}, fill={fill_price}, conf={confidence}",
                               {"direction": direction, "confidence": confidence, "size": size,
                                "fill_price": fill_price, "order_id": order_id})
+            # Save price_drift_pct to Supabase (best-effort)
+            if price_drift_pct > 0 and _sp_bet_id:
+                try:
+                    sb_url_d, sb_key_d = _sb_config()
+                    if sb_url_d and sb_key_d:
+                        requests.patch(
+                            f"{sb_url_d}/rest/v1/{SUPABASE_TABLE}?id=eq.{_sp_bet_id}",
+                            json={"price_drift_pct": round(price_drift_pct, 6)},
+                            headers={"apikey": sb_key_d, "Authorization": f"Bearer {sb_key_d}",
+                                     "Content-Type": "application/json", "Prefer": "return=minimal"},
+                            timeout=3)
+                except Exception:
+                    pass
 
         return jsonify({
             "status": "placed" if ok else "failed",
@@ -1627,6 +1711,7 @@ def place_bet():
             "sl_price":    sl_price,
             "tp_price":    tp_price,
             "rr_ratio":    rr_ratio,
+            "price_drift_pct": round(price_drift_pct, 6),
             "raw": result,
         }), (200 if ok else 400)
 

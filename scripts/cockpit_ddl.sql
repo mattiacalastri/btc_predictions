@@ -62,3 +62,6 @@ CREATE INDEX IF NOT EXISTS idx_cockpit_log_level
 
 -- Auto-cleanup: keep only last 7 days of logs (run via pg_cron or manual)
 -- DELETE FROM cockpit_log WHERE ts < now() - interval '7 days';
+
+-- v5: slippage guard — track price drift between signal and execution
+ALTER TABLE btc_predictions ADD COLUMN IF NOT EXISTS price_drift_pct FLOAT DEFAULT NULL;
