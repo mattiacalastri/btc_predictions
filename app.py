@@ -2458,6 +2458,37 @@ def ghost_evaluate():
     })
 
 
+@app.route("/admin/backfill-signal-price", methods=["POST"])
+def admin_backfill_signal_price():
+    """One-time: backfill signal_price=btc_price_entry for SKIP records where signal_price IS NULL."""
+    err = _check_api_key()
+    if err:
+        return err
+    sb_url, sb_key = _sb_config()
+    if not sb_url or not sb_key:
+        return jsonify({"error": "no supabase config"}), 500
+    headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}", "Content-Type": "application/json", "Prefer": "return=minimal"}
+    r = requests.get(
+        f"{sb_url}/rest/v1/{SUPABASE_TABLE}?classification=eq.SKIP&signal_price=is.null&btc_price_entry=not.is.null&select=id,btc_price_entry&order=id.asc",
+        headers=headers, timeout=10
+    )
+    if not r.ok:
+        return jsonify({"error": r.text[:200]}), 500
+    rows = r.json()
+    ok, err_list = 0, []
+    for row in rows:
+        upd = requests.patch(
+            f"{sb_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{row['id']}",
+            json={"signal_price": row["btc_price_entry"]},
+            headers=headers, timeout=5
+        )
+        if upd.status_code in (200, 204):
+            ok += 1
+        else:
+            err_list.append({"id": row["id"], "status": upd.status_code})
+    return jsonify({"patched": ok, "errors": err_list, "total": len(rows)})
+
+
 @app.route("/reload-calibration", methods=["POST"])
 def reload_calibration():
     """
