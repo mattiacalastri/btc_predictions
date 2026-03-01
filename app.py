@@ -2510,6 +2510,7 @@ def ghost_evaluate():
         "evaluated": len(evaluated),
         "errors": len(errors),
         "results": evaluated,
+        "error_details": errors[:10],
     })
 
 
