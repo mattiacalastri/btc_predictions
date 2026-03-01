@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import math
 import time
 import threading
 import datetime as _dt
@@ -75,6 +76,38 @@ def _check_rate_limit(key: str, max_calls: int = _RL_MAX_DEFAULT) -> bool:
         count += 1
         _RATE_STORE[key] = (count, ts)
         return count <= max_calls
+
+
+# ── Input validation helpers (H-2, H-4) ──────────────────────────────────────
+
+def _safe_float(val, default: float, min_v: float | None = None, max_v: float | None = None) -> float:
+    """Converte val in float con protezione da NaN, Infinity e range non validi.
+    Ritorna default se la conversione fallisce o il valore è fuori range.
+    """
+    try:
+        v = float(val)
+    except (ValueError, TypeError):
+        return default
+    if math.isnan(v) or math.isinf(v):
+        return default
+    if min_v is not None and v < min_v:
+        return min_v
+    if max_v is not None and v > max_v:
+        return max_v
+    return v
+
+
+def _safe_int(val, default: int, min_v: int | None = None, max_v: int | None = None) -> int:
+    """Converte val in int con clamp e fallback. Mai lancia ValueError sul chiamante."""
+    try:
+        v = int(float(val))  # float() prima per gestire "12.0"
+    except (ValueError, TypeError):
+        return default
+    if min_v is not None and v < min_v:
+        return min_v
+    if max_v is not None and v > max_v:
+        return max_v
+    return v
 
 
 # ── XGBoost direction model (caricato una volta all'avvio) ────────────────────
@@ -233,9 +266,10 @@ _BOT_PAUSED = True               # fail-safe default: paused until Supabase conf
 _BOT_PAUSED_REFRESHED_AT = 0.0  # timestamp of last Supabase read (0.0 → forces refresh on first call)
 _costs_cache = {"data": None, "ts": 0.0}
 
-# Startup security validation
+# Startup security validation (H-3)
 if not os.environ.get("BOT_API_KEY"):
-    print("[SECURITY WARNING] BOT_API_KEY not set — all protected endpoints are unauthenticated!")
+    app.logger.warning("[SECURITY] BOT_API_KEY not set — all protected endpoints are unauthenticated!")
+    sentry_sdk.capture_message("SECURITY: BOT_API_KEY missing at startup", level="warning")
 
 # Refresh calibration all'avvio — DOPO la definizione di SUPABASE_TABLE
 try:
@@ -1073,15 +1107,13 @@ def place_bet():
         return jsonify({"error": "rate_limited"}), 429
     data = request.get_json(force=True) or {}
     direction = (data.get("direction") or "").upper()
-    confidence = float(data.get("confidence", 0))
+    confidence = _safe_float(data.get("confidence", 0), default=0.0, min_v=0.0, max_v=1.0)
     symbol = data.get("symbol", DEFAULT_SYMBOL)
 
-    try:
-        size = float(data.get("size", data.get("stake_usdc", 0.0001)))
-        if size <= 0:
-            size = 0.0001
-    except Exception:
-        return jsonify({"status": "failed", "error": "invalid_size"}), 400
+    raw_size = data.get("size", data.get("stake_usdc", 0.0001))
+    size = _safe_float(raw_size, default=0.0001, min_v=0.0)
+    if size <= 0:
+        size = 0.0001
 
     if direction not in ("UP", "DOWN"):
         return jsonify({"status": "failed", "error": "invalid_direction"}), 400
@@ -1961,22 +1993,22 @@ def predict_xgb():
         sig_fg       = request.args.get("signal_fear_greed", "").lower()
         sig_vol      = request.args.get("signal_volume", "").lower()
 
-        import math as _math2
         from datetime import datetime as _dt_xgb2
-        _h2 = int(request.args.get("hour_utc", 12))
+        _h2 = _safe_int(request.args.get("hour_utc", 12), default=12, min_v=0, max_v=23)
         _dow2 = _dt_xgb2.utcnow().weekday()  # 0=Mon..6=Sun
         _session2 = 0 if _h2 < 8 else (1 if _h2 < 14 else 2)  # 0=Asia 1=London 2=NY
+        _fg2 = _safe_float(request.args.get("fear_greed_value", 50), default=50.0, min_v=0.0, max_v=100.0)
         features = [[
-            float(request.args.get("confidence", 0.62)),
-            float(request.args.get("fear_greed_value", 50)),
-            float(request.args.get("rsi14", 50)),
-            float(request.args.get("technical_score", 0)),
-            _math2.sin(2 * _math2.pi * _h2 / 24),          # hour_sin
-            _math2.cos(2 * _math2.pi * _h2 / 24),          # hour_cos
-            float(_BIAS_MAP.get(tech_bias.strip(), 0)),        # technical_bias_score
-            1.0 if float(request.args.get("fear_greed_value", 50) or 50) < 45 else 0.0,  # signal_fg_fear
-            _math2.sin(2 * _math2.pi * _dow2 / 7),         # dow_sin
-            _math2.cos(2 * _math2.pi * _dow2 / 7),         # dow_cos
+            _safe_float(request.args.get("confidence", 0.62), default=0.62, min_v=0.0, max_v=1.0),
+            _fg2,
+            _safe_float(request.args.get("rsi14", 50), default=50.0, min_v=0.0, max_v=100.0),
+            _safe_float(request.args.get("technical_score", 0), default=0.0, min_v=-10.0, max_v=10.0),
+            math.sin(2 * math.pi * _h2 / 24),              # hour_sin
+            math.cos(2 * math.pi * _h2 / 24),              # hour_cos
+            float(_BIAS_MAP.get(tech_bias.strip(), 0)),     # technical_bias_score
+            1.0 if _fg2 < 45 else 0.0,                     # signal_fg_fear
+            math.sin(2 * math.pi * _dow2 / 7),             # dow_sin
+            math.cos(2 * math.pi * _dow2 / 7),             # dow_cos
             float(_session2),                               # session
         ]]
 
@@ -2001,14 +2033,14 @@ def predict_xgb():
 
 @app.route("/bet-sizing", methods=["GET"])
 def bet_sizing():
-    base_size = float(request.args.get("base_size", 0.002))
-    confidence = float(request.args.get("confidence", 0.75))
+    base_size  = _safe_float(request.args.get("base_size", 0.002),  default=0.002,  min_v=0.0001, max_v=0.1)
+    confidence = _safe_float(request.args.get("confidence", 0.75), default=0.75,  min_v=0.0,    max_v=1.0)
 
     # Parametri aggiuntivi per XGBoost correctness model (opzionali, con default neutri)
-    fear_greed  = float(request.args.get("fear_greed_value", 50))
-    rsi14       = float(request.args.get("rsi14", 50))
-    tech_score  = float(request.args.get("technical_score", 0))
-    hour_utc    = int(request.args.get("hour_utc", time.gmtime().tm_hour))
+    fear_greed = _safe_float(request.args.get("fear_greed_value", 50), default=50.0, min_v=0.0,   max_v=100.0)
+    rsi14      = _safe_float(request.args.get("rsi14", 50),            default=50.0, min_v=0.0,   max_v=100.0)
+    tech_score = _safe_float(request.args.get("technical_score", 0),   default=0.0,  min_v=-10.0, max_v=10.0)
+    hour_utc   = _safe_int(request.args.get("hour_utc", time.gmtime().tm_hour), default=12, min_v=0, max_v=23)
     ema_trend   = request.args.get("ema_trend", "").lower()
     tech_bias   = request.args.get("technical_bias", "").lower()
     sig_tech    = request.args.get("signal_technical", "").lower()
