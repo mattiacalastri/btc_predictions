@@ -447,7 +447,7 @@ def row_to_csv_dict(row: dict, cvd_6m_pct: float | None = None, regime_label: in
         "label": 1 if row.get("correct") else 0,
         "direction": row.get("direction", ""),
         # Numeriche
-        "confidence": float(row.get("confidence") or 0),
+        "confidence": float(row.get("confidence") or 0.55),  # median fallback, not 0 (out of valid range)
         "btc_price_entry": float(row.get("btc_price_entry") or 0),
         "fear_greed_value": float(row.get("fear_greed_value") or 50),
         "rsi14": float(row.get("rsi14") or 50),

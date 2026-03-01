@@ -4397,6 +4397,23 @@ def _get_web3_contract():
     return w3, contract, account
 
 
+import threading
+_onchain_nonce_lock = threading.Lock()
+
+
+def _send_onchain_tx(w3, account, tx_built, label=""):
+    """Sign, send and wait for receipt. Fail-open: returns tx_hex even if receipt times out."""
+    with _onchain_nonce_lock:
+        signed = account.sign_transaction(tx_built)
+        tx_hash = w3.eth.send_raw_transaction(signed.rawTransaction)
+    tx_hex = tx_hash.hex()
+    try:
+        w3.eth.wait_for_transaction_receipt(tx_hash, timeout=30)
+    except Exception as e:
+        app.logger.warning(f"[ONCHAIN] {label} receipt timeout for tx {tx_hex}: {e}")
+    return tx_hex
+
+
 @app.route("/commit-prediction", methods=["POST"])
 def commit_prediction():
     """
@@ -4438,13 +4455,11 @@ def commit_prediction():
         tx = contract.functions.commit(bet_id, commit_hash).build_transaction({
             "from": account.address,
             "nonce": nonce,
-            "gas": 80000,
+            "gas": 120_000,
             "gasPrice": w3.to_wei("30", "gwei"),
             "chainId": 137,
         })
-        signed = account.sign_transaction(tx)
-        tx_hash = w3.eth.send_raw_transaction(signed.rawTransaction)
-        tx_hex = tx_hash.hex()
+        tx_hex = _send_onchain_tx(w3, account, tx, label=f"commit #{bet_id}")
 
         commit_hash_hex = commit_hash.hex()
 
@@ -4509,13 +4524,11 @@ def resolve_prediction():
         tx = contract.functions.resolve(bet_id, resolve_hash, won).build_transaction({
             "from": account.address,
             "nonce": nonce,
-            "gas": 80000,
+            "gas": 120_000,
             "gasPrice": w3.to_wei("30", "gwei"),
             "chainId": 137,
         })
-        signed = account.sign_transaction(tx)
-        tx_hash = w3.eth.send_raw_transaction(signed.rawTransaction)
-        tx_hex = tx_hash.hex()
+        tx_hex = _send_onchain_tx(w3, account, tx, label=f"resolve #{bet_id}")
 
         resolve_hash_hex = resolve_hash.hex()
 
@@ -4588,14 +4601,12 @@ def commit_inputs():
             [bet_id, int(btc_price * 1e2), int(rsi14 * 1e6), fg_value,
              int(funding * 1e8), ts]
         )
-        nonce = w3.eth.get_transaction_count(account.address, 'pending')
         tx = contract.functions.commit(onchain_id, commit_hash).build_transaction({
-            "from": account.address, "nonce": nonce,
-            "gas": 80000, "gasPrice": w3.to_wei("30", "gwei"), "chainId": 137,
+            "from": account.address,
+            "nonce": w3.eth.get_transaction_count(account.address, 'pending'),
+            "gas": 120_000, "gasPrice": w3.to_wei("30", "gwei"), "chainId": 137,
         })
-        signed = account.sign_transaction(tx)
-        tx_hash = w3.eth.send_raw_transaction(signed.rawTransaction)
-        tx_hex = tx_hash.hex()
+        tx_hex = _send_onchain_tx(w3, account, tx, label=f"inputs id={onchain_id}")
         app.logger.info(f"[ONCHAIN] inputs onchain_id={onchain_id} → tx {tx_hex}")
 
         if bet_id > 0:
@@ -4647,14 +4658,12 @@ def commit_fill():
             ["uint256", "uint256", "uint256"],
             [bet_id, int(fill_price * 1e2), ts_fill]
         )
-        nonce = w3.eth.get_transaction_count(account.address, 'pending')
         tx = contract.functions.commit(onchain_id, commit_hash).build_transaction({
-            "from": account.address, "nonce": nonce,
-            "gas": 80000, "gasPrice": w3.to_wei("30", "gwei"), "chainId": 137,
+            "from": account.address,
+            "nonce": w3.eth.get_transaction_count(account.address, 'pending'),
+            "gas": 120_000, "gasPrice": w3.to_wei("30", "gwei"), "chainId": 137,
         })
-        signed = account.sign_transaction(tx)
-        tx_hash = w3.eth.send_raw_transaction(signed.rawTransaction)
-        tx_hex = tx_hash.hex()
+        tx_hex = _send_onchain_tx(w3, account, tx, label=f"fill bet #{bet_id}")
         app.logger.info(f"[ONCHAIN] fill bet #{bet_id} price={fill_price} → tx {tx_hex}")
 
         try:
@@ -4705,14 +4714,12 @@ def commit_stops():
             ["uint256", "uint256", "uint256", "uint256"],
             [bet_id, int(sl_price * 1e2), int(tp_price * 1e2), ts]
         )
-        nonce = w3.eth.get_transaction_count(account.address, 'pending')
         tx = contract.functions.commit(onchain_id, commit_hash).build_transaction({
-            "from": account.address, "nonce": nonce,
-            "gas": 80000, "gasPrice": w3.to_wei("30", "gwei"), "chainId": 137,
+            "from": account.address,
+            "nonce": w3.eth.get_transaction_count(account.address, 'pending'),
+            "gas": 120_000, "gasPrice": w3.to_wei("30", "gwei"), "chainId": 137,
         })
-        signed = account.sign_transaction(tx)
-        tx_hash = w3.eth.send_raw_transaction(signed.rawTransaction)
-        tx_hex = tx_hash.hex()
+        tx_hex = _send_onchain_tx(w3, account, tx, label=f"stops bet #{bet_id}")
         app.logger.info(f"[ONCHAIN] stops bet #{bet_id} sl={sl_price} tp={tp_price} → tx {tx_hex}")
 
         try:
@@ -4825,17 +4832,14 @@ def news_fact_check():
     try:
         w3, contract, account = _get_web3_contract()
         commit_hash_bytes = hashlib.sha256(raw_nfc).digest()  # 32 bytes
-        nonce = w3.eth.get_transaction_count(account.address, "pending")
         tx = contract.functions.commit(onchain_id, commit_hash_bytes).build_transaction({
             "from": account.address,
-            "nonce": nonce,
-            "gas": 80000,
+            "nonce": w3.eth.get_transaction_count(account.address, "pending"),
+            "gas": 120_000,
             "gasPrice": w3.to_wei("30", "gwei"),
             "chainId": 137,
         })
-        signed = account.sign_transaction(tx)
-        tx_hash_raw = w3.eth.send_raw_transaction(signed.rawTransaction)
-        tx_hex = tx_hash_raw.hex()
+        tx_hex = _send_onchain_tx(w3, account, tx, label=f"news_fc id={news_id}")
         polygonscan_url = f"https://polygonscan.com/tx/{tx_hex}"
         app.logger.info(f"[NEWS-FC] id={news_id} onchain_id={onchain_id} → tx {tx_hex}")
 

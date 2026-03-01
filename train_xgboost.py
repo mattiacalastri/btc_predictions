@@ -16,11 +16,15 @@ Usage:
 """
 
 import argparse
+import glob
+import json
 import math
 import pickle
 import os
 import datetime
+import shutil
 
+import requests
 import pandas as pd
 import numpy as np
 from xgboost import XGBClassifier
@@ -160,7 +164,8 @@ def train_and_eval(X, y, label_name: str) -> dict:
     """Addestra XGBoost con 5-fold stratified CV e ritorna metriche."""
     model = XGBClassifier(**XGB_PARAMS)
 
-    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    # TimeSeriesSplit preserves temporal order — no future leakage in CV
+    cv = TimeSeriesSplit(n_splits=5)
     cv_acc = cross_val_score(model, X, y, cv=cv, scoring="accuracy")
     cv_auc = cross_val_score(model, X, y, cv=cv, scoring="roc_auc")
 
@@ -274,8 +279,115 @@ def print_insights(res_dir: dict, res_corr: dict, y_dir, log: Reporter):
     log(f"  3. Rigenera dataset ogni 2 settimane con build_dataset.py")
 
 
+# ─── Feature Importance ───────────────────────────────────────────────────────
+def save_feature_importance(res_dir: dict, res_corr: dict,
+                             feature_names: list, output_dir: str, log: Reporter):
+    """
+    Task 5.2: Salva feature importance in datasets/feature_importance.json.
+    Logga le feature con importance < 1% (candidate per rimozione).
+    Tenta di salvare un plot PNG se matplotlib è disponibile.
+    """
+    dir_scores  = res_dir["model"].feature_importances_
+    corr_scores = res_corr["model"].feature_importances_
+
+    # Build dicts sorted by importance descending
+    dir_imp  = {f: round(float(s), 6) for f, s in
+                sorted(zip(feature_names, dir_scores),  key=lambda x: -x[1])}
+    corr_imp = {f: round(float(s), 6) for f, s in
+                sorted(zip(feature_names, corr_scores), key=lambda x: -x[1])}
+
+    fi_data = {
+        "generated_at": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "n_features": len(feature_names),
+        "direction_model": dir_imp,
+        "correctness_model": corr_imp,
+    }
+    fi_path = os.path.join(output_dir, "feature_importance.json")
+    with open(fi_path, "w", encoding="utf-8") as f:
+        json.dump(fi_data, f, indent=2)
+    log(f"[{now()}] Feature importance salvata → {fi_path}")
+
+    # Log features con importance < 1% per entrambi i modelli
+    low_dir  = [f for f, s in dir_imp.items()  if s < 0.01]
+    low_corr = [f for f, s in corr_imp.items() if s < 0.01]
+    if low_dir:
+        log(f"  ⚠️  Direction  — importance < 1%: {low_dir}")
+    if low_corr:
+        log(f"  ⚠️  Correctness — importance < 1%: {low_corr}")
+
+    # Plot top-15 (matplotlib opzionale)
+    try:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+
+        fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+        for ax, imp_dict, title in [
+            (axes[0], dir_imp,  "Direction Model — Feature Importance (gain)"),
+            (axes[1], corr_imp, "Correctness Model — Feature Importance (gain)"),
+        ]:
+            top15 = list(imp_dict.items())[:15]
+            names  = [x[0] for x in top15][::-1]
+            scores = [x[1] for x in top15][::-1]
+            ax.barh(names, scores, color="#4C72B0")
+            ax.set_xlabel("Importance (gain)")
+            ax.set_title(title, fontsize=10)
+            ax.tick_params(labelsize=8)
+
+        plt.tight_layout()
+        plot_path = os.path.join(output_dir, "feature_importance.png")
+        plt.savefig(plot_path, dpi=120, bbox_inches="tight")
+        plt.close()
+        log(f"[{now()}] Feature importance plot → {plot_path}")
+    except ImportError:
+        log(f"[{now()}] matplotlib non disponibile — plot saltato")
+    except Exception as e:
+        log(f"[{now()}] Plot feature importance fallito: {e}")
+
+
+# ─── Model Versioning ─────────────────────────────────────────────────────────
+_MODELS_DIR = "./models"
+_ARCHIVE_MAX = 10
+
+
+def _archive_model(src_path: str, archive_dir: str, stamp: str, basename: str):
+    """Copia src_path in archive_dir con timestamp nel nome. Mantiene max _ARCHIVE_MAX versioni."""
+    os.makedirs(archive_dir, exist_ok=True)
+    stem, ext = os.path.splitext(basename)
+    dst = os.path.join(archive_dir, f"{stem}_{stamp}{ext}")
+    shutil.copy2(src_path, dst)
+
+    # Elimina le versioni più vecchie oltre il limite
+    pattern = os.path.join(archive_dir, f"{stem}_*{ext}")
+    versions = sorted(glob.glob(pattern))
+    while len(versions) > _ARCHIVE_MAX:
+        os.remove(versions.pop(0))
+
+
+def save_model_metadata(n_samples: int, feature_names: list,
+                         res_dir: dict, res_corr: dict, stamp: str):
+    """Task 5.3: Scrive models/model_metadata.json."""
+    os.makedirs(_MODELS_DIR, exist_ok=True)
+    metadata = {
+        "model": "xgb_direction + xgb_correctness",
+        "trained_at": stamp,
+        "n_samples": n_samples,
+        "features": feature_names,
+        "n_features": len(feature_names),
+        "direction_cv_accuracy":  round(float(res_dir["cv_acc"].mean()),  4),
+        "direction_cv_auc":       round(float(res_dir["cv_auc"].mean()),  4),
+        "correctness_cv_accuracy": round(float(res_corr["cv_acc"].mean()), 4),
+        "correctness_cv_auc":      round(float(res_corr["cv_auc"].mean()), 4),
+    }
+    meta_path = os.path.join(_MODELS_DIR, "model_metadata.json")
+    with open(meta_path, "w", encoding="utf-8") as f:
+        json.dump(metadata, f, indent=2)
+    return meta_path
+
+
 # ─── Save ─────────────────────────────────────────────────────────────────────
-def save_models(res_dir: dict, res_corr: dict, report: Reporter, output_dir: str):
+def save_models(res_dir: dict, res_corr: dict, report: Reporter,
+                output_dir: str, n_samples: int = 0, feature_names: list = None):
     dir_path  = os.path.join(output_dir, "xgb_direction.pkl")
     corr_path = os.path.join(output_dir, "xgb_correctness.pkl")
     rep_path  = os.path.join(output_dir, "xgb_report.txt")
@@ -288,6 +400,27 @@ def save_models(res_dir: dict, res_corr: dict, report: Reporter, output_dir: str
     print(f"  {dir_path}")
     print(f"  {corr_path}")
     print(f"  {rep_path}")
+
+    # ── Task 5.3: Model versioning ─────────────────────────────────────────────
+    stamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
+    archive_dir = os.path.join(_MODELS_DIR, "archive")
+
+    # Copia i modelli live in models/ e in models/archive/ con timestamp
+    for src, basename in [(dir_path, "xgb_direction.pkl"),
+                          (corr_path, "xgb_correctness.pkl")]:
+        live_dst = os.path.join(_MODELS_DIR, basename)
+        shutil.copy2(src, live_dst)
+        _archive_model(src, archive_dir, stamp, basename)
+
+    meta_path = save_model_metadata(
+        n_samples=n_samples,
+        feature_names=feature_names or [],
+        res_dir=res_dir,
+        res_corr=res_corr,
+        stamp=stamp,
+    )
+    print(f"  {meta_path}")
+    print(f"  {archive_dir}/*_{stamp}.pkl (archivio versione)")
 
 
 # ─── Telegram notification ────────────────────────────────────────────────────
@@ -394,8 +527,12 @@ def main():
     analyze_hourly(df_clean, log)
     print_insights(res_dir, res_corr, y_dir, log)
 
+    # ── Task 5.2: Feature importance JSON + plot ───────────────────────────────
+    save_feature_importance(res_dir, res_corr, active_cols, args.output_dir, log)
+
     # ── Save + notify ──────────────────────────────────────────────────────────
-    save_models(res_dir, res_corr, log, args.output_dir)
+    save_models(res_dir, res_corr, log, args.output_dir,
+                n_samples=len(df_clean), feature_names=active_cols)
     _notify_channel_retrain(
         n_samples=len(df_clean),
         win_rate=y_corr.mean(),
