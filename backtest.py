@@ -37,7 +37,7 @@ import pandas as pd
 import numpy as np
 from xgboost import XGBClassifier
 from sklearn.model_selection import StratifiedKFold, cross_val_score
-from constants import TAKER_FEE, _BIAS_MAP
+from constants import TAKER_FEE, _BIAS_MAP, XGB_PARAMS
 
 # ─── SSL context con certifi CA bundle ─────────────────────────────────────────
 _SSL_CTX = ssl.create_default_context(cafile=certifi.where())
@@ -291,11 +291,8 @@ def main():
     if len(df_train_clean) >= 15:
         X_train = df_train_clean[FEATURE_COLS].values
         y_train = (df_train_clean["direction"] == "UP").astype(int).values
-        xgb_model = XGBClassifier(
-            n_estimators=150, max_depth=4, learning_rate=0.05,
-            subsample=0.8, colsample_bytree=0.8,
-            eval_metric="logloss", random_state=42, verbosity=0,
-        )
+        # n_estimators ridotto a 150: dataset ridotto (70% split) → meno alberi ok
+        xgb_model = XGBClassifier(**{**XGB_PARAMS, "n_estimators": 150})
         n_splits = min(5, len(np.unique(y_train)))
         if n_splits >= 2 and sum(y_train) >= 2 and sum(1-y_train) >= 2:
             cv         = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)

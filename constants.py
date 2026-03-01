@@ -19,3 +19,18 @@ _BIAS_MAP = {
     "bullish":         1,
     "strong_bullish":  2,
 }
+
+# ── XGBoost hyperparameters ───────────────────────────────────────────────────
+# Unica sorgente di verità: usati da train_xgboost.py e backtest.py.
+# backtest.py sovrascrive n_estimators=150 per velocità sul dataset ridotto
+# (70% train split vs il dataset completo usato in training).
+XGB_PARAMS = dict(
+    n_estimators=200,
+    max_depth=4,
+    learning_rate=0.05,
+    subsample=0.8,
+    colsample_bytree=0.8,
+    eval_metric="logloss",
+    random_state=42,
+    verbosity=0,
+)

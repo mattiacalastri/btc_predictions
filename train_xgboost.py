@@ -27,6 +27,7 @@ import numpy as np
 from xgboost import XGBClassifier
 from sklearn.model_selection import StratifiedKFold, TimeSeriesSplit, cross_val_score
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+from constants import XGB_PARAMS
 from sklearn.preprocessing import LabelEncoder
 
 # ─── Features usate per la predizione ─────────────────────────────────────────
@@ -74,19 +75,7 @@ OPTIONAL_FEATURE_COLS = [
     "cvd_6m_pct",
 ]
 
-# ─── XGBoost hyperparameters (unica sorgente di verità) ──────────────────────
-# Usati sia in train_and_eval (StratifiedKFold) che in run_walkforward
-# (TimeSeriesSplit). Modifica qui per aggiornare entrambi.
-XGB_PARAMS = dict(
-    n_estimators=200,
-    max_depth=4,
-    learning_rate=0.05,
-    subsample=0.8,
-    colsample_bytree=0.8,
-    eval_metric="logloss",
-    random_state=42,
-    verbosity=0,
-)
+# XGB_PARAMS importato da constants.py — unica sorgente di verità.
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
