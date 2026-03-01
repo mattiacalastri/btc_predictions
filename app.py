@@ -2,6 +2,7 @@ import os
 import re
 import json
 import time
+import threading
 import datetime as _dt
 import hmac as _hmac
 from joblib import load as joblib_load
@@ -51,6 +52,7 @@ def _sb_config() -> tuple:
 
 # ── Rate limiting (S-20) ──────────────────────────────────────────────────────
 _RATE_STORE: dict = {}  # key → (count, window_start)
+_RATE_LOCK = threading.Lock()  # thread-safe per Gunicorn multi-worker (stesso processo)
 _RL_WINDOW = 60         # secondi per finestra
 _RL_MAX_DEFAULT = 100   # chiamate per finestra default
 _XGB_GATE_MIN_BETS = int(os.environ.get("XGB_MIN_BETS", "100"))  # bet pulite necessarie per attivare il gate
@@ -59,18 +61,20 @@ _XGB_GATE_MIN_BETS = int(os.environ.get("XGB_MIN_BETS", "100"))  # bet pulite ne
 def _check_rate_limit(key: str, max_calls: int = _RL_MAX_DEFAULT) -> bool:
     """Restituisce True se la chiamata è consentita, False se rate-limited.
     Utilizza finestre scorrevoli di _RL_WINDOW secondi, con cleanup automatico.
+    Thread-safe tramite _RATE_LOCK (Gunicorn threaded mode).
     """
     now = time.time()
-    # cleanup entries scadute (evita crescita illimitata)
-    expired = [k for k, v in _RATE_STORE.items() if now - v[1] >= _RL_WINDOW * 2]
-    for k in expired:
-        _RATE_STORE.pop(k, None)
-    count, ts = _RATE_STORE.get(key, (0, now))
-    if now - ts >= _RL_WINDOW:
-        count, ts = 0, now
-    count += 1
-    _RATE_STORE[key] = (count, ts)
-    return count <= max_calls
+    with _RATE_LOCK:
+        # cleanup entries scadute (evita crescita illimitata)
+        expired = [k for k, v in _RATE_STORE.items() if now - v[1] >= _RL_WINDOW * 2]
+        for k in expired:
+            _RATE_STORE.pop(k, None)
+        count, ts = _RATE_STORE.get(key, (0, now))
+        if now - ts >= _RL_WINDOW:
+            count, ts = 0, now
+        count += 1
+        _RATE_STORE[key] = (count, ts)
+        return count <= max_calls
 
 
 # ── XGBoost direction model (caricato una volta all'avvio) ────────────────────
@@ -454,13 +458,12 @@ def _close_prev_bet_on_reverse(old_side: str, exit_price: float, closed_size: fl
 
         if old_direction == "UP":
             pnl_gross = (exit_price - entry_price) * bet_size
-            correct = exit_price > entry_price   # break-even = LOSS (fees make PnL negative)
         else:
             pnl_gross = (entry_price - exit_price) * bet_size
-            correct = exit_price < entry_price   # break-even = LOSS
 
         fee = bet_size * (entry_price + exit_price) * TAKER_FEE  # entry + exit taker fee
         pnl_net = round(pnl_gross - fee, 6)
+        correct = pnl_net > 0  # net-based: break-even con fee = LOSS
 
         # &correct=is.null → atomicità ottimistica: nessuna doppia risoluzione (S-17)
         patch_url = f"{supabase_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{bet_id}&correct=is.null"
@@ -856,15 +859,14 @@ def close_position():
 
                     if direction == "UP":
                         pnl_gross = (exit_fill_price - entry_price) * bet_size
-                        correct = exit_fill_price > entry_price   # break-even = LOSS
                         actual_direction = "UP" if exit_fill_price > entry_price else "DOWN"
                     else:
                         pnl_gross = (entry_price - exit_fill_price) * bet_size
-                        correct = exit_fill_price < entry_price   # break-even = LOSS
                         actual_direction = "DOWN" if exit_fill_price < entry_price else "UP"
 
                     fee = bet_size * (entry_price + exit_fill_price) * TAKER_FEE
                     pnl_net = round(pnl_gross - fee, 6)
+                    correct = pnl_net > 0  # net-based: break-even con fee = LOSS
 
                     _supabase_update(bet_id, {
                         "exit_fill_price":    exit_fill_price,
