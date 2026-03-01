@@ -24,6 +24,16 @@ sentry_sdk.init(
 app = Flask(__name__)
 
 
+@app.before_request
+def redirect_www():
+    """Redirect www.btcpredictor.io → btcpredictor.io (canonical)."""
+    host = request.host.lower()
+    if host.startswith("www."):
+        canonical = host[4:]
+        scheme = request.headers.get("X-Forwarded-Proto", "https")
+        return redirect(f"{scheme}://{canonical}{request.full_path}", code=301)
+
+
 @app.after_request
 def set_security_headers(response):
     response.headers["X-Content-Type-Options"] = "nosniff"
@@ -4660,6 +4670,11 @@ def robots_txt():
         "Disallow: /close-position\n"
         "Disallow: /pause\n"
         "Disallow: /resume\n"
+        "Disallow: /admin/\n"
+        "Disallow: /cockpit\n"
+        "Disallow: /health\n"
+        "Disallow: /predict-xgb\n"
+        "Disallow: /marketing-stats\n"
         "\n"
         "# AI crawlers\n"
         "User-agent: GPTBot\n"
@@ -4678,45 +4693,32 @@ def robots_txt():
 
 @app.route("/sitemap.xml", methods=["GET"])
 def sitemap_xml():
-    """Basic sitemap for indexing."""
+    """Sitemap with lastmod dates for better crawl budget."""
+    today = _dt.date.today().isoformat()
+    pages = [
+        ("https://btcpredictor.io",                        "daily",   "1.0", today),
+        ("https://btcpredictor.io/dashboard",              "hourly",  "1.0", today),
+        ("https://btcpredictor.io/manifesto",              "monthly", "0.8", "2026-02-27"),
+        ("https://btcpredictor.io/prevedibilita-perfetta", "monthly", "0.9", "2026-02-27"),
+        ("https://btcpredictor.io/contributors",           "weekly",  "0.7", "2026-03-01"),
+        ("https://btcpredictor.io/xgboost-spiegato",       "monthly", "0.8", "2026-02-27"),
+        ("https://btcpredictor.io/aureo",                  "monthly", "0.7", "2026-03-01"),
+        ("https://btcpredictor.io/legal",                  "monthly", "0.3", "2026-03-01"),
+    ]
+    urls = ""
+    for loc, freq, prio, lastmod in pages:
+        urls += (
+            f"  <url>\n"
+            f"    <loc>{loc}</loc>\n"
+            f"    <lastmod>{lastmod}</lastmod>\n"
+            f"    <changefreq>{freq}</changefreq>\n"
+            f"    <priority>{prio}</priority>\n"
+            f"  </url>\n"
+        )
     xml = (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-        '  <url>\n'
-        '    <loc>https://btcpredictor.io</loc>\n'
-        '    <changefreq>daily</changefreq>\n'
-        '    <priority>1.0</priority>\n'
-        '  </url>\n'
-        '  <url>\n'
-        '    <loc>https://btcpredictor.io/dashboard</loc>\n'
-        '    <changefreq>hourly</changefreq>\n'
-        '    <priority>1.0</priority>\n'
-        '  </url>\n'
-        '  <url>\n'
-        '    <loc>https://btcpredictor.io/manifesto</loc>\n'
-        '    <changefreq>monthly</changefreq>\n'
-        '    <priority>0.8</priority>\n'
-        '  </url>\n'
-        '  <url>\n'
-        '    <loc>https://btcpredictor.io/contributors</loc>\n'
-        '    <changefreq>weekly</changefreq>\n'
-        '    <priority>0.7</priority>\n'
-        '  </url>\n'
-        '  <url>\n'
-        '    <loc>https://btcpredictor.io/prevedibilita-perfetta</loc>\n'
-        '    <changefreq>monthly</changefreq>\n'
-        '    <priority>0.9</priority>\n'
-        '  </url>\n'
-        '  <url>\n'
-        '    <loc>https://btcpredictor.io/xgboost-spiegato</loc>\n'
-        '    <changefreq>monthly</changefreq>\n'
-        '    <priority>0.8</priority>\n'
-        '  </url>\n'
-        '  <url>\n'
-        '    <loc>https://btcpredictor.io/legal</loc>\n'
-        '    <changefreq>monthly</changefreq>\n'
-        '    <priority>0.3</priority>\n'
-        '  </url>\n'
+        f'{urls}'
         '</urlset>\n'
     )
     return xml, 200, {"Content-Type": "application/xml"}
