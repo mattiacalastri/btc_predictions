@@ -438,6 +438,134 @@
   }
   .filter-btn:hover, .filter-btn.active { color:var(--text); border-color:rgba(247,147,26,.4); background:rgba(247,147,26,.06); }
 
+  /* ── PED — Piano Editoriale ───────────────────────────────────── */
+  .ped-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:14px; }
+  .ped-header h2 { font-family:'Syne',sans-serif; font-size:15px; font-weight:700; }
+  .ped-header span { color:var(--muted); font-size:11px; }
+  .btn-new-post {
+    font-family:'JetBrains Mono',monospace; font-size:10px; text-transform:uppercase;
+    letter-spacing:.1em; padding:6px 14px; border-radius:4px; cursor:pointer;
+    background:rgba(247,147,26,.1); border:1px solid rgba(247,147,26,.35);
+    color:var(--orange); transition:all .2s;
+  }
+  .btn-new-post:hover { background:rgba(247,147,26,.18); }
+  .ped-apikey-bar {
+    background:rgba(0,212,255,.06); border:1px solid rgba(0,212,255,.2);
+    border-radius:6px; padding:10px 14px; margin-bottom:14px;
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  }
+  .ped-apikey-bar input {
+    font-family:'JetBrains Mono',monospace; font-size:11px;
+    background:rgba(0,0,0,.3); border:1px solid rgba(0,212,255,.25);
+    color:var(--cyan); border-radius:3px; padding:5px 10px; flex:1; min-width:200px; outline:none;
+  }
+  .ped-apikey-bar input::placeholder { color:rgba(0,212,255,.4); }
+  .btn-apikey-save {
+    font-family:'JetBrains Mono',monospace; font-size:10px; text-transform:uppercase;
+    padding:5px 12px; border-radius:3px; cursor:pointer;
+    background:rgba(0,212,255,.1); border:1px solid rgba(0,212,255,.3); color:var(--cyan); transition:all .2s;
+  }
+  .btn-apikey-save:hover { background:rgba(0,212,255,.2); }
+  .post-cards { display:flex; flex-direction:column; gap:10px; }
+  .post-card {
+    background:var(--bg3); border:1px solid var(--border);
+    border-radius:8px; padding:14px 16px;
+    transition:border-color .2s;
+  }
+  .post-card:hover { border-color:rgba(247,147,26,.2); }
+  .post-card-meta {
+    display:flex; align-items:center; gap:8px; margin-bottom:8px; flex-wrap:wrap;
+  }
+  .post-date-badge {
+    font-size:10px; text-transform:uppercase; letter-spacing:.1em;
+    padding:2px 8px; border-radius:3px;
+    background:rgba(247,147,26,.1); color:var(--orange); border:1px solid rgba(247,147,26,.25);
+  }
+  .post-chan-badge {
+    font-size:10px; text-transform:uppercase; letter-spacing:.08em;
+    padding:2px 7px; border-radius:3px;
+  }
+  .post-chan-tg   { background:rgba(0,212,255,.08); color:var(--cyan); border:1px solid rgba(0,212,255,.2); }
+  .post-chan-x    { background:rgba(232,224,208,.05); color:var(--muted); border:1px solid var(--border); }
+  .post-chan-li   { background:rgba(0,119,181,.1); color:#4fa8d1; border:1px solid rgba(0,119,181,.3); }
+  .post-chan-rd   { background:rgba(255,69,0,.08); color:#ff6b35; border:1px solid rgba(255,69,0,.25); }
+  .post-title { font-family:'Syne',sans-serif; font-size:13px; font-weight:700; margin-bottom:4px; }
+  .post-text {
+    color:var(--muted); font-size:11px; line-height:1.6;
+    white-space:pre-wrap; max-height:80px; overflow:hidden;
+    position:relative;
+  }
+  .post-text.expanded { max-height:none; }
+  .post-text-toggle { color:var(--orange); font-size:10px; cursor:pointer; margin-top:4px; display:inline-block; }
+  .post-actions { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+  .btn-pub {
+    font-family:'JetBrains Mono',monospace; font-size:10px; text-transform:uppercase;
+    letter-spacing:.08em; padding:5px 11px; border-radius:3px; cursor:pointer;
+    border:1px solid; transition:all .2s;
+  }
+  .btn-pub-copy  { background:rgba(232,224,208,.05); color:var(--muted); border-color:var(--border); }
+  .btn-pub-copy:hover { color:var(--text); border-color:rgba(232,224,208,.25); }
+  .btn-pub-tg    { background:rgba(0,212,255,.08); color:var(--cyan); border-color:rgba(0,212,255,.3); }
+  .btn-pub-tg:hover { background:rgba(0,212,255,.18); }
+  .btn-pub-x     { background:rgba(232,224,208,.04); color:rgba(232,224,208,.3); border-color:rgba(232,224,208,.08); cursor:not-allowed; }
+  .btn-pub-li    { background:rgba(0,119,181,.05); color:rgba(74,168,209,.3); border-color:rgba(0,119,181,.1); cursor:not-allowed; }
+  .btn-pub-rd    { background:rgba(255,69,0,.05); color:rgba(255,107,53,.3); border-color:rgba(255,69,0,.1); cursor:not-allowed; }
+  .btn-pub-del   { background:rgba(255,68,102,.06); color:rgba(255,68,102,.4); border-color:rgba(255,68,102,.15); cursor:pointer; }
+  .btn-pub-del:hover { color:var(--red); border-color:rgba(255,68,102,.35); }
+  .ped-new-form {
+    background:var(--bg4); border:1px solid rgba(247,147,26,.25);
+    border-radius:8px; padding:16px 18px; margin-bottom:14px;
+  }
+  .ped-new-form h3 { font-family:'Syne',sans-serif; font-size:13px; font-weight:700; margin-bottom:12px; color:var(--orange); }
+  .ped-form-row { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+  .ped-form-row input, .ped-form-row select {
+    font-family:'JetBrains Mono',monospace; font-size:11px;
+    background:rgba(0,0,0,.3); border:1px solid var(--border);
+    color:var(--text); border-radius:3px; padding:6px 10px; outline:none;
+    transition:border-color .2s;
+  }
+  .ped-form-row input:focus, .ped-form-row select:focus { border-color:rgba(247,147,26,.4); }
+  .ped-form-row select option { background:#0d0d15; }
+  .ped-form-row input[type=text] { flex:1; min-width:160px; }
+  .ped-form-row input[type=datetime-local] { min-width:180px; }
+  .ped-form-textarea {
+    font-family:'JetBrains Mono',monospace; font-size:11px;
+    background:rgba(0,0,0,.3); border:1px solid var(--border);
+    color:var(--text); border-radius:3px; padding:8px 10px; outline:none;
+    width:100%; min-height:90px; resize:vertical; margin-bottom:10px; line-height:1.5;
+    transition:border-color .2s;
+  }
+  .ped-form-textarea:focus { border-color:rgba(247,147,26,.4); }
+  .ped-form-actions { display:flex; gap:8px; }
+  .btn-form-save {
+    font-family:'JetBrains Mono',monospace; font-size:10px; text-transform:uppercase;
+    padding:6px 16px; border-radius:3px; cursor:pointer;
+    background:rgba(247,147,26,.15); border:1px solid rgba(247,147,26,.4); color:var(--orange);
+    transition:all .2s;
+  }
+  .btn-form-save:hover { background:rgba(247,147,26,.25); }
+  .btn-form-cancel {
+    font-family:'JetBrains Mono',monospace; font-size:10px; text-transform:uppercase;
+    padding:6px 14px; border-radius:3px; cursor:pointer;
+    background:transparent; border:1px solid var(--border); color:var(--muted);
+    transition:all .2s;
+  }
+  .btn-form-cancel:hover { color:var(--text); }
+  .ped-empty {
+    text-align:center; color:var(--muted); font-size:12px; font-style:italic;
+    padding:24px; background:var(--bg3); border:1px dashed var(--border); border-radius:8px;
+  }
+  .pub-toast {
+    position:fixed; bottom:24px; right:24px; z-index:9999;
+    background:rgba(10,10,15,.97); border:1px solid rgba(0,255,136,.35);
+    border-radius:6px; padding:10px 16px; font-size:12px; color:var(--green);
+    box-shadow:0 4px 24px rgba(0,0,0,.5);
+    transform:translateY(80px); opacity:0; transition:all .3s cubic-bezier(.4,0,.2,1);
+    pointer-events:none;
+  }
+  .pub-toast.show { transform:translateY(0); opacity:1; }
+  .pub-toast.err { border-color:rgba(255,68,102,.35); color:var(--red); }
+
   /* ── UTILS ────────────────────────────────────────────────────── */
   .mono { font-family: 'JetBrains Mono', monospace; }
   .loading { color: var(--muted); font-style: italic; }
@@ -611,20 +739,46 @@
 
   <hr class="divider">
 
-  <div class="section-hdr" style="margin-top:18px;">
-    <h2>Prossimi Post Pianificati</h2>
-    <span>da Supabase <code>social_posts</code> — integ. futura wf11</span>
+  <!-- PED — Piano Editoriale Digitale -->
+  <div class="ped-header">
+    <div>
+      <h2>📋 Piano Editoriale</h2>
+      <span>Bozze post — copia testo o pubblica direttamente sui canali</span>
+    </div>
+    <button class="btn-new-post" onclick="pedToggleNewForm()">+ Nuovo Post</button>
   </div>
 
-  <div id="socialPostsList">
-    <div class="card" style="border-style:dashed;opacity:.5;text-align:center;">
-      <div class="card-title">🗓 Placeholder</div>
-      <div class="card-value" style="color:var(--muted);font-size:12px;">
-        Integrazione wf11 → Supabase <code>social_posts</code> in arrivo.<br>
-        I post pianificati appariranno qui automaticamente.
-      </div>
+  <!-- API Key setup bar (nascosta se già salvata) -->
+  <div class="ped-apikey-bar" id="pedApikeyBar" style="display:none;">
+    <span style="color:var(--cyan);font-size:11px;">🔑 API Key</span>
+    <input type="password" id="pedApikeyInput" placeholder="Inserisci BOT_API_KEY per pubblicare su Telegram…">
+    <button class="btn-apikey-save" onclick="pedSaveApiKey()">Salva</button>
+    <span id="pedApikeyStatus" style="font-size:11px;color:var(--muted);"></span>
+  </div>
+
+  <!-- New Post Form (hidden by default) -->
+  <div class="ped-new-form" id="pedNewForm" style="display:none;">
+    <h3>✏️ Nuovo Post</h3>
+    <div class="ped-form-row">
+      <input type="text" id="pedFormTitle" placeholder="Titolo (interno)…" style="flex:1;">
+      <input type="datetime-local" id="pedFormDate">
+      <select id="pedFormChannel">
+        <option value="tg">✈️ Telegram</option>
+        <option value="all">📡 Tutti i canali</option>
+        <option value="x">𝕏 X / Twitter</option>
+        <option value="li">💼 LinkedIn</option>
+        <option value="rd">🤖 Reddit</option>
+      </select>
+    </div>
+    <textarea class="ped-form-textarea" id="pedFormText" placeholder="Testo del post… (max 4096 char per Telegram)"></textarea>
+    <div class="ped-form-actions">
+      <button class="btn-form-save" onclick="pedSaveNewPost()">💾 Salva Bozza</button>
+      <button class="btn-form-cancel" onclick="pedToggleNewForm()">Annulla</button>
     </div>
   </div>
+
+  <!-- Posts list -->
+  <div class="post-cards" id="pedPostsList"></div>
 
 </div>
 
@@ -821,59 +975,139 @@
 
   <div class="section-hdr">
     <h2>AI Agents Attivi</h2>
-    <span>16 workflow n8n sul VPS Hostinger</span>
+    <span>17 workflow n8n · VPS Hostinger · ogni ciclo ~15 min</span>
   </div>
 
-  <div class="agent-grid">
+  <!-- LIVE agents -->
+  <div style="font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--green);margin-bottom:8px;">● Core Engine — in produzione</div>
+  <div class="agent-grid" style="margin-bottom:18px;">
     <div class="agent-card live">
-      <div class="agent-name">🤖 Brain — wf01B</div>
-      <span class="agent-status live">live</span>
-      <div class="agent-desc">AI prediction engine. Claude/Gemini + XGBoost dual-gate. Commit on-chain ogni segnale.</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div class="agent-name">🧠 Brain — wf01B</div>
+        <span class="agent-status live">live</span>
+      </div>
+      <div class="agent-desc">AI prediction engine. LLM (Gemini Flash) + XGBoost dual-gate. Ogni segnale commesso on-chain su Polygon <em>prima</em> del fill Kraken.</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
+        <span style="font-size:9px;padding:2px 7px;border-radius:3px;background:rgba(168,85,247,.1);color:var(--purple);border:1px solid rgba(168,85,247,.2);">LLM</span>
+        <span style="font-size:9px;padding:2px 7px;border-radius:3px;background:rgba(0,255,136,.08);color:var(--green);border:1px solid rgba(0,255,136,.15);">XGBoost</span>
+        <span style="font-size:9px;padding:2px 7px;border-radius:3px;background:rgba(0,212,255,.08);color:var(--cyan);border:1px solid rgba(0,212,255,.2);">On-Chain</span>
+      </div>
     </div>
     <div class="agent-card live">
-      <div class="agent-name">📊 Inputs — wf01A</div>
-      <span class="agent-status live">live</span>
-      <div class="agent-desc">Fetch 20+ input: RSI, CVD, Fear&amp;Greed, funding, orderbook. Formatta per LLM.</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div class="agent-name">📊 Inputs — wf01A</div>
+        <span class="agent-status live">live</span>
+      </div>
+      <div class="agent-desc">Fetch 20+ feature: RSI 14/50, CVD 6h, Fear&amp;Greed, funding rate, L/S ratio, orderbook imbalance, macro calendar. Formatta JSON per LLM.</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
+        <span style="font-size:9px;padding:2px 7px;border-radius:3px;background:rgba(247,147,26,.08);color:var(--orange);border:1px solid rgba(247,147,26,.2);">20+ features</span>
+        <span style="font-size:9px;padding:2px 7px;border-radius:3px;background:rgba(0,212,255,.08);color:var(--cyan);border:1px solid rgba(0,212,255,.2);">Binance API</span>
+      </div>
     </div>
     <div class="agent-card live">
-      <div class="agent-name">🔍 Trade Checker — wf02</div>
-      <span class="agent-status live">live</span>
-      <div class="agent-desc">Rescue PENDING, resolve on-chain, calcola PnL, circuit breaker 3 loss.</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div class="agent-name">🔍 Trade Checker — wf02</div>
+        <span class="agent-status live">live</span>
+      </div>
+      <div class="agent-desc">Rescue PENDING, resolve on-chain, calcola PnL reale post-fee. Circuit breaker attivo: 3 loss consecutive → bot in pausa automatica.</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
+        <span style="font-size:9px;padding:2px 7px;border-radius:3px;background:rgba(255,68,102,.08);color:var(--red);border:1px solid rgba(255,68,102,.2);">Circuit Breaker</span>
+        <span style="font-size:9px;padding:2px 7px;border-radius:3px;background:rgba(0,212,255,.08);color:var(--cyan);border:1px solid rgba(0,212,255,.2);">On-Chain</span>
+      </div>
     </div>
     <div class="agent-card live">
-      <div class="agent-name">📬 Talker — wf04</div>
-      <span class="agent-status live">live</span>
-      <div class="agent-desc">Report giornaliero Telegram. Statistica WR, PnL, segnali recenti.</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div class="agent-name">🛡 Position Monitor — wf08</div>
+        <span class="agent-status live">live</span>
+      </div>
+      <div class="agent-desc">Ogni 3 minuti: verifica posizioni aperte su Kraken Futures. Trigger rescue se SL/TP raggiunto o timeout 30 min.</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
+        <span style="font-size:9px;padding:2px 7px;border-radius:3px;background:rgba(0,255,136,.08);color:var(--green);border:1px solid rgba(0,255,136,.15);">ogni 3 min</span>
+      </div>
     </div>
     <div class="agent-card live">
-      <div class="agent-name">🎙 Social Manager — wf09A</div>
-      <span class="agent-status live">live</span>
-      <div class="agent-desc">AI content generation (Gemini Flash). Gestisce coda post per X/Telegram.</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div class="agent-name">📬 Talker — wf04</div>
+        <span class="agent-status live">live</span>
+      </div>
+      <div class="agent-desc">Report giornaliero 07:00 UTC su @BTCPredictorBot. WR del giorno, PnL, segnali recenti, equity corrente.</div>
     </div>
     <div class="agent-card live">
-      <div class="agent-name">📣 Channel Content — wf11</div>
-      <span class="agent-status live">live</span>
-      <div class="agent-desc">Genera e pubblica contenuti storytelling build-in-public su @BTCPredictorBot.</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div class="agent-name">🤖 Commander — wf07</div>
+        <span class="agent-status live">live</span>
+      </div>
+      <div class="agent-desc">Telegram bot conversazionale. 67 nodi, inline buttons. Comandi: health, balance, position, pause/resume, close. Solo owner.</div>
+    </div>
+    <div class="agent-card live">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div class="agent-name">📣 Channel Content — wf11</div>
+        <span class="agent-status live">live</span>
+      </div>
+      <div class="agent-desc">Genera e pubblica contenuti storytelling build-in-public su @BTCPredictorBot. Tone: tecnico, autentico, no hype.</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
+        <span style="font-size:9px;padding:2px 7px;border-radius:3px;background:rgba(168,85,247,.1);color:var(--purple);border:1px solid rgba(168,85,247,.2);">Gemini Flash</span>
+      </div>
+    </div>
+    <div class="agent-card live">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div class="agent-name">🔔 Sentry Handler — wf10</div>
+        <span class="agent-status live">live</span>
+      </div>
+      <div class="agent-desc">Webhook Sentry → AI analisi errore (Gemini) → DM Mattia + task autonomo. FirstSeenEvent + RegressionEvent ≥ error.</div>
+    </div>
+  </div>
+
+  <!-- BUILDING agents -->
+  <div style="font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--orange);margin-bottom:8px;">◐ In Costruzione — Q2 2026</div>
+  <div class="agent-grid" style="margin-bottom:18px;">
+    <div class="agent-card building">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div class="agent-name">🔮 Regime Detector</div>
+        <span class="agent-status building">building</span>
+      </div>
+      <div class="agent-desc">Labelling automatico trend/ranging/volatile con volatilità storica 4h normalizzata. Feature P1 per XGBoost — il WR cambia radicalmente per regime.</div>
     </div>
     <div class="agent-card building">
-      <div class="agent-name">🔮 Regime Detector</div>
-      <span class="agent-status building">building</span>
-      <div class="agent-desc">Labelling trend/ranging/volatile con vol 4h normalizzata. Feature P1 per XGBoost.</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div class="agent-name">🧮 Signal Audit On-Chain</div>
+        <span class="agent-status building">building</span>
+      </div>
+      <div class="agent-desc"><code>commitSignal()</code> per ghost e SKIP. Ogni segnale — non solo i BET — sarà verificabile on-chain. Dataset di training auditabile pubblicamente.</div>
     </div>
-    <div class="agent-card building">
-      <div class="agent-name">🧮 On-chain Signal Audit</div>
-      <span class="agent-status building">building</span>
-      <div class="agent-desc">commitSignal() per ghost/SKIP. Dataset di training verificabile on-chain.</div>
+  </div>
+
+  <!-- CONCEPT agents -->
+  <div style="font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--purple);margin-bottom:8px;">○ Research — Concept Q3 2026</div>
+  <div class="agent-grid" style="margin-bottom:18px;">
+    <div class="agent-card concept" style="border-color:rgba(255,215,0,.25);">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div class="agent-name" style="color:var(--yellow);">🏦 Whale Alert Agent</div>
+        <span class="agent-status concept" style="background:rgba(255,215,0,.1);color:var(--yellow);border-color:rgba(255,215,0,.25);">concept</span>
+      </div>
+      <div class="agent-desc">Monitor real-time transazioni &gt;1000 BTC su Whale Alert API. Ogni movimento whale è un pre-segnale di volatilità con un lag misurabile di 2–8 minuti. Feature ad alto information gain per il dual-gate.</div>
+      <div style="margin-top:6px;font-size:10px;color:rgba(255,215,0,.6);font-style:italic;">→ Whale moves BTC price. Il modello può vederlo prima del mercato.</div>
     </div>
     <div class="agent-card concept">
-      <div class="agent-name">🏦 Whale Alert Agent</div>
-      <span class="agent-status concept">concept</span>
-      <div class="agent-desc">Monitor transazioni &gt;1000 BTC. Spike volatilità predictor. On-chain trigger.</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div class="agent-name">📐 SOPR / MVRV Agent</div>
+        <span class="agent-status concept">concept</span>
+      </div>
+      <div class="agent-desc">Metriche on-chain: SOPR &lt;1 = capitolation, &gt;1 = profit-taking. MVRV Z-score &gt;7 = zona peak storica. Filtro di regime macro per evitare segnali in zone di esaurimento strutturale.</div>
     </div>
     <div class="agent-card concept">
-      <div class="agent-name">📐 SOPR / MVRV Agent</div>
-      <span class="agent-status concept">concept</span>
-      <div class="agent-desc">On-chain metrics: SOPR &lt;1 = capitolation, MVRV Z-score &gt;7 = peak zone.</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div class="agent-name">🌊 Liquidation Wall Agent</div>
+        <span class="agent-status concept">concept</span>
+      </div>
+      <div class="agent-desc">Mappa in real-time i livelli di liquidazione massima dai perp Binance/OKX. Il prezzo si muove verso le liquidation walls — identificarle in anticipo è un edge diretto.</div>
+    </div>
+    <div class="agent-card concept">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div class="agent-name">📡 Exchange Flow Agent</div>
+        <span class="agent-status concept">concept</span>
+      </div>
+      <div class="agent-desc">Exchange netflow on-chain: inflow netto = selling pressure imminente, outflow = accumulation. Segnale contrarian affidabile su finestre 4h–24h.</div>
     </div>
   </div>
 
@@ -1057,6 +1291,62 @@
     </div>
   </div>
 
+  <!-- COSTO RETE DI AGENTI -->
+  <div class="section-hdr" style="margin-top:22px;">
+    <h2>Costo Rete di Agenti</h2>
+    <span>infrastruttura on-chain — Polygon PoS</span>
+  </div>
+
+  <div style="background:linear-gradient(135deg,rgba(168,85,247,.06),rgba(0,212,255,.04));border:1px solid rgba(168,85,247,.2);border-radius:8px;padding:20px 22px;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px;margin-bottom:18px;">
+      <div>
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:4px;">Segnali / giorno</div>
+        <div style="font-size:20px;font-weight:700;color:var(--text);">~96</div>
+        <div style="font-size:10px;color:var(--muted);">1 ciclo ogni 15 min × 24h</div>
+      </div>
+      <div>
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:4px;">TX on-chain / segnale</div>
+        <div style="font-size:20px;font-weight:700;color:var(--purple);">2</div>
+        <div style="font-size:10px;color:var(--muted);">commitPrediction + resolvePrediction</div>
+      </div>
+      <div>
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:4px;">Gas / TX</div>
+        <div style="font-size:20px;font-weight:700;color:var(--cyan);">~80k</div>
+        <div style="font-size:10px;color:var(--muted);">@ 50 Gwei = 0.004 MATIC</div>
+      </div>
+      <div>
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:4px;">MATIC / TX</div>
+        <div style="font-size:20px;font-weight:700;color:var(--text);">0.004</div>
+        <div style="font-size:10px;color:var(--muted);">≈ $0.0008 @ $0.20/MATIC</div>
+      </div>
+    </div>
+    <div style="border-top:1px solid var(--border);padding-top:14px;">
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:10px;">Stima Costo Mensile</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;">
+          <span style="color:var(--muted);">Solo BET (tasso 15–20%): ~576 tx/mese</span>
+          <span style="color:var(--green);font-weight:700;">~$0.46 / mese</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;">
+          <span style="color:var(--muted);">BET + ghost SKIP: ~5760 tx/mese</span>
+          <span style="color:var(--yellow);font-weight:700;">~$4.61 / mese</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding-top:6px;border-top:1px solid var(--border);">
+          <span style="color:var(--text);font-weight:600;">Scenario attuale (solo BET)</span>
+          <span style="color:var(--green);font-size:16px;font-weight:800;">~$0.46 / mese</span>
+        </div>
+      </div>
+      <div style="margin-top:12px;padding:10px 14px;background:rgba(0,255,136,.04);border-radius:5px;border:1px solid rgba(0,255,136,.1);">
+        <div style="font-size:11px;color:var(--muted);line-height:1.7;">
+          💡 <strong style="color:var(--text);">Perché Polygon?</strong>
+          Finalità ~2 secondi. Gas irrisorio (&lt;$0.001/tx).
+          Ogni prediction è immutabile: impossibile retrodatare o modificare un outcome dopo il commit.
+          Costo infrastrutturale dell'intera rete di agenti: meno di un caffè al mese.
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <!-- ════════════════════════════════════════════════════════════ -->
@@ -1233,13 +1523,24 @@ function loadStats() {
         if(tgCount) { tgCount.textContent = '—'; }
       }
 
-      // Retrain
+      // Retrain — mostra progresso verso prossima finestra buona
       var rtEl = document.getElementById('swRetrain');
-      if(data.last_retrain) {
-        rtEl.textContent = '🧠 ' + data.last_retrain;
+      var bs = data.bet_stats || {};
+      var cleanBets = bs.clean_bets || 0;
+      var wins      = bs.wins      || 0;
+      var wr        = bs.win_rate_pct;
+      // Prossima finestra: ogni 50 clean bets, minimo 50
+      var milestone = Math.max(50, Math.ceil((cleanBets + 1) / 50) * 50);
+      var remaining = milestone - cleanBets;
+      var wrStr = wr !== null && wr !== undefined ? ' · WR ' + wr + '%' : '';
+      if(cleanBets >= milestone) {
+        rtEl.textContent = '🟢 FINESTRA APERTA — ' + cleanBets + ' bet' + wrStr;
         rtEl.className = 'sw-value dot-ok';
+      } else if(cleanBets > 0) {
+        rtEl.textContent = '🧠 ' + cleanBets + ' bet' + wrStr + ' · −' + remaining + ' → fin.' + milestone;
+        rtEl.className = remaining <= 10 ? 'sw-value dot-ok' : 'sw-value dot-warn';
       } else {
-        rtEl.textContent = '— (no report)';
+        rtEl.textContent = 'Day 0 — 0 bet pulite · −50 → prima finestra';
         rtEl.className = 'sw-value dot-warn';
       }
 
@@ -1459,6 +1760,230 @@ function loadNews() {
 
 /* ── INIT ── */
 loadStats();
+
+/* ════════════════════════════════════════════════════════════
+   PED — Piano Editoriale Digitale
+   Posts stored in localStorage key: 'ped_posts' (array of objects)
+   ════════════════════════════════════════════════════════════ */
+
+var _PED_KEY = 'ped_posts';
+var _PED_APIKEY = 'ped_api_key';
+
+// Default editorial calendar — Mar 2026 (pre-seeded, Day 0 era)
+var _PED_DEFAULTS = [
+  { id: 'd1', title: 'Day 0 — Il Reset', date: '2026-03-01T09:00', channel: 'tg',
+    text: '🐙 Day 0. Database azzerato. Tutto riparte da zero.\n\nNon perché il bot non funzionasse — ma perché vogliamo contare solo dati certificati, da oggi.\n\nLa rete di agenti è pronta: wf01A → wf01B → Kraken → Polygon.\nOgni segnale sarà commesso on-chain prima del fill.\n\nIl primo trade reale del sistema "new era" viene da qui.\n\nbtcpredictor.io · 🎩🐙🪄' },
+  { id: 'd2', title: 'Come Funziona il Dual-Gate', date: '2026-03-02T10:00', channel: 'tg',
+    text: '🧠 Dual-gate: come il bot decide se tradare.\n\n1. LLM analizza 20+ feature: RSI, CVD, funding, orderbook, news\n2. XGBoost valida la direzione in modo indipendente\n3. Solo se entrambi concordano → BET\n\nSe uno dice UP e l\'altro dice DOWN → SKIP.\nNessuna esecuzione senza consensus.\n\nÈ un meccanismo di riduzione del rumore, non di ottimizzazione del WR.\n\nbtcpredictor.io · 🎩🐙🪄' },
+  { id: 'd3', title: 'On-Chain Audit — Perché', date: '2026-03-03T11:00', channel: 'tg',
+    text: '⛓ Perché commit ogni segnale su Polygon?\n\nPerché il timestamp on-chain è immutabile.\n\nOgni prediction ha un hash sha-256 committato su BTCBotAudit.sol PRIMA del fill Kraken.\nDopodiché viene risolto con outcome + PnL reale.\n\nChiunque può verificare: il commit era PRIMA del trade?\nSe sì, non c\'è stato cherry-picking.\n\nCosto: ~$0.46/mese. Vale ogni centesimo.\n\nbtcpredictor.io · 🎩🐙🪄' },
+  { id: 'd4', title: 'Ghost Signals — Il Dataset Ombra', date: '2026-03-04T12:00', channel: 'tg',
+    text: '👻 Ghost signals: le scommesse che non abbiamo fatto.\n\nOgni SKIP ha una direzione predetta — anche se non tradiamo.\nDepois chiudiamo il ghost: aveva ragione?\n\nDay 0: ghost WR = 63.2% su 19 osservazioni.\nQuando il bot NON tradata, vedeva la direzione giusta.\n\nQuesti dati diventano training set certificato per il prossimo retrain XGBoost.\n\nbtcpredictor.io · 🎩🐙🪄' },
+  { id: 'd5', title: 'WR vs Expectancy', date: '2026-03-05T10:00', channel: 'tg',
+    text: '📐 WR al 55% non è il punto.\n\nL\'obiettivo è massimizzare l\'expectancy:\nE = (WR × avg_win) − ((1−WR) × avg_loss)\n\nUn sistema al 45% WR con RR 3:1 batte un sistema\nal 60% WR con RR 0.8:1. Sempre.\n\nIl bot attuale: RR medio ~1.5x, soglia confidence 0.62.\nL\'edge non è nel WR — è nella qualità del segnale.\n\nbtcpredictor.io · 🎩🐙🪄' },
+  { id: 'd6', title: 'Funding Rate Pattern', date: '2026-03-06T09:00', channel: 'tg',
+    text: '📊 Funding rate: l\'edge che il retail non vede.\n\nQuando il funding perp è positivo elevato (>0.05%),\ni longs pagano gli shorts ogni 8 ore.\n\nI market maker hedgiano: short spot + long perp.\nQuando il funding si azzera → chiudono lo short spot → buy pressure.\n\nIl bot monitora questo ciclo. È in input a wf01A.\n\nSettlement orari: 00:00 · 08:00 · 16:00 UTC\n\nbtcpredictor.io · 🎩🐙🪄' },
+  { id: 'd7', title: 'Kelly Criterion e Sizing', date: '2026-03-07T11:00', channel: 'tg',
+    text: '🎯 Quanto rischiare per trade?\n\nKelly criterion: f* = (p×b − q) / b\nCon WR 55%, RR 1.5x → f* ≈ 11.7%\n\nIl bot usa ~2% del capitale. Perché?\nPerché siamo in fase di calibrazione del modello.\nKelly completo si usa quando hai 500+ trade certificati.\n\nConservatività ora = sopravvivenza statistica domani.\n\nbtcpredictor.io · 🎩🐙🪄' },
+  { id: 'd8', title: 'La Notte del +7%', date: '2026-03-08T10:00', channel: 'tg',
+    text: '🌙 Una notte, +$7.22. Era il 25 Febbraio.\n\nIn una sessione di 8 ore il bot ha fatto il 7% del capitale.\nWR quella notte: 80%.\n\nMa attenzione: 113% del PnL totale di quel mese veniva da quella singola notte.\nSenza di essa: -$2 complessivi.\n\nUna sessione non è un sistema. Per questo contiamo day per day da Day 0.\n\nbtcpredictor.io · 🎩🐙🪄' },
+  { id: 'd9', title: 'Circuit Breaker', date: '2026-03-09T09:00', channel: 'tg',
+    text: '🛡 Circuit breaker: il bot si ferma da solo.\n\n3 trade consecutivi in loss → pausa automatica.\nNessun override dall\'utente necessario.\n\nPerché? Perché 3 loss consecutive in trending market\nsuggeriscono che il regime è cambiato.\nIl modello non deve continuare ad accumulare perdite su un segnale degradato.\n\nRiattivazione manuale via Telegram Commander.\n\nbtcpredictor.io · 🎩🐙🪄' },
+  { id: 'd10', title: 'Open Source', date: '2026-03-10T10:00', channel: 'tg',
+    text: '📂 Il codice è pubblico.\n\ngithub.com/mattiacalastri/btc_predictions\n\nTutto: Flask backend, n8n workflow exports, XGBoost training scripts, smart contract.\n\nNon perché siamo altruisti — perché la trasparenza è il prodotto.\nChiunque può forkkare, verificare, migliorare.\n\nLa fiducia non si chiede. Si guadagna commit per commit.\n\nbtcpredictor.io · 🎩🐙🪄' },
+  { id: 'd11', title: 'Whale Alert Coming', date: '2026-03-11T11:00', channel: 'tg',
+    text: '🏦 Il prossimo agente: Whale Alert.\n\nOgni transazione >1000 BTC ha un lag misurabile sul prezzo: 2–8 minuti.\nI whale si muovono, il mercato reagisce — ma c\'è una finestra.\n\nStato: concept.\nPriorità: alta. Il whale data è free tier disponibile via Whale Alert API.\n\nQuando entra nel dual-gate, l\'information gain sarà significativo.\n\nbtcpredictor.io · 🎩🐙🪄' },
+  { id: 'd12', title: 'Regime Detection', date: '2026-03-12T10:00', channel: 'tg',
+    text: '🔮 80% del tempo BTC è in ranging. 20% in trend.\n\nIl modello attuale non distingue i due regimi.\nUn segnale UP in ranging ha WR diverso da uno in trend.\n\nIl Regime Detector labella ogni candela: trend / ranging / volatile.\nLa label entra come feature XGBoost.\n\nPrognosi: il WR in trend supererà il 65%.\nIn ranging: scenderà sotto il 50%. → Non tradare in ranging.\n\nbtcpredictor.io · 🎩🐙🪄' },
+  { id: 'd13', title: 'Agent Marketplace — Visione', date: '2026-03-13T09:00', channel: 'tg',
+    text: '🐙 La visione a lungo termine: Agent Marketplace.\n\nDeveloper terzi deployano agenti specializzati.\nOgni agente è un modulo verificabile on-chain.\nRevenue share automatico via smart contract.\n\nChi porta un agente con edge reale (validato su dati certificati) riceve una quota del PnL.\nNessuna fiducia necessaria — la blockchain è l\'arbitro.\n\nETA: Q3 2026. Status: concept design.\n\nbtcpredictor.io · 🎩🐙🪄' },
+  { id: 'd14', title: 'Settimana 1 — Riepilogo Day 0', date: '2026-03-14T10:00', channel: 'tg',
+    text: '📊 Fine settimana 1 — Day 0 era.\n\nBet reali: [dinamico]\nGhost WR osservato: 63.2%\nOn-chain commit: 100% coverage\nCircuit breaker: non attivato ✅\n\nIl modello funziona. Lentamente, come deve.\nNon stiamo correndo — stiamo costruendo il dataset certificato.\n\nGrazie a chi segue il canale e verifica on-chain. 🐙\n\nbtcpredictor.io · 🎩🐙🪄' },
+];
+
+function pedInit() {
+  // Init API key bar visibility
+  var saved = localStorage.getItem(_PED_APIKEY);
+  var bar = document.getElementById('pedApikeyBar');
+  if(bar) bar.style.display = saved ? 'none' : 'flex';
+  if(saved) {
+    var status = document.getElementById('pedApikeyStatus');
+    if(status) status.textContent = '✅ chiave salvata';
+  }
+  // Seed default posts if empty
+  if(!localStorage.getItem(_PED_KEY)) {
+    localStorage.setItem(_PED_KEY, JSON.stringify(_PED_DEFAULTS));
+  }
+  pedRenderPosts();
+}
+
+function pedGetPosts() {
+  try { return JSON.parse(localStorage.getItem(_PED_KEY)) || []; }
+  catch(e) { return []; }
+}
+
+function pedSavePosts(posts) {
+  localStorage.setItem(_PED_KEY, JSON.stringify(posts));
+}
+
+function pedRenderPosts() {
+  var list = document.getElementById('pedPostsList');
+  if(!list) return;
+  var posts = pedGetPosts();
+  if(!posts.length) {
+    list.innerHTML = '<div class="ped-empty">Nessun post in bozza. Crea il primo con "+ Nuovo Post".</div>';
+    return;
+  }
+  list.innerHTML = posts.map(function(p) {
+    var chanBadge = '';
+    if(p.channel === 'tg')  chanBadge = '<span class="post-chan-badge post-chan-tg">✈️ TG</span>';
+    else if(p.channel === 'x')  chanBadge = '<span class="post-chan-badge post-chan-x">𝕏 X</span>';
+    else if(p.channel === 'li') chanBadge = '<span class="post-chan-badge post-chan-li">💼 LI</span>';
+    else if(p.channel === 'rd') chanBadge = '<span class="post-chan-badge post-chan-rd">🤖 RD</span>';
+    else chanBadge = '<span class="post-chan-badge post-chan-tg">✈️ TG</span><span class="post-chan-badge post-chan-x" style="margin-left:4px;">𝕏 X</span>';
+    var dt = p.date ? new Date(p.date).toLocaleString('it-IT',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
+    var canTG = (p.channel === 'tg' || p.channel === 'all');
+    var safeId = String(p.id).replace(/[^a-zA-Z0-9_\-]/g,'_');
+    return '<div class="post-card" id="pcard_' + safeId + '">' +
+      '<div class="post-card-meta">' +
+        '<span class="post-date-badge">📅 ' + dt + '</span>' +
+        chanBadge +
+      '</div>' +
+      '<div class="post-title">' + escHtml(p.title || '') + '</div>' +
+      '<div class="post-text" id="ptext_' + safeId + '">' + escHtml(p.text || '') + '</div>' +
+      '<span class="post-text-toggle" onclick="pedToggleExpand(\'' + safeId + '\')">▼ leggi tutto</span>' +
+      '<div class="post-actions">' +
+        '<button class="btn-pub btn-pub-copy" onclick="pedCopyPost(\'' + safeId + '\')">📋 Copia</button>' +
+        (canTG ? '<button class="btn-pub btn-pub-tg" onclick="pedPublishTG(\'' + safeId + '\')">✈️ Pubblica su Telegram</button>' : '') +
+        '<button class="btn-pub btn-pub-x" disabled title="Richiede X Basic tier">𝕏 X — coming soon</button>' +
+        '<button class="btn-pub btn-pub-li" disabled title="Integrazione in arrivo">💼 LinkedIn</button>' +
+        '<button class="btn-pub btn-pub-rd" disabled title="Integrazione in arrivo">🤖 Reddit</button>' +
+        '<button class="btn-pub btn-pub-del" onclick="pedDeletePost(\'' + safeId + '\')" style="margin-left:auto;">🗑</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function pedToggleExpand(id) {
+  var el = document.getElementById('ptext_' + id);
+  var tog = el && el.nextElementSibling;
+  if(!el) return;
+  var expanded = el.classList.toggle('expanded');
+  if(tog) tog.textContent = expanded ? '▲ chiudi' : '▼ leggi tutto';
+}
+
+function pedCopyPost(id) {
+  var posts = pedGetPosts();
+  var p = posts.find(function(x){ return String(x.id).replace(/[^a-zA-Z0-9_\-]/g,'_') === id; });
+  if(!p) return;
+  navigator.clipboard.writeText(p.text || '').then(function() {
+    pedShowToast('📋 Testo copiato!', false);
+  }).catch(function() {
+    pedShowToast('⚠ Errore clipboard', true);
+  });
+}
+
+function pedPublishTG(id) {
+  var apiKey = localStorage.getItem(_PED_APIKEY);
+  if(!apiKey) {
+    var bar = document.getElementById('pedApikeyBar');
+    if(bar) bar.style.display = 'flex';
+    pedShowToast('⚠ Inserisci prima la API Key', true);
+    return;
+  }
+  var posts = pedGetPosts();
+  var p = posts.find(function(x){ return String(x.id).replace(/[^a-zA-Z0-9_\-]/g,'_') === id; });
+  if(!p) return;
+  var btnEl = document.querySelector('#pcard_' + id + ' .btn-pub-tg');
+  if(btnEl) { btnEl.textContent = '⏳ Invio…'; btnEl.disabled = true; }
+  fetch('/publish-telegram', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
+    body: JSON.stringify({ text: p.text, parse_mode: 'HTML' })
+  }).then(function(r){ return r.json(); })
+    .then(function(d) {
+      if(d.ok) {
+        pedShowToast('✅ Pubblicato su Telegram! msg_id ' + d.message_id, false);
+        if(btnEl) { btnEl.textContent = '✅ Inviato'; }
+        // Mark as sent
+        p.sent_tg = true;
+        pedSavePosts(posts);
+      } else {
+        pedShowToast('❌ Errore TG: ' + (d.error || 'unknown'), true);
+        if(btnEl) { btnEl.textContent = '✈️ Pubblica su Telegram'; btnEl.disabled = false; }
+      }
+    }).catch(function(err) {
+      pedShowToast('❌ Errore rete: ' + err.message, true);
+      if(btnEl) { btnEl.textContent = '✈️ Pubblica su Telegram'; btnEl.disabled = false; }
+    });
+}
+
+function pedDeletePost(id) {
+  if(!confirm('Eliminare questo post?')) return;
+  var posts = pedGetPosts().filter(function(p){ return String(p.id).replace(/[^a-zA-Z0-9_\-]/g,'_') !== id; });
+  pedSavePosts(posts);
+  pedRenderPosts();
+}
+
+function pedSaveApiKey() {
+  var val = (document.getElementById('pedApikeyInput').value || '').trim();
+  if(!val) { pedShowToast('⚠ API Key vuota', true); return; }
+  localStorage.setItem(_PED_APIKEY, val);
+  document.getElementById('pedApikeyBar').style.display = 'none';
+  pedShowToast('✅ API Key salvata', false);
+}
+
+function pedToggleNewForm() {
+  var f = document.getElementById('pedNewForm');
+  if(!f) return;
+  var show = f.style.display === 'none';
+  f.style.display = show ? 'block' : 'none';
+  if(show) {
+    // default datetime = now + 1h rounded to next :00
+    var d = new Date(); d.setHours(d.getHours() + 1); d.setMinutes(0); d.setSeconds(0);
+    var pad = function(n){ return String(n).padStart(2,'0'); };
+    document.getElementById('pedFormDate').value =
+      d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':00';
+    document.getElementById('pedFormTitle').focus();
+  }
+}
+
+function pedSaveNewPost() {
+  var title = (document.getElementById('pedFormTitle').value || '').trim();
+  var date  = document.getElementById('pedFormDate').value;
+  var chan  = document.getElementById('pedFormChannel').value;
+  var text  = (document.getElementById('pedFormText').value || '').trim();
+  if(!text) { pedShowToast('⚠ Testo obbligatorio', true); return; }
+  var posts = pedGetPosts();
+  var newPost = { id: 'p' + Date.now(), title: title || 'Post ' + new Date().toLocaleDateString('it-IT'), date: date, channel: chan, text: text };
+  posts.unshift(newPost);
+  pedSavePosts(posts);
+  pedRenderPosts();
+  pedToggleNewForm();
+  document.getElementById('pedFormTitle').value = '';
+  document.getElementById('pedFormText').value  = '';
+  pedShowToast('✅ Post salvato in bozza', false);
+}
+
+function pedShowToast(msg, isErr) {
+  var t = document.getElementById('pedToast');
+  if(!t) {
+    t = document.createElement('div');
+    t.id = 'pedToast'; t.className = 'pub-toast';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.className = 'pub-toast' + (isErr ? ' err' : '');
+  setTimeout(function(){ t.classList.add('show'); }, 10);
+  setTimeout(function(){ t.classList.remove('show'); }, 3200);
+}
+
+// Init PED on load
+pedInit();
 </script>
 </body>
 </html>

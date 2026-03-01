@@ -4745,6 +4745,29 @@ def marketing_stats():
             pass
     result["last_retrain"] = last_retrain
 
+    # ── 5. Bet stats for retrain window ──────────────────────────
+    try:
+        sb_url, sb_key = _sb_config()
+        _headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}", "Prefer": "count=exact"}
+        r_clean = requests.get(
+            f"{sb_url}/rest/v1/{SUPABASE_TABLE}",
+            headers=_headers,
+            params={"bet_taken": "eq.true", "correct": "not.is.null", "select": "id", "limit": "0"},
+            timeout=5,
+        )
+        clean_bets = int(r_clean.headers.get("content-range", "*/0").split("/")[-1])
+        r_wins = requests.get(
+            f"{sb_url}/rest/v1/{SUPABASE_TABLE}",
+            headers=_headers,
+            params={"bet_taken": "eq.true", "correct": "eq.true", "select": "id", "limit": "0"},
+            timeout=5,
+        )
+        wins = int(r_wins.headers.get("content-range", "*/0").split("/")[-1])
+        wr = round(100.0 * wins / clean_bets, 1) if clean_bets > 0 else None
+        result["bet_stats"] = {"clean_bets": clean_bets, "wins": wins, "win_rate_pct": wr}
+    except Exception:
+        result["bet_stats"] = {"clean_bets": 0, "wins": 0, "win_rate_pct": None}
+
     return jsonify(result)
 
 
