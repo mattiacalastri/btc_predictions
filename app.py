@@ -2440,11 +2440,6 @@ def ghost_evaluate():
     if not candidates:
         return jsonify({
             "status": "ok",
-            "cutoff_recent": cutoff_recent,
-            "cutoff_old": cutoff_old,
-            "table": SUPABASE_TABLE,
-            "supabase_url_set": bool(supabase_url),
-            "key_prefix": supabase_key[:10] + "..." if supabase_key else "NONE",
             "evaluated": 0,
             "message": "No pending ghost signals",
         })
