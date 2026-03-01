@@ -12,10 +12,8 @@ import urllib.request
 import urllib.error
 from datetime import datetime
 
-# macOS Python 3.11 manca dei certificati CA di sistema → bypass SSL verify
-_SSL_CTX = ssl.create_default_context()
-_SSL_CTX.check_hostname = False
-_SSL_CTX.verify_mode = ssl.CERT_NONE
+import certifi as _certifi
+_SSL_CTX = ssl.create_default_context(cafile=_certifi.where())
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://oimlamjilivrcnhztwvj.supabase.co").rstrip("/")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")

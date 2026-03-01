@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
 """Monitor for orphaned bets in Supabase and n8n."""
 
+import os
 import requests
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import sys
 
-# Supabase config from .mcp.json
-SUPABASE_URL = "https://oimlamjilivrcnhztwvj.supabase.co"
-SUPABASE_KEY = "REDACTED_SUPABASE_ANON_KEY"
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://oimlamjilivrcnhztwvj.supabase.co")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 
-# n8n config
-N8N_API_URL = "https://n8n.srv1432354.hstgr.cloud"
-N8N_API_KEY = "REDACTED_N8N_API_KEY"
+N8N_API_URL = os.environ.get("N8N_API_URL", "https://n8n.srv1432354.hstgr.cloud")
+N8N_API_KEY = os.environ.get("N8N_API_KEY", "")
 
 WORKFLOW_ID = "NnjfpzgdIyleMVBO"  # wf02 BTC_Trade_Checker VPS
 ALERTS_FILE = "/Users/mattiacalastri/.claude/projects/-Users-mattiacalastri-btc-predictions/memory/alerts.md"
@@ -42,7 +41,7 @@ def get_open_bets():
 def check_orphaned_bets(open_bets):
     """Check which open bets are older than ORPHAN_THRESHOLD_HOURS."""
     orphaned = []
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     threshold = now - timedelta(hours=ORPHAN_THRESHOLD_HOURS)
 
     for bet in open_bets:

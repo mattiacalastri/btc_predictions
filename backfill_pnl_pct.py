@@ -13,10 +13,7 @@ import requests
 from datetime import datetime, timezone, timedelta
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://oimlamjilivrcnhztwvj.supabase.co")
-SUPABASE_KEY = os.environ.get(
-    "SUPABASE_KEY",
-    "REDACTED_SUPABASE_ANON_KEY",
-)
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 HEADERS = {
     "apikey": SUPABASE_KEY,
     "Authorization": f"Bearer {SUPABASE_KEY}",

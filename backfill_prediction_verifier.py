@@ -6,12 +6,13 @@ per tutte le righe NO-BET storiche (bet_taken=false, correct IS NULL).
 Logica: usa il prezzo BTC su Binance 6 minuti dopo created_at.
 """
 
+import os
 import time
 import requests
 from datetime import datetime, timezone, timedelta
 
-SUPABASE_URL = "https://oimlamjilivrcnhztwvj.supabase.co"
-SUPABASE_KEY = "REDACTED_SUPABASE_ANON_KEY"
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://oimlamjilivrcnhztwvj.supabase.co")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 HEADERS = {
     "apikey": SUPABASE_KEY,
     "Authorization": f"Bearer {SUPABASE_KEY}",
