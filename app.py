@@ -4729,9 +4729,11 @@ def robots_txt():
         "Allow: /\n"
         "\n"
         "Sitemap: https://btcpredictor.io/sitemap.xml\n"
-        "LLMs: https://btcpredictor.io/llms.txt\n"
-        "AgentProfile: https://btcpredictor.io/agent.json\n"
-        "AgentGuide: https://btcpredictor.io/AGENTS.md\n"
+        "\n"
+        "# AI agent discovery (non-standard, informational)\n"
+        "# LLMs: https://btcpredictor.io/llms.txt\n"
+        "# AgentProfile: https://btcpredictor.io/agent.json\n"
+        "# AgentGuide: https://btcpredictor.io/AGENTS.md\n"
     )
     return content, 200, {"Content-Type": "text/plain; charset=utf-8"}
 
