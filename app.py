@@ -2931,7 +2931,87 @@ def force_retrain():
         "status": "ok",
         "message": "Calibration thresholds refreshed from live data.",
         "dead_hours_utc": sorted(DEAD_HOURS_UTC),
-        "note": "Full XGBoost retrain runs automatically every Sunday 03:00 UTC via launchd.",
+        "note": "Full XGBoost retrain runs daily at 03:00 UTC via n8n → /auto-retrain.",
+    })
+
+
+_auto_retrain_last: float = 0.0
+_AUTO_RETRAIN_COOLDOWN = 6 * 3600  # 6 hours
+
+@app.route("/auto-retrain", methods=["POST"])
+def auto_retrain():
+    """
+    Full retrain pipeline: build_dataset --include-ghost → train_xgboost → hot-reload models.
+    Rate limited: once per 6 hours. Runs in background thread.
+    Called daily by n8n scheduler.
+    """
+    err = _check_api_key()
+    if err:
+        return err
+
+    global _auto_retrain_last
+    now = time.time()
+    elapsed = now - _auto_retrain_last
+    if elapsed < _AUTO_RETRAIN_COOLDOWN:
+        remaining = int(_AUTO_RETRAIN_COOLDOWN - elapsed)
+        return jsonify({
+            "ok": False, "error": "rate_limited",
+            "message": f"Retrain already ran recently. Retry in {remaining // 3600}h {(remaining % 3600) // 60}m.",
+            "cooldown_remaining": remaining,
+        }), 429
+
+    _auto_retrain_last = now
+    import subprocess, threading as _threading
+
+    base = os.path.dirname(__file__)
+
+    def _run_retrain():
+        try:
+            # Step 1: build dataset with ghost signals
+            app.logger.info("[RETRAIN] Step 1/3: building dataset...")
+            r1 = subprocess.run(
+                ["python3", "build_dataset.py", "--include-ghost"],
+                cwd=base, capture_output=True, text=True, timeout=120,
+            )
+            if r1.returncode != 0:
+                app.logger.error(f"[RETRAIN] build_dataset failed: {r1.stderr[-500:]}")
+                return
+
+            # Step 2: train XGBoost
+            csv_path = os.path.join(base, "datasets", "features.csv")
+            app.logger.info("[RETRAIN] Step 2/3: training XGBoost...")
+            r2 = subprocess.run(
+                ["python3", "train_xgboost.py", "--data", csv_path],
+                cwd=base, capture_output=True, text=True, timeout=300,
+            )
+            if r2.returncode != 0:
+                app.logger.error(f"[RETRAIN] train_xgboost failed: {r2.stderr[-500:]}")
+                return
+
+            # Step 3: hot-reload models in memory
+            app.logger.info("[RETRAIN] Step 3/3: hot-reloading models...")
+            _load_xgb_model()
+            global _xgb_correctness
+            corr_path = os.path.join(base, "models", "xgb_correctness.pkl")
+            if os.path.exists(corr_path):
+                _xgb_correctness = joblib_load(corr_path)
+
+            # Refresh calibration thresholds
+            refresh_calibration()
+            refresh_dead_hours()
+
+            app.logger.info("[RETRAIN] Pipeline completed successfully")
+
+        except subprocess.TimeoutExpired:
+            app.logger.error("[RETRAIN] Pipeline timed out")
+        except Exception as e:
+            app.logger.error(f"[RETRAIN] Pipeline error: {e}")
+
+    _threading.Thread(target=_run_retrain, daemon=True).start()
+    return jsonify({
+        "ok": True,
+        "message": "Retrain pipeline started: build_dataset → train_xgboost → hot-reload.",
+        "cooldown": _AUTO_RETRAIN_COOLDOWN,
     })
 
 
@@ -4090,14 +4170,11 @@ def training_status():
         except Exception:
             pass
 
-    # Next scheduled retrain: next Sunday at 3AM UTC
+    # Next scheduled retrain: daily at 03:00 UTC via n8n → /auto-retrain
     now_utc = _dt.datetime.utcnow()
-    days_until_sunday = (6 - now_utc.weekday()) % 7
-    if days_until_sunday == 0 and now_utc.hour >= 3:
-        days_until_sunday = 7
-    next_retrain_dt = (now_utc + _dt.timedelta(days=days_until_sunday)).replace(
-        hour=3, minute=0, second=0, microsecond=0
-    )
+    next_retrain_dt = now_utc.replace(hour=3, minute=0, second=0, microsecond=0)
+    if now_utc.hour >= 3:
+        next_retrain_dt += _dt.timedelta(days=1)
     next_retrain_iso = next_retrain_dt.strftime("%Y-%m-%d %H:%M UTC")
 
     # Status pill logic
