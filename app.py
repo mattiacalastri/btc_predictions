@@ -5817,6 +5817,36 @@ def cockpit_agents():
     except Exception as e:
         app.logger.warning("[COCKPIT] Error fetching agents: %s", e)
 
+    # Fallback: if Supabase returned nothing, read from local integration_report.json
+    if not agents:
+        try:
+            report_path = os.path.join(os.path.dirname(__file__), "scripts", "results", "integration_report.json")
+            if os.path.exists(report_path):
+                with open(report_path, "r") as f:
+                    report = json.load(f)
+                for cid, clone in report.get("clones", {}).items():
+                    agents.append({
+                        "clone_id": cid,
+                        "name": clone.get("name", cid),
+                        "role": clone.get("role", ""),
+                        "status": clone.get("status", "done"),
+                        "model": clone.get("model", ""),
+                        "current_task": clone.get("last_message", "")[:100],
+                        "last_message": clone.get("last_message", ""),
+                        "thought": "",
+                        "cost_usd": float(clone.get("cost_usd", 0)),
+                        "max_budget": 8.0,
+                        "elapsed_sec": float(clone.get("elapsed_sec", 0)),
+                        "tasks": [],
+                        "next_action": "",
+                        "next_action_time": "",
+                        "result_summary": clone.get("result_text", "")[:200],
+                        "notes": f"Batch: {report.get('timestamp', '')[:10]}",
+                        "priority": False,
+                    })
+        except Exception as fe:
+            app.logger.warning("[COCKPIT] Fallback report read failed: %s", fe)
+
     return jsonify({"agents": agents, "events": events}), 200
 
 
