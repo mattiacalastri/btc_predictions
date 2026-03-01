@@ -967,34 +967,45 @@
   /* ═══════════════════════════════════════
      AI SIGNAL SOURCES STRIP
   ═══════════════════════════════════════ */
-  .sources-strip {
+  .sources-header {
     display: flex;
     align-items: center;
-    gap: 14px;
-    padding: 9px 16px;
-    background: var(--card);
-    border: 1px solid var(--border);
-    margin-bottom: 14px;
-    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 6px;
   }
-  .sources-label {
+  .sources-hdr-label {
     font-size: 9px;
     font-weight: 700;
     letter-spacing: 2px;
     text-transform: uppercase;
     color: var(--muted);
-    white-space: nowrap;
-    flex-shrink: 0;
-    padding-right: 14px;
-    border-right: 1px solid var(--border);
-    line-height: 1.5;
   }
-  .sources-label em { font-style: normal; color: var(--accent); }
+  .sources-hdr-sep { color: var(--border); font-size: 11px; }
+  .sources-hdr-count {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .sources-hdr-count em { font-style: normal; color: var(--accent); }
+
+  .sources-strip {
+    overflow: hidden;
+    padding: 9px 16px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    margin-bottom: 14px;
+    cursor: grab;
+    user-select: none;
+  }
+  .sources-strip:active { cursor: grabbing; }
   .sources-list {
     display: flex;
-    gap: 5px;
-    flex-wrap: wrap;
-    flex: 1;
+    gap: 6px;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+    will-change: transform;
   }
   .src-chip {
     display: inline-flex;
@@ -1047,7 +1058,32 @@
     white-space: nowrap;
     line-height: 1;
   }
-  @media (max-width: 900px) { .sources-label { border-right: none; padding-right: 0; } }
+  .src-i-btn {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.03);
+    color: var(--muted);
+    font-size: 8px;
+    font-style: italic;
+    font-weight: 700;
+    font-family: Georgia, 'Times New Roman', serif;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    padding: 0;
+    line-height: 1;
+    transition: border-color 0.15s, color 0.15s, box-shadow 0.15s, background 0.15s;
+  }
+  .src-i-btn:hover {
+    border-color: var(--src-color, var(--accent));
+    color: var(--src-color, var(--accent));
+    background: rgba(255,255,255,0.07);
+    box-shadow: 0 0 7px var(--src-color, var(--accent));
+  }
 
 /* INFO MODAL */
 #infoModal {
@@ -1452,23 +1488,8 @@
   }
   #botAlertBanner.visible { display: flex; }
 
-  /* TASK 1 — AI FEEDS strip: scrollLeft-based carousel (JS) */
-  @media (max-width: 600px) {
-    .sources-strip {
-      flex-wrap: nowrap;
-      overflow: hidden;
-      padding: 6px 10px;
-    }
-    .sources-label { display: none; }
-    .sources-list {
-      display: flex;
-      gap: 6px;
-      flex-wrap: nowrap;
-      flex-shrink: 0;
-      will-change: transform;
-    }
-    .src-chip { flex-shrink: 0; }
-  }
+  /* AI FEEDS strip — chips always non-wrapping (carousel handles scroll) */
+  .src-chip { flex-shrink: 0; }
 
   /* TASK 2 — Story Highlights */
   .story-highlights { display: none; }

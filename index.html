@@ -281,104 +281,124 @@
   </div>
 
   <!-- AI SIGNAL SOURCES -->
+  <div class="sources-header">
+    <span class="sources-hdr-label">AI FEEDS</span>
+    <span class="sources-hdr-sep">·</span>
+    <span class="sources-hdr-count"><em>16</em> SOURCES</span>
+  </div>
   <div class="sources-strip">
-    <div class="sources-label">AI FEEDS<br><em>16</em> SOURCES</div>
     <div class="sources-list">
-      <div class="src-chip" style="--src-color:#00aaff" onclick="showSrcModal(this)"
+      <div class="src-chip" style="--src-color:#00aaff"
            data-src-modal-title="KRAKEN FUTURES — Price"
            data-src-modal-desc="Source: Kraken Futures (PF_XBTUSD)&lt;br&gt;Provides: BTC/USD perpetual futures mark price, margin balance, available equity, wallet value.&lt;br&gt;Used for: account summary, position monitoring, SL/TP checks, trade execution.">
         <div class="src-dot"></div>
         <div class="src-info"><span class="src-name">KRAKEN</span><span class="src-cat">PRICE</span></div>
+        <button class="src-i-btn" onclick="event.stopPropagation();showSrcModal(this.closest('.src-chip'))" title="Info">i</button>
       </div>
-      <div class="src-chip" style="--src-color:#3399ee" onclick="showSrcModal(this)"
+      <div class="src-chip" style="--src-color:#3399ee"
            data-src-modal-title="BINANCE FUTURES — Klines"
            data-src-modal-desc="Source: Binance Futures API (fapi.binance.com)&lt;br&gt;Provides: 300 OHLCV candlesticks at 5-minute resolution.&lt;br&gt;Used for: EMA9/EMA21/RSI14 calculation, ATR/ADX volatility, pattern analysis, XGBoost features.">
         <div class="src-dot"></div>
         <div class="src-info"><span class="src-name">BINANCE</span><span class="src-cat">KLINES</span></div>
+        <button class="src-i-btn" onclick="event.stopPropagation();showSrcModal(this.closest('.src-chip'))" title="Info">i</button>
       </div>
-      <div class="src-chip" style="--src-color:#00d4aa" onclick="showSrcModal(this)"
+      <div class="src-chip" style="--src-color:#00d4aa"
            data-src-modal-title="COINGECKO — Market Data"
            data-src-modal-desc="Source: CoinGecko API (api.coingecko.com)&lt;br&gt;Provides: BTC market cap, 24h volume, price change %, market dominance, ATH distance.&lt;br&gt;Used for: macro market context in the AI prompt.">
         <div class="src-dot"></div>
         <div class="src-info"><span class="src-name">COINGECKO</span><span class="src-cat">MARKET</span></div>
+        <button class="src-i-btn" onclick="event.stopPropagation();showSrcModal(this.closest('.src-chip'))" title="Info">i</button>
       </div>
-      <div class="src-chip" style="--src-color:#aa66ff" onclick="showSrcModal(this)"
+      <div class="src-chip" style="--src-color:#aa66ff"
            data-src-modal-title="BINANCE — Funding Rate"
            data-src-modal-desc="Source: Binance Futures premiumIndex (fapi.binance.com)&lt;br&gt;Provides: perpetual futures funding rate (refreshed every 8h).&lt;br&gt;Signal: EXTREME_POSITIVE = over-leveraged longs (bearish bias), NEGATIVE = shorts dominant (bullish bias).">
         <div class="src-dot"></div>
         <div class="src-info"><span class="src-name">FUNDING RATE</span><span class="src-cat">DERIVATIVES</span></div>
+        <button class="src-i-btn" onclick="event.stopPropagation();showSrcModal(this.closest('.src-chip'))" title="Info">i</button>
       </div>
-      <div class="src-chip" style="--src-color:#cc88ff" onclick="showSrcModal(this)"
+      <div class="src-chip" style="--src-color:#cc88ff"
            data-src-modal-title="BINANCE — Long/Short Ratio"
            data-src-modal-desc="Source: Binance Futures globalLongShortAccountRatio (5m period)&lt;br&gt;Provides: ratio of accounts holding long vs short positions.&lt;br&gt;Signal: EXTREME_LONG (&gt;0.7) = crowded longs, potential reversal; EXTREME_SHORT (&lt;0.3) = crowded shorts.">
         <div class="src-dot"></div>
         <div class="src-info"><span class="src-name">L/S RATIO</span><span class="src-cat">DERIVATIVES</span></div>
+        <button class="src-i-btn" onclick="event.stopPropagation();showSrcModal(this.closest('.src-chip'))" title="Info">i</button>
       </div>
-      <div class="src-chip" style="--src-color:#00ff88" onclick="showSrcModal(this)"
+      <div class="src-chip" style="--src-color:#00ff88"
            data-src-modal-title="ALTERNATIVE.ME — Fear &amp; Greed"
            data-src-modal-desc="Source: Alternative.me Crypto Fear &amp; Greed Index (api.alternative.me)&lt;br&gt;Provides: daily sentiment index 0–100 combining volatility, volume, social media, dominance.&lt;br&gt;Signal: &lt;25 = Extreme Fear (contrarian buy), &gt;75 = Extreme Greed (contrarian sell).">
         <div class="src-dot"></div>
         <div class="src-info"><span class="src-name">FEAR &amp; GREED</span><span class="src-cat">SENTIMENT</span></div>
+        <button class="src-i-btn" onclick="event.stopPropagation();showSrcModal(this.closest('.src-chip'))" title="Info">i</button>
       </div>
-      <div class="src-chip" style="--src-color:#ff9500" onclick="showSrcModal(this)"
+      <div class="src-chip" style="--src-color:#ff9500"
            data-src-modal-title="CRYPTOCOMPARE — News"
            data-src-modal-desc="Source: CryptoCompare News API (min-api.cryptocompare.com)&lt;br&gt;Provides: 2 most recent crypto news articles with title, body, sentiment score.&lt;br&gt;Used for: news sentiment analysis in AI prompt, real-time market narrative.">
         <div class="src-dot"></div>
         <div class="src-info"><span class="src-name">CRYPTOCMP</span><span class="src-cat">NEWS</span></div>
+        <button class="src-i-btn" onclick="event.stopPropagation();showSrcModal(this.closest('.src-chip'))" title="Info">i</button>
       </div>
-      <div class="src-chip" style="--src-color:#ffcc00" onclick="showSrcModal(this)"
+      <div class="src-chip" style="--src-color:#ffcc00"
            data-src-modal-title="COINDESK — News RSS"
            data-src-modal-desc="Source: CoinDesk RSS feed (feeds.feedburner.com/CoinDesk)&lt;br&gt;Provides: 3 most recent articles from the leading crypto journalism outlet.&lt;br&gt;Used for: institutional narrative, regulatory news, market-moving events.">
         <div class="src-dot"></div>
         <div class="src-info"><span class="src-name">COINDESK</span><span class="src-cat">NEWS</span></div>
+        <button class="src-i-btn" onclick="event.stopPropagation();showSrcModal(this.closest('.src-chip'))" title="Info">i</button>
       </div>
-      <div class="src-chip" style="--src-color:#f7931a" onclick="showSrcModal(this)"
+      <div class="src-chip" style="--src-color:#f7931a"
            data-src-modal-title="BINANCE — Open Interest"
            data-src-modal-desc="Source: Binance Futures /fapi/v1/openInterest (BTCUSDT)&lt;br&gt;Provides: total open interest in USD — the aggregate value of all outstanding futures contracts.&lt;br&gt;Signal: rising OI in uptrend = trend continuation; falling OI = exhaustion. Combined with price action for conviction scoring.">
         <div class="src-dot"></div>
         <div class="src-info"><span class="src-name">OPEN INT.</span><span class="src-cat">DERIVATIVES</span></div>
+        <button class="src-i-btn" onclick="event.stopPropagation();showSrcModal(this.closest('.src-chip'))" title="Info">i</button>
       </div>
-      <div class="src-chip" style="--src-color:#22d3ee" onclick="showSrcModal(this)"
+      <div class="src-chip" style="--src-color:#22d3ee"
            data-src-modal-title="BINANCE — Taker Buy/Sell Flow"
            data-src-modal-desc="Source: Binance Futures /fapi/v1/takerlongshortRatio (BTCUSDT, 5m)&lt;br&gt;Provides: ratio of aggressive buy vs sell volume — who is hitting the bid/ask.&lt;br&gt;Signal: buy ratio &gt;0.55 = institutional accumulation; &lt;0.45 = distribution. One of the strongest real-time flow signals.">
         <div class="src-dot"></div>
         <div class="src-info"><span class="src-name">TAKER FLOW</span><span class="src-cat">FLOW</span></div>
+        <button class="src-i-btn" onclick="event.stopPropagation();showSrcModal(this.closest('.src-chip'))" title="Info">i</button>
       </div>
-      <div class="src-chip" style="--src-color:#02b875" onclick="showSrcModal(this)"
+      <div class="src-chip" style="--src-color:#02b875"
            data-src-modal-title="COINTELEGRAPH — News RSS"
            data-src-modal-desc="Source: CoinTelegraph RSS feed (cointelegraph.com/rss)&lt;br&gt;Provides: 3 most recent articles from the leading crypto news outlet.&lt;br&gt;Used for: breaking news, regulation updates, institutional moves. High signal-to-noise ratio for BTC price-moving events.">
         <div class="src-dot"></div>
         <div class="src-info"><span class="src-name">COINTELEGR.</span><span class="src-cat">NEWS</span></div>
+        <button class="src-i-btn" onclick="event.stopPropagation();showSrcModal(this.closest('.src-chip'))" title="Info">i</button>
       </div>
-      <div class="src-chip" style="--src-color:#a855f7" onclick="showSrcModal(this)"
+      <div class="src-chip" style="--src-color:#a855f7"
            data-src-modal-title="XGBOOST — Internal ML Gate"
            data-src-modal-desc="Source: Internal XGBoost model trained on historical signals&lt;br&gt;Provides: direction (UP/DOWN) and confidence score from 47 engineered features (RSI, EMA, ATR, ADX, funding, CVD, regime label…).&lt;br&gt;Dual-gate: a prediction is executed ONLY when LLM direction = XGBoost direction. Prevents false positives.">
         <div class="src-dot"></div>
         <div class="src-info"><span class="src-name">XGBOOST</span><span class="src-cat">ML GATE</span></div>
+        <button class="src-i-btn" onclick="event.stopPropagation();showSrcModal(this.closest('.src-chip'))" title="Info">i</button>
       </div>
-      <div class="src-chip" style="--src-color:#ff44aa" onclick="showSrcModal(this)"
+      <div class="src-chip" style="--src-color:#ff44aa"
            data-src-modal-title="PATTERN MEMORY — Supabase"
            data-src-modal-desc="Source: Supabase btc_predictions table (internal)&lt;br&gt;Provides: last 3 similar market conditions from the bot's history — direction, confidence, outcome.&lt;br&gt;Used for: self-calibration. The bot learns from its own past decisions (Behavioral Data Engine).">
         <div class="src-dot"></div>
         <div class="src-info"><span class="src-name">PATTERNS</span><span class="src-cat">MEMORY</span></div>
+        <button class="src-i-btn" onclick="event.stopPropagation();showSrcModal(this.closest('.src-chip'))" title="Info">i</button>
       </div>
-      <div class="src-chip" style="--src-color:#e5251b" onclick="showSrcModal(this)"
+      <div class="src-chip" style="--src-color:#e5251b"
            data-src-modal-title="CNBC — Finance RSS"
            data-src-modal-desc="Source: CNBC Finance RSS feed (cnbc.com)&lt;br&gt;Provides: 2 most recent US financial market headlines (equities, Fed, macro data).&lt;br&gt;Used for: cross-asset risk sentiment — US market moves often precede BTC moves.">
         <div class="src-dot"></div>
         <div class="src-info"><span class="src-name">CNBC</span><span class="src-cat">NEWS</span></div>
+        <button class="src-i-btn" onclick="event.stopPropagation();showSrcModal(this.closest('.src-chip'))" title="Info">i</button>
       </div>
-      <div class="src-chip" style="--src-color:#00ccff" onclick="showSrcModal(this)"
+      <div class="src-chip" style="--src-color:#00ccff"
            data-src-modal-title="BINANCE — Order Book Imbalance"
            data-src-modal-desc="Source: Binance Futures /fapi/v1/depth (5 levels)&lt;br&gt;Provides: bid/ask volume imbalance at ±0.3% from mid-price.&lt;br&gt;Signal: imbalance &gt;0.6 = buy-side pressure (bullish), &lt;0.4 = sell-side pressure (bearish). High-frequency microstructure signal.">
         <div class="src-dot"></div>
         <div class="src-info"><span class="src-name">ORDER BOOK</span><span class="src-cat">MICROSTRUCTURE</span></div>
+        <button class="src-i-btn" onclick="event.stopPropagation();showSrcModal(this.closest('.src-chip'))" title="Info">i</button>
       </div>
-      <div class="src-chip" style="--src-color:#88ddff" onclick="showSrcModal(this)"
+      <div class="src-chip" style="--src-color:#88ddff"
            data-src-modal-title="BINANCE — Multi-Timeframe Technical"
            data-src-modal-desc="Source: Binance Futures klines (aggregated from 300 candles at 5m)&lt;br&gt;Provides: EMA9/EMA21/RSI14 on 15-minute and 4-hour timeframes. Consensus: STRONG_UP / BULLISH / NEUTRAL / BEARISH / STRONG_DOWN.&lt;br&gt;Used for: multi-timeframe trend alignment — confirms or weakens the 5m signal.">
         <div class="src-dot"></div>
         <div class="src-info"><span class="src-name">MULTI-TF</span><span class="src-cat">TECHNICAL</span></div>
+        <button class="src-i-btn" onclick="event.stopPropagation();showSrcModal(this.closest('.src-chip'))" title="Info">i</button>
       </div>
     </div>
   </div>
@@ -6005,9 +6025,8 @@ fetch(CONFIG.RAILWAY_URL + '/health')
   document.addEventListener('scroll', hideModal, { passive: true });
 })();
 
-// ── TASK 1: AI FEEDS carousel — mobile only (scrollLeft + swipe) ──────────────
+// ── AI FEEDS carousel — infinite scroll, mouse drag + touch (all screen sizes) ─
 document.addEventListener('DOMContentLoaded', function() {
-  if (!window.matchMedia('(max-width: 600px)').matches) return;
   const strip = document.querySelector('.sources-strip');
   const list  = document.querySelector('.sources-list');
   if (!strip || !list) return;
@@ -6015,46 +6034,58 @@ document.addEventListener('DOMContentLoaded', function() {
   // Duplicate chips for seamless loop
   list.innerHTML += list.innerHTML;
 
-  const SPEED = 0.5; // px per frame
+  const SPEED = 0.4; // px per frame
   let paused      = false;
-  let offsetX     = 0;   // px traslazione corrente (negativa = scorri a sx)
+  let offsetX     = 0;
   let halfW       = 0;
-  let touchStartX = 0;
-  let touchBase   = 0;
+  let touchStartX = 0, touchBase = 0;
+  let mouseDown   = false, mouseStartX = 0, mouseBase = 0;
 
   function tick() {
     if (!paused) {
       offsetX -= SPEED;
       if (offsetX <= -halfW) offsetX += halfW;
     }
-    list.style.transform = `translateX(${offsetX}px)`;
+    list.style.transform = 'translateX(' + offsetX + 'px)';
     requestAnimationFrame(tick);
   }
 
-  // Touch: swipe manuale in real-time
+  // Touch swipe
   strip.addEventListener('touchstart', function(e) {
-    paused      = true;
-    touchStartX = e.touches[0].clientX;
-    touchBase   = offsetX;
+    paused = true; touchStartX = e.touches[0].clientX; touchBase = offsetX;
   }, { passive: true });
-
   strip.addEventListener('touchmove', function(e) {
-    const dx = e.touches[0].clientX - touchStartX;
+    var dx = e.touches[0].clientX - touchStartX;
     offsetX = touchBase + dx;
-    if (offsetX > 0)       offsetX -= halfW;
+    if (offsetX > 0) offsetX -= halfW;
     if (offsetX <= -halfW) offsetX += halfW;
   }, { passive: true });
+  strip.addEventListener('touchend', function() { touchBase = offsetX; paused = false; }, { passive: true });
 
-  strip.addEventListener('touchend', function() {
-    touchBase = offsetX;
-    paused    = false;
-  }, { passive: true });
+  // Mouse drag (desktop)
+  strip.addEventListener('mousedown', function(e) {
+    if (e.target.closest('.src-i-btn')) return;
+    mouseDown = true; mouseStartX = e.clientX; mouseBase = offsetX;
+    strip.style.cursor = 'grabbing';
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', function(e) {
+    if (!mouseDown) return;
+    var dx = e.clientX - mouseStartX;
+    offsetX = mouseBase + dx;
+    if (offsetX > 0) offsetX -= halfW;
+    if (offsetX <= -halfW) offsetX += halfW;
+  });
+  document.addEventListener('mouseup', function() {
+    if (!mouseDown) return;
+    mouseDown = false; mouseBase = offsetX;
+    strip.style.cursor = '';
+  });
 
-  // Desktop: pausa su hover
-  strip.addEventListener('mouseenter', function() { paused = true; });
-  strip.addEventListener('mouseleave', function() { paused = false; });
+  // Pause auto-scroll on hover (not during drag)
+  strip.addEventListener('mouseenter', function() { if (!mouseDown) paused = true; });
+  strip.addEventListener('mouseleave', function() { paused = false; mouseDown = false; strip.style.cursor = ''; });
 
-  // Aspetta layout per misurare halfWidth correttamente
   requestAnimationFrame(function() {
     halfW = list.scrollWidth / 2;
     requestAnimationFrame(tick);
@@ -6789,7 +6820,7 @@ function updateMiniStatusBar(agentsData, railwayOk) {
     'statusWf01a': 8  * 60000,  // 01A fires every 6min → stale after 8min
     'statusWf01b': 8  * 60000,  // 01B fires per 01A → same
     'statusWf08':  10 * 60000,  // 08 fires every 3min → stale after 10min
-    'statusWf06':  35 * 60000,  // 06 watchdog every 15min → stale after 35min
+    'statusWf06':  75 * 60000,  // 06 watchdog runs hourly → stale after 75min
   };
   var targets = {
     'statusWf01a': { prefixes: ['01A'], txt: 'stxtWf01a' },
