@@ -871,10 +871,12 @@
             <button class="btc-tf-btn" data-tf="1h">1h</button>
             <button class="btc-tf-btn" data-tf="4h">4h</button>
           </div>
-          <div style="display:flex;gap:8px;font-size:9px;">
+          <div style="display:flex;gap:8px;font-size:9px;flex-wrap:wrap;">
             <span style="color:#00ff88;">▲ WIN</span>
             <span style="color:#ff4466;">▼ LOSS</span>
             <span style="color:#ffaa00;">◆ OPEN</span>
+            <span style="color:rgba(0,255,136,0.4);">○ ghost ✓</span>
+            <span style="color:rgba(255,68,102,0.4);">○ ghost ✗</span>
           </div>
         </div>
       </div>
@@ -4026,34 +4028,55 @@ async function loadBtcCandles(tf) {
 function renderBtcPredictionMarkers() {
   if (!BTC_CHART.candleSeries || !BTC_CHART.candles.length) return;
   if (!window.allData || !allData.length) { BTC_CHART.candleSeries.setMarkers([]); return; }
-  const bets = allData.filter(function(d) { return d.classification === 'BET' && d.btc_price_entry; });
-  if (!bets.length) { BTC_CHART.candleSeries.setMarkers([]); return; }
+  var signals = allData.filter(function(d) { return d.btc_price_entry && parseFloat(d.btc_price_entry) > 0 && d.direction; });
+  if (!signals.length) { BTC_CHART.candleSeries.setMarkers([]); return; }
   // Build candle open-time index for snapping
-  const candleTimes = BTC_CHART.candles.map(function(c) { return c.time; });
-  var markers = [];
-  bets.forEach(function(d) {
-    var ts = Math.floor(new Date(d.created_at).getTime() / 1000);
-    // Snap to nearest candle open
+  var candleTimes = BTC_CHART.candles.map(function(c) { return c.time; });
+  function snapToCandle(ts) {
     var best = candleTimes[0], bestDiff = Math.abs(ts - candleTimes[0]);
     for (var i = 1; i < candleTimes.length; i++) {
       var diff = Math.abs(ts - candleTimes[i]);
       if (diff < bestDiff) { best = candleTimes[i]; bestDiff = diff; }
-      else break; // sorted, no need to continue
+      else break;
     }
-    var isOpen = d.correct === null;
-    var isWin  = d.correct === true;
-    var isUp   = d.direction === 'UP';
-    var color  = isOpen ? '#ffaa00' : (isWin ? '#00ff88' : '#ff4466');
-    var conf   = d.confidence ? (parseFloat(d.confidence) * 100).toFixed(0) + '%' : '';
-    var pnl    = isOpen ? '' : ((parseFloat(d.pnl_usd || 0) >= 0 ? '+' : '') + '$' + parseFloat(d.pnl_usd || 0).toFixed(2));
-    var label  = d.direction + (conf ? ' ' + conf : '') + (pnl ? ' · ' + pnl : '');
-    markers.push({
-      time: best,
-      position: isUp ? 'belowBar' : 'aboveBar',
-      color: color,
-      shape: isUp ? 'arrowUp' : 'arrowDown',
-      text: label,
-    });
+    return best;
+  }
+  var markers = [];
+  signals.forEach(function(d) {
+    var ts = Math.floor(new Date(d.created_at).getTime() / 1000);
+    var best = snapToCandle(ts);
+    var isBet = d.classification === 'BET';
+    var isUp  = d.direction === 'UP';
+    var conf  = d.confidence ? (parseFloat(d.confidence) * 100).toFixed(0) + '%' : '';
+    if (isBet) {
+      // ── BET marker: prominent arrow ──
+      var isOpen = d.correct === null;
+      var isWin  = d.correct === true;
+      var color  = isOpen ? '#ffaa00' : (isWin ? '#00ff88' : '#ff4466');
+      var pnl    = isOpen ? '' : ((parseFloat(d.pnl_usd || 0) >= 0 ? '+' : '') + '$' + parseFloat(d.pnl_usd || 0).toFixed(2));
+      var label  = d.direction + (conf ? ' ' + conf : '') + (pnl ? ' · ' + pnl : '');
+      markers.push({
+        time: best,
+        position: isUp ? 'belowBar' : 'aboveBar',
+        color: color,
+        shape: isUp ? 'arrowUp' : 'arrowDown',
+        text: label,
+      });
+    } else {
+      // ── GHOST marker: subtle circle ──
+      var gc = d.ghost_correct;
+      var ghostColor = gc === true ? 'rgba(0,255,136,0.4)' : gc === false ? 'rgba(255,68,102,0.4)' : 'rgba(74,96,112,0.35)';
+      var outcome = gc === true ? '✓' : gc === false ? '✗' : '?';
+      var tag = (d.classification || 'GHOST').charAt(0);
+      var ghostLabel = tag + ' ' + d.direction + (conf ? ' ' + conf : '') + ' ' + outcome;
+      markers.push({
+        time: best,
+        position: isUp ? 'belowBar' : 'aboveBar',
+        color: ghostColor,
+        shape: 'circle',
+        text: ghostLabel,
+      });
+    }
   });
   // Sort by time (required by LWC)
   markers.sort(function(a, b) { return a.time - b.time; });
