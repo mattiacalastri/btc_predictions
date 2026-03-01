@@ -276,6 +276,7 @@ if not os.environ.get("BOT_API_KEY"):
 try:
     refresh_calibration()
     refresh_dead_hours()
+    _refresh_bot_paused()   # sync _BOT_PAUSED da Supabase → evita "Bot Paused" falso al boot
 except Exception:
     pass
 

@@ -20,7 +20,6 @@ import math
 import pickle
 import os
 import datetime
-import requests
 
 import pandas as pd
 import numpy as np
