@@ -4637,6 +4637,19 @@ def og_image():
         data = f.read()
     return data, 200, {"Content-Type": "image/png", "Cache-Control": "public, max-age=86400"}
 
+_GOOGLE_SITE_VERIFICATION = os.environ.get("GOOGLE_SITE_VERIFICATION", "")
+
+
+@app.route("/google<code>.html", methods=["GET"])
+def google_verification(code):
+    """Google Search Console HTML file verification."""
+    expected = _GOOGLE_SITE_VERIFICATION
+    if not expected or code != expected:
+        return "Not Found", 404
+    html = f"google-site-verification: google{code}.html"
+    return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+
+
 @app.route("/robots.txt", methods=["GET"])
 def robots_txt():
     """robots.txt — allow all crawlers, point to llms.txt."""
@@ -4810,6 +4823,9 @@ def legal():
 def index():
     with open("home.html", "r") as f:
         html = f.read()
+    if _GOOGLE_SITE_VERIFICATION:
+        meta = f'<meta name="google-site-verification" content="{_GOOGLE_SITE_VERIFICATION}">'
+        html = html.replace("</head>", meta + "\n</head>", 1)
     return html, 200, {"Content-Type": "text/html"}
 
 
@@ -5218,7 +5234,10 @@ def dashboard():
     inject = f'<script>window.RAILWAY_URL = {json.dumps(railway_url)};window.READ_API_KEY = {json.dumps(read_key)};</script>'
     # Sostituisci placeholder cache_bust nel link CSS
     html = html.replace("__CACHE_BUST__", _CACHE_BUST)
-    html = html.replace("</head>", inject + "\n</head>", 1)
+    gv = ""
+    if _GOOGLE_SITE_VERIFICATION:
+        gv = f'<meta name="google-site-verification" content="{_GOOGLE_SITE_VERIFICATION}">\n'
+    html = html.replace("</head>", gv + inject + "\n</head>", 1)
     return html, 200, {"Content-Type": "text/html"}
 
 @app.errorhandler(404)
