@@ -1,6 +1,7 @@
 flask
 gunicorn
 requests
+joblib
 python-kraken-sdk
 xgboost
 scikit-learn
