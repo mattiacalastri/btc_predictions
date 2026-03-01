@@ -579,84 +579,6 @@
     <button class="training-banner-close" onclick="dismissTrainingBanner()" title="Chiudi">✕</button>
   </div>
 
-  <!-- ═══════════════════════════════════════════
-       ACCOUNT SUMMARY SECTION — above the fold (Ops #17)
-  ═══════════════════════════════════════════ -->
-  <div class="section-divider" style="margin-bottom:12px;">
-    <div class="section-divider-label" style="font-size:11px;color:var(--accent);letter-spacing:3px;display:flex;align-items:center;gap:7px;">
-      <span style="width:7px;height:7px;border-radius:50%;background:var(--accent);display:inline-block;animation:pulse 2s infinite;flex-shrink:0;"></span>
-      LIVE ACCOUNT
-    </div>
-    <div class="section-divider-line"></div>
-    <div class="section-divider-ts" id="acctTs" style="font-size:9px;">Loading...</div>
-  </div>
-
-  <div class="account-summary-grid">
-
-    <!-- WALLET -->
-    <div class="acct-panel">
-      <div class="acct-panel-header">
-        <div class="acct-panel-title"><span class="icon">💰</span>Wallet</div>
-        <div class="panel-tag tag-blue" id="acctWalletTag">—</div>
-      </div>
-      <div class="acct-body" id="acctWalletBody">
-        <div class="acct-skeleton">
-          <div class="skeleton-line" style="width:100%"></div>
-          <div class="skeleton-line" style="width:80%"></div>
-          <div class="skeleton-line" style="width:60%"></div>
-          <div class="skeleton-line" style="width:90%"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- POSITION -->
-    <div class="acct-panel">
-      <div class="acct-panel-header">
-        <div class="acct-panel-title"><span class="icon">📍</span>Position</div>
-        <div class="panel-tag" id="acctPositionTag" style="background:rgba(74,96,112,0.15);color:var(--muted);border:1px solid rgba(74,96,112,0.3)">FLAT</div>
-      </div>
-      <div class="acct-body" id="acctPositionBody">
-        <div class="acct-skeleton">
-          <div class="skeleton-line" style="width:100%"></div>
-          <div class="skeleton-line" style="width:70%"></div>
-          <div class="skeleton-line" style="width:85%"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- BTC PRICE -->
-    <div class="acct-panel">
-      <div class="acct-panel-header">
-        <div class="acct-panel-title"><span class="icon">₿</span>BTC Live</div>
-        <div class="panel-tag tag-green" id="acctBtcTag">—</div>
-      </div>
-      <div class="acct-body" id="acctBtcBody">
-        <div class="acct-skeleton">
-          <div class="skeleton-line" style="width:100%"></div>
-          <div class="skeleton-line" style="width:75%"></div>
-          <div class="skeleton-line" style="width:60%"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- RECENT FILLS -->
-    <div class="acct-panel">
-      <div class="acct-panel-header">
-        <div class="acct-panel-title"><span class="icon">🕐</span>Recent Fills</div>
-        <div class="panel-tag tag-yellow" id="acctFillsTag">—</div>
-      </div>
-      <div id="acctFillsBody" style="padding:0;">
-        <div class="acct-skeleton">
-          <div class="skeleton-line" style="width:100%;margin:14px 16px 0;width:calc(100% - 32px)"></div>
-          <div class="skeleton-line" style="width:90%;margin:0 16px;width:calc(90% - 32px)"></div>
-          <div class="skeleton-line" style="width:80%;margin:0 16px 14px;width:calc(80% - 32px)"></div>
-        </div>
-      </div>
-    </div>
-
-  </div>
-  <!-- END ACCOUNT SUMMARY -->
-
   <!-- Signal Log — full width -->
   <div class="panel" id="signalLogPanel" style="margin-bottom:14px;">
     <div class="sl-board-header">
@@ -1874,6 +1796,84 @@
   </div><!-- /#tab-training -->
 
 </div><!-- /.container -->
+
+  <!-- ═══════════════════════════════════════════
+       ACCOUNT SUMMARY SECTION — bottom of page
+  ═══════════════════════════════════════════ -->
+  <div class="section-divider" style="margin-bottom:12px;margin-top:24px;">
+    <div class="section-divider-label" style="font-size:11px;color:var(--accent);letter-spacing:3px;display:flex;align-items:center;gap:7px;">
+      <span style="width:7px;height:7px;border-radius:50%;background:var(--accent);display:inline-block;animation:pulse 2s infinite;flex-shrink:0;"></span>
+      LIVE ACCOUNT
+    </div>
+    <div class="section-divider-line"></div>
+    <div class="section-divider-ts" id="acctTs" style="font-size:9px;">Loading...</div>
+  </div>
+
+  <div class="account-summary-grid" style="max-width:1200px;margin:0 auto;padding:0 16px;">
+
+    <!-- WALLET -->
+    <div class="acct-panel">
+      <div class="acct-panel-header">
+        <div class="acct-panel-title"><span class="icon">💰</span>Wallet</div>
+        <div class="panel-tag tag-blue" id="acctWalletTag">—</div>
+      </div>
+      <div class="acct-body" id="acctWalletBody">
+        <div class="acct-skeleton">
+          <div class="skeleton-line" style="width:100%"></div>
+          <div class="skeleton-line" style="width:80%"></div>
+          <div class="skeleton-line" style="width:60%"></div>
+          <div class="skeleton-line" style="width:90%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- POSITION -->
+    <div class="acct-panel">
+      <div class="acct-panel-header">
+        <div class="acct-panel-title"><span class="icon">📍</span>Position</div>
+        <div class="panel-tag" id="acctPositionTag" style="background:rgba(74,96,112,0.15);color:var(--muted);border:1px solid rgba(74,96,112,0.3)">FLAT</div>
+      </div>
+      <div class="acct-body" id="acctPositionBody">
+        <div class="acct-skeleton">
+          <div class="skeleton-line" style="width:100%"></div>
+          <div class="skeleton-line" style="width:70%"></div>
+          <div class="skeleton-line" style="width:85%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BTC PRICE -->
+    <div class="acct-panel">
+      <div class="acct-panel-header">
+        <div class="acct-panel-title"><span class="icon">₿</span>BTC Live</div>
+        <div class="panel-tag tag-green" id="acctBtcTag">—</div>
+      </div>
+      <div class="acct-body" id="acctBtcBody">
+        <div class="acct-skeleton">
+          <div class="skeleton-line" style="width:100%"></div>
+          <div class="skeleton-line" style="width:75%"></div>
+          <div class="skeleton-line" style="width:60%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RECENT FILLS -->
+    <div class="acct-panel">
+      <div class="acct-panel-header">
+        <div class="acct-panel-title"><span class="icon">🕐</span>Recent Fills</div>
+        <div class="panel-tag tag-yellow" id="acctFillsTag">—</div>
+      </div>
+      <div id="acctFillsBody" style="padding:0;">
+        <div class="acct-skeleton">
+          <div class="skeleton-line" style="width:100%;margin:14px 16px 0;width:calc(100% - 32px)"></div>
+          <div class="skeleton-line" style="width:90%;margin:0 16px;width:calc(90% - 32px)"></div>
+          <div class="skeleton-line" style="width:80%;margin:0 16px 14px;width:calc(80% - 32px)"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <!-- END ACCOUNT SUMMARY -->
 
 <!-- ── Brain AI Recalibrate Overlay ──────────────────────────────────────── -->
 <div id="brainOverlay" class="brain-overlay" aria-hidden="true" role="dialog">
