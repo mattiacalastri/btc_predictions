@@ -69,7 +69,7 @@ def _sb_config() -> tuple:
 # Fire-and-forget: never blocks the caller, never raises.
 _LOG_VALID_LEVELS = {"info", "success", "warning", "error", "critical"}
 
-def _push_cockpit_log(source: str, level: str, title: str, message: str = "", metadata: dict | None = None):
+def _push_cockpit_log(source: str, level: str, title: str, message: str = "", metadata=None):
     """Insert a row into cockpit_log. Non-blocking, swallows all errors."""
     if level not in _LOG_VALID_LEVELS:
         level = "info"
