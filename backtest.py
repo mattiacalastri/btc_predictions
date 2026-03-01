@@ -2,7 +2,7 @@
 """
 backtest.py — BTC Prediction Bot: Walk-Forward Backtesting
 
-Simula 6 strategie di filtraggio sul set di test (30% più recente),
+Simula 8 strategie di filtraggio sul set di test (30% più recente),
 con parametri derivati esclusivamente dal train set (70% più vecchio).
 
 Strategie testate:
@@ -12,6 +12,8 @@ Strategie testate:
   D  DEAD_HOURS   — CONF_062 + skip ore con WR < 45% (calcolate su train)
   E  XGB_GATE     — CONF_062 + XGB direction == LLM direction (XGB su train)
   F  FULL_STACK   — CONF_062 + dead hours + XGB gate (stack attuale completo)
+  G  THRESHOLD_056 — come F ma con CONF_THRESHOLD=0.56 (nuova soglia live)
+  H  FULL_STACK_CORRECTED — come F ma con TAKER_FEE=0.0005 (fee corretta)
 
 Output:
   ./datasets/backtest_report.txt  — report leggibile
@@ -340,9 +342,44 @@ def main():
             (~df_test["hour_utc"].isin(dead_hours)) &
             (df_test.index.isin(agree_idx))
         ]
+        # G — THRESHOLD_056: come F ma con soglia 0.56 (nuova soglia live)
+        strategies["G_THRESHOLD_056"] = df_test[
+            (df_test["confidence"] >= 0.56) &
+            (~df_test["hour_utc"].isin(dead_hours)) &
+            (df_test.index.isin(agree_idx))
+        ]
+        # H — FULL_STACK_CORRECTED: come F ma ricalcola PnL con fee corretta
+        h_bets = df_test[
+            (df_test["confidence"] >= conf_thr) &
+            (~df_test["hour_utc"].isin(dead_hours)) &
+            (df_test.index.isin(agree_idx))
+        ].copy()
+        if not h_bets.empty:
+            # Ricalcola pnl_usd con la fee corretta (0.0005) vs quella errata (0.00005)
+            # Delta fee per lato = 0.0005 - 0.00005 = 0.00045
+            # Round-trip delta per trade = 2 * delta * entry_price * BASE_SIZE
+            fee_delta_per_side = 0.0005 - 0.00005  # 0.00045
+            h_bets["pnl_usd"] = h_bets.apply(
+                lambda r: r["pnl_usd"] - 2 * fee_delta_per_side * float(r.get("entry_fill_price") or r.get("btc_price_entry") or 65000) * BASE_SIZE,
+                axis=1,
+            )
+        strategies["H_CORRECTED_FEE"] = h_bets
     else:
         strategies["E_XGB_GATE"]  = strategies["B_CONF_062"].copy()
         strategies["F_FULL_STACK"] = strategies["D_DEAD_HOURS"].copy()
+        # G — con soglia 0.56 senza XGB gate
+        strategies["G_THRESHOLD_056"] = df_test[
+            (df_test["confidence"] >= 0.56) & (~df_test["hour_utc"].isin(dead_hours))
+        ]
+        # H — come F con fee corretta (fallback = D)
+        h_bets = strategies["D_DEAD_HOURS"].copy()
+        if not h_bets.empty:
+            fee_delta_per_side = 0.0005 - 0.00005
+            h_bets["pnl_usd"] = h_bets.apply(
+                lambda r: r["pnl_usd"] - 2 * fee_delta_per_side * float(r.get("entry_fill_price") or r.get("btc_price_entry") or 65000) * BASE_SIZE,
+                axis=1,
+            )
+        strategies["H_CORRECTED_FEE"] = h_bets
 
     # ── 5. Report risultati ───────────────────────────────────────────────────
     log()
@@ -364,7 +401,7 @@ def main():
         pbt_str = fmt_pnl(r["pnl_per_bet"]) if r["n"] > 0 else "  n/a"
         dd_str  = f"-${r['max_dd']:.4f}"
         pf_str  = f"{r['profit_factor']:.2f}" if r["profit_factor"] < 90 else ">99"
-        flag    = " ◀ CURRENT" if name == "F_FULL_STACK" else ""
+        flag    = " ◀ CURRENT" if name == "F_FULL_STACK" else (" ◀ NEW LIVE" if name == "G_THRESHOLD_056" else (" ◀ FEE FIX" if name == "H_CORRECTED_FEE" else ""))
         log(
             f"  {name:<18}  {r['n']:>4}  {r['wr']:>5.1f}%  "
             f"{pnl_str:>10}  {pbt_str:>8}  {dd_str:>8}  "
@@ -440,6 +477,82 @@ def main():
     log(f"  Max win streak: {streaks['max_win_streak']}  |  Max loss streak: {streaks['max_loss_streak']}")
     log()
 
+    # ── Expectancy Framework ─────────────────────────────────────────────────
+    log(f"  Expectancy Framework (per strategia su TEST set):")
+    log(f"  {'Strategia':<18} {'E($/bet)':>9}  {'PF':>5}  {'Kelly%':>7}  {'MaxConsL':>8}  {'MaxDD$':>8}")
+    log(f"  " + "─"*62)
+
+    expectancy_json = {}
+    for name, bets_e in strategies.items():
+        n_s = len(bets_e)
+        if n_s == 0:
+            log(f"  {name:<18}       —      —       —         —         —")
+            expectancy_json[name] = {}
+            continue
+
+        pnls_s = bets_e["pnl_usd"].values
+        wins_s = pnls_s[pnls_s > 0]
+        losses_s = pnls_s[pnls_s < 0]
+
+        wr_s = len(wins_s) / n_s if n_s > 0 else 0.0
+
+        avg_win  = float(wins_s.mean()) if len(wins_s) > 0 else 0.0
+        avg_loss = float(abs(losses_s.mean())) if len(losses_s) > 0 else 0.0
+
+        # Expectancy: E = (WR * avg_win) - ((1-WR) * avg_loss)
+        expectancy = (wr_s * avg_win) - ((1 - wr_s) * avg_loss)
+
+        # Profit Factor: sum(wins) / |sum(losses)|
+        sum_wins   = float(wins_s.sum()) if len(wins_s) > 0 else 0.0
+        sum_losses = float(abs(losses_s.sum())) if len(losses_s) > 0 else 0.0
+        pf_e = sum_wins / sum_losses if sum_losses > 0 else (99.0 if sum_wins > 0 else 0.0)
+
+        # Kelly: f* = (p*b - q) / b  where b = avg_win/avg_loss
+        if avg_loss > 0 and avg_win > 0:
+            b = avg_win / avg_loss
+            q = 1 - wr_s
+            kelly = (wr_s * b - q) / b * 100
+        else:
+            kelly = 0.0
+
+        # Max consecutive losses
+        correct_list = bets_e["correct"].tolist()
+        max_consec_loss = 0
+        cur_l = 0
+        for c in correct_list:
+            if not c:
+                cur_l += 1
+                max_consec_loss = max(max_consec_loss, cur_l)
+            else:
+                cur_l = 0
+
+        max_dd_e = results[name]["max_dd"]
+
+        e_str = f"{expectancy:+.4f}" if expectancy != 0 else "  0.0000"
+        pf_str_e = f"{pf_e:.2f}" if pf_e < 90 else ">99"
+        k_str = f"{kelly:+.1f}%" if kelly != 0 else "  0.0%"
+
+        log(f"  {name:<18} {e_str:>9}  {pf_str_e:>5}  {k_str:>7}  {max_consec_loss:>8}  {fmt_pnl(max_dd_e):>8}")
+
+        expectancy_json[name] = {
+            "expectancy": round(expectancy, 4),
+            "profit_factor": round(pf_e, 2),
+            "kelly_pct": round(kelly, 1),
+            "max_consecutive_losses": max_consec_loss,
+            "max_drawdown": round(max_dd_e, 4),
+            "avg_win": round(avg_win, 4),
+            "avg_loss": round(avg_loss, 4),
+            "wr": round(wr_s * 100, 1),
+        }
+
+    log()
+    log(f"  Legenda Expectancy:")
+    log(f"  • E > 0 = edge positivo (sistema profittevole nel lungo periodo)")
+    log(f"  • E < 0 = edge negativo (sistema perde nel lungo periodo)")
+    log(f"  • Kelly% = % ottimale del capitale per bet (negativo = non tradare)")
+    log(f"  • PF > 1.5 = buono, PF > 2.0 = eccellente")
+    log()
+
     # ── Note metodologiche ────────────────────────────────────────────────────
     log(f"  Note:")
     log(f"  • Train: {len(df_train)} bet, Test: {len(df_test)} bet (split {args.train_ratio:.0%}/{1-args.train_ratio:.0%} cronologico)")
@@ -490,12 +603,13 @@ def main():
         "conf_threshold": conf_thr,
         "best_strategy": best[0],
         "best_pnl":      best[1]["pnl"],
-        "current_strategy": "F_FULL_STACK",
+        "current_strategy": "G_THRESHOLD_056",
         "strategies":    strategies_json,
         "equity_curves": equity_curves,
         "confidence_buckets": conf_buckets_json,
         "hourly":        hourly_json,
         "streaks":       streaks,
+        "expectancy":    expectancy_json,
     }
 
     class _NpEncoder(json.JSONEncoder):

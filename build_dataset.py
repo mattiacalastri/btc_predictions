@@ -439,6 +439,17 @@ def row_to_csv_dict(row: dict, cvd_6m_pct: float | None = None, regime_label: in
     # NY (14-23 UTC): massima liquidità, overlap con London in apertura
     session = 0 if hour < 8 else (1 if hour < 14 else 2)
 
+    # ── Fix CRITICAL-1b: NULL → None per i campi numerici obbligatori ─────────
+    # confidence=0 è fuori dal range valido [0.5, 1.0] → addestrare su 0 significa
+    # usare un valore impossibile. Usare None fa sì che dropna() in train_xgboost.py
+    # escluda la riga, invece di introdurre un dato fittizio che distorce il modello.
+    conf_raw = row.get("confidence")
+    conf = float(conf_raw) if conf_raw is not None and float(conf_raw) > 0 else None
+
+    # btc_price_entry=0 è impossibile (BTC ≠ $0). None preserva l'assenza del dato.
+    price_raw = row.get("btc_price_entry")
+    price = float(price_raw) if price_raw is not None and float(price_raw) > 0 else None
+
     return {
         # Metadato temporale — usato da train_xgboost.py per ordinamento
         # cronologico (walk-forward CV, T-02). NON è una feature ML.
@@ -446,9 +457,9 @@ def row_to_csv_dict(row: dict, cvd_6m_pct: float | None = None, regime_label: in
         # Target
         "label": 1 if row.get("correct") else 0,
         "direction": row.get("direction", ""),
-        # Numeriche
-        "confidence": float(row.get("confidence") or 0.55),  # median fallback, not 0 (out of valid range)
-        "btc_price_entry": float(row.get("btc_price_entry") or 0),
+        # Numeriche (None se mancante/zero — dropna() in train_xgboost.py filtra la riga)
+        "confidence": conf,
+        "btc_price_entry": price,
         "fear_greed_value": float(row.get("fear_greed_value") or 50),
         "rsi14": float(row.get("rsi14") or 50),
         "technical_score": float(row.get("technical_score") or 0),

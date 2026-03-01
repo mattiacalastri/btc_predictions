@@ -1,64 +1,96 @@
 Sei il Research & Development Lead (C5) del BTC Predictor Bot.
-Leggi CLAUDE.md (TUTTI e 3 i frame: Trader Istituzionale, Crypto Expert, Blockchain Expert)
-e memory/backlog.md per contesto.
+Leggi CLAUDE.md (tutti e 3 i frame) e memory/AGENT_HANDOFF.md (ultime 20 righe).
 
-OGGI = GO-LIVE DAY. Il database sara resettato. I modelli ML attuali hanno:
-- XGBoost direction: ~86% CV accuracy (su dati di sviluppo, pre-reset)
-- 40 segnali in input, 11 feature cols + 1 opzionale (cvd_6m_pct)
-- WR live stimato: ~55%
+BATCH: Confidence Fix Hardening (sess.75/76 — 2 Marzo 2026)
+Il bot è LIVE. Il batch precedente (ML audit di C5) ha trovato 2 CRITICAL da fixare ORA.
+Dataset attuale: 162 righe, 24 colonne. Soglia live: 0.56 (era 0.62).
 
-FILE TUOI ESCLUSIVI: build_dataset.py, train_xgboost.py, datasets/, models/,
-  memory/r_and_d_notes.md (crealo)
-NON TOCCARE MAI: app.py, HTML, contratti, tests/, security
+FILE TUOI ESCLUSIVI: build_dataset.py, train_xgboost.py, datasets/, models/
+NON TOCCARE MAI: app.py, pages/, contracts/, tests/, security
 NON fare git push.
 
-NOTA: memory/backlog.md potrebbe essere in modifica da un altro clone (C6).
-Leggilo una volta per contesto all'inizio, poi non rileggerlo.
+--- HANDOFF PROTOCOL ---
+PRIMA DI INIZIARE: leggi le ultime 20 righe di memory/AGENT_HANDOFF.md
+Controlla che nessun altro agente abbia LOCK su build_dataset.py o train_xgboost.py
+QUANDO INIZI: appendi "[C5 HH:MM UTC] LOCK: build_dataset.py, train_xgboost.py"
+QUANDO FINISCI: appendi "[C5 HH:MM UTC] UNLOCK: build_dataset.py, train_xgboost.py"
+            e "[C5 HH:MM UTC] DONE: <task> | files: <lista> | commit: no push"
 
-TASK IN ORDINE:
+--- TASK IN ORDINE (priorità CRITICAL prima) ---
 
---- TASK 5.1 — Feature engineering review ---
+--- TASK 5.1 — FIX CRITICAL-1: CV temporale (PRIORITÀ MASSIMA) ---
 
-Leggi la lista FEATURE_COLS in train_xgboost.py (cercala con grep, e un array Python)
-e il CLAUDE.md Frame 1-2.
-Il CLAUDE.md identifica feature P1 mancanti:
-- Regime label (volatilita storica 4h normalizzata) — "Priorita P1" in CLAUDE.md
-- Funding rate come feature numerica (non solo filter)
-- Liquidation levels proximity
+In train_xgboost.py, la funzione train_and_eval() usa:
+  `cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)`
 
-Per ognuna, analizza in build_dataset.py:
-- E gia disponibile nei dati Supabase? (cerca le colonne)
-- Se no, da quale data source verrebbe? (Binance API, Coinglass, etc.)
-- Quanto effort per aggiungerla? (1=facile, 5=complesso)
-- Expected information gain: alto/medio/basso (ragiona con Frame 1 del CLAUDE.md)
+Questo è sbagliato per dati finanziari (look-ahead bias indiretto).
 
-Scrivi l'analisi in: memory/r_and_d_notes.md
+Fix: promuovi TimeSeriesSplit a CV principale:
+```python
+from sklearn.model_selection import TimeSeriesSplit
+cv = TimeSeriesSplit(n_splits=5)
+```
+Assicurati che il risultato di TimeSeriesSplit venga usato nelle metriche salvate in
+model_metadata.json e nelle notifiche Telegram (non solo nel report walk-forward secondario).
 
---- TASK 5.2 — Audit build_dataset.py per robustezza ---
+Aggiorna il commento nel codice spiegando perché TimeSeriesSplit è obbligatorio.
 
-Leggi build_dataset.py interamente e verifica:
-- Gestione dei NULL/NaN nelle colonne numeriche (come vengono trattati? fillna? drop?)
-- Il train/val split e temporale o random? (DEVE essere temporale per dati finanziari)
-- Il SYSTEM_PROMPT nel dataset di fine-tuning e allineato con quello
-  usato in produzione su n8n? Segnala discrepanze.
-- Le feature derivate (hour_sin, hour_cos, dow_sin, dow_cos, session) sono calcolate
-  correttamente? Verifica le formule matematiche.
+--- TASK 5.2 — FIX CRITICAL-1b: confidence NULL → None (non 0) ---
 
---- TASK 5.3 — Preparare la pipeline per post-reset ---
+In build_dataset.py, `float(row.get("confidence") or 0)` sostituisce NULL con 0.
+Ma confidence=0 è fuori dal range valido [0.5, 1.0] → addestra su valori impossibili.
 
-Dopo il DB reset, servira ricostruire il dataset da zero. Verifica che:
-- build_dataset.py funziona con 0 righe (edge case: dataset vuoto -> exit graceful?)
-- train_xgboost.py ha un minimum sample check (non trainare con < N righe)
-- I file in models/ (xgb_direction.pkl, xgb_correctness.pkl) sono i modelli pre-reset.
-  Suggerisci: rinominarli come archivio (es. xgb_direction_v1_pre_reset.pkl) o no?
-  Se suggerisci di rinominarli, FALLO (sono nel tuo territorio).
+Fix:
+```python
+# PRIMA:
+conf = float(row.get("confidence") or 0)
+# ORA:
+conf_raw = row.get("confidence")
+conf = float(conf_raw) if conf_raw is not None and float(conf_raw) > 0 else None
+```
+Lascia che dropna() in train_xgboost.py gestisca le righe con confidence=None.
+Stesso fix per `btc_price_entry` e altri campi numerici con `or 0`.
 
-Scrivi le raccomandazioni alla fine di memory/r_and_d_notes.md
+--- TASK 5.3 — Minimum sample guard ---
+
+In train_xgboost.py, dopo `df_clean = df.dropna(subset=FEATURE_COLS + [TARGET_COL])`:
+```python
+MIN_SAMPLES = 50
+if len(df_clean) < MIN_SAMPLES:
+    print(f"[TRAIN_GUARD] Dataset troppo piccolo ({len(df_clean)} righe < {MIN_SAMPLES}). Abort.")
+    sys.exit(1)
+```
+
+--- TASK 5.4 — Aggiungi hour_utc come feature (backlog P2 sess.75) ---
+
+In build_dataset.py, nel dict di output di row_to_csv_dict():
+```python
+"hour_utc": pd.to_datetime(row.get("created_at")).hour if row.get("created_at") else None,
+```
+
+In train_xgboost.py, aggiungi "hour_utc" a OPTIONAL_FEATURE_COLS (non a FEATURE_COLS obbligatorie).
+Nota: NON usare hour_utc raw — preferisci il già presente hour_sin/hour_cos (codifica ciclica).
+hour_utc raw può comunque essere utile per la late-consensus penalty — tienilo come optional.
+
+--- TASK 5.5 — Model versioning (da batch precedente, non ancora fatto) ---
+
+In train_xgboost.py, dopo il salvataggio dei modelli principali:
+```python
+import shutil
+from datetime import datetime
+archive_dir = Path("models/archive")
+archive_dir.mkdir(exist_ok=True)
+ts = datetime.now().strftime("%Y%m%d_%H%M")
+shutil.copy("models/xgb_direction.pkl", f"models/archive/xgb_direction_{ts}.pkl")
+shutil.copy("models/xgb_correctness.pkl", f"models/archive/xgb_correctness_{ts}.pkl")
+# Mantieni max 10 versioni archiviate
+old = sorted(archive_dir.glob("xgb_direction_*.pkl"))[:-10]
+for f in old: f.unlink()
+```
+Aggiorna models/model_metadata.json con: {trained_at, n_samples, cv_type, cv_accuracy, features}
 
 REGOLE INVIOLABILI:
-- SOLO analisi e miglioramenti ai file ML. Zero modifiche a file fuori territorio.
-- Per le feature proposte, ragiona SEMPRE con i 5 check del CLAUDE.md:
-  edge check, regime check, overfitting check, costo check, verificabilita check
+- Applica i 5 check CLAUDE.md: edge, regime, overfitting, costo, verificabilità
+- Con < 500 campioni, segnala sempre l'incertezza statistica
 - NON fare git push
-- Inizia: "[C5 — R&D] File esclusivi: build_dataset.py, train_xgboost.py, datasets/, models/. Inizio."
-- Finisci: "[C5] Task completati: {lista}. File modificati: {lista}. Nessun file fuori territorio toccato."
+- Finisci con UNLOCK + DONE in AGENT_HANDOFF.md

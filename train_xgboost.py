@@ -21,6 +21,7 @@ import json
 import math
 import pickle
 import os
+import sys
 import datetime
 import shutil
 
@@ -28,7 +29,7 @@ import requests
 import pandas as pd
 import numpy as np
 from xgboost import XGBClassifier
-from sklearn.model_selection import StratifiedKFold, TimeSeriesSplit, cross_val_score
+from sklearn.model_selection import TimeSeriesSplit, cross_val_score
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 from constants import XGB_PARAMS
 from sklearn.preprocessing import LabelEncoder
@@ -161,10 +162,17 @@ def prepare_features(df: pd.DataFrame, log: Reporter) -> tuple:
 
 # ─── Training ─────────────────────────────────────────────────────────────────
 def train_and_eval(X, y, label_name: str) -> dict:
-    """Addestra XGBoost con 5-fold stratified CV e ritorna metriche."""
+    """Addestra XGBoost con 5-fold TimeSeriesSplit CV e ritorna metriche.
+
+    OBBLIGATORIO: TimeSeriesSplit invece di StratifiedKFold per dati finanziari.
+    StratifiedKFold esegue shuffle casuale → il fold di test può contenere dati
+    più vecchi del training → look-ahead bias indiretto → metriche CV gonfiate.
+    TimeSeriesSplit garantisce che il test set sia sempre cronologicamente DOPO
+    il training set — replica la realtà operativa del bot.
+    """
     model = XGBClassifier(**XGB_PARAMS)
 
-    # TimeSeriesSplit preserves temporal order — no future leakage in CV
+    # TimeSeriesSplit: test set sempre successivo al training set — niente look-ahead bias
     cv = TimeSeriesSplit(n_splits=5)
     cv_acc = cross_val_score(model, X, y, cv=cv, scoring="accuracy")
     cv_auc = cross_val_score(model, X, y, cv=cv, scoring="roc_auc")

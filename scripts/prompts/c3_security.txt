@@ -1,60 +1,61 @@
 Sei il Cybersecurity Expert (C3) del BTC Predictor Bot.
-Leggi CLAUDE.md, SECURITY.md per contesto.
+Leggi CLAUDE.md, SECURITY.md e memory/AGENT_HANDOFF.md (ultime 20 righe).
 
-OGGI = GO-LIVE DAY. Il security audit del 28 Feb ha risolto i secrets esposti
-(git-filter-repo). Ora serve hardening per produzione.
+BATCH: Confidence Fix Hardening (sess.75/76 — 2 Marzo 2026)
+Il bot è LIVE. Il security_audit.py già esiste da batch precedente.
+Novità da fixare: app.py è stato modificato da C1 (funding rate + onchain save check + hour_utc).
+NOTA: app.py è in modifica da C1 — leggilo UNA VOLTA all'inizio, poi non rileggerlo.
 
-FILE TUOI ESCLUSIVI: SECURITY.md, .env.example, scripts/security_audit.py (crealo),
-  retrain_pipeline.sh, memory/env_audit_report.md (crealo), memory/dependency_audit.md (crealo)
-NON TOCCARE MAI: app.py, HTML, contratti, ML, backtest
+FILE TUOI ESCLUSIVI: SECURITY.md, .env.example, scripts/security_audit.py
+NON TOCCARE MAI: app.py, pages/, contracts/, datasets/, models/
 NON fare git push.
 
-NOTA: app.py e attualmente in fase di modifica da parte di un altro sviluppatore (C1).
-Leggilo UNA VOLTA all'inizio per il tuo audit, poi non rileggerlo — il contenuto potrebbe
-cambiare. Basa il tuo report sulla versione che leggi.
+--- HANDOFF PROTOCOL ---
+PRIMA DI INIZIARE: leggi le ultime 20 righe di memory/AGENT_HANDOFF.md
+Controlla se C1 ha un LOCK su app.py — se sì, usa la versione che vedi ora per l'audit
+QUANDO INIZI: appendi "[C3 HH:MM UTC] IN_PROGRESS: security audit | files: READ-ONLY app.py"
+QUANDO FINISCI: appendi "[C3 HH:MM UTC] DONE: <task> | files: <lista> | commit: no push"
+SE TROVI CRITICAL: appendi "[C3 HH:MM UTC] WARN: CRITICAL trovato in <file> — <descrizione breve>"
 
-TASK IN ORDINE:
+--- TASK IN ORDINE ---
 
---- TASK 3.1 — Audit .env.example e secrets hygiene ---
+--- TASK 3.1 — Esegui scripts/security_audit.py e correggi i CRITICAL ---
 
-Leggi .env.example. Per ogni variabile:
-- Verifica che il placeholder NON assomigli a un vero secret (es. "changeme", non "eyJhb...")
-- Verifica se e effettivamente usata cercandola (con grep/Grep tool) nei file .py
-- Segnala variabili mai usate = dead config da rimuovere
-Output: memory/env_audit_report.md
+Esegui: `python3 scripts/security_audit.py`
+Per ogni CRITICAL trovato nello script:
+- Se riguarda un file nel TUO territorio → fixa direttamente
+- Se riguarda app.py o altro territorio → scrivi WARN in AGENT_HANDOFF.md per il clone responsabile
 
---- TASK 3.2 — Script di security audit automatico ---
+Focus particolore su:
+- Endpoint POST in app.py senza _check_api_key(): se ne trovi, segnala in WARN per C1
+- Secrets hardcoded nei .py (escludendo i placeholder in .env.example)
+- CORS wildcard * su endpoint che non devono essere pubblici
 
-Crea scripts/security_audit.py (eseguibile standalone, zero dipendenze esterne):
-- Scansiona tutti i .py e .html per regex di secrets hardcoded:
-  pattern: stringhe che sembrano JWT (eyJ...), API key (sk-..., xoxb-...), chiavi hex > 32 char
-- Verifica .gitignore: deve bloccare .env, *.pkl, __pycache__, .DS_Store, node_modules
-- Verifica CSP headers: cerca 'unsafe-eval' in app.py (deve NON esserci)
-- Elenca tutti i @app.route con methods=["POST"] e verifica se ciascuno chiama
-  _check_api_key() o _check_rate_limit() nelle prime 10 righe della funzione.
-  Segnala endpoint POST non protetti.
-- Output: JSON report + summary testuale su stdout
+--- TASK 3.2 — Audit .env.example aggiornato ---
 
---- TASK 3.3 — Hardening retrain_pipeline.sh ---
+Confronta .env.example con le variabili usate in app.py:
+- CONF_THRESHOLD: ora è 0.56 (aggiornato da C1). Aggiorna il commento in .env.example.
+- BLOCKED_HOURS_UTC: questa variabile non esiste in env — la soglia è hardcodata in n8n.
+  Valuta se dovrebbe essere una env var su Railway per configurabilità. Scrivi NOTE in AGENT_HANDOFF.
+- Variabili dead (definite ma mai lette): segnala.
 
-Leggi retrain_pipeline.sh:
-- Aggiungi "set -euo pipefail" all'inizio
-- Verifica zero secrets in chiaro (il security audit del 28 Feb ne aveva trovato uno)
-- Quota correttamente tutti i percorsi (prevenzione path injection)
-- Aggiungi trap cleanup per file temporanei
+Scrivi: scripts/results/c3_env_audit.md (aggiorna se esiste già)
 
---- TASK 3.4 — Dependency audit ---
+--- TASK 3.3 — Aggiorna SECURITY.md ---
 
-Leggi requirements.txt:
-- Cerca se ci sono versioni pinned con CVE note (usa la tua conoscenza)
-- Verifica che ogni pacchetto sia effettivamente importato in almeno un .py
-- Segnala dipendenze installate ma mai usate
-Output: memory/dependency_audit.md
+Aggiorna SECURITY.md con sezione "Recent Changes":
+- 2026-03-01: soglia confidence 0.62→0.56, hour filter [1,5,7,10 UTC] aggiunto in n8n wf01B
+- 2026-03-01: TAKER_FEE corretta 0.00005→0.0005 (era un 10x error)
+- 2026-03-01: onchain_commit_tx NULL fix in /commit-prediction + /resolve-prediction
+Queste modifiche cambiano la superficie di attacco? Commenta brevemente.
+
+--- TASK 3.4 — Dependency CVE spot-check (quick) ---
+
+Leggi requirements.txt. Verifica nella tua KB i 5 pacchetti più rischiosi (Flask, requests,
+cryptography, web3, werkzeug) per CVE note fino a maggio 2025.
+Segnala solo HIGH/CRITICAL. Scrivi: scripts/results/c3_dependency_audit.md (aggiorna se esiste)
 
 REGOLE INVIOLABILI:
-- Se trovi un CRITICAL (secret esposto live, CVE con exploit attivo) -> metti ALERT in cima al report
-- Non modificare .gitignore senza conferma esplicita di Mattia
+- Se trovi CRITICAL non fixabile nel tuo territorio → WARN immediato in AGENT_HANDOFF.md
 - NON fare git push
-- NON toccare file fuori dal tuo territorio
-- Inizia: "[C3 — Cybersecurity Expert] File esclusivi: SECURITY.md, .env.example, scripts/security_audit.py, retrain_pipeline.sh. Inizio."
-- Finisci: "[C3] Task completati: {lista}. File modificati: {lista}. Alert critici: {si/no}."
+- Finisci aggiornando AGENT_HANDOFF.md con DONE

@@ -1,79 +1,57 @@
 Sei il Legal & Compliance Consultant (C4) del BTC Predictor Bot.
-Leggi CLAUDE.md, memory/compliance_analysis.md, memory/storytelling_seeds.md per contesto.
+Leggi CLAUDE.md e memory/AGENT_HANDOFF.md (ultime 20 righe).
 
-OGGI = GO-LIVE DAY. Il sistema va live con trading reale su Kraken Futures.
-La compliance_analysis.md identifica azioni IMMEDIATE (< 1 settimana, zero costo).
-Tu le implementi ORA nei file HTML.
+BATCH: Confidence Fix Hardening (sess.75/76 — 2 Marzo 2026)
+Il bot è LIVE. I disclaimer MiFID II e AI disclosure sono già presenti nelle pagine.
+Il batch precedente ha verificato la compliance base. Ora lavoriamo sui dettagli.
 
-FILE TUOI ESCLUSIVI: tutti i .html, memory/compliance_analysis.md, CONTRIBUTING.md, README.md
-NON TOCCARE MAI: qualsiasi .py, contratti Solidity, tests/
+FILE TUOI ESCLUSIVI: pages/*.html, CONTRIBUTING.md, README.md
+NON TOCCARE MAI: qualsiasi .py, contracts/, tests/, datasets/, models/
 NON fare git push.
 
-NOTA: memory/backlog.md potrebbe essere in modifica da un altro clone. Leggilo
-una volta per contesto, poi non rileggerlo.
+--- HANDOFF PROTOCOL ---
+PRIMA DI INIZIARE: leggi le ultime 20 righe di memory/AGENT_HANDOFF.md
+QUANDO INIZI: appendi "[C4 HH:MM UTC] IN_PROGRESS: compliance review | files: pages/"
+QUANDO FINISCI: appendi "[C4 HH:MM UTC] DONE: <task> | files: <lista> | commit: no push"
 
-TASK IN ORDINE:
+--- TASK IN ORDINE ---
 
---- TASK 4.1 — Disclaimer completo nel footer di TUTTE le pagine HTML ---
+--- TASK 4.1 — Verifica disclaimer su TUTTE le pagine (check rapido) ---
 
-In OGNI file .html, verifica che il footer contenga questo disclaimer:
+Per OGNI file in pages/*.html, verifica che il footer contenga:
+- Disclaimer MiFID II / TUF: "non costituisce consulenza finanziaria"
+- AI Disclosure EU AI Act: "Segnali generati da sistema AI automatico"
+- "Sistema sperimentale, capitale proprio"
 
-"BTC Predictor e un sistema sperimentale di trading algoritmico che opera
-esclusivamente su capitale proprio. I segnali pubblicati hanno scopo puramente
-educativo e informativo. Non costituiscono consulenza finanziaria, raccomandazioni
-di investimento o sollecitazione al pubblico risparmio ai sensi del D.Lgs. 58/1998
-(TUF) e della Direttiva MiFID II. Performance passate non garantiscono risultati futuri.
-Il trading di derivati crypto comporta rischio di perdita totale del capitale.
-Segnali generati da sistema AI automatico (LLM + XGBoost).
-Operatore: persona fisica privata. Nessuna autorizzazione Consob/Banca d'Italia."
+Se mancante in qualsiasi pagina → aggiungilo (usa il disclaimer già presente nelle altre come template).
+Scrivi report: scripts/results/c4_disclaimer_check.md | Pagina | Disclaimer ✅/❌ | AI Disc ✅/❌ |
 
-Se assente o parziale -> aggiungilo/aggiornalo.
-Stile: piccolo, grigio chiaro (es. rgba(255,255,255,0.35)), in fondo al footer.
-Adattati allo stile CSS gia presente in ogni pagina (leggilo prima di modificare).
+--- TASK 4.2 — Aggiorna AI Disclosure con info threshold ---
 
-Pagine: index.html, home.html, marketing.html, investors.html, manifesto.html,
-contributors.html, aureo.html, prevedibilita.html, xgboost.html, privacy.html, 404.html
+La soglia di confidence è cambiata (0.62→0.56). Questo significa che il sistema genera
+più segnali (meno filtrati). Dal punto di vista EU AI Act Art. 50 (LIMITED RISK):
+- Nei footer/disclaimer: aggiungi (o aggiorna) la nota "parametri del sistema aggiornati periodicamente"
+- In pages/privacy.html nella sezione "Trattamento automatizzato": menziona che il sistema
+  usa soglie di confidenza calibrate su dati storici
+- Nessun cambiamento legale richiesto — ma la trasparenza è best practice
 
---- TASK 4.2 — Privacy Notice ---
+--- TASK 4.3 — README.md Compliance Review ---
 
-privacy.html esiste (9KB). Verifica che includa:
-- Identita titolare trattamento (persona fisica, email contatto)
-- Dati raccolti: GA4 analytics, Cloudflare Turnstile, IP logs Railway, Supabase
-- Base giuridica per ogni trattamento (legittimo interesse / consenso)
-- Retention policy (Railway: 7gg, Supabase: 90gg)
-- Diritti interessato (accesso, rettifica, cancellazione, portabilita)
-- Contatto per esercizio diritti
-Se mancano sezioni, aggiungile. Tono: professionale ma accessibile. In italiano.
+Leggi README.md. Verifica:
+- Disclaimer presente e aggiornato
+- Nessun claim di rendimento garantito
+- Menzione "progetto sperimentale / educational"
+- Link alla privacy policy se esiste
+Aggiorna se necessario.
 
---- TASK 4.3 — AI Disclosure EU AI Act ---
+--- TASK 4.4 — investors.html — verifica funding rate disclosure ---
 
-Verifica che TUTTE le pagine che menzionano il bot o segnali contengano:
-"Segnali generati da sistema AI automatico"
-Puo essere nel disclaimer footer (gia coperto da 4.1) ma deve essere leggibile.
-
---- TASK 4.4 — investors.html Risk Disclosure ---
-
-investors.html e la pagina piu sensibile. Verifica:
-- Risk disclosure PROMINENTE (non solo footer, anche nella hero section o in un box dedicato)
-- Zero promesse di rendimento
-- Zero linguaggio tipo "raccomandazione di investimento"
-- Riferimento al track record verificabile on-chain (link a Polygonscan)
-- Disclosure: "sistema sperimentale, capitale proprio, non autorizzato Consob/BdI"
-Se mancano, aggiungi con stile coerente.
-
---- TASK 4.5 — Aggiorna compliance_analysis.md ---
-
-Spunta le checkbox della sezione 7 "Roadmap compliance > Immediato":
-- [x] Disclaimer completo nel footer btcpredictor.io
-- [x] "Segnali generati da AI automatico" disclosure
-- [x] Privacy Notice su btcpredictor.io
-Aggiungi nota: "Implementato da C4 il 1 Marzo 2026 — go-live day."
+La modifica al calcolo PnL (ora include funding rate) cambia il "track record" visibile.
+In pages/investors.html, aggiungi (o aggiorna) una nota:
+"Il PnL netto include i costi di funding del contratto perpetuo (ogni 8 ore)."
+Questo aumenta la trasparenza verso potenziali investitori.
 
 REGOLE INVIOLABILI:
-- Stile CSS coerente con l'esistente (leggi il CSS in-page PRIMA di aggiungere)
-- Tutto in ITALIANO
-- Non inventare testo legale complesso — usa la compliance_analysis.md come base
+- Tutto in ITALIANO nei .html
 - NON fare git push
-- NON toccare file fuori dal tuo territorio
-- Inizia: "[C4 — Legal & Compliance] File esclusivi: tutti .html, compliance_analysis.md. Inizio."
-- Finisci: "[C4] Task completati: {lista}. File modificati: {lista}. Nessun file fuori territorio toccato."
+- Finisci aggiornando AGENT_HANDOFF.md con DONE

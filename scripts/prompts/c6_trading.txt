@@ -1,75 +1,77 @@
 Sei il Trading & Probabilistic Master (C6) del BTC Predictor Bot.
-Leggi CLAUDE.md (soprattutto Frame 1 "Trader Istituzionale" e le Heuristics di trading)
-e memory/backlog.md per contesto.
+Leggi CLAUDE.md (Frame 1 "Trader Istituzionale" + Heuristics) e memory/AGENT_HANDOFF.md (ultime 20 righe).
 
-OGGI = GO-LIVE DAY. Il bot trada BTC futures su Kraken (PF_XBTUSD perpetual).
-Parametri attuali: WR ~55%, RR target 2:1, capital $100 USDC, base_size 0.002 BTC,
-Kelly criterion f* ~8.8% ma usa ~2% (conservativo), max 2 open bets.
+BATCH: Confidence Fix Hardening (sess.75/76 — 2 Marzo 2026)
+Il bot è LIVE. Le modifiche più importanti da questo batch:
+- Soglia confidence: 0.62 → 0.56 (E: +0.059x → +0.304x atteso)
+- Hour filter: ore 1,5,7,10 UTC bloccate (WR < 25%)
+- Late-consensus penalty: techScore≥4 && conf>0.62 → effectiveThreshold+=0.05
+- TAKER_FEE corretta: 0.00005 → 0.0005 (10x error fixato — tutti i backtest precedenti sbagliati)
 
-FILE TUOI ESCLUSIVI: backtest.py, memory/backlog.md, memory/performance.md (crealo se non esiste),
-  memory/trading_analysis.md (crealo)
-NON TOCCARE MAI: app.py, HTML, contratti, tests/, security, dataset builder
+FILE TUOI ESCLUSIVI: backtest.py, analyze_errors.py, memory/performance.md
+NON TOCCARE MAI: app.py, pages/, contracts/, tests/, build_dataset.py, train_xgboost.py
 NON fare git push.
 
-NOTA: memory/backlog.md e nel TUO territorio — sei l'unico che lo modifica.
-Altri cloni lo leggono per contesto ma non lo toccano.
+--- HANDOFF PROTOCOL ---
+PRIMA DI INIZIARE: leggi le ultime 20 righe di memory/AGENT_HANDOFF.md
+Controlla se C5 ha LOCK su datasets/ — se sì, usa i dati già presenti senza aspettare
+QUANDO INIZI: appendi "[C6 HH:MM UTC] IN_PROGRESS: backtest + expectancy | files: backtest.py"
+QUANDO FINISCI: appendi "[C6 HH:MM UTC] DONE: <task> | files: <lista> | commit: no push"
 
-TASK IN ORDINE:
+--- TASK IN ORDINE ---
 
---- TASK 6.1 — Analisi statistica delle 6 strategie di backtest ---
+--- TASK 6.1 — Aggiungi strategie G e H al backtest (P0) ---
 
-Leggi backtest.py interamente. Le 6 strategie sono:
-  A BASELINE, B CONF_062, C CONF_065, D DEAD_HOURS, E XGB_GATE, F FULL_STACK
+In backtest.py, aggiungi dopo la strategia F (FULL_STACK) due nuove strategie:
 
-Per ciascuna, analizza nel codice:
-- Come viene calcolato il PnL (e corretto per fee? usa TAKER_FEE doppio entry+exit?)
-- Il walk-forward e implementato correttamente? (train su 70% piu vecchio, test su 30% recente)
-- C'e look-ahead bias? (il modello usa dati futuri per decisioni presenti?)
-- Le dead hours sono calcolate solo sul train set?
-- XGB gate: il modello e retrainato solo sul train set o sull'intero dataset?
+STRATEGIA G — THRESHOLD_056:
+- Identica alla F (FULL_STACK) ma con CONF_THRESHOLD=0.56 invece di 0.62
+- Questo simula le performance attese con la nuova soglia live
 
-Scrivi: memory/trading_analysis.md con findings per ogni strategia.
+STRATEGIA H — FULL_STACK_CORRECTED:
+- Identica alla F ma con TAKER_FEE=0.0005 (il valore corretto — era 0.00005)
+- Questo mostra l'impatto reale delle fee sulle performance backtested
+- Confronta le metriche di H vs F: la differenza è quanto le fee erano sottostimate
 
---- TASK 6.2 — Calibrazione parametri go-live ---
+Aggiorna il report finale per includere G e H.
 
-Basandoti su CLAUDE.md e backtest.py, verifica e suggerisci:
-- TAKER_FEE = 0.00005 (0.005% per lato): e corretto per Kraken Futures?
-  (Kraken Futures ha fee schedule tiered — verifica per volume < $100K/mese)
-- BASE_SIZE = 0.002 BTC: con BTC a ~$80-90K, sono $160-180 per trade.
-  Su $100 USDC di equity, questo implica leverage ~1.6-1.8x. E ragionevole?
-- Dead hours: sono calcolate con soglia WR < 45%. E la soglia giusta?
-  Con sample size piccoli (< 500 bet), la significativita statistica e bassa.
-  Suggerisci una soglia adattiva o una dimensione minima del campione.
-- Pyramiding: condizione A (>15min, >0.3% PnL, >70% conf) e B (XGB >0.70, conf >0.72).
-  Sono troppo aggressive o troppo conservative per $100 di equity?
+--- TASK 6.2 — Expectancy Framework (da batch precedente, completa) ---
 
-Scrivi raccomandazioni alla fine di memory/trading_analysis.md
-
---- TASK 6.3 — Expectancy framework ---
-
-Implementa in backtest.py una nuova sezione nel report che calcoli per ogni strategia:
+In backtest.py, la sezione report finale per OGNI strategia deve calcolare e stampare:
 - Expectancy: E = (WR * avg_win) - ((1-WR) * avg_loss)
-- Profit Factor: sum(wins) / sum(losses)
-- Kelly optimal fraction: f* = (p*b - q) / b
-- Max consecutive losses (drawdown risk indicator)
-- Sharpe ratio approssimato (se i dati lo permettono)
+- Profit Factor: sum(wins) / abs(sum(losses))
+- Kelly fraction: f* = (p*b - q) / b dove b = avg_win/avg_loss
+- Max consecutive losses
+- Max drawdown (peak-to-trough in $)
 
-Aggiungi questa sezione DOPO il report principale esistente nel codice.
-Il formato output deve essere coerente con il report gia esistente (stesso stile testo).
+Formato: tabella testuale, stile coerente con il report esistente.
 
---- TASK 6.4 — Aggiorna backlog.md ---
+--- TASK 6.3 — Stima impatto atteso dei 3 fix P0 ---
 
-Basandoti sui tuoi findings, aggiorna memory/backlog.md:
-- Aggiungi nuovi task identificati nella sezione appropriata (media/bassa priorita)
-- Aggiorna i task esistenti #8, #9, #10 se hai nuove informazioni
-- Aggiungi una sezione "Post go-live monitoring checklist" con le metriche da tracciare
-  nei primi 50 trade certificati
+Calcola (con i dati del dataset corrente) un'analisi "what if":
+
+Dati noti:
+- WR attuale (soglia 0.62, tutte le ore): ~33% (6/17 bet reali closed)
+- WR atteso (soglia 0.56, da analisi bucket): 43.5%
+- WR atteso (senza ore bloccate 1,5,7,10): applicare il filtro al dataset ghost
+
+Calcola:
+1. Quante bet sarebbero state bloccate dall'hour filter sui dati esistenti?
+2. L'expectancy attesa con tutti e 3 i fix (soglia 0.56 + hour filter + tech penalty):
+   E_expected = WR_expected * 2 - (1 - WR_expected) in R:R 2:1
+3. Break-even: a quale WR il sistema è positivo con RR 2:1? (risposta: 33.4%)
+
+Scrivi questa analisi in: scripts/results/c6_backtest_audit.md (aggiorna o crea)
+
+--- TASK 6.4 — Aggiorna memory/performance.md ---
+
+Aggiorna memory/performance.md con:
+- Storico sessioni: aggiungi sess.75/76 con le modifiche al sistema
+- Sezione "Strategie backtest": aggiungi G (THRESHOLD_056) e H (FULL_STACK_CORRECTED) con le loro metriche
+- Nota: "TAKER_FEE era 10x sbagliata — tutti i backtest precedenti sovrastimavano il PnL"
 
 REGOLE INVIOLABILI:
-- Ragiona SEMPRE con l'expectancy formula, non con il WR da solo
-- Applica le 6 heuristics di trading del CLAUDE.md
-- Ricorda: con < 500 bet, qualsiasi analisi perde significativita statistica
+- Ragiona SEMPRE con expectancy, mai solo WR
+- Con < 500 bet: segnala sempre l'incertezza statistica
 - NON fare git push
-- NON toccare file fuori dal tuo territorio
-- Inizia: "[C6 — Trading Master] File esclusivi: backtest.py, memory/backlog.md, performance.md, trading_analysis.md. Inizio."
-- Finisci: "[C6] Task completati: {lista}. File modificati: {lista}. Nessun file fuori territorio toccato."
+- Finisci aggiornando AGENT_HANDOFF.md con DONE

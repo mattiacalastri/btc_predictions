@@ -29,10 +29,12 @@ GOOD_WR    = 0.63       # soglia "cluster positivo"
 OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "datasets")
 OUTPUT_FILE = os.path.join(OUTPUT_DIR, "error_patterns.json")
 
-# macOS: bypass SSL verify
-_SSL_CTX = ssl.create_default_context()
-_SSL_CTX.check_hostname = False
-_SSL_CTX.verify_mode = ssl.CERT_NONE
+# SSL context with proper CA verification
+try:
+    import certifi
+    _SSL_CTX = ssl.create_default_context(cafile=certifi.where())
+except ImportError:
+    _SSL_CTX = ssl.create_default_context()
 
 
 # ── Supabase fetch ────────────────────────────────────────────────────────────
@@ -196,6 +198,64 @@ def _by_fear_greed(bets):
     return results
 
 
+def _by_technical_score(bets):
+    """Analisi per technical_score — cattura l'inversione confidence/WR."""
+    ranges = [
+        ((0.0, 0.3), "TechScore basso (0–0.3)"),
+        ((0.3, 0.5), "TechScore medio-basso (0.3–0.5)"),
+        ((0.5, 0.7), "TechScore medio-alto (0.5–0.7)"),
+        ((0.7, 1.01), "TechScore alto (0.7+)", "alta convergenza tecnica = ingresso tardivo?"),
+    ]
+    results = []
+    for entry in ranges:
+        (lo, hi), label = entry[0], entry[1]
+        note = entry[2] if len(entry) > 2 else None
+        group = [b for b in bets
+                 if b.get("technical_score") is not None
+                 and lo <= float(b["technical_score"]) < hi]
+        if len(group) < MIN_SAMPLE:
+            continue
+        p = _pattern("technical_score", label, group, note)
+        if p and p["severity"] != "neutral":
+            results.append(p)
+    return results
+
+
+def _by_combined(bets):
+    """Pattern combinati — cattura value traps e cluster ad alto rischio."""
+    results = []
+
+    # Value trap: UP + high tech_score + extreme F&G
+    value_trap = [
+        b for b in bets
+        if b.get("direction") == "UP"
+        and b.get("technical_score") is not None
+        and float(b["technical_score"]) >= 0.6
+        and b.get("fear_greed_value") is not None
+        and (float(b["fear_greed_value"]) < 25 or float(b["fear_greed_value"]) > 75)
+    ]
+    if len(value_trap) >= MIN_SAMPLE:
+        p = _pattern("combined", "UP+HighTech+ExtremeFG (value trap)", value_trap,
+                      "alta convergenza in regime estremo = dead cat bounce?")
+        if p:
+            results.append(p)
+
+    # High confidence + wrong direction
+    high_conf_wrong = [
+        b for b in bets
+        if b.get("confidence") is not None
+        and float(b.get("confidence", 0)) >= 0.70
+        and b.get("correct") is False
+    ]
+    if len(high_conf_wrong) >= max(3, MIN_SAMPLE // 2):
+        p = _pattern("combined", "HighConf>=0.70 + WRONG", high_conf_wrong,
+                      "overconfidence — modello sicuro ma sbagliato")
+        if p:
+            results.append(p)
+
+    return results
+
+
 # ── Prompt snippet ────────────────────────────────────────────────────────────
 def _build_snippet(worst, best, total, overall_wr):
     lines = [f"📊 CALIBRAZIONE LIVE ({total} bet chiuse, WR globale {overall_wr:.0%}):"]
@@ -236,6 +296,8 @@ def main():
         + _by_direction(bets)
         + _by_rsi(bets)
         + _by_fear_greed(bets)
+        + _by_technical_score(bets)
+        + _by_combined(bets)
     )
 
     worst = sorted(
