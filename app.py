@@ -2452,8 +2452,9 @@ def ghost_evaluate():
     evaluated = []
     errors = []
     ghost_ts = now.isoformat()
+    batch_limit = min(len(candidates), 10)  # process max 10 per call to avoid rate limits
 
-    for row in candidates:
+    for idx, row in enumerate(candidates[:batch_limit]):
         row_id = row.get("id")
         direction = (row.get("direction") or "").upper()
         signal_price = row.get("signal_price")
@@ -2465,7 +2466,9 @@ def ghost_evaluate():
         except (TypeError, ValueError):
             continue
 
-        # Fetch Binance 1m kline at T+30min for precise evaluation
+        if idx > 0:
+            time.sleep(0.5)  # rate limit protection
+
         exit_price = _fetch_ghost_exit_price(created_at)
         if exit_price is None:
             errors.append({"id": row_id, "error": "binance_price_unavailable"})
@@ -2509,8 +2512,9 @@ def ghost_evaluate():
         "status": "ok",
         "evaluated": len(evaluated),
         "errors": len(errors),
+        "remaining": len(candidates) - batch_limit,
         "results": evaluated,
-        "error_details": errors[:10],
+        "error_details": errors[:5],
     })
 
 
