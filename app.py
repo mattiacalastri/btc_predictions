@@ -5581,6 +5581,11 @@ def cockpit_bot_toggle():
     return jsonify({"paused": _BOT_PAUSED}), 200
 
 
+def _valid_clone_id(cid):
+    """Whitelist clone_id to prevent query injection via Supabase REST URL."""
+    return bool(cid and re.fullmatch(r'c[1-6]', cid))
+
+
 @app.route("/cockpit/api/agents/reset", methods=["POST"])
 def cockpit_agents_reset():
     """Reset one or all agents in cockpit_events to pending state."""
@@ -5589,6 +5594,8 @@ def cockpit_agents_reset():
         return err
     data = request.get_json(force=True) or {}
     clone_id = data.get("clone_id")
+    if clone_id and not _valid_clone_id(clone_id):
+        return jsonify({"error": "invalid_clone_id"}), 400
     sb_url, sb_key = _sb_config()
     if not sb_url or not sb_key:
         return jsonify({"error": "supabase_not_configured"}), 503
@@ -5637,8 +5644,8 @@ def cockpit_agents_update():
     action = data.get("action")
     value = data.get("value")
 
-    if not clone_id or action not in ("note", "priority"):
-        return jsonify({"error": "invalid_params", "msg": "clone_id + action(note|priority) required"}), 400
+    if not clone_id or not _valid_clone_id(clone_id) or action not in ("note", "priority"):
+        return jsonify({"error": "invalid_params", "msg": "valid clone_id (c1-c6) + action(note|priority) required"}), 400
 
     sb_url, sb_key = _sb_config()
     if not sb_url or not sb_key:

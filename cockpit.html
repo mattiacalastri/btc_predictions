@@ -1271,7 +1271,7 @@ function renderAgents(agents) {
           <div class="agent-actions">
             <button class="agent-action-btn danger" onclick="event.stopPropagation();resetAgent('${escapeHtml(cid)}')">Reset</button>
             <button class="agent-action-btn accent" onclick="event.stopPropagation();annotateAgent('${escapeHtml(cid)}')">Note</button>
-            <button class="agent-action-btn${priorityBtnClass}" onclick="event.stopPropagation();togglePriority('${escapeHtml(cid)}',${isPriority ? 'true' : 'false'})">&#9733; Priority</button>
+            <button class="agent-action-btn${priorityBtnClass}" data-action="priority" onclick="event.stopPropagation();togglePriority('${escapeHtml(cid)}',${isPriority ? 'true' : 'false'})">&#9733; Priority</button>
             <button class="agent-action-btn blue" onclick="event.stopPropagation();toggleFullLog(this)">Full Log</button>
           </div>
         </div>
@@ -1545,7 +1545,6 @@ function togglePriority(cloneId, current) {
       const nameEl = card.querySelector('.agent-name');
       const existing = nameEl.querySelector('.priority-star');
       if (newVal && !existing) {
-        nameEl.insertAdjacentHTML('afterbegin', '');
         const star = document.createElement('span');
         star.className = 'priority-star';
         star.innerHTML = '&#9733;';
@@ -1556,7 +1555,7 @@ function togglePriority(cloneId, current) {
         existing.remove();
       }
       // Update button state
-      const btn = card.querySelector('.agent-action-btn:nth-child(3)');
+      const btn = card.querySelector('.agent-action-btn[data-action="priority"]');
       if (btn) btn.classList.toggle('priority-active', newVal);
     }
   }).catch(e => console.error('Priority error:', e));
