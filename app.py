@@ -43,7 +43,8 @@ def set_security_headers(response):
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com "
+        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com "
+        "https://fonts.googleapis.com "
         "https://js-de.sentry-cdn.com https://www.googletagmanager.com https://www.clarity.ms "
         "https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ "
         "https://challenges.cloudflare.com; "
@@ -52,6 +53,7 @@ def set_security_headers(response):
         "img-src 'self' data: https:; "
         "frame-src https://www.google.com/recaptcha/ https://challenges.cloudflare.com; "
         "connect-src 'self' https://*.railway.app https://oimlamjilivrcnhztwvj.supabase.co "
+        "https://api.binance.com "
         "https://sentry.io https://*.sentry-cdn.com https://www.clarity.ms "
         "https://www.google-analytics.com https://n8n.srv1432354.hstgr.cloud;"
     )
