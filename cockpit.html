@@ -371,17 +371,55 @@ body.heartbeat-offline { animation: hb-flat 4s linear infinite; }
   width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
 }
 
-/* ── EVENT LOG ── */
+/* ── EVENT LOG v2 ── */
+.log-toolbar {
+  display: flex; gap: 6px; margin-bottom: 10px; align-items: center;
+  flex-wrap: wrap;
+}
+.log-filter {
+  padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 600;
+  border: 1px solid var(--border); background: transparent;
+  color: var(--text-muted); cursor: pointer; transition: all 0.2s;
+  min-height: 32px;
+}
+.log-filter.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+.log-filter .filter-count {
+  display: inline-block; padding: 0 5px; border-radius: 8px;
+  background: var(--border); font-size: 10px; margin-left: 4px;
+}
+.log-filter.active .filter-count { background: rgba(0,212,170,0.3); }
+.log-clear {
+  margin-left: auto; padding: 6px 12px; border-radius: 6px;
+  font-size: 11px; border: 1px solid var(--border); background: transparent;
+  color: var(--text-muted); cursor: pointer; transition: all 0.2s;
+}
+.log-clear:hover { border-color: var(--red); color: var(--red); }
 .log-container {
   background: var(--bg-card); border: 1px solid var(--border);
   border-radius: 12px; max-height: 60vh; overflow-y: auto;
   font-family: 'JetBrains Mono', monospace; font-size: 11px;
   padding: 10px;
 }
-.log-entry { padding: 4px 0; border-bottom: 1px solid var(--border); display: flex; gap: 8px; flex-wrap: wrap; }
+.log-empty {
+  text-align: center; padding: 40px 20px; color: var(--text-muted);
+  font-size: 13px; font-family: 'Inter', sans-serif;
+}
+.log-empty-icon { font-size: 32px; margin-bottom: 8px; opacity: 0.4; }
+.log-entry {
+  padding: 6px 0; border-bottom: 1px solid var(--border);
+  display: flex; gap: 8px; align-items: flex-start; flex-wrap: wrap;
+}
 .log-entry:last-child { border-bottom: none; }
-.log-time { color: var(--text-muted); min-width: 60px; }
-.log-source { color: var(--accent); min-width: 60px; font-weight: 600; }
+.log-entry.hidden { display: none; }
+.log-level-dot {
+  width: 6px; height: 6px; border-radius: 50%; margin-top: 5px; flex-shrink: 0;
+}
+.log-level-dot.info { background: var(--blue); }
+.log-level-dot.success { background: var(--green); }
+.log-level-dot.error { background: var(--red); }
+.log-level-dot.alert { background: var(--yellow); }
+.log-time { color: var(--text-muted); min-width: 55px; font-size: 10px; }
+.log-source { color: var(--accent); min-width: 80px; font-weight: 600; }
 .log-msg { color: var(--text-secondary); flex: 1; min-width: 0; word-break: break-word; }
 .log-msg.alert { color: var(--yellow); }
 .log-msg.error { color: var(--red); }
@@ -418,16 +456,32 @@ body.heartbeat-offline { animation: hb-flat 4s linear infinite; }
 }
 .toggle input:checked ~ .toggle-thumb { transform: translateX(20px); }
 
-.shortcuts-ref {
-  padding: 14px 16px; font-size: 12px; color: var(--text-muted);
-  font-family: 'JetBrains Mono', monospace; line-height: 1.8;
+.shortcuts-grid {
+  display: grid; grid-template-columns: 50px 1fr; gap: 2px 12px;
+  padding: 14px 16px; font-size: 12px;
 }
-.shortcuts-ref kbd {
+.shortcuts-grid kbd {
   background: var(--bg-input); border: 1px solid var(--border);
-  padding: 2px 6px; border-radius: 4px; font-size: 11px;
-  color: var(--text-primary);
+  padding: 3px 8px; border-radius: 4px; font-size: 11px;
+  color: var(--text-primary); text-align: center;
+  font-family: 'JetBrains Mono', monospace;
+  display: inline-block; min-width: 32px;
 }
-
+.shortcuts-grid .shortcut-desc {
+  color: var(--text-muted); font-size: 12px; line-height: 26px;
+}
+.sysinfo-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  padding: 10px 16px 14px;
+}
+.sysinfo-item {
+  padding: 10px; background: var(--bg-input); border-radius: 8px;
+}
+.sysinfo-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.sysinfo-val {
+  font-size: 13px; font-weight: 600; margin-top: 2px;
+  font-family: 'JetBrains Mono', monospace;
+}
 .setting-btn {
   padding: 10px 20px; border-radius: 8px;
   border: 1px solid var(--red); background: transparent;
@@ -763,17 +817,45 @@ body.heartbeat-offline { animation: hb-flat 4s linear infinite; }
 
     <!-- TAB: LOG -->
     <div class="tab-panel" id="panel-log">
+      <div class="log-toolbar">
+        <button class="log-filter active" data-level="all" onclick="filterLog('all')">All <span class="filter-count" id="log-count-all">0</span></button>
+        <button class="log-filter" data-level="info" onclick="filterLog('info')">Info <span class="filter-count" id="log-count-info">0</span></button>
+        <button class="log-filter" data-level="success" onclick="filterLog('success')">Success <span class="filter-count" id="log-count-success">0</span></button>
+        <button class="log-filter" data-level="error" onclick="filterLog('error')">Error <span class="filter-count" id="log-count-error">0</span></button>
+        <button class="log-clear" onclick="clearLog()">Clear</button>
+      </div>
       <div class="log-container" id="log-container">
-        <div class="log-entry">
-          <span class="log-time">--:--</span>
-          <span class="log-source">SYSTEM</span>
-          <span class="log-msg">Waiting for data...</span>
+        <div class="log-empty" id="log-empty">
+          <div class="log-empty-icon">&#9776;</div>
+          Log vuoto. Gli eventi appariranno quando gli agent saranno attivi.
         </div>
       </div>
     </div>
 
     <!-- TAB: SETTINGS -->
     <div class="tab-panel" id="panel-settings">
+      <div class="settings-group">
+        <h3>System</h3>
+        <div class="sysinfo-grid" id="sysinfo-grid">
+          <div class="sysinfo-item">
+            <div class="sysinfo-label">Version</div>
+            <div class="sysinfo-val" id="sys-version">-</div>
+          </div>
+          <div class="sysinfo-item">
+            <div class="sysinfo-label">Bot Status</div>
+            <div class="sysinfo-val" id="sys-bot-status">-</div>
+          </div>
+          <div class="sysinfo-item">
+            <div class="sysinfo-label">Supabase</div>
+            <div class="sysinfo-val" id="sys-supabase" style="color:var(--text-muted)">-</div>
+          </div>
+          <div class="sysinfo-item">
+            <div class="sysinfo-label">Equity</div>
+            <div class="sysinfo-val" id="sys-equity">-</div>
+          </div>
+        </div>
+      </div>
+
       <div class="settings-group">
         <h3>General</h3>
         <div class="setting-row">
@@ -816,7 +898,7 @@ body.heartbeat-offline { animation: hb-flat 4s linear infinite; }
         <div class="setting-row">
           <div>
             <div class="setting-label">Davide Mode</div>
-            <div class="setting-desc">Simplified 3-metric view — "riduci la complessita"</div>
+            <div class="setting-desc">Simplified 3-metric view</div>
           </div>
           <label class="toggle">
             <input type="checkbox" id="set-davide" onchange="toggleSetting('davideMode')">
@@ -828,14 +910,14 @@ body.heartbeat-offline { animation: hb-flat 4s linear infinite; }
 
       <div class="settings-group">
         <h3>Keyboard Shortcuts</h3>
-        <div class="shortcuts-ref">
-          <kbd>R</kbd> Refresh &nbsp;&nbsp;
-          <kbd>1</kbd>-<kbd>4</kbd> Switch tab &nbsp;&nbsp;
-          <kbd>Space</kbd> Toggle auto-refresh<br>
-          <kbd>G</kbd> Ghost mode &nbsp;&nbsp;
-          <kbd>D</kbd> Davide mode &nbsp;&nbsp;
-          <kbd>P</kbd> Pause/Resume bot &nbsp;&nbsp;
-          <kbd>Esc</kbd> Back to Overview
+        <div class="shortcuts-grid">
+          <div><kbd>R</kbd></div><div class="shortcut-desc">Refresh</div>
+          <div><kbd>1-4</kbd></div><div class="shortcut-desc">Switch tab</div>
+          <div><kbd>Space</kbd></div><div class="shortcut-desc">Toggle auto-refresh</div>
+          <div><kbd>G</kbd></div><div class="shortcut-desc">Ghost mode</div>
+          <div><kbd>D</kbd></div><div class="shortcut-desc">Davide mode</div>
+          <div><kbd>P</kbd></div><div class="shortcut-desc">Pause / Resume bot</div>
+          <div><kbd>Esc</kbd></div><div class="shortcut-desc">Back to Overview</div>
         </div>
       </div>
 
@@ -1158,6 +1240,23 @@ function renderMetrics(overview) {
   // Check for agent errors (for heartbeat + topbar badge)
   const hasErrors = (overview._agentErrors || 0) > 0;
   updateHeartbeat(!hasErrors);
+
+  // Settings — System info panel
+  updateSysInfo(overview);
+}
+
+function updateSysInfo(ov) {
+  const ver = document.getElementById('sys-version');
+  if (ver) ver.textContent = ov.version || 'v2.5';
+  const bot = document.getElementById('sys-bot-status');
+  if (bot) {
+    bot.textContent = ov.mode || '-';
+    bot.style.color = ov.bot_paused ? 'var(--yellow)' : ov.dry_run ? 'var(--blue)' : 'var(--green)';
+  }
+  const sb = document.getElementById('sys-supabase');
+  if (sb) { sb.textContent = 'Connected'; sb.style.color = 'var(--green)'; }
+  const eq = document.getElementById('sys-equity');
+  if (eq && ov.wallet_equity) { eq.textContent = `$${ov.wallet_equity.toFixed(0)}`; }
 }
 
 // ── ASIMOV BADGE ──
@@ -1298,17 +1397,63 @@ function renderAgents(agents) {
 
 function toggleExpand(card) { card.classList.toggle('expanded'); }
 
-// ── RENDER LOG ──
+// ── RENDER LOG v2 ──
+let _logFilter = 'all';
+
+function filterLog(level) {
+  _logFilter = level;
+  document.querySelectorAll('.log-filter').forEach(b => b.classList.toggle('active', b.dataset.level === level));
+  document.querySelectorAll('.log-entry').forEach(el => {
+    if (level === 'all') { el.classList.remove('hidden'); return; }
+    el.classList.toggle('hidden', el.dataset.level !== level);
+  });
+}
+
+function clearLog() {
+  const container = document.getElementById('log-container');
+  container.innerHTML = `<div class="log-empty" id="log-empty"><div class="log-empty-icon">&#9776;</div>Log cancellato.</div>`;
+  ['all','info','success','error'].forEach(l => {
+    const el = document.getElementById('log-count-' + l);
+    if (el) el.textContent = '0';
+  });
+}
+
+function relativeTime(ts) {
+  if (!ts) return '--:--';
+  const diff = Math.floor((Date.now() - new Date(ts).getTime()) / 1000);
+  if (diff < 60) return `${diff}s ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return new Date(ts).toISOString().slice(11, 19);
+}
+
 function renderLog(events) {
   const container = document.getElementById('log-container');
-  if (!events || events.length === 0) return;
+  if (!events || events.length === 0) {
+    container.innerHTML = `<div class="log-empty" id="log-empty"><div class="log-empty-icon">&#9776;</div>Log vuoto. Gli eventi appariranno quando gli agent saranno attivi.</div>`;
+    ['all','info','success','error'].forEach(l => {
+      const el = document.getElementById('log-count-' + l);
+      if (el) el.textContent = '0';
+    });
+    return;
+  }
 
-  container.innerHTML = events.slice(-50).reverse().map(e => {
-    const cls = e.level === 'error' ? 'error' : e.level === 'alert' ? 'alert' : e.level === 'success' ? 'success' : '';
-    const time = e.timestamp ? new Date(e.timestamp).toISOString().slice(11, 19) : '--:--:--';
+  const sorted = events.slice(-50).reverse();
+  const counts = { all: sorted.length, info: 0, success: 0, error: 0 };
+  sorted.forEach(e => { const l = e.level || 'info'; if (counts[l] !== undefined) counts[l]++; });
+  Object.keys(counts).forEach(l => {
+    const el = document.getElementById('log-count-' + l);
+    if (el) el.textContent = counts[l];
+  });
+
+  container.innerHTML = sorted.map(e => {
+    const level = e.level === 'error' ? 'error' : e.level === 'success' ? 'success' : e.level === 'alert' ? 'alert' : 'info';
+    const cls = level === 'info' ? '' : level;
+    const hidden = _logFilter !== 'all' && level !== _logFilter ? ' hidden' : '';
     return `
-    <div class="log-entry">
-      <span class="log-time">${time}</span>
+    <div class="log-entry${hidden}" data-level="${level}">
+      <span class="log-level-dot ${level}"></span>
+      <span class="log-time">${relativeTime(e.timestamp)}</span>
       <span class="log-source">${escapeHtml(e.source || 'SYSTEM')}</span>
       <span class="log-msg ${cls}">${escapeHtml(e.message || '')}</span>
     </div>`;

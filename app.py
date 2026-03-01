@@ -5441,6 +5441,7 @@ def cockpit_overview():
         "current_phase": "-",
         "phase_detail": "",
         "uptime": "-",
+        "version": "2.5.2",
         # v2 fields
         "total_pnl": 0.0,
         "today_pnl": 0.0,
