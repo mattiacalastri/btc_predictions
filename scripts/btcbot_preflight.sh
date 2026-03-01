@@ -4,7 +4,7 @@
 # Eseguire PRIMA del go-live per verificare 100% funzionalità
 # ============================================================
 
-BOT_API_KEY="REDACTED_OLD_BOT_API_KEY"
+BOT_API_KEY="${BOT_API_KEY:?Set BOT_API_KEY env var before running}"
 BASE_URL="https://web-production-e27d0.up.railway.app"
 N8N_URL="https://n8n.srv1432354.hstgr.cloud"
 N8N_KEY=$(python3 -c "import json; d=json.load(open('/Users/mattiacalastri/btc_predictions/.mcp.json')); print(d['mcpServers']['n8n']['env']['N8N_API_KEY'])" 2>/dev/null)
