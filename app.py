@@ -401,6 +401,7 @@ if SUPABASE_TABLE not in _ALLOWED_TABLES:
     raise ValueError(f"SUPABASE_TABLE '{SUPABASE_TABLE}' not in whitelist {_ALLOWED_TABLES}")
 _BOT_PAUSED = True               # fail-safe default: paused until Supabase confirms otherwise
 _BOT_PAUSED_REFRESHED_AT = 0.0  # timestamp of last Supabase read (0.0 → forces refresh on first call)
+_RESUMED_AT = ""                 # ISO timestamp of last /resume — circuit breaker ignores bets before this
 _costs_cache = {"data": None, "ts": 0.0}
 
 # Startup security validation (H-3)
@@ -1115,11 +1116,12 @@ def resume_bot():
     err = _check_api_key()
     if err:
         return err
-    global _BOT_PAUSED, _BOT_PAUSED_REFRESHED_AT
+    global _BOT_PAUSED, _BOT_PAUSED_REFRESHED_AT, _RESUMED_AT
     _BOT_PAUSED = False
     _BOT_PAUSED_REFRESHED_AT = time.time()
+    _RESUMED_AT = datetime.datetime.now(datetime.timezone.utc).isoformat()
     _save_bot_paused(False)
-    return jsonify({"paused": False, "message": "Bot riattivato — trading ripreso"}), 200
+    return jsonify({"paused": False, "message": "Bot riattivato — trading ripreso", "resumed_at": _RESUMED_AT}), 200
 
 
 # ── PLACE BET — helper privati ───────────────────────────────────────────────
@@ -1226,13 +1228,19 @@ def _check_pre_flight(direction: str, confidence: float) -> object:
         }), 200
 
     # Circuit breaker: 3 consecutive losses → auto-pause
+    # Skip check if no bets have been placed since last /resume (prevents re-pause loop)
     try:
         sb_url, sb_key = _sb_config()
         if sb_url and sb_key:
-            r_cb = requests.get(
+            cb_query = (
                 f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
                 "?select=correct&bet_taken=eq.true&correct=not.is.null"
-                "&order=id.desc&limit=3",
+                "&order=id.desc&limit=3"
+            )
+            if _RESUMED_AT:
+                cb_query += f"&created_at=gte.{_RESUMED_AT}"
+            r_cb = requests.get(
+                cb_query,
                 headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
                 timeout=5,
             )
