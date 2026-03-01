@@ -58,6 +58,15 @@ def set_security_headers(response):
     return response
 
 
+_PAGES_DIR = os.path.join(os.path.dirname(__file__), "pages")
+
+
+def _read_page(filename):
+    """Read an HTML page from the pages/ directory."""
+    with open(os.path.join(_PAGES_DIR, filename), "r") as f:
+        return f.read()
+
+
 def _sb_config() -> tuple:
     """Restituisce (supabase_url, supabase_key). Unica sorgente env vars Supabase."""
     url = os.environ.get("SUPABASE_URL", "").rstrip("/")
@@ -4845,7 +4854,7 @@ def llms_txt():
 def og_image():
     """Serve the Open Graph image for social sharing."""
     import os as _os
-    img_path = _os.path.join(_os.path.dirname(__file__), "og-image.png")
+    img_path = _os.path.join(_os.path.dirname(__file__), "static", "og-image.png")
     if not _os.path.exists(img_path):
         return "", 404
     with open(img_path, "rb") as f:
@@ -5032,8 +5041,7 @@ def legal():
 
 @app.route("/", methods=["GET"])
 def index():
-    with open("home.html", "r") as f:
-        html = f.read()
+    html = _read_page("home.html")
     if _GOOGLE_SITE_VERIFICATION:
         meta = f'<meta name="google-site-verification" content="{_GOOGLE_SITE_VERIFICATION}">'
         html = html.replace("</head>", meta + "\n</head>", 1)
@@ -5042,37 +5050,27 @@ def index():
 
 @app.route("/manifesto", methods=["GET"])
 def manifesto():
-    with open("manifesto.html", "r") as f:
-        html = f.read()
-    return html, 200, {"Content-Type": "text/html"}
+    return _read_page("manifesto.html"), 200, {"Content-Type": "text/html"}
 
 
 @app.route("/prevedibilita-perfetta", methods=["GET"])
 def prevedibilita():
-    with open("prevedibilita.html", "r") as f:
-        html = f.read()
-    return html, 200, {"Content-Type": "text/html"}
+    return _read_page("prevedibilita.html"), 200, {"Content-Type": "text/html"}
 
 
 @app.route("/investors", methods=["GET"])
 def investors():
-    with open("investors.html", "r") as f:
-        html = f.read()
-    return html, 200, {"Content-Type": "text/html"}
+    return _read_page("investors.html"), 200, {"Content-Type": "text/html"}
 
 
 @app.route("/aureo", methods=["GET"])
 def aureo():
-    with open("aureo.html", "r") as f:
-        html = f.read()
-    return html, 200, {"Content-Type": "text/html"}
+    return _read_page("aureo.html"), 200, {"Content-Type": "text/html"}
 
 
 @app.route("/contributors", methods=["GET"])
 def contributors():
-    with open("contributors.html", "r") as f:
-        html = f.read()
-    return html, 200, {"Content-Type": "text/html"}
+    return _read_page("contributors.html"), 200, {"Content-Type": "text/html"}
 
 
 _EMAIL_RE = re.compile(r'^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$')
@@ -5141,9 +5139,7 @@ def satoshi_lead():
 
 @app.route("/xgboost-spiegato", methods=["GET"])
 def xgboost_spiegato():
-    with open("xgboost.html", "r") as f:
-        html = f.read()
-    return html, 200, {"Content-Type": "text/html"}
+    return _read_page("xgboost.html"), 200, {"Content-Type": "text/html"}
 
 
 # ── News feed RSS cache (10 min) ─────────────────────────────────────────────
@@ -5316,9 +5312,7 @@ def on_chain_audit():
 
 @app.route("/marketing", methods=["GET"])
 def marketing():
-    with open("marketing.html", "r") as f:
-        html = f.read()
-    return html, 200, {"Content-Type": "text/html"}
+    return _read_page("marketing.html"), 200, {"Content-Type": "text/html"}
 
 
 @app.route("/marketing-stats", methods=["GET"])
@@ -5355,8 +5349,7 @@ def marketing_stats():
     wallet_addr = "0x7Ac896F18ce52a0520dA49C3129520f7B70d51f0"
     published_in_site = False
     try:
-        with open(os.path.join(os.path.dirname(__file__), "index.html"), "r") as _f:
-            published_in_site = wallet_addr[:12] in _f.read()
+        published_in_site = wallet_addr[:12] in _read_page("index.html")
     except Exception:
         pass
 
@@ -5369,8 +5362,7 @@ def marketing_stats():
     # ── 3. SEO checks on index.html ──────────────────────────────
     seo = {"og_image": False, "meta_description": False, "json_ld": False, "canonical": False}
     try:
-        with open(os.path.join(os.path.dirname(__file__), "index.html"), "r") as _f:
-            idx = _f.read()
+        idx = _read_page("index.html")
         seo["og_image"]         = 'og:image' in idx
         seo["meta_description"] = 'name="description"' in idx
         seo["json_ld"]          = 'application/ld+json' in idx
@@ -5428,9 +5420,7 @@ def marketing_stats():
 
 @app.route("/privacy", methods=["GET"])
 def privacy():
-    with open("privacy.html", "r") as f:
-        html = f.read()
-    return html, 200, {"Content-Type": "text/html"}
+    return _read_page("privacy.html"), 200, {"Content-Type": "text/html"}
 
 
 _CACHE_BUST = os.environ.get("RAILWAY_GIT_COMMIT_SHA", "1")[:8]
@@ -5442,8 +5432,7 @@ def dashboard():
     # via a custom domain (e.g. btcpredictor.io vs railway.app).
     scheme = request.headers.get("X-Forwarded-Proto", "https")
     railway_url = f"{scheme}://{request.host}"
-    with open("index.html", "r") as f:
-        html = f.read()
+    html = _read_page("index.html")
     read_key = os.environ.get("READ_API_KEY", "")
     inject = f'<script>window.RAILWAY_URL = {json.dumps(railway_url)};window.READ_API_KEY = {json.dumps(read_key)};</script>'
     # Sostituisci placeholder cache_bust nel link CSS
@@ -5456,9 +5445,7 @@ def dashboard():
 
 @app.errorhandler(404)
 def page_not_found(e):
-    with open("404.html", "r") as f:
-        html = f.read()
-    return html, 404, {"Content-Type": "text/html"}
+    return _read_page("404.html"), 404, {"Content-Type": "text/html"}
 
 
 # ── COCKPIT — Private Command Center ────────────────────────────────────────
@@ -5486,9 +5473,7 @@ def cockpit_page():
     if not _COCKPIT_TOKEN:
         return "Cockpit disabled (COCKPIT_TOKEN not set)", 503
     try:
-        with open("cockpit.html", "r") as f:
-            html = f.read()
-        return html, 200, {"Content-Type": "text/html"}
+        return _read_page("cockpit.html"), 200, {"Content-Type": "text/html"}
     except FileNotFoundError:
         return "cockpit.html not found", 404
 
