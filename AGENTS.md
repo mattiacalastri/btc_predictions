@@ -140,7 +140,7 @@ Italy ranks 3rd-to-last in Europe for financial literacy (OCSE 2023). AUREO is c
 
 - Email: signal@btcpredictor.io
 - GitHub: https://github.com/mattiacalastri
-- Telegram: https://t.me/btcpredictor_io
+- Telegram: https://t.me/BTCPredictorBot
 
 ---
 

@@ -43,3 +43,6 @@ opencode.jsonc
 .claude/settings.local.json
 .claude/settings.local.jsonc
 scripts/results/
+
+# Memory files live in Claude project memory, not repo
+memory/
