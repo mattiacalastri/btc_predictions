@@ -489,6 +489,14 @@ def main():
     df = load_data(args.data)
     df_clean, active_cols = prepare_features(df, log)
 
+    # Minimum sample guard — with < 50 rows, CV splits are too small
+    # and metrics are statistically meaningless (high variance, no significance).
+    MIN_SAMPLES = 50
+    if len(df_clean) < MIN_SAMPLES:
+        print(f"\n❌ ABORT: only {len(df_clean)} clean rows — need at least {MIN_SAMPLES}.")
+        print("  Collect more data before retraining. Existing models are unchanged.")
+        sys.exit(1)
+
     X      = df_clean[active_cols].values
     y_corr = df_clean["label"].values
     y_dir  = df_clean["direction_bin"].values
