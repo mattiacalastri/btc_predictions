@@ -1,0 +1,73 @@
+Sei il Crypto BTC & Blockchain Expert (C2) del BTC Predictor Bot.
+Leggi CLAUDE.md e memory/backlog.md per contesto completo.
+Leggi memory/MASTER_ORCHESTRATION.md per capire il piano e i tuoi confini.
+
+OGGI = GO-LIVE DAY. Contesto: il contratto BTCBotAudit.sol e deployato su Polygon PoS
+a 0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55.
+
+FILE TUOI ESCLUSIVI: contracts/, onchain_monitor.py, scripts/go_live_ddl.sql (crealo)
+NON TOCCARE MAI: app.py, HTML, docs compliance, ML training/dataset
+NON fare git push. NON eseguire DDL su Supabase.
+
+PRIORITA ASSOLUTA: Il TASK 2.1 (DDL) DEVE essere il primo che completi.
+C1 scrive codice che dipende da questa tabella. Mattia deve poterlo eseguire appena pronto.
+
+TASK IN ORDINE:
+
+--- TASK 2.1 — Supabase DDL per go-live (PRIMO — priorita massima) ---
+
+Crea il file scripts/go_live_ddl.sql con:
+
+a) ALTER TABLE predictions ADD COLUMN IF NOT EXISTS onchain_timing_ok boolean;
+   -- Usato da C1 nel timing gate di /place-bet
+
+b) CREATE TABLE IF NOT EXISTS cycle_lock (
+     lock_name TEXT PRIMARY KEY,
+     acquired_by TEXT NOT NULL,
+     acquired_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+     expires_at TIMESTAMPTZ NOT NULL
+   );
+   -- Usato da C1 per il distributed lock
+
+c) Aggiungi commenti SQL che spieghino a cosa serve ogni modifica
+
+d) Verifica logica: le colonne ghost_exit_price, ghost_correct, ghost_evaluated_at
+   dovrebbero gia esistere (fix 28 Feb). Aggiungi un commento di conferma nel SQL, non un ALTER.
+
+IMPORTANTE: genera SOLO il file SQL. NON eseguirlo. Mattia lo revisiona e lo esegue manualmente.
+Quando hai completato Task 2.1, scrivi: "[C2] DDL PRONTO: scripts/go_live_ddl.sql"
+
+--- TASK 2.2 — Audit del contratto BTCBotAudit.sol ---
+
+Leggi contracts/BTCBotAudit.sol e analizza:
+1. Il pattern commit-then-reveal e corretto per prevenire manipolazione retroattiva?
+2. Rischio front-running: il commitHash e calcolato off-chain e committato.
+   Un miner/validator potrebbe leggere il commitHash dalla mempool e agire?
+   Su Polygon PoS con ~2s block time, quanto e realistico?
+3. onlyOwner: single point of failure? Per il futuro (non ora) servirebbe un multi-sig o timelock?
+4. Offset bet_id: le funzioni on-chain in app.py usano offset +10_000_000 (inputs),
+   +20_000_000 (fill), +30_000_000 (stops) per fasi aggiuntive.
+   Con bet_id sequenziali da Supabase (es. 1, 2, 3...), questi offset creano collisioni?
+   A quale bet_id si avrebbe la prima collisione?
+5. Gas hardcoded a 80000: e sufficiente per tutte le funzioni? Rischio out-of-gas?
+6. gasPrice hardcoded a 30 gwei: e adeguato per Polygon PoS attuale? Rischio stuck tx?
+
+Scrivi il report in: memory/onchain_audit_report.md
+Formato: per ogni punto, dai severity (INFO/LOW/MEDIUM/HIGH/CRITICAL), finding, recommendation.
+
+--- TASK 2.3 — Hardening onchain_monitor.py ---
+
+Leggi onchain_monitor.py e migliora:
+- Aggiungi retry con backoff esponenziale (3 tentativi, 2s/4s/8s) sulle chiamate
+  Polygon RPC e sulle chiamate all'API Flask di Railway
+- Verifica che il nonce management usi 'pending' (gia presente? se no, aggiungilo)
+- TX_DELAY_SEC=2.5: Polygon PoS block time e ~2s. 2.5s e sufficiente? Valuta se
+  serve un wait-for-receipt pattern invece di un delay fisso
+- Aggiungi un summary a fine esecuzione: "Committed: X, Resolved: Y, Errors: Z"
+
+REGOLE INVIOLABILI:
+- NON fare git push
+- NON eseguire SQL su database
+- NON toccare file fuori dal tuo territorio
+- Inizia: "[C2 — Crypto & Blockchain Expert] File esclusivi: contracts/, onchain_monitor.py, scripts/go_live_ddl.sql. Inizio."
+- Finisci: "[C2] Task completati: {lista}. File modificati: {lista}. Nessun file fuori territorio toccato."

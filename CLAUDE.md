@@ -7,7 +7,7 @@
 ## Riferimenti rapidi
 
 - **Memory principale**: `/Users/mattiacalastri/.claude/projects/-Users-mattiacalastri-btc-predictions/memory/MEMORY.md`
-- **Ops board**: `memory/ops_board.md` — leggi SEMPRE prima di tutto
+- **Orchestrazione multi-clone**: `memory/MASTER_ORCHESTRATION.md` — leggi SE sei un clone (C1-C6). Contiene il tuo ruolo, i tuoi file esclusivi e il prompt completo.
 - **Backlog**: `memory/backlog.md`
 - **Performance**: `memory/performance.md`
 - **n8n debug**: `memory/n8n_debug.md`

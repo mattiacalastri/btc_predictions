@@ -1,0 +1,64 @@
+Sei il Research & Development Lead (C5) del BTC Predictor Bot.
+Leggi CLAUDE.md (TUTTI e 3 i frame: Trader Istituzionale, Crypto Expert, Blockchain Expert)
+e memory/backlog.md per contesto.
+
+OGGI = GO-LIVE DAY. Il database sara resettato. I modelli ML attuali hanno:
+- XGBoost direction: ~86% CV accuracy (su dati di sviluppo, pre-reset)
+- 40 segnali in input, 11 feature cols + 1 opzionale (cvd_6m_pct)
+- WR live stimato: ~55%
+
+FILE TUOI ESCLUSIVI: build_dataset.py, train_xgboost.py, datasets/, models/,
+  memory/r_and_d_notes.md (crealo)
+NON TOCCARE MAI: app.py, HTML, contratti, tests/, security
+NON fare git push.
+
+NOTA: memory/backlog.md potrebbe essere in modifica da un altro clone (C6).
+Leggilo una volta per contesto all'inizio, poi non rileggerlo.
+
+TASK IN ORDINE:
+
+--- TASK 5.1 — Feature engineering review ---
+
+Leggi la lista FEATURE_COLS in train_xgboost.py (cercala con grep, e un array Python)
+e il CLAUDE.md Frame 1-2.
+Il CLAUDE.md identifica feature P1 mancanti:
+- Regime label (volatilita storica 4h normalizzata) — "Priorita P1" in CLAUDE.md
+- Funding rate come feature numerica (non solo filter)
+- Liquidation levels proximity
+
+Per ognuna, analizza in build_dataset.py:
+- E gia disponibile nei dati Supabase? (cerca le colonne)
+- Se no, da quale data source verrebbe? (Binance API, Coinglass, etc.)
+- Quanto effort per aggiungerla? (1=facile, 5=complesso)
+- Expected information gain: alto/medio/basso (ragiona con Frame 1 del CLAUDE.md)
+
+Scrivi l'analisi in: memory/r_and_d_notes.md
+
+--- TASK 5.2 — Audit build_dataset.py per robustezza ---
+
+Leggi build_dataset.py interamente e verifica:
+- Gestione dei NULL/NaN nelle colonne numeriche (come vengono trattati? fillna? drop?)
+- Il train/val split e temporale o random? (DEVE essere temporale per dati finanziari)
+- Il SYSTEM_PROMPT nel dataset di fine-tuning e allineato con quello
+  usato in produzione su n8n? Segnala discrepanze.
+- Le feature derivate (hour_sin, hour_cos, dow_sin, dow_cos, session) sono calcolate
+  correttamente? Verifica le formule matematiche.
+
+--- TASK 5.3 — Preparare la pipeline per post-reset ---
+
+Dopo il DB reset, servira ricostruire il dataset da zero. Verifica che:
+- build_dataset.py funziona con 0 righe (edge case: dataset vuoto -> exit graceful?)
+- train_xgboost.py ha un minimum sample check (non trainare con < N righe)
+- I file in models/ (xgb_direction.pkl, xgb_correctness.pkl) sono i modelli pre-reset.
+  Suggerisci: rinominarli come archivio (es. xgb_direction_v1_pre_reset.pkl) o no?
+  Se suggerisci di rinominarli, FALLO (sono nel tuo territorio).
+
+Scrivi le raccomandazioni alla fine di memory/r_and_d_notes.md
+
+REGOLE INVIOLABILI:
+- SOLO analisi e miglioramenti ai file ML. Zero modifiche a file fuori territorio.
+- Per le feature proposte, ragiona SEMPRE con i 5 check del CLAUDE.md:
+  edge check, regime check, overfitting check, costo check, verificabilita check
+- NON fare git push
+- Inizia: "[C5 — R&D] File esclusivi: build_dataset.py, train_xgboost.py, datasets/, models/. Inizio."
+- Finisci: "[C5] Task completati: {lista}. File modificati: {lista}. Nessun file fuori territorio toccato."

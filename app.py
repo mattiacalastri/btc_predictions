@@ -5228,6 +5228,240 @@ def page_not_found(e):
     return html, 404, {"Content-Type": "text/html"}
 
 
+# ── COCKPIT — Private Command Center ────────────────────────────────────────
+# Secure dashboard for Mattia to monitor AI agents, bot status, and system health.
+# Auth: stateless via X-Cockpit-Token header (no Flask sessions needed).
+# Token set via COCKPIT_TOKEN env var (separate from BOT_API_KEY).
+
+_COCKPIT_TOKEN = os.environ.get("COCKPIT_TOKEN", "")
+_cockpit_rl = {}  # rate limiting for cockpit auth
+
+
+def _check_cockpit_auth():
+    """Verify cockpit token from header. Returns None if ok, error response if not."""
+    if not _COCKPIT_TOKEN:
+        return jsonify({"error": "cockpit_disabled", "msg": "COCKPIT_TOKEN not configured"}), 503
+    token = request.headers.get("X-Cockpit-Token", "")
+    if not token or not _hmac.compare_digest(token, _COCKPIT_TOKEN):
+        return jsonify({"error": "forbidden"}), 403
+    return None
+
+
+@app.route("/cockpit", methods=["GET"])
+def cockpit_page():
+    """Serve the cockpit HTML dashboard."""
+    if not _COCKPIT_TOKEN:
+        return "Cockpit disabled (COCKPIT_TOKEN not set)", 503
+    try:
+        with open("cockpit.html", "r") as f:
+            html = f.read()
+        return html, 200, {"Content-Type": "text/html"}
+    except FileNotFoundError:
+        return "cockpit.html not found", 404
+
+
+@app.route("/cockpit/api/auth", methods=["POST"])
+def cockpit_auth():
+    """Validate cockpit token. Rate limited: max 5 attempts per minute per IP."""
+    ip = request.remote_addr or "unknown"
+    now = time.time()
+    # Rate limit cleanup
+    _cockpit_rl[ip] = [t for t in _cockpit_rl.get(ip, []) if now - t < 60]
+    if len(_cockpit_rl.get(ip, [])) >= 5:
+        app.logger.warning("[COCKPIT] Auth rate limited for %s", ip)
+        return jsonify({"error": "rate_limited"}), 429
+    _cockpit_rl.setdefault(ip, []).append(now)
+
+    data = request.get_json(force=True) or {}
+    token = data.get("token", "")
+    if not _COCKPIT_TOKEN:
+        return jsonify({"error": "cockpit_disabled"}), 503
+    if _hmac.compare_digest(token, _COCKPIT_TOKEN):
+        app.logger.info("[COCKPIT] Auth success from %s", ip)
+        return jsonify({"status": "ok"}), 200
+    else:
+        app.logger.warning("[COCKPIT] Auth failed from %s", ip)
+        return jsonify({"error": "forbidden"}), 403
+
+
+@app.route("/cockpit/api/agents", methods=["GET"])
+def cockpit_agents():
+    """Return AI agent states from Supabase cockpit_events table."""
+    err = _check_cockpit_auth()
+    if err:
+        return err
+    agents = []
+    events = []
+    try:
+        sb_url, sb_key = _sb_config()
+        if sb_url and sb_key:
+            headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
+            # Fetch latest state per agent
+            resp = requests.get(
+                f"{sb_url}/rest/v1/cockpit_events?select=*&order=updated_at.desc&limit=50",
+                headers=headers, timeout=5
+            )
+            if resp.ok:
+                rows = resp.json()
+                # Deduplicate: keep latest per clone_id
+                seen = set()
+                for row in rows:
+                    cid = row.get("clone_id", "")
+                    if cid and cid not in seen:
+                        seen.add(cid)
+                        agents.append({
+                            "clone_id": cid,
+                            "name": row.get("name", cid),
+                            "role": row.get("role", ""),
+                            "status": row.get("status", "pending"),
+                            "model": row.get("model", ""),
+                            "current_task": row.get("current_task", ""),
+                            "last_message": row.get("last_message", ""),
+                            "thought": row.get("thought", ""),
+                            "cost_usd": float(row.get("cost_usd", 0)),
+                            "max_budget": float(row.get("max_budget", 0)),
+                            "elapsed_sec": float(row.get("elapsed_sec", 0)),
+                            "tasks": json.loads(row.get("tasks_json", "[]")) if row.get("tasks_json") else [],
+                            "next_action": row.get("next_action", ""),
+                            "next_action_time": row.get("next_action_time", ""),
+                            "result_summary": row.get("result_summary", ""),
+                        })
+                    # All rows become events
+                    events.append({
+                        "timestamp": row.get("updated_at", ""),
+                        "source": row.get("name", cid),
+                        "message": row.get("last_message", ""),
+                        "level": "error" if row.get("status") == "error" else (
+                            "success" if row.get("status") == "done" else "info"
+                        ),
+                    })
+    except Exception as e:
+        app.logger.warning("[COCKPIT] Error fetching agents: %s", e)
+
+    return jsonify({"agents": agents, "events": events}), 200
+
+
+@app.route("/cockpit/api/overview", methods=["GET"])
+def cockpit_overview():
+    """Return system overview: bot status, positions, predictions, agent summary."""
+    err = _check_cockpit_auth()
+    if err:
+        return err
+
+    overview = {
+        "bot_paused": os.environ.get("BOT_PAUSED", "").lower() == "true",
+        "dry_run": os.environ.get("DRY_RUN", "").lower() == "true",
+        "mode": "DRY RUN" if os.environ.get("DRY_RUN", "").lower() == "true" else (
+            "PAUSED" if os.environ.get("BOT_PAUSED", "").lower() == "true" else "LIVE"
+        ),
+        "open_positions": 0,
+        "position_detail": "",
+        "today_predictions": 0,
+        "predictions_detail": "",
+        "win_rate": None,
+        "winrate_detail": "",
+        "agents_total_cost": 0.0,
+        "agents_running": 0,
+        "agents_total": 0,
+        "cost_detail": "",
+        "current_phase": "-",
+        "phase_detail": "",
+        "uptime": "-",
+    }
+
+    try:
+        sb_url, sb_key = _sb_config()
+        if not sb_url or not sb_key:
+            return jsonify(overview), 200
+        headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
+
+        # Open positions count
+        try:
+            from kraken.futures import User as _KUser
+            _ku = _KUser(
+                key=os.environ.get("KRAKEN_API_KEY", ""),
+                secret=os.environ.get("KRAKEN_API_SECRET", "")
+            )
+            _positions = _ku.get_open_positions()
+            if isinstance(_positions, dict):
+                _positions = _positions.get("openPositions", [])
+            overview["open_positions"] = len([p for p in (_positions or []) if float(p.get("size", 0)) > 0])
+            if overview["open_positions"] > 0:
+                p = _positions[0]
+                overview["position_detail"] = f"{p.get('side', '?')} {p.get('symbol', '')} {p.get('size', '')}"
+        except Exception:
+            overview["position_detail"] = "Kraken API unavailable"
+
+        # Today's predictions
+        today_str = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%d")
+        resp = requests.get(
+            f"{sb_url}/rest/v1/predictions?select=id,correct,confidence,direction"
+            f"&created_at=gte.{today_str}T00:00:00Z&order=created_at.desc",
+            headers=headers, timeout=5
+        )
+        if resp.ok:
+            preds = resp.json()
+            overview["today_predictions"] = len(preds)
+            correct = [p for p in preds if p.get("correct") is True]
+            wrong = [p for p in preds if p.get("correct") is False]
+            pending = [p for p in preds if p.get("correct") is None]
+            overview["predictions_detail"] = f"{len(correct)}W {len(wrong)}L {len(pending)}P"
+
+        # Overall win rate (last 50 evaluated bets)
+        resp2 = requests.get(
+            f"{sb_url}/rest/v1/predictions?select=correct"
+            f"&correct=not.is.null&bet_taken=eq.true&order=created_at.desc&limit=50",
+            headers=headers, timeout=5
+        )
+        if resp2.ok:
+            evaluated = resp2.json()
+            if evaluated:
+                wins = sum(1 for p in evaluated if p.get("correct") is True)
+                overview["win_rate"] = wins / len(evaluated)
+                overview["winrate_detail"] = f"{wins}/{len(evaluated)} (last 50 evaluated)"
+
+        # Agent summary from cockpit_events
+        try:
+            resp3 = requests.get(
+                f"{sb_url}/rest/v1/cockpit_events?select=clone_id,status,cost_usd,phase"
+                f"&order=updated_at.desc&limit=20",
+                headers=headers, timeout=5
+            )
+            if resp3.ok:
+                agent_rows = resp3.json()
+                seen = {}
+                for r in agent_rows:
+                    cid = r.get("clone_id", "")
+                    if cid and cid not in seen:
+                        seen[cid] = r
+                overview["agents_total"] = len(seen)
+                overview["agents_running"] = sum(1 for r in seen.values() if r.get("status") == "running")
+                overview["agents_total_cost"] = sum(float(r.get("cost_usd", 0)) for r in seen.values())
+                budget = 42.0  # from orchestration plan
+                overview["cost_detail"] = f"${overview['agents_total_cost']:.2f} / ${budget:.2f}"
+                # Phase detection
+                phases = set(r.get("phase", "") for r in seen.values() if r.get("status") == "running")
+                if "B" in phases:
+                    overview["current_phase"] = "B"
+                    overview["phase_detail"] = "Write-heavy (C1, C2)"
+                elif "A" in phases:
+                    overview["current_phase"] = "A"
+                    overview["phase_detail"] = "Read-heavy (C3-C6)"
+                elif all(r.get("status") == "done" for r in seen.values()):
+                    overview["current_phase"] = "C"
+                    overview["phase_detail"] = "Merge & Integration"
+                else:
+                    overview["current_phase"] = "-"
+                    overview["phase_detail"] = "Idle"
+        except Exception:
+            pass
+
+    except Exception as e:
+        app.logger.warning("[COCKPIT] Overview error: %s", e)
+
+    return jsonify(overview), 200
+
+
 # ── MAIN ─────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":

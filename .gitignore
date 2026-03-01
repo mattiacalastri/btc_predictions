@@ -42,3 +42,4 @@ opencode.jsonc
 # Claude Code local state — mai committare
 .claude/settings.local.json
 .claude/settings.local.jsonc
+scripts/results/
