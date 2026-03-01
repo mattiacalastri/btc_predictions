@@ -23,6 +23,15 @@ models/xgb_report.txt
 # Dati sensibili
 datasets/backup_*.csv
 
+# Scripts locali con token hardcoded — mai su GitHub pubblico
+scripts/telegram_screenshot.js
+scripts/node_modules/
+scripts/package-lock.json
+scripts/package.json
+
+# Screenshots locali
+static/screenshots/
+
 # macOS + Claude Code local state
 .DS_Store
 .claude/worktrees/
