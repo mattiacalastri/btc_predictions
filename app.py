@@ -1564,12 +1564,82 @@ def account_summary():
         return err
     symbol = request.args.get("symbol", DEFAULT_SYMBOL)
     try:
-        trade = get_trade_client()
-        user  = get_user_client()
+        _TIMEOUT = 8  # secondi per singola call Kraken
+
+        # ── Fetch parallelo: 5 chiamate Kraken indipendenti ──────────────────
+        def _fetch_wallets():
+            try:
+                return get_user_client().get_wallets()
+            except Exception:
+                return {}
+
+        def _fetch_tickers():
+            try:
+                return get_trade_client().request(
+                    method="GET", uri="/derivatives/api/v3/tickers",
+                    auth=False, timeout=_TIMEOUT
+                ).get("tickers", [])
+            except Exception:
+                return []
+
+        def _fetch_position():
+            try:
+                result = get_trade_client().request(
+                    method="GET", uri="/derivatives/api/v3/openpositions",
+                    auth=True, timeout=_TIMEOUT
+                )
+                for p in result.get("openPositions", []) or []:
+                    if (p.get("symbol", "") or "").upper() == symbol.upper():
+                        size = float(p.get("size", 0) or 0)
+                        if size == 0:
+                            return None
+                        side = (p.get("side", "") or "").lower()
+                        if side not in ("long", "short"):
+                            side = "long" if size > 0 else "short"
+                        return {"side": side, "size": abs(size), "price": float(p.get("price", 0) or 0)}
+                return None
+            except Exception:
+                return None
+
+        def _fetch_openorders():
+            try:
+                return get_trade_client().request(
+                    method="GET", uri="/derivatives/api/v3/openorders",
+                    auth=True, timeout=_TIMEOUT
+                ).get("openOrders", []) or []
+            except Exception:
+                return []
+
+        def _fetch_fills():
+            try:
+                return get_trade_client().request(
+                    method="GET", uri="/derivatives/api/v3/fills",
+                    auth=True, timeout=_TIMEOUT
+                ).get("fills", []) or []
+            except Exception:
+                return []
+
+        with ThreadPoolExecutor(max_workers=5) as pool:
+            f_w = pool.submit(_fetch_wallets)
+            f_t = pool.submit(_fetch_tickers)
+            f_p = pool.submit(_fetch_position)
+            f_o = pool.submit(_fetch_openorders)
+            f_f = pool.submit(_fetch_fills)
+
+            def _safe(future, default):
+                try:
+                    return future.result(timeout=_TIMEOUT + 2)
+                except Exception:
+                    return default
+
+            wallets_raw = _safe(f_w, {})
+            all_tickers = _safe(f_t, [])
+            pos         = _safe(f_p, None)
+            orders_raw  = _safe(f_o, [])
+            fills_raw   = _safe(f_f, [])
 
         # ── 1. WALLET ────────────────────────────────────────────────────────
-        wallets = user.get_wallets()
-        flex = wallets.get("accounts", {}).get("flex", {})
+        flex = wallets_raw.get("accounts", {}).get("flex", {})
 
         usdc_available  = flex.get("currencies", {}).get("USDC", {}).get("available")
         usd_available   = flex.get("currencies", {}).get("USD",  {}).get("available")
@@ -1587,20 +1657,7 @@ def account_summary():
         if portfolio_value and portfolio_value > 0 and initial_margin is not None:
             margin_usage_pct = round((initial_margin / portfolio_value) * 100, 2)
 
-        # ── TICKERS (chiamata unica per sezioni 2 e 3) ──────────────────────
-        all_tickers = []
-        try:
-            all_tickers = trade.request(
-                method="GET",
-                uri="/derivatives/api/v3/tickers",
-                auth=False
-            ).get("tickers", [])
-        except Exception:
-            pass
-
         # ── 2. POSIZIONE APERTA ──────────────────────────────────────────────
-        pos = get_open_position(symbol)
-
         # P&L della posizione se aperta: (mark - entry) * size * direction
         position_pnl = None
         position_pnl_pct = None
@@ -1640,63 +1697,46 @@ def account_summary():
             pass
 
         # ── 4. ORDINI APERTI ─────────────────────────────────────────────────
-        open_orders = []
-        try:
-            orders_raw = trade.request(
-                method="GET",
-                uri="/derivatives/api/v3/openorders",
-                auth=True
-            ).get("openOrders", []) or []
-            open_orders = [
-                {
-                    "order_id":   o.get("order_id"),
-                    "symbol":     o.get("symbol"),
-                    "side":       o.get("side"),
-                    "type":       o.get("orderType"),
-                    "size":       o.get("size"),
-                    "limit_price": o.get("limitPrice"),
-                    "stop_price": o.get("stopPrice"),
-                    "filled":     o.get("filled"),
-                    "reduce_only": o.get("reduceOnly"),
-                    "timestamp":  o.get("timestamp"),
-                }
-                for o in orders_raw
-                if (o.get("symbol") or "").upper() == symbol.upper()
-            ]
-        except Exception:
-            pass
+        open_orders = [
+            {
+                "order_id":   o.get("order_id"),
+                "symbol":     o.get("symbol"),
+                "side":       o.get("side"),
+                "type":       o.get("orderType"),
+                "size":       o.get("size"),
+                "limit_price": o.get("limitPrice"),
+                "stop_price": o.get("stopPrice"),
+                "filled":     o.get("filled"),
+                "reduce_only": o.get("reduceOnly"),
+                "timestamp":  o.get("timestamp"),
+            }
+            for o in orders_raw
+            if (o.get("symbol") or "").upper() == symbol.upper()
+        ]
 
         # ── 5. ULTIMI 5 FILL (P&L realizzato recente) ────────────────────────
         recent_fills = []
         realized_pnl_recent = 0.0
-        try:
-            fills_raw = trade.request(
-                method="GET",
-                uri="/derivatives/api/v3/fills",
-                auth=True
-            ).get("fills", []) or []
-            symbol_fills = [
-                f for f in fills_raw
-                if (f.get("symbol") or "").upper() == symbol.upper()
-            ][:5]  # ultimi 5
-            for f in symbol_fills:
-                # Kraken fills don't return 'fee' or 'pnl' fields — calculate fee manually
-                size_f  = float(f.get("size",  0) or 0)
-                price_f = float(f.get("price", 0) or 0)
-                fee_raw = float(f.get("fee",   0) or 0)
-                fee = fee_raw if fee_raw > 0 else round(size_f * price_f * TAKER_FEE, 6)
-                realized_pnl_recent -= fee  # fees are a cost (negative contribution)
-                recent_fills.append({
-                    "order_id":  f.get("order_id"),
-                    "side":      f.get("side"),
-                    "size":      f.get("size"),
-                    "price":     f.get("price"),
-                    "pnl":       None,   # not available per-fill from Kraken API
-                    "fee":       fee,
-                    "timestamp": f.get("fillTime"),
-                })
-        except Exception:
-            pass
+        symbol_fills = [
+            f for f in fills_raw
+            if (f.get("symbol") or "").upper() == symbol.upper()
+        ][:5]
+        for f in symbol_fills:
+            # Kraken fills don't return 'fee' or 'pnl' fields — calculate fee manually
+            size_f  = float(f.get("size",  0) or 0)
+            price_f = float(f.get("price", 0) or 0)
+            fee_raw = float(f.get("fee",   0) or 0)
+            fee = fee_raw if fee_raw > 0 else round(size_f * price_f * TAKER_FEE, 6)
+            realized_pnl_recent -= fee  # fees are a cost (negative contribution)
+            recent_fills.append({
+                "order_id":  f.get("order_id"),
+                "side":      f.get("side"),
+                "size":      f.get("size"),
+                "price":     f.get("price"),
+                "pnl":       None,   # not available per-fill from Kraken API
+                "fee":       fee,
+                "timestamp": f.get("fillTime"),
+            })
 
         # ── 6. OPEN BETS (Supabase) ──────────────────────────────────────────────
         open_bets = []
