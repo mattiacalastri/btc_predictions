@@ -65,3 +65,6 @@ CREATE INDEX IF NOT EXISTS idx_cockpit_log_level
 
 -- v5: slippage guard — track price drift between signal and execution
 ALTER TABLE btc_predictions ADD COLUMN IF NOT EXISTS price_drift_pct FLOAT DEFAULT NULL;
+
+-- v6: funding rate — track funding fee paid/received during position lifetime
+ALTER TABLE btc_predictions ADD COLUMN IF NOT EXISTS funding_fee FLOAT DEFAULT NULL;

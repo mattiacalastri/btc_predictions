@@ -599,7 +599,19 @@ def _get_mark_price(symbol: str) -> float:
         return 0.0
 
 
-def _close_prev_bet_on_reverse(old_side: str, exit_price: float, closed_size: float):
+def _get_funding_fee() -> float:
+    """Read unrealizedFunding from Kraken flex account.
+    Negative = paid, positive = received. Returns 0.0 on failure (fail-open)."""
+    try:
+        user = get_user_client()
+        flex = user.get_wallets().get("accounts", {}).get("flex", {})
+        return float(flex.get("unrealizedFunding") or 0)
+    except Exception:
+        return 0.0
+
+
+def _close_prev_bet_on_reverse(old_side: str, exit_price: float, closed_size: float,
+                               funding_fee: float = 0.0):
     """
     Quando viene aperta una posizione opposta (reverse bet), aggiorna in Supabase
     il bet precedente che è stato chiuso automaticamente da Kraken.
@@ -634,20 +646,23 @@ def _close_prev_bet_on_reverse(old_side: str, exit_price: float, closed_size: fl
             pnl_gross = (entry_price - exit_price) * bet_size
 
         fee = bet_size * (entry_price + exit_price) * TAKER_FEE  # entry + exit taker fee
-        pnl_net = round(pnl_gross - fee, 6)
+        pnl_net = round(pnl_gross - fee + funding_fee, 6)
         correct = pnl_net > 0  # net-based: break-even con fee = LOSS
 
         # &correct=is.null → atomicità ottimistica: nessuna doppia risoluzione (S-17)
         patch_url = f"{supabase_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{bet_id}&correct=is.null"
         patch_headers = {**headers, "Content-Type": "application/json", "Prefer": "return=minimal"}
-        requests.patch(patch_url, json={
+        patch_data = {
             "btc_price_exit":     exit_price,
             "exit_fill_price":    exit_price,
             "correct":            correct,
             "pnl_usd":            pnl_net,
             "close_reason":       "closed_by_reverse_bet",
             "has_real_exit_fill": False,
-        }, headers=patch_headers, timeout=5)
+        }
+        if funding_fee != 0.0:
+            patch_data["funding_fee"] = round(funding_fee, 6)
+        requests.patch(patch_url, json=patch_data, headers=patch_headers, timeout=5)
     except Exception:
         pass  # non bloccare il flusso principale
 
@@ -965,6 +980,7 @@ def close_position():
 
         close_side = "sell" if pos["side"] == "long" else "buy"
         size = pos["size"]
+        funding_fee = _get_funding_fee()  # read BEFORE closing — settles to 0 after close
 
         trade = get_trade_client()
 
@@ -1037,19 +1053,22 @@ def close_position():
                         actual_direction = "DOWN" if exit_fill_price < entry_price else "UP"
 
                     fee = bet_size * (entry_price + exit_fill_price) * TAKER_FEE
-                    pnl_net = round(pnl_gross - fee, 6)
+                    pnl_net = round(pnl_gross - fee + funding_fee, 6)
                     correct = pnl_net > 0  # net-based: break-even con fee = LOSS
 
-                    _supabase_update(bet_id, {
+                    patch_data = {
                         "exit_fill_price":    exit_fill_price,
                         "btc_price_exit":     exit_fill_price,
                         "correct":            correct,
                         "actual_direction":   actual_direction,
                         "pnl_usd":            pnl_net,
-                        "fees_total":         round(fee, 6),
+                        "fees_total":         round(fee - funding_fee, 6),
                         "has_real_exit_fill": True,
                         "close_reason":       "manual_close",
-                    })
+                    }
+                    if funding_fee != 0.0:
+                        patch_data["funding_fee"] = round(funding_fee, 6)
+                    _supabase_update(bet_id, patch_data)
                     supabase_updated = True
                     app.logger.info(f"[close-position] Supabase updated: bet {bet_id}, pnl={pnl_net}, correct={correct}")
             except Exception as e:
@@ -1065,6 +1084,7 @@ def close_position():
             "size": size,
             "exit_fill_price": exit_fill_price,
             "pnl_usd": pnl_net,
+            "funding_fee": round(funding_fee, 6),
             "supabase_updated": supabase_updated,
             "position_after": after,
             "raw": result,
@@ -1588,6 +1608,7 @@ def place_bet():
                 f"e conf={confidence:.2f} >= 0.75 — procedo con inversione"
             )
             close_side = "sell" if pos["side"] == "long" else "buy"
+            _funding_on_reverse = _get_funding_fee()  # read BEFORE closing position
             trade.create_order(
                 orderType="mkt",
                 symbol=symbol,
@@ -1597,7 +1618,7 @@ def place_bet():
             )
             wait_for_position(symbol, want_open=False, retries=15, sleep_s=0.35)
             exit_price_at_close = _get_mark_price(symbol) or current_mark
-            _close_prev_bet_on_reverse(pos["side"], exit_price_at_close, pos["size"])
+            _close_prev_bet_on_reverse(pos["side"], exit_price_at_close, pos["size"], _funding_on_reverse)
             time.sleep(2)  # buffer Kraken: attendi che il conto si assesti prima di aprire nuova posizione
 
         # apri nuova posizione
