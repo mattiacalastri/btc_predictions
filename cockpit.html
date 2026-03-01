@@ -2,12 +2,20 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0e17">
+<link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
 <title>Cockpit — BTC Predictor</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   COCKPIT v2 — Mobile-First CSS (320px base → 1100px desktop)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
 :root {
   --bg-primary: #0a0e17;
   --bg-card: #111827;
@@ -29,14 +37,40 @@
   --blue: #3b82f6;
   --blue-dim: rgba(59,130,246,0.15);
   --purple: #a855f7;
+  --purple-dim: rgba(168,85,247,0.15);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --tab-height: 56px;
 }
+
 * { margin: 0; padding: 0; box-sizing: border-box; }
+
 body {
   font-family: 'Inter', -apple-system, sans-serif;
   background: var(--bg-primary);
   color: var(--text-primary);
-  min-height: 100vh;
+  min-height: 100dvh;
   overflow-x: hidden;
+  -webkit-user-select: none; user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── HEARTBEAT PULSE ── */
+body.heartbeat-ok { animation: hb-ok 3s ease-in-out infinite; }
+body.heartbeat-error { animation: hb-err 0.8s ease-in-out infinite; }
+body.heartbeat-offline { animation: hb-flat 4s linear infinite; }
+
+@keyframes hb-ok {
+  0%, 100% { box-shadow: inset 0 0 80px rgba(34,197,94,0.02); }
+  50% { box-shadow: inset 0 0 80px rgba(34,197,94,0.06); }
+}
+@keyframes hb-err {
+  0%, 100% { box-shadow: inset 0 0 60px rgba(239,68,68,0.04); }
+  50% { box-shadow: inset 0 0 60px rgba(239,68,68,0.12); }
+}
+@keyframes hb-flat {
+  0%, 49% { box-shadow: inset 0 0 40px rgba(100,116,139,0.03); }
+  50%, 100% { box-shadow: inset 0 0 40px rgba(100,116,139,0.00); }
 }
 
 /* ── LOGIN OVERLAY ── */
@@ -56,73 +90,189 @@ body {
 .login-box h1 { font-size: 20px; margin-bottom: 8px; }
 .login-box p { color: var(--text-secondary); font-size: 14px; margin-bottom: 24px; }
 .login-box input {
-  width: 100%; padding: 12px 16px;
+  width: 100%; padding: 14px 16px;
   background: var(--bg-input); border: 1px solid var(--border);
   border-radius: 8px; color: var(--text-primary); font-size: 14px;
   font-family: 'JetBrains Mono', monospace;
   outline: none; transition: border 0.2s;
+  min-height: 44px;
 }
 .login-box input:focus { border-color: var(--accent); }
 .login-box button {
-  width: 100%; padding: 12px; margin-top: 16px;
+  width: 100%; padding: 14px; margin-top: 16px;
   background: var(--accent); color: #000; font-weight: 600;
   border: none; border-radius: 8px; cursor: pointer; font-size: 14px;
-  transition: opacity 0.2s;
+  transition: opacity 0.2s; min-height: 44px;
 }
 .login-box button:hover { opacity: 0.85; }
 .login-error { color: var(--red); font-size: 13px; margin-top: 12px; display: none; }
 
-/* ── TOP BAR ── */
+/* ── TOP BAR (sticky, blur) ── */
 .topbar {
+  position: sticky; top: 0; z-index: 100;
   display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 24px; border-bottom: 1px solid var(--border);
-  background: var(--bg-card);
+  padding: 12px 16px;
+  padding-top: calc(12px + var(--safe-top));
+  border-bottom: 1px solid var(--border);
+  background: rgba(17, 24, 39, 0.85);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
 }
-.topbar-left { display: flex; align-items: center; gap: 16px; }
+.topbar-left { display: flex; align-items: center; gap: 10px; }
 .topbar-logo {
-  font-size: 18px; font-weight: 700; color: var(--accent);
+  font-size: 16px; font-weight: 700; color: var(--accent);
   font-family: 'JetBrains Mono', monospace;
 }
 .topbar-label {
-  font-size: 13px; color: var(--text-muted);
-  padding: 4px 10px; background: var(--accent-dim);
+  font-size: 11px; color: var(--text-muted);
+  padding: 3px 8px; background: var(--accent-dim);
   border-radius: 6px; font-weight: 500;
 }
-.topbar-right { display: flex; align-items: center; gap: 20px; }
-.topbar-stat {
-  text-align: center;
+.topbar-right { display: flex; align-items: center; gap: 14px; }
+.topbar-stat { text-align: center; display: none; }
+.topbar-stat .val { font-size: 16px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+.topbar-stat .lbl { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.topbar-errors {
+  display: none; padding: 2px 7px; border-radius: 10px;
+  background: var(--red); color: #fff; font-size: 11px; font-weight: 700;
 }
-.topbar-stat .val { font-size: 18px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
-.topbar-stat .lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
 
-/* ── METRICS ROW ── */
+/* ── TAB BAR — bottom on mobile, top on desktop ── */
+.tab-bar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  z-index: 99;
+  display: flex; justify-content: space-around; align-items: center;
+  height: var(--tab-height);
+  padding-bottom: var(--safe-bottom);
+  background: rgba(17, 24, 39, 0.92);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border);
+}
+.tab-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  gap: 3px; padding: 8px 4px;
+  background: none; border: none; color: var(--text-muted);
+  font-size: 10px; font-weight: 500; cursor: pointer;
+  min-height: 44px; justify-content: center;
+  transition: color 0.2s; position: relative;
+}
+.tab-btn.active { color: var(--accent); }
+.tab-btn svg { width: 20px; height: 20px; }
+.tab-badge {
+  position: absolute; top: 4px; right: calc(50% - 18px);
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--red); display: none;
+}
+
+/* ── MAIN CONTENT AREA ── */
+.main-content {
+  padding: 12px 12px calc(var(--tab-height) + var(--safe-bottom) + 12px);
+}
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── PULL TO REFRESH indicator ── */
+.ptr-indicator {
+  text-align: center; padding: 8px; font-size: 12px;
+  color: var(--text-muted); display: none;
+}
+.ptr-indicator.visible { display: block; }
+
+/* ── VOICE OF THE BOT ── */
+.voice-box {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px 16px; margin-bottom: 12px;
+  font-size: 13px; color: var(--text-secondary); line-height: 1.5;
+  font-family: 'JetBrains Mono', monospace;
+  border-left: 3px solid var(--accent);
+}
+.voice-box .voice-label {
+  font-size: 10px; color: var(--accent); text-transform: uppercase;
+  letter-spacing: 1px; margin-bottom: 4px; font-weight: 600;
+}
+
+/* ── ON-CHAIN PROOF BADGE ── */
+.onchain-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 8px;
+  background: var(--purple-dim); border: 1px solid rgba(168,85,247,0.3);
+  color: var(--purple); font-size: 12px; font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  text-decoration: none; transition: all 0.3s;
+  animation: shimmer 3s ease-in-out infinite;
+  margin-bottom: 12px;
+}
+.onchain-badge:hover { background: rgba(168,85,247,0.25); }
+.onchain-badge .lock-icon { animation: lock-pulse 2s ease-in-out infinite; }
+@keyframes shimmer {
+  0%, 100% { box-shadow: 0 0 8px rgba(168,85,247,0.1); }
+  50% { box-shadow: 0 0 16px rgba(168,85,247,0.25); }
+}
+@keyframes lock-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+/* ── METRICS GRID ── */
 .metrics {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 12px; padding: 16px 24px;
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  gap: 8px; margin-bottom: 12px;
 }
 .metric-card {
   background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: 10px; padding: 16px;
+  border-radius: 10px; padding: 12px;
   transition: border 0.2s;
 }
 .metric-card:hover { border-color: var(--accent); }
-.metric-card .label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-.metric-card .value { font-size: 22px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
-.metric-card .sub { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+.metric-card .label {
+  font-size: 10px; color: var(--text-muted); text-transform: uppercase;
+  letter-spacing: 0.5px; margin-bottom: 2px;
+}
+.metric-card .value {
+  font-size: 20px; font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+}
+.metric-card .sub { font-size: 11px; color: var(--text-secondary); margin-top: 1px; }
+
+/* ── GHOST PREDICTIONS ── */
+.ghost-section { margin-top: 12px; }
+.ghost-section h3 {
+  font-size: 12px; color: var(--text-muted); text-transform: uppercase;
+  letter-spacing: 1px; margin-bottom: 8px;
+}
+.ghost-card {
+  background: var(--bg-card); border: 1px dashed var(--border);
+  border-radius: 10px; padding: 12px; margin-bottom: 8px;
+  opacity: 0.65; transition: opacity 0.2s;
+}
+.ghost-card:hover { opacity: 0.9; }
+.ghost-card .ghost-dir {
+  font-weight: 700; font-size: 13px;
+  font-family: 'JetBrains Mono', monospace;
+}
+.ghost-card .ghost-dir.UP { color: var(--green); }
+.ghost-card .ghost-dir.DOWN { color: var(--red); }
+.ghost-card .ghost-meta {
+  font-size: 11px; color: var(--text-muted); margin-top: 4px;
+}
+.ghost-result {
+  font-size: 11px; font-weight: 600; margin-top: 4px;
+}
+.ghost-result.win { color: var(--green); }
+.ghost-result.loss { color: var(--red); }
+.ghost-result.pending { color: var(--text-muted); }
 
 /* ── AGENTS GRID ── */
-.agents-section { padding: 8px 24px 16px; }
-.agents-section h2 { font-size: 14px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
 .agents-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: 14px;
+  display: grid; grid-template-columns: 1fr;
+  gap: 10px;
 }
 
 /* ── AGENT CARD ── */
 .agent-card {
   background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: 12px; padding: 20px;
+  border-radius: 12px; padding: 16px;
   transition: all 0.25s; position: relative; overflow: hidden;
+  cursor: pointer;
 }
 .agent-card:hover { border-color: var(--accent); background: var(--bg-card-hover); }
 .agent-card.running { border-left: 3px solid var(--accent); }
@@ -130,102 +280,244 @@ body {
 .agent-card.error { border-left: 3px solid var(--red); }
 .agent-card.pending { border-left: 3px solid var(--text-muted); }
 
-.agent-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-.agent-name { font-weight: 700; font-size: 15px; }
-.agent-role { font-size: 12px; color: var(--text-secondary); }
+.agent-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  margin-bottom: 10px;
+}
+.agent-name { font-weight: 700; font-size: 14px; }
+.agent-role { font-size: 11px; color: var(--text-secondary); margin-top: 1px; }
 .agent-status {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
 }
-.status-dot {
-  width: 8px; height: 8px; border-radius: 50%;
-}
+.status-dot { width: 8px; height: 8px; border-radius: 50%; }
 .status-dot.running { background: var(--accent); animation: pulse 1.5s infinite; }
 .status-dot.done { background: var(--green); }
 .status-dot.error { background: var(--red); }
 .status-dot.pending { background: var(--text-muted); }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
-.agent-body { margin-bottom: 12px; }
+/* Asimov Badge */
+.asimov-badge {
+  display: inline-block; padding: 1px 6px; border-radius: 4px;
+  font-size: 10px; font-weight: 700; font-family: 'JetBrains Mono', monospace;
+  margin-left: 6px; vertical-align: middle;
+}
+.asimov-badge.L0 { background: var(--red-dim); color: var(--red); }
+.asimov-badge.L1 { background: var(--yellow-dim); color: var(--yellow); }
+.asimov-badge.L2 { background: var(--green-dim); color: var(--green); }
+.asimov-badge.L3 { background: var(--blue-dim); color: var(--blue); }
+
+.agent-body { margin-bottom: 10px; }
 .agent-task {
-  font-size: 13px; color: var(--text-secondary);
+  font-size: 12px; color: var(--text-secondary);
   padding: 8px 10px; background: var(--bg-input);
-  border-radius: 6px; margin-bottom: 8px;
+  border-radius: 6px; margin-bottom: 6px;
   font-family: 'JetBrains Mono', monospace;
-  max-height: 60px; overflow: hidden;
+  max-height: 50px; overflow: hidden;
   line-height: 1.5;
 }
 .agent-thought {
-  font-size: 12px; color: var(--text-muted); font-style: italic;
-  max-height: 40px; overflow: hidden;
+  font-size: 11px; color: var(--text-muted); font-style: italic;
+  max-height: 36px; overflow: hidden;
 }
 
-.agent-tasks-timeline {
-  display: flex; gap: 4px; margin-bottom: 10px;
-}
-.task-pip {
-  flex: 1; height: 4px; border-radius: 2px;
-  background: var(--border);
-}
+.agent-tasks-timeline { display: flex; gap: 3px; margin-bottom: 8px; }
+.task-pip { flex: 1; height: 4px; border-radius: 2px; background: var(--border); }
 .task-pip.done { background: var(--green); }
 .task-pip.active { background: var(--accent); animation: pulse 1.5s infinite; }
 .task-pip.error { background: var(--red); }
 
+/* Budget progress bar */
+.budget-bar-wrap {
+  height: 4px; border-radius: 2px; background: var(--border);
+  margin-bottom: 8px; overflow: hidden;
+}
+.budget-bar {
+  height: 100%; border-radius: 2px; transition: width 0.5s, background 0.3s;
+}
+.budget-bar.green { background: var(--green); }
+.budget-bar.yellow { background: var(--yellow); }
+.budget-bar.red { background: var(--red); }
+
 .agent-footer {
   display: flex; justify-content: space-between; align-items: center;
-  font-size: 12px; color: var(--text-muted);
+  font-size: 11px; color: var(--text-muted);
 }
 .agent-cost { font-family: 'JetBrains Mono', monospace; }
 .agent-model {
-  padding: 2px 8px; border-radius: 4px; font-size: 11px;
+  padding: 2px 7px; border-radius: 4px; font-size: 10px;
   background: var(--blue-dim); color: var(--blue);
 }
 
+/* Agent expand section */
+.agent-expand {
+  max-height: 0; overflow: hidden; transition: max-height 0.35s ease;
+}
+.agent-card.expanded .agent-expand { max-height: 300px; }
+.agent-expand-inner {
+  padding-top: 12px; margin-top: 12px; border-top: 1px solid var(--border);
+  font-size: 12px; color: var(--text-secondary);
+}
+.expand-row { display: flex; justify-content: space-between; padding: 3px 0; }
+.expand-label { color: var(--text-muted); }
+.expand-val { font-family: 'JetBrains Mono', monospace; }
+.expand-tasks { margin-top: 8px; }
+.expand-task-item {
+  padding: 3px 0; font-size: 11px;
+  display: flex; gap: 6px; align-items: center;
+}
+.expand-task-dot {
+  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+}
+
 /* ── EVENT LOG ── */
-.log-section { padding: 8px 24px 24px; }
-.log-section h2 { font-size: 14px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
 .log-container {
   background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: 12px; max-height: 300px; overflow-y: auto;
-  font-family: 'JetBrains Mono', monospace; font-size: 12px;
-  padding: 12px;
+  border-radius: 12px; max-height: 60vh; overflow-y: auto;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  padding: 10px;
 }
-.log-entry { padding: 4px 0; border-bottom: 1px solid var(--border); display: flex; gap: 12px; }
+.log-entry { padding: 4px 0; border-bottom: 1px solid var(--border); display: flex; gap: 8px; flex-wrap: wrap; }
 .log-entry:last-child { border-bottom: none; }
-.log-time { color: var(--text-muted); min-width: 70px; }
-.log-source { color: var(--accent); min-width: 80px; font-weight: 600; }
-.log-msg { color: var(--text-secondary); }
+.log-time { color: var(--text-muted); min-width: 60px; }
+.log-source { color: var(--accent); min-width: 60px; font-weight: 600; }
+.log-msg { color: var(--text-secondary); flex: 1; min-width: 0; word-break: break-word; }
 .log-msg.alert { color: var(--yellow); }
 .log-msg.error { color: var(--red); }
 .log-msg.success { color: var(--green); }
 
-/* ── ACTIONS BAR ── */
-.actions-bar {
-  display: flex; gap: 10px; padding: 0 24px 16px;
-  flex-wrap: wrap;
+/* ── SETTINGS PANEL ── */
+.settings-group {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden; margin-bottom: 12px;
 }
-.action-btn {
-  padding: 8px 16px; border-radius: 8px;
-  border: 1px solid var(--border); background: var(--bg-card);
-  color: var(--text-secondary); font-size: 13px; cursor: pointer;
-  font-family: 'Inter', sans-serif; transition: all 0.2s;
+.settings-group h3 {
+  font-size: 12px; color: var(--text-muted); text-transform: uppercase;
+  letter-spacing: 1px; padding: 14px 16px 8px;
 }
-.action-btn:hover { border-color: var(--accent); color: var(--text-primary); }
-.action-btn.danger { border-color: var(--red); color: var(--red); }
-.action-btn.danger:hover { background: var(--red-dim); }
+.setting-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 16px; border-top: 1px solid var(--border);
+  min-height: 44px;
+}
+.setting-label { font-size: 13px; }
+.setting-desc { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+/* Toggle switch */
+.toggle { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-track {
+  position: absolute; inset: 0; border-radius: 12px;
+  background: var(--border); transition: background 0.2s; cursor: pointer;
+}
+.toggle input:checked + .toggle-track { background: var(--accent); }
+.toggle-thumb {
+  position: absolute; top: 2px; left: 2px;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: #fff; transition: transform 0.2s; pointer-events: none;
+}
+.toggle input:checked ~ .toggle-thumb { transform: translateX(20px); }
 
-/* ── RESPONSIVE ── */
-@media (max-width: 768px) {
-  .topbar { flex-direction: column; gap: 12px; }
-  .agents-grid { grid-template-columns: 1fr; }
-  .metrics { grid-template-columns: repeat(2, 1fr); }
+.shortcuts-ref {
+  padding: 14px 16px; font-size: 12px; color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace; line-height: 1.8;
 }
+.shortcuts-ref kbd {
+  background: var(--bg-input); border: 1px solid var(--border);
+  padding: 2px 6px; border-radius: 4px; font-size: 11px;
+  color: var(--text-primary);
+}
+
+.setting-btn {
+  padding: 10px 20px; border-radius: 8px;
+  border: 1px solid var(--red); background: transparent;
+  color: var(--red); font-size: 13px; cursor: pointer;
+  transition: all 0.2s; min-height: 44px;
+}
+.setting-btn:hover { background: var(--red-dim); }
+
+/* ── DAVIDE MODE ── */
+.davide-overlay {
+  display: none; padding: 24px 12px;
+}
+.davide-overlay.active { display: block; }
+.davide-metrics {
+  display: flex; flex-direction: column; gap: 16px;
+  align-items: center; text-align: center;
+  padding: 32px 0;
+}
+.davide-big {
+  font-size: 48px; font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+}
+.davide-label {
+  font-size: 14px; color: var(--text-muted); text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.davide-quote {
+  text-align: center; font-style: italic; color: var(--text-muted);
+  font-size: 14px; margin-top: 40px; line-height: 1.6;
+  padding: 0 20px;
+}
+.davide-quote em { color: var(--accent); font-style: normal; font-weight: 600; }
 
 /* ── SCROLLBAR ── */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: var(--bg-primary); }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   BREAKPOINT 480px — 3 metric columns
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+@media (min-width: 480px) {
+  .metrics { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   BREAKPOINT 600px — wider spacing
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+@media (min-width: 600px) {
+  .main-content { padding: 16px 20px calc(var(--tab-height) + var(--safe-bottom) + 16px); }
+  .metrics { gap: 10px; }
+  .metric-card { padding: 14px; }
+  .metric-card .value { font-size: 22px; }
+  .agents-grid { gap: 12px; }
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   BREAKPOINT 768px — topbar stats visible, agents 2-col
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+@media (min-width: 768px) {
+  .topbar { padding: 14px 24px; }
+  .topbar-stat { display: block; }
+  .metrics { grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .agents-grid { grid-template-columns: repeat(2, 1fr); }
+  .main-content { padding: 20px 24px calc(var(--tab-height) + var(--safe-bottom) + 20px); }
+  .log-entry { flex-wrap: nowrap; }
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   BREAKPOINT 1100px — tab bar moves to top, full desktop layout
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+@media (min-width: 1100px) {
+  .tab-bar {
+    position: static; border-top: none; border-bottom: 1px solid var(--border);
+    justify-content: flex-start; gap: 0; padding-bottom: 0;
+    height: auto;
+  }
+  .tab-btn {
+    flex: none; flex-direction: row; gap: 6px;
+    padding: 12px 20px; font-size: 13px;
+    border-bottom: 2px solid transparent;
+  }
+  .tab-btn.active { border-bottom-color: var(--accent); }
+  .tab-btn svg { width: 16px; height: 16px; }
+  .main-content { padding: 24px 32px 32px; }
+  .agents-grid { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
+  .metrics { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+  .davide-big { font-size: 64px; }
+}
 </style>
 </head>
 <body>
@@ -251,6 +543,7 @@ body {
     <div class="topbar-left">
       <div class="topbar-logo">COCKPIT</div>
       <div class="topbar-label" id="connection-status">Connecting...</div>
+      <span class="topbar-errors" id="topbar-errors"></span>
     </div>
     <div class="topbar-right">
       <div class="topbar-stat">
@@ -258,8 +551,8 @@ body {
         <div class="lbl">Agents</div>
       </div>
       <div class="topbar-stat">
-        <div class="val" id="stat-uptime">-</div>
-        <div class="lbl">Bot Uptime</div>
+        <div class="val" id="stat-pnl">-</div>
+        <div class="lbl">P&L</div>
       </div>
       <div class="topbar-stat">
         <div class="val" id="stat-time" style="color:var(--accent)">--:--</div>
@@ -268,76 +561,284 @@ body {
     </div>
   </div>
 
-  <!-- METRICS ROW -->
-  <div class="metrics">
-    <div class="metric-card">
-      <div class="label">Bot Status</div>
-      <div class="value" id="m-bot-status" style="color:var(--green)">-</div>
-      <div class="sub" id="m-bot-mode">-</div>
-    </div>
-    <div class="metric-card">
-      <div class="label">Open Positions</div>
-      <div class="value" id="m-positions">-</div>
-      <div class="sub" id="m-positions-detail">-</div>
-    </div>
-    <div class="metric-card">
-      <div class="label">Today Predictions</div>
-      <div class="value" id="m-predictions">-</div>
-      <div class="sub" id="m-predictions-detail">-</div>
-    </div>
-    <div class="metric-card">
-      <div class="label">Win Rate (live)</div>
-      <div class="value" id="m-winrate">-</div>
-      <div class="sub" id="m-winrate-detail">-</div>
-    </div>
-    <div class="metric-card">
-      <div class="label">Agents Cost</div>
-      <div class="value" id="m-cost">-</div>
-      <div class="sub" id="m-cost-detail">-</div>
-    </div>
-    <div class="metric-card">
-      <div class="label">Phase</div>
-      <div class="value" id="m-phase">-</div>
-      <div class="sub" id="m-phase-detail">-</div>
-    </div>
-  </div>
+  <!-- TAB BAR -->
+  <nav class="tab-bar" id="tab-bar">
+    <button class="tab-btn active" data-tab="overview" onclick="switchTab('overview')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      <span>Overview</span>
+    </button>
+    <button class="tab-btn" data-tab="agents" onclick="switchTab('agents')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>
+      <span>Agents</span>
+      <span class="tab-badge" id="agents-badge"></span>
+    </button>
+    <button class="tab-btn" data-tab="log" onclick="switchTab('log')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      <span>Log</span>
+    </button>
+    <button class="tab-btn" data-tab="settings" onclick="switchTab('settings')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      <span>Settings</span>
+    </button>
+  </nav>
 
-  <!-- ACTIONS BAR -->
-  <div class="actions-bar">
-    <button class="action-btn" onclick="refreshAll()">Refresh</button>
-    <button class="action-btn" onclick="toggleAutoRefresh()">Auto-refresh: <span id="auto-label">ON</span></button>
-    <button class="action-btn" onclick="downloadReport()">Download Report</button>
-  </div>
-
-  <!-- AGENTS GRID -->
-  <div class="agents-section">
-    <h2>AI Agents</h2>
-    <div class="agents-grid" id="agents-grid">
-      <!-- Populated by JS -->
-    </div>
-  </div>
-
-  <!-- EVENT LOG -->
-  <div class="log-section">
-    <h2>Event Log</h2>
-    <div class="log-container" id="log-container">
-      <div class="log-entry">
-        <span class="log-time">--:--</span>
-        <span class="log-source">SYSTEM</span>
-        <span class="log-msg">Waiting for data...</span>
+  <!-- DAVIDE MODE overlay -->
+  <div class="davide-overlay" id="davide-overlay">
+    <div class="davide-metrics">
+      <div>
+        <div class="davide-big" id="dv-status" style="color:var(--green)">ACTIVE</div>
+        <div class="davide-label">Bot Status</div>
+      </div>
+      <div>
+        <div class="davide-big" id="dv-pnl" style="color:var(--text-primary)">$0.00</div>
+        <div class="davide-label">Total P&L</div>
+      </div>
+      <div>
+        <div class="davide-big" id="dv-wr" style="color:var(--accent)">--%</div>
+        <div class="davide-label">Win Rate</div>
       </div>
     </div>
+    <div class="davide-quote">
+      "Riduci la complessita per raggiungere la <em>prevedibilita perfetta</em>."
+    </div>
   </div>
 
-</div>
+  <!-- MAIN CONTENT (hidden during Davide Mode) -->
+  <div class="main-content" id="main-content">
+
+    <!-- Pull to refresh -->
+    <div class="ptr-indicator" id="ptr-indicator">Pull to refresh...</div>
+
+    <!-- TAB: OVERVIEW -->
+    <div class="tab-panel active" id="panel-overview">
+
+      <!-- Voice of the Bot -->
+      <div class="voice-box" id="voice-box">
+        <div class="voice-label">Voice of the Bot</div>
+        <div id="voice-text">Initializing...</div>
+      </div>
+
+      <!-- On-Chain Proof Badge -->
+      <div id="onchain-wrap" style="display:none">
+        <a class="onchain-badge" id="onchain-badge" href="#" target="_blank" rel="noopener">
+          <span class="lock-icon">&#x1F512;</span>
+          <span id="onchain-tx-short">On-Chain Verified</span>
+        </a>
+      </div>
+
+      <!-- Metrics -->
+      <div class="metrics" id="metrics-grid">
+        <div class="metric-card">
+          <div class="label">Bot Status</div>
+          <div class="value" id="m-bot-status" style="color:var(--green)">-</div>
+          <div class="sub" id="m-bot-mode">-</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Open Positions</div>
+          <div class="value" id="m-positions">-</div>
+          <div class="sub" id="m-positions-detail">-</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Today Predictions</div>
+          <div class="value" id="m-predictions">-</div>
+          <div class="sub" id="m-predictions-detail">-</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Win Rate (live)</div>
+          <div class="value" id="m-winrate">-</div>
+          <div class="sub" id="m-winrate-detail">-</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Total P&L</div>
+          <div class="value" id="m-pnl">-</div>
+          <div class="sub" id="m-pnl-detail">-</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Today P&L</div>
+          <div class="value" id="m-today-pnl">-</div>
+          <div class="sub" id="m-today-pnl-detail">-</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Profit Factor</div>
+          <div class="value" id="m-pf">-</div>
+          <div class="sub" id="m-pf-detail">-</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Equity</div>
+          <div class="value" id="m-equity">-</div>
+          <div class="sub" id="m-equity-detail">-</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Agents Cost</div>
+          <div class="value" id="m-cost">-</div>
+          <div class="sub" id="m-cost-detail">-</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Phase</div>
+          <div class="value" id="m-phase">-</div>
+          <div class="sub" id="m-phase-detail">-</div>
+        </div>
+      </div>
+
+      <!-- Ghost Predictions (hidden until Ghost Mode on) -->
+      <div class="ghost-section" id="ghost-section" style="display:none">
+        <h3>Ghost Predictions (Skipped)</h3>
+        <div id="ghost-list"></div>
+      </div>
+    </div>
+
+    <!-- TAB: AGENTS -->
+    <div class="tab-panel" id="panel-agents">
+      <div class="agents-grid" id="agents-grid">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+
+    <!-- TAB: LOG -->
+    <div class="tab-panel" id="panel-log">
+      <div class="log-container" id="log-container">
+        <div class="log-entry">
+          <span class="log-time">--:--</span>
+          <span class="log-source">SYSTEM</span>
+          <span class="log-msg">Waiting for data...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: SETTINGS -->
+    <div class="tab-panel" id="panel-settings">
+      <div class="settings-group">
+        <h3>General</h3>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Auto-Refresh</div>
+            <div class="setting-desc">Poll server every 5 seconds</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="set-autorefresh" checked onchange="toggleSetting('autoRefresh')">
+            <span class="toggle-track"></span>
+            <span class="toggle-thumb"></span>
+          </label>
+        </div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Sound Alerts</div>
+            <div class="setting-desc">Chime on agent done, alarm on error</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="set-sound" onchange="toggleSetting('soundEnabled')">
+            <span class="toggle-track"></span>
+            <span class="toggle-thumb"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <h3>Modes</h3>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Ghost Mode</div>
+            <div class="setting-desc">Show skipped signals with ghost results</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="set-ghost" onchange="toggleSetting('ghostMode')">
+            <span class="toggle-track"></span>
+            <span class="toggle-thumb"></span>
+          </label>
+        </div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Davide Mode</div>
+            <div class="setting-desc">Simplified 3-metric view — "riduci la complessita"</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="set-davide" onchange="toggleSetting('davideMode')">
+            <span class="toggle-track"></span>
+            <span class="toggle-thumb"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <h3>Keyboard Shortcuts</h3>
+        <div class="shortcuts-ref">
+          <kbd>R</kbd> Refresh &nbsp;&nbsp;
+          <kbd>1</kbd>-<kbd>4</kbd> Switch tab &nbsp;&nbsp;
+          <kbd>Space</kbd> Toggle auto-refresh<br>
+          <kbd>G</kbd> Ghost mode &nbsp;&nbsp;
+          <kbd>D</kbd> Davide mode &nbsp;&nbsp;
+          <kbd>Esc</kbd> Back to Overview
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <h3>Session</h3>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Logout</div>
+            <div class="setting-desc">Clear token from this browser</div>
+          </div>
+          <button class="setting-btn" onclick="logout()">Logout</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main-content -->
+
+</div><!-- /app -->
 
 <script>
-// ── CONFIG ──
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// COCKPIT v2 — JavaScript Engine
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 const API_BASE = window.COCKPIT_API_BASE || '';
 const REFRESH_INTERVAL = 5000;
-let autoRefresh = true;
-let refreshTimer = null;
-let authToken = '';
+
+// ── Centralized state ──
+const STATE = {
+  authToken: '',
+  autoRefresh: true,
+  ghostMode: false,
+  davideMode: false,
+  soundEnabled: false,
+  currentTab: 'overview',
+  failCount: 0,
+  connectionAlive: false,
+  refreshTimer: null,
+  lastAgentStatuses: {},
+  ghostsLoaded: false,
+};
+
+// ── Sound engine (Web Audio API) ──
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new AudioCtx();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function playTone(freq, duration, type) {
+  if (!STATE.soundEnabled) return;
+  try {
+    ensureAudio();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type || 'sine';
+    osc.frequency.value = freq;
+    gain.gain.value = 0.08;
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration);
+  } catch(e) { /* audio not available */ }
+}
+
+function soundChime() { playTone(880, 0.3, 'sine'); setTimeout(() => playTone(1100, 0.3, 'sine'), 150); }
+function soundAlarm() { playTone(440, 0.5, 'square'); }
+function soundPing() { playTone(660, 0.15, 'sine'); }
 
 // ── AUTH ──
 document.getElementById('login-form').addEventListener('submit', async (e) => {
@@ -351,7 +852,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
       body: JSON.stringify({ token })
     });
     if (resp.ok) {
-      authToken = token;
+      STATE.authToken = token;
       localStorage.setItem('cockpit_token', token);
       document.getElementById('login-overlay').classList.add('hidden');
       document.getElementById('app').style.display = 'block';
@@ -369,35 +870,216 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
 (function() {
   const saved = localStorage.getItem('cockpit_token');
   if (saved) {
-    authToken = saved;
+    STATE.authToken = saved;
     document.getElementById('login-overlay').classList.add('hidden');
     document.getElementById('app').style.display = 'block';
     startPolling();
   }
+  // Restore settings
+  STATE.ghostMode = localStorage.getItem('cockpit_ghost') === '1';
+  STATE.davideMode = localStorage.getItem('cockpit_davide') === '1';
+  STATE.soundEnabled = localStorage.getItem('cockpit_sound') === '1';
+  document.getElementById('set-ghost').checked = STATE.ghostMode;
+  document.getElementById('set-davide').checked = STATE.davideMode;
+  document.getElementById('set-sound').checked = STATE.soundEnabled;
+  applyDavideMode();
+  if (STATE.ghostMode) document.getElementById('ghost-section').style.display = '';
 })();
+
+function logout() {
+  localStorage.removeItem('cockpit_token');
+  STATE.authToken = '';
+  if (STATE.refreshTimer) clearInterval(STATE.refreshTimer);
+  document.getElementById('login-overlay').classList.remove('hidden');
+  document.getElementById('app').style.display = 'none';
+}
 
 // ── API HELPERS ──
 async function apiFetch(path) {
   const resp = await fetch(`${API_BASE}${path}`, {
-    headers: { 'X-Cockpit-Token': authToken }
+    headers: { 'X-Cockpit-Token': STATE.authToken }
   });
   if (resp.status === 403) {
-    localStorage.removeItem('cockpit_token');
-    document.getElementById('login-overlay').classList.remove('hidden');
-    document.getElementById('app').style.display = 'none';
+    logout();
     throw new Error('Unauthorized');
   }
   return resp.json();
 }
 
+// ── TAB SWITCHING ──
+function switchTab(tab) {
+  STATE.currentTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
+  // Lazy load ghosts
+  if (tab === 'overview' && STATE.ghostMode && !STATE.ghostsLoaded) loadGhosts();
+}
+
 // ── CLOCK ──
 function updateClock() {
-  const now = new Date();
-  const utc = now.toISOString().slice(11, 16);
-  document.getElementById('stat-time').textContent = utc;
+  document.getElementById('stat-time').textContent = new Date().toISOString().slice(11, 16);
 }
 setInterval(updateClock, 1000);
 updateClock();
+
+// ── HEARTBEAT ──
+function updateHeartbeat(ok) {
+  document.body.classList.remove('heartbeat-ok', 'heartbeat-error', 'heartbeat-offline');
+  if (!STATE.connectionAlive) {
+    document.body.classList.add('heartbeat-offline');
+  } else if (ok) {
+    document.body.classList.add('heartbeat-ok');
+  } else {
+    document.body.classList.add('heartbeat-error');
+  }
+}
+
+// ── VOICE OF THE BOT ──
+function generateVoice(overview) {
+  if (!overview) return 'Waiting for data...';
+  const parts = [];
+  const mode = overview.mode || 'UNKNOWN';
+  if (mode === 'LIVE') parts.push('Bot is live.');
+  else if (mode === 'DRY RUN') parts.push('Bot running in dry mode.');
+  else parts.push('Bot is paused.');
+
+  const tp = overview.today_predictions || 0;
+  if (tp > 0) {
+    parts.push(`${tp} prediction${tp > 1 ? 's' : ''} today (${overview.predictions_detail || ''}).`);
+  } else {
+    parts.push('No predictions today yet.');
+  }
+
+  const wr = overview.win_rate;
+  if (wr !== null && wr !== undefined) {
+    const wrPct = (wr * 100).toFixed(1);
+    parts.push(`Win rate ${wrPct}%` + (wr >= 0.55 ? ' — above target.' : wr >= 0.45 ? ' — on target.' : ' — below target.'));
+  }
+
+  const pf = overview.profit_factor;
+  if (pf !== null && pf !== undefined) {
+    parts.push(`Profit factor ${pf}.`);
+  }
+
+  return parts.join(' ');
+}
+
+// ── RENDER METRICS ──
+function renderMetrics(overview) {
+  if (!overview) return;
+
+  // Bot status
+  const bs = document.getElementById('m-bot-status');
+  if (overview.bot_paused) { bs.textContent = 'PAUSED'; bs.style.color = 'var(--yellow)'; }
+  else if (overview.dry_run) { bs.textContent = 'DRY RUN'; bs.style.color = 'var(--blue)'; }
+  else { bs.textContent = 'ACTIVE'; bs.style.color = 'var(--green)'; }
+  document.getElementById('m-bot-mode').textContent = overview.mode || '';
+
+  document.getElementById('m-positions').textContent = overview.open_positions ?? '-';
+  document.getElementById('m-positions-detail').textContent = overview.position_detail || '';
+
+  document.getElementById('m-predictions').textContent = overview.today_predictions ?? '-';
+  document.getElementById('m-predictions-detail').textContent = overview.predictions_detail || '';
+
+  // Win rate
+  const wr = overview.win_rate;
+  const wrEl = document.getElementById('m-winrate');
+  if (wr !== null && wr !== undefined) {
+    wrEl.textContent = (wr * 100).toFixed(1) + '%';
+    wrEl.style.color = wr >= 0.55 ? 'var(--green)' : wr >= 0.45 ? 'var(--yellow)' : 'var(--red)';
+  }
+  document.getElementById('m-winrate-detail').textContent = overview.winrate_detail || '';
+
+  // P&L
+  const totalPnl = overview.total_pnl;
+  const pnlEl = document.getElementById('m-pnl');
+  if (totalPnl !== undefined && totalPnl !== null) {
+    pnlEl.textContent = `$${totalPnl.toFixed(2)}`;
+    pnlEl.style.color = totalPnl >= 0 ? 'var(--green)' : 'var(--red)';
+  }
+  document.getElementById('m-pnl-detail').textContent = overview.winrate_detail || '';
+
+  const todayPnl = overview.today_pnl;
+  const tdPnlEl = document.getElementById('m-today-pnl');
+  if (todayPnl !== undefined && todayPnl !== null) {
+    tdPnlEl.textContent = `$${todayPnl.toFixed(2)}`;
+    tdPnlEl.style.color = todayPnl >= 0 ? 'var(--green)' : 'var(--red)';
+  }
+  document.getElementById('m-today-pnl-detail').textContent = `${overview.today_ghosts || 0} ghost today`;
+
+  // Profit Factor
+  const pf = overview.profit_factor;
+  const pfEl = document.getElementById('m-pf');
+  if (pf !== null && pf !== undefined) {
+    pfEl.textContent = pf.toFixed(2);
+    pfEl.style.color = pf >= 1.5 ? 'var(--green)' : pf >= 1.0 ? 'var(--yellow)' : 'var(--red)';
+  }
+  document.getElementById('m-pf-detail').textContent = 'wins / losses';
+
+  // Equity
+  const eq = overview.wallet_equity;
+  const eqEl = document.getElementById('m-equity');
+  if (eq !== null && eq !== undefined && eq > 0) {
+    eqEl.textContent = `$${eq.toFixed(0)}`;
+  }
+  const cap = overview.capital_base;
+  document.getElementById('m-equity-detail').textContent = cap ? `base: $${cap}` : '';
+
+  // Cost
+  const cost = overview.agents_total_cost;
+  document.getElementById('m-cost').textContent = cost !== undefined ? `$${cost.toFixed(2)}` : '-';
+  document.getElementById('m-cost-detail').textContent = overview.cost_detail || '';
+
+  // Phase
+  document.getElementById('m-phase').textContent = overview.current_phase || '-';
+  document.getElementById('m-phase-detail').textContent = overview.phase_detail || '';
+
+  // Topbar stats
+  document.getElementById('stat-agents').textContent = `${overview.agents_running || 0}/${overview.agents_total || 0}`;
+  const statPnl = document.getElementById('stat-pnl');
+  if (totalPnl !== undefined && totalPnl !== null) {
+    statPnl.textContent = `$${totalPnl.toFixed(0)}`;
+    statPnl.style.color = totalPnl >= 0 ? 'var(--green)' : 'var(--red)';
+  }
+
+  // Voice
+  document.getElementById('voice-text').textContent = generateVoice(overview);
+
+  // On-Chain Badge
+  const tx = overview.latest_onchain_tx;
+  const onchainWrap = document.getElementById('onchain-wrap');
+  if (tx) {
+    onchainWrap.style.display = '';
+    const badge = document.getElementById('onchain-badge');
+    badge.href = `https://polygonscan.com/tx/${tx}`;
+    document.getElementById('onchain-tx-short').textContent = `On-Chain: ${tx.slice(0, 8)}...${tx.slice(-6)}`;
+  } else {
+    onchainWrap.style.display = 'none';
+  }
+
+  // Davide mode data
+  const dvStatus = document.getElementById('dv-status');
+  dvStatus.textContent = overview.bot_paused ? 'PAUSED' : overview.dry_run ? 'DRY RUN' : 'ACTIVE';
+  dvStatus.style.color = overview.bot_paused ? 'var(--yellow)' : overview.dry_run ? 'var(--blue)' : 'var(--green)';
+  document.getElementById('dv-pnl').textContent = totalPnl !== undefined ? `$${totalPnl.toFixed(2)}` : '-';
+  document.getElementById('dv-pnl').style.color = (totalPnl || 0) >= 0 ? 'var(--green)' : 'var(--red)';
+  document.getElementById('dv-wr').textContent = wr !== null && wr !== undefined ? `${(wr*100).toFixed(1)}%` : '--%';
+
+  // Check for agent errors (for heartbeat + topbar badge)
+  const hasErrors = (overview._agentErrors || 0) > 0;
+  updateHeartbeat(!hasErrors);
+}
+
+// ── ASIMOV BADGE ──
+function asimovLevel(agent) {
+  if (agent.status === 'error') return 'L0';
+  if (agent.status === 'done' || agent.status === 'pending') return 'L1';
+  if (agent.status === 'running') {
+    const pct = agent.max_budget > 0 ? (agent.cost_usd / agent.max_budget) * 100 : 0;
+    return pct > 90 ? 'L3' : 'L2';
+  }
+  return 'L1';
+}
 
 // ── RENDER AGENTS ──
 function renderAgents(agents) {
@@ -406,6 +1088,30 @@ function renderAgents(agents) {
     grid.innerHTML = '<div style="color:var(--text-muted);padding:24px;text-align:center">Nessun agent attivo. Lancia l\'orchestratore per iniziare.</div>';
     return;
   }
+
+  // Count errors for badge
+  const errorCount = agents.filter(a => a.status === 'error').length;
+  const badge = document.getElementById('agents-badge');
+  const topbarErr = document.getElementById('topbar-errors');
+  if (errorCount > 0) {
+    badge.style.display = '';
+    topbarErr.style.display = '';
+    topbarErr.textContent = errorCount;
+  } else {
+    badge.style.display = 'none';
+    topbarErr.style.display = 'none';
+  }
+
+  // Detect status changes for sound alerts
+  agents.forEach(a => {
+    const id = a.clone_id;
+    const prev = STATE.lastAgentStatuses[id];
+    if (prev && prev !== a.status) {
+      if (a.status === 'done') soundChime();
+      if (a.status === 'error') soundAlarm();
+    }
+    STATE.lastAgentStatuses[id] = a.status;
+  });
 
   grid.innerHTML = agents.map(a => {
     const status = a.status || 'pending';
@@ -419,12 +1125,25 @@ function renderAgents(agents) {
     const modelColor = model === 'Opus' ? 'var(--purple)' : 'var(--blue)';
     const modelBg = model === 'Opus' ? 'rgba(168,85,247,0.15)' : 'var(--blue-dim)';
 
+    // Budget bar
+    const budgetPct = a.max_budget > 0 ? Math.min((a.cost_usd / a.max_budget) * 100, 100) : 0;
+    const budgetColor = budgetPct > 90 ? 'red' : budgetPct > 60 ? 'yellow' : 'green';
+
+    // Asimov
+    const asimov = asimovLevel(a);
+
+    // Expand data
+    const expandTasks = tasks.map(t => {
+      const dotColor = t.status === 'done' ? 'var(--green)' : t.status === 'active' ? 'var(--accent)' : t.status === 'error' ? 'var(--red)' : 'var(--border)';
+      return `<div class="expand-task-item"><div class="expand-task-dot" style="background:${dotColor}"></div>${escapeHtml(t.name || t.subject || t.status)}</div>`;
+    }).join('');
+
     return `
-    <div class="agent-card ${status}">
+    <div class="agent-card ${status}" onclick="toggleExpand(this)">
       <div class="agent-header">
         <div>
-          <div class="agent-name">${a.name || a.clone_id}</div>
-          <div class="agent-role">${a.role || ''}</div>
+          <div class="agent-name">${escapeHtml(a.name || a.clone_id)}<span class="asimov-badge ${asimov}">${asimov}</span></div>
+          <div class="agent-role">${escapeHtml(a.role || '')}</div>
         </div>
         <div class="agent-status">
           <div class="status-dot ${status}"></div>
@@ -432,6 +1151,7 @@ function renderAgents(agents) {
         </div>
       </div>
       ${tasks.length ? `<div class="agent-tasks-timeline">${taskPips}</div>` : ''}
+      <div class="budget-bar-wrap"><div class="budget-bar ${budgetColor}" style="width:${budgetPct}%"></div></div>
       <div class="agent-body">
         <div class="agent-task">${escapeHtml(a.current_task || a.last_message || 'In attesa...')}</div>
         ${a.thought ? `<div class="agent-thought">${escapeHtml(a.thought)}</div>` : ''}
@@ -444,9 +1164,19 @@ function renderAgents(agents) {
         </div>
         <div class="agent-model" style="background:${modelBg};color:${modelColor}">${model}</div>
       </div>
+      <div class="agent-expand">
+        <div class="agent-expand-inner">
+          ${a.result_summary ? `<div class="expand-row"><span class="expand-label">Result</span><span class="expand-val">${escapeHtml(a.result_summary)}</span></div>` : ''}
+          ${a.next_action ? `<div class="expand-row"><span class="expand-label">Next</span><span class="expand-val">${escapeHtml(a.next_action)}</span></div>` : ''}
+          ${a.next_action_time ? `<div class="expand-row"><span class="expand-label">Next at</span><span class="expand-val">${escapeHtml(a.next_action_time)}</span></div>` : ''}
+          ${expandTasks ? `<div class="expand-tasks">${expandTasks}</div>` : ''}
+        </div>
+      </div>
     </div>`;
   }).join('');
 }
+
+function toggleExpand(card) { card.classList.toggle('expanded'); }
 
 // ── RENDER LOG ──
 function renderLog(events) {
@@ -465,47 +1195,35 @@ function renderLog(events) {
   }).join('');
 }
 
-// ── RENDER METRICS ──
-function renderMetrics(overview) {
-  if (!overview) return;
-
-  const bs = document.getElementById('m-bot-status');
-  if (overview.bot_paused) {
-    bs.textContent = 'PAUSED';
-    bs.style.color = 'var(--yellow)';
-  } else if (overview.dry_run) {
-    bs.textContent = 'DRY RUN';
-    bs.style.color = 'var(--blue)';
-  } else {
-    bs.textContent = 'ACTIVE';
-    bs.style.color = 'var(--green)';
-  }
-  document.getElementById('m-bot-mode').textContent = overview.mode || '';
-
-  document.getElementById('m-positions').textContent = overview.open_positions ?? '-';
-  document.getElementById('m-positions-detail').textContent = overview.position_detail || '';
-
-  document.getElementById('m-predictions').textContent = overview.today_predictions ?? '-';
-  document.getElementById('m-predictions-detail').textContent = overview.predictions_detail || '';
-
-  const wr = overview.win_rate;
-  const wrEl = document.getElementById('m-winrate');
-  if (wr !== null && wr !== undefined) {
-    wrEl.textContent = (wr * 100).toFixed(1) + '%';
-    wrEl.style.color = wr >= 0.55 ? 'var(--green)' : wr >= 0.45 ? 'var(--yellow)' : 'var(--red)';
-  }
-  document.getElementById('m-winrate-detail').textContent = overview.winrate_detail || '';
-
-  const cost = overview.agents_total_cost;
-  document.getElementById('m-cost').textContent = cost !== undefined ? `$${cost.toFixed(2)}` : '-';
-  document.getElementById('m-cost-detail').textContent = overview.cost_detail || '';
-
-  document.getElementById('m-phase').textContent = overview.current_phase || '-';
-  document.getElementById('m-phase-detail').textContent = overview.phase_detail || '';
-
-  document.getElementById('stat-agents').textContent =
-    `${overview.agents_running || 0}/${overview.agents_total || 0}`;
-  document.getElementById('stat-uptime').textContent = overview.uptime || '-';
+// ── GHOST MODE ──
+async function loadGhosts() {
+  if (!STATE.ghostMode) return;
+  try {
+    const data = await apiFetch('/cockpit/api/ghosts');
+    const ghosts = data.ghosts || [];
+    const list = document.getElementById('ghost-list');
+    if (ghosts.length === 0) {
+      list.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:8px">No ghost signals today.</div>';
+      STATE.ghostsLoaded = true;
+      return;
+    }
+    list.innerHTML = ghosts.map(g => {
+      const dir = (g.direction || '').toUpperCase();
+      const gc = g.ghost_correct;
+      const resultCls = gc === true ? 'win' : gc === false ? 'loss' : 'pending';
+      const resultTxt = gc === true ? 'Would have WON' : gc === false ? 'Would have LOST' : 'Pending...';
+      const time = g.created_at ? new Date(g.created_at).toISOString().slice(11, 16) : '';
+      return `
+      <div class="ghost-card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span class="ghost-dir ${dir}">${dir} ${(g.confidence || 0).toFixed(0)}%</span>
+          <span class="ghost-result ${resultCls}">${resultTxt}</span>
+        </div>
+        <div class="ghost-meta">${time} UTC${g.reason ? ' — ' + escapeHtml(g.reason) : ''}${g.signal_price ? ' @ $' + parseFloat(g.signal_price).toFixed(0) : ''}</div>
+      </div>`;
+    }).join('');
+    STATE.ghostsLoaded = true;
+  } catch(e) { console.error('Ghost load error:', e); }
 }
 
 // ── REFRESH ALL ──
@@ -519,13 +1237,28 @@ async function refreshAll() {
       apiFetch('/cockpit/api/overview')
     ]);
 
-    renderAgents(agentsData.agents || []);
+    STATE.connectionAlive = true;
+    STATE.failCount = 0;
+
+    const agents = agentsData.agents || [];
+    const errorCount = agents.filter(a => a.status === 'error').length;
+    overviewData._agentErrors = errorCount;
+
+    renderAgents(agents);
     renderLog(agentsData.events || []);
     renderMetrics(overviewData);
 
+    // Lazy load ghosts on overview tab
+    if (STATE.ghostMode && STATE.currentTab === 'overview' && !STATE.ghostsLoaded) loadGhosts();
+
     document.getElementById('connection-status').textContent = 'Connected';
     document.getElementById('connection-status').style.background = 'var(--green-dim)';
+
+    soundPing();
   } catch (err) {
+    STATE.failCount++;
+    STATE.connectionAlive = STATE.failCount < 3;
+    updateHeartbeat(false);
     document.getElementById('connection-status').textContent = 'Disconnected';
     document.getElementById('connection-status').style.background = 'var(--red-dim)';
     console.error('Refresh error:', err);
@@ -535,28 +1268,84 @@ async function refreshAll() {
 // ── POLLING ──
 function startPolling() {
   refreshAll();
-  if (refreshTimer) clearInterval(refreshTimer);
-  refreshTimer = setInterval(() => {
-    if (autoRefresh) refreshAll();
+  if (STATE.refreshTimer) clearInterval(STATE.refreshTimer);
+  STATE.refreshTimer = setInterval(() => {
+    if (STATE.autoRefresh) refreshAll();
   }, REFRESH_INTERVAL);
 }
 
-function toggleAutoRefresh() {
-  autoRefresh = !autoRefresh;
-  document.getElementById('auto-label').textContent = autoRefresh ? 'ON' : 'OFF';
+// ── SETTINGS TOGGLES ──
+function toggleSetting(key) {
+  STATE[key] = !STATE[key];
+  const lsKey = { autoRefresh: null, ghostMode: 'cockpit_ghost', davideMode: 'cockpit_davide', soundEnabled: 'cockpit_sound' }[key];
+  if (lsKey) localStorage.setItem(lsKey, STATE[key] ? '1' : '0');
+
+  if (key === 'ghostMode') {
+    document.getElementById('ghost-section').style.display = STATE.ghostMode ? '' : 'none';
+    if (STATE.ghostMode) { STATE.ghostsLoaded = false; loadGhosts(); }
+  }
+  if (key === 'davideMode') applyDavideMode();
 }
 
-function downloadReport() {
-  apiFetch('/cockpit/api/agents').then(data => {
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `cockpit_report_${new Date().toISOString().slice(0,10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  });
+function applyDavideMode() {
+  document.getElementById('davide-overlay').classList.toggle('active', STATE.davideMode);
+  document.getElementById('main-content').style.display = STATE.davideMode ? 'none' : '';
 }
+
+// ── PULL TO REFRESH (touch) ──
+let ptrStartY = 0;
+let ptrTriggered = false;
+
+document.addEventListener('touchstart', (e) => {
+  if (window.scrollY === 0) ptrStartY = e.touches[0].clientY;
+  else ptrStartY = 0;
+}, { passive: true });
+
+document.addEventListener('touchmove', (e) => {
+  if (ptrStartY === 0) return;
+  const dy = e.touches[0].clientY - ptrStartY;
+  if (dy > 80 && !ptrTriggered) {
+    ptrTriggered = true;
+    document.getElementById('ptr-indicator').classList.add('visible');
+  }
+}, { passive: true });
+
+document.addEventListener('touchend', () => {
+  if (ptrTriggered) {
+    refreshAll();
+    STATE.ghostsLoaded = false;
+    document.getElementById('ptr-indicator').classList.remove('visible');
+  }
+  ptrStartY = 0;
+  ptrTriggered = false;
+});
+
+// ── KEYBOARD SHORTCUTS ──
+document.addEventListener('keydown', (e) => {
+  // Don't trigger in input fields
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+  const key = e.key.toLowerCase();
+  if (key === 'r') { e.preventDefault(); refreshAll(); STATE.ghostsLoaded = false; }
+  else if (key === '1') switchTab('overview');
+  else if (key === '2') switchTab('agents');
+  else if (key === '3') switchTab('log');
+  else if (key === '4') switchTab('settings');
+  else if (key === ' ') {
+    e.preventDefault();
+    STATE.autoRefresh = !STATE.autoRefresh;
+    document.getElementById('set-autorefresh').checked = STATE.autoRefresh;
+  }
+  else if (key === 'g') {
+    document.getElementById('set-ghost').checked = !STATE.ghostMode;
+    toggleSetting('ghostMode');
+  }
+  else if (key === 'd') {
+    document.getElementById('set-davide').checked = !STATE.davideMode;
+    toggleSetting('davideMode');
+  }
+  else if (key === 'escape') { switchTab('overview'); }
+});
 
 // ── UTILS ──
 function formatElapsed(sec) {

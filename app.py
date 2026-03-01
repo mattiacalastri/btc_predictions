@@ -5367,6 +5367,15 @@ def cockpit_overview():
         "current_phase": "-",
         "phase_detail": "",
         "uptime": "-",
+        # v2 fields
+        "total_pnl": 0.0,
+        "today_pnl": 0.0,
+        "profit_factor": None,
+        "wallet_equity": None,
+        "capital_base": float(os.environ.get("CAPITAL_USD", 0)),
+        "latest_onchain_tx": None,
+        "today_ghosts": 0,
+        "latest_prediction": None,
     }
 
     try:
@@ -5389,27 +5398,55 @@ def cockpit_overview():
             if overview["open_positions"] > 0:
                 p = _positions[0]
                 overview["position_detail"] = f"{p.get('side', '?')} {p.get('symbol', '')} {p.get('size', '')}"
+            # Wallet equity from Kraken flex account
+            try:
+                _wallets = _ku.get_wallets()
+                if isinstance(_wallets, dict):
+                    flex = _wallets.get("flex", _wallets.get("multiCollateral", {}))
+                    overview["wallet_equity"] = float(flex.get("pv", flex.get("portfolioValue", 0)))
+            except Exception:
+                pass
         except Exception:
             overview["position_detail"] = "Kraken API unavailable"
 
-        # Today's predictions
+        # Today's predictions (expanded select for pnl + ghost + latest)
         today_str = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%d")
         resp = requests.get(
-            f"{sb_url}/rest/v1/predictions?select=id,correct,confidence,direction"
+            f"{sb_url}/rest/v1/predictions?select=id,correct,confidence,direction,pnl_usd,bet_taken,created_at,tx_hash"
             f"&created_at=gte.{today_str}T00:00:00Z&order=created_at.desc",
             headers=headers, timeout=5
         )
         if resp.ok:
             preds = resp.json()
-            overview["today_predictions"] = len(preds)
-            correct = [p for p in preds if p.get("correct") is True]
-            wrong = [p for p in preds if p.get("correct") is False]
-            pending = [p for p in preds if p.get("correct") is None]
+            taken = [p for p in preds if p.get("bet_taken") is not False]
+            ghosts = [p for p in preds if p.get("bet_taken") is False]
+            overview["today_predictions"] = len(taken)
+            correct = [p for p in taken if p.get("correct") is True]
+            wrong = [p for p in taken if p.get("correct") is False]
+            pending = [p for p in taken if p.get("correct") is None]
             overview["predictions_detail"] = f"{len(correct)}W {len(wrong)}L {len(pending)}P"
+            # Today P&L
+            overview["today_pnl"] = sum(float(p.get("pnl_usd") or 0) for p in taken)
+            # Today ghosts count
+            overview["today_ghosts"] = len(ghosts)
+            # Latest prediction
+            if taken:
+                lp = taken[0]
+                overview["latest_prediction"] = {
+                    "direction": lp.get("direction"),
+                    "confidence": lp.get("confidence"),
+                    "correct": lp.get("correct"),
+                    "created_at": lp.get("created_at"),
+                }
+            # Latest on-chain tx hash (first non-null tx_hash)
+            for p in preds:
+                if p.get("tx_hash"):
+                    overview["latest_onchain_tx"] = p["tx_hash"]
+                    break
 
-        # Overall win rate (last 50 evaluated bets)
+        # Overall win rate (last 50 evaluated bets) + total P&L + profit factor
         resp2 = requests.get(
-            f"{sb_url}/rest/v1/predictions?select=correct"
+            f"{sb_url}/rest/v1/predictions?select=correct,pnl_usd"
             f"&correct=not.is.null&bet_taken=eq.true&order=created_at.desc&limit=50",
             headers=headers, timeout=5
         )
@@ -5419,6 +5456,12 @@ def cockpit_overview():
                 wins = sum(1 for p in evaluated if p.get("correct") is True)
                 overview["win_rate"] = wins / len(evaluated)
                 overview["winrate_detail"] = f"{wins}/{len(evaluated)} (last 50 evaluated)"
+                # Total P&L and profit factor from evaluated
+                pnls = [float(p.get("pnl_usd") or 0) for p in evaluated]
+                overview["total_pnl"] = sum(pnls)
+                gross_wins = sum(v for v in pnls if v > 0)
+                gross_losses = abs(sum(v for v in pnls if v < 0))
+                overview["profit_factor"] = round(gross_wins / gross_losses, 2) if gross_losses > 0 else None
 
         # Agent summary from cockpit_events
         try:
@@ -5460,6 +5503,30 @@ def cockpit_overview():
         app.logger.warning("[COCKPIT] Overview error: %s", e)
 
     return jsonify(overview), 200
+
+
+@app.route("/cockpit/api/ghosts", methods=["GET"])
+def cockpit_ghosts():
+    """Return last 10 ghost (skipped) signals for Ghost Mode."""
+    err = _check_cockpit_auth()
+    if err:
+        return err
+    ghosts = []
+    try:
+        sb_url, sb_key = _sb_config()
+        if sb_url and sb_key:
+            headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
+            resp = requests.get(
+                f"{sb_url}/rest/v1/predictions"
+                f"?select=id,direction,confidence,reason,created_at,ghost_correct,signal_price"
+                f"&bet_taken=eq.false&order=created_at.desc&limit=10",
+                headers=headers, timeout=5,
+            )
+            if resp.ok:
+                ghosts = resp.json()
+    except Exception as e:
+        app.logger.warning("[COCKPIT] Ghosts error: %s", e)
+    return jsonify({"ghosts": ghosts}), 200
 
 
 # ── MAIN ─────────────────────────────────────────────────────────────────────
