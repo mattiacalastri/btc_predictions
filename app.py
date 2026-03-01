@@ -4798,10 +4798,10 @@ def legal():
 <div class="wrap">
   <a href="/dashboard" class="back">← BACK TO DASHBOARD</a>
   <h1>LEGAL NOTICE &amp; PRIVACY POLICY</h1>
-  <div class="meta">BTC Predictor · btcpredictor.io · Last updated: 2026-02-26</div>
+  <div class="meta">BTC Predictor · btcpredictor.io · Last updated: 2026-03-01</div>
 
   <h2>1. LEGAL NOTICE (AVVISO LEGALE)</h2>
-  <p>This website and its services are operated by <strong>Astra Digital Marketing</strong> (hereinafter "we", "us", "the operator").<br>
+  <p>This website and its services are operated by <strong>Mattia Calastri</strong>, founder of BTC Predictor (hereinafter "we", "us", "the operator").<br>
   Contact: <a href="mailto:signal@btcpredictor.io">signal@btcpredictor.io</a></p>
   <p>The BTC Predictor dashboard and all associated software is published as open-source under the MIT License. The source code is publicly available at <a href="https://github.com/mattiacalastri/btc_predictions" target="_blank" rel="noopener">github.com/mattiacalastri/btc_predictions</a>.</p>
 
@@ -4826,6 +4826,8 @@ def legal():
     <li><strong>Google Analytics 4</strong> — Provider: Google LLC. Collects: page views, traffic sources, time on site. Cookies: <code>_ga</code>, <code>_gid</code>, <code>_gat</code>. Default: denied until consent. <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy ↗</a></li>
     <li><strong>Microsoft Clarity</strong> — Provider: Microsoft Corporation. Collects: heatmaps, session replay, click tracking. Storage: <code>clarity_*</code>, <code>clr_*</code> in localStorage. Default: not loaded until consent. <a href="https://privacy.microsoft.com/en-us/privacystatement" target="_blank" rel="noopener">Microsoft Privacy Policy ↗</a></li>
     <li><strong>Sentry</strong> — Provider: Functional Software Inc. Purpose: JavaScript error monitoring and performance tracking. <code>sendDefaultPii: false</code> — no personally identifiable information is sent. Default: not loaded until consent. <a href="https://sentry.io/privacy/" target="_blank" rel="noopener">Sentry Privacy Policy ↗</a></li>
+    <li><strong>Google reCAPTCHA v3</strong> — Provider: Google LLC. Purpose: invisible anti-bot protection on all public forms. Collects: IP address, browser/device fingerprint, interaction data. Loaded on pages with forms. <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy ↗</a></li>
+    <li><strong>Cloudflare Turnstile</strong> — Provider: Cloudflare, Inc. Purpose: invisible CAPTCHA fallback on the Satoshi widget. Collects: IP address, device data. <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener">Cloudflare Privacy Policy ↗</a></li>
   </ul>
   <p>If you <strong>decline</strong> the cookie banner, none of these scripts are loaded. Your choice is stored in <code>localStorage</code> (key: <code>btcp_ga_consent</code>) to avoid showing the banner on every visit.</p>
 
@@ -4853,7 +4855,7 @@ def legal():
   <p>Last updated: 2026-02-27. For questions: <a href="mailto:signal@btcpredictor.io">signal@btcpredictor.io</a></p>
 
   <h2>4. INTELLECTUAL PROPERTY</h2>
-  <p>The source code of BTC Predictor is released under the <strong>MIT License</strong>. You are free to use, modify, and distribute it subject to the license terms. The "BTC Predictor" name, "Astra Digital Marketing" name, and associated branding remain the property of the operator.</p>
+  <p>The source code of BTC Predictor is released under the <strong>MIT License</strong>. You are free to use, modify, and distribute it subject to the license terms. The "BTC Predictor" name and associated branding remain the property of the operator.</p>
 
   <h2>5. GOVERNING LAW</h2>
   <p>This legal notice is governed by Italian law. Any disputes arising from the use of this service shall be subject to the exclusive jurisdiction of the competent Italian courts.</p>
