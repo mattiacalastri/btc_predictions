@@ -1203,6 +1203,12 @@ function renderAgents(agents) {
     STATE.lastAgentStatuses[id] = a.status;
   });
 
+  // Preserve expanded + full-log state across re-renders
+  const expandedSet = new Set();
+  const fullLogSet = new Set();
+  grid.querySelectorAll('.agent-card.expanded').forEach(c => expandedSet.add(c.dataset.clone));
+  grid.querySelectorAll('.agent-card.full-log').forEach(c => fullLogSet.add(c.dataset.clone));
+
   grid.innerHTML = agents.map(a => {
     const status = a.status || 'pending';
     const tasks = a.tasks || [];
@@ -1278,6 +1284,16 @@ function renderAgents(agents) {
       </div>
     </div>`;
   }).join('');
+
+  // Restore expanded + full-log state
+  expandedSet.forEach(cid => {
+    const el = grid.querySelector(`.agent-card[data-clone="${cid}"]`);
+    if (el) el.classList.add('expanded');
+  });
+  fullLogSet.forEach(cid => {
+    const el = grid.querySelector(`.agent-card[data-clone="${cid}"]`);
+    if (el) el.classList.add('full-log');
+  });
 }
 
 function toggleExpand(card) { card.classList.toggle('expanded'); }
