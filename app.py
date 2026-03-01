@@ -557,9 +557,10 @@ def health():
 
 @app.route("/publish-telegram", methods=["POST"])
 def publish_telegram():
-    """Pubblica un messaggio sul canale Telegram pubblico.
+    """Pubblica un messaggio (o foto+caption) sul canale Telegram pubblico.
     Protected by BOT_API_KEY. Rate-limited a 10/min.
-    Body JSON: {text: str, parse_mode?: str}
+    Body JSON: {text: str, parse_mode?: str, photo?: str}
+    Se photo è presente (nome file in static/marketing_assets/) usa sendPhoto con caption.
     """
     err = _check_api_key()
     if err:
@@ -571,19 +572,37 @@ def publish_telegram():
     text = str(data.get("text", "")).strip()
     if not text:
         return jsonify({"error": "text required"}), 400
-    if len(text) > 4096:
-        return jsonify({"error": "text too long (max 4096 chars)"}), 400
     parse_mode = data.get("parse_mode", "HTML")
     tg_token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
     if not tg_token:
         return jsonify({"error": "TELEGRAM_BOT_TOKEN not configured"}), 503
     channel_id = "-1003762450968"
+    photo_filename = data.get("photo")
     try:
-        resp = requests.post(
-            f"https://api.telegram.org/bot{tg_token}/sendMessage",
-            json={"chat_id": channel_id, "text": text, "parse_mode": parse_mode},
-            timeout=10,
-        )
+        if photo_filename:
+            # sendPhoto — caption max 1024 chars
+            photo_path = os.path.join(
+                os.path.dirname(__file__), "static", "marketing_assets",
+                os.path.basename(photo_filename)
+            )
+            if not os.path.exists(photo_path):
+                return jsonify({"error": f"photo not found: {photo_filename}"}), 404
+            caption = text[:1024]
+            with open(photo_path, "rb") as f:
+                resp = requests.post(
+                    f"https://api.telegram.org/bot{tg_token}/sendPhoto",
+                    data={"chat_id": channel_id, "caption": caption, "parse_mode": parse_mode},
+                    files={"photo": f},
+                    timeout=20,
+                )
+        else:
+            if len(text) > 4096:
+                return jsonify({"error": "text too long (max 4096 chars)"}), 400
+            resp = requests.post(
+                f"https://api.telegram.org/bot{tg_token}/sendMessage",
+                json={"chat_id": channel_id, "text": text, "parse_mode": parse_mode},
+                timeout=10,
+            )
         result = resp.json()
         if not result.get("ok"):
             return jsonify({"error": result.get("description", "Telegram error")}), 502

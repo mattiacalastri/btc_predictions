@@ -512,6 +512,9 @@
   .btn-pub-rd    { background:rgba(255,69,0,.05); color:rgba(255,107,53,.3); border-color:rgba(255,69,0,.1); cursor:not-allowed; }
   .btn-pub-del   { background:rgba(255,68,102,.06); color:rgba(255,68,102,.4); border-color:rgba(255,68,102,.15); cursor:pointer; }
   .btn-pub-del:hover { color:var(--red); border-color:rgba(255,68,102,.35); }
+  .post-photo-thumb { display:flex; align-items:center; gap:10px; margin-bottom:10px; padding:8px 10px; background:rgba(0,255,136,.04); border:1px solid rgba(0,255,136,.1); border-radius:6px; }
+  .post-photo-thumb img { width:56px; height:56px; object-fit:cover; border-radius:4px; border:1px solid rgba(0,255,136,.15); }
+  .post-photo-name { font-size:11px; color:var(--green); opacity:.7; font-family:monospace; }
   .ped-new-form {
     background:var(--bg4); border:1px solid rgba(247,147,26,.25);
     border-radius:8px; padding:16px 18px; margin-bottom:14px;
@@ -1772,32 +1775,46 @@ var _PED_APIKEY = 'ped_api_key';
 // Default editorial calendar — Mar 2026 (pre-seeded, Day 0 era)
 var _PED_DEFAULTS = [
   { id: 'd1', title: 'Day 0 — Il Reset', date: '2026-03-01T09:00', channel: 'tg',
+    photo: 'mvp-initial.png',
     text: '🐙 Day 0. Database azzerato. Tutto riparte da zero.\n\nNon perché il bot non funzionasse — ma perché vogliamo contare solo dati certificati, da oggi.\n\nLa rete di agenti è pronta: wf01A → wf01B → Kraken → Polygon.\nOgni segnale sarà commesso on-chain prima del fill.\n\nIl primo trade reale del sistema "new era" viene da qui.\n\nbtcpredictor.io · 🎩🐙🪄' },
   { id: 'd2', title: 'Come Funziona il Dual-Gate', date: '2026-03-02T10:00', channel: 'tg',
+    photo: 'agent-matrix.png',
     text: '🧠 Dual-gate: come il bot decide se tradare.\n\n1. LLM analizza 20+ feature: RSI, CVD, funding, orderbook, news\n2. XGBoost valida la direzione in modo indipendente\n3. Solo se entrambi concordano → BET\n\nSe uno dice UP e l\'altro dice DOWN → SKIP.\nNessuna esecuzione senza consensus.\n\nÈ un meccanismo di riduzione del rumore, non di ottimizzazione del WR.\n\nbtcpredictor.io · 🎩🐙🪄' },
   { id: 'd3', title: 'On-Chain Audit — Perché', date: '2026-03-03T11:00', channel: 'tg',
+    photo: 'screen-header.png',
     text: '⛓ Perché commit ogni segnale su Polygon?\n\nPerché il timestamp on-chain è immutabile.\n\nOgni prediction ha un hash sha-256 committato su BTCBotAudit.sol PRIMA del fill Kraken.\nDopodiché viene risolto con outcome + PnL reale.\n\nChiunque può verificare: il commit era PRIMA del trade?\nSe sì, non c\'è stato cherry-picking.\n\nCosto: ~$0.46/mese. Vale ogni centesimo.\n\nbtcpredictor.io · 🎩🐙🪄' },
   { id: 'd4', title: 'Ghost Signals — Il Dataset Ombra', date: '2026-03-04T12:00', channel: 'tg',
+    photo: 'elenco-agents.png',
     text: '👻 Ghost signals: le scommesse che non abbiamo fatto.\n\nOgni SKIP ha una direzione predetta — anche se non tradiamo.\nDepois chiudiamo il ghost: aveva ragione?\n\nDay 0: ghost WR = 63.2% su 19 osservazioni.\nQuando il bot NON tradata, vedeva la direzione giusta.\n\nQuesti dati diventano training set certificato per il prossimo retrain XGBoost.\n\nbtcpredictor.io · 🎩🐙🪄' },
   { id: 'd5', title: 'WR vs Expectancy', date: '2026-03-05T10:00', channel: 'tg',
+    photo: 'screen-mobile.png',
     text: '📐 WR al 55% non è il punto.\n\nL\'obiettivo è massimizzare l\'expectancy:\nE = (WR × avg_win) − ((1−WR) × avg_loss)\n\nUn sistema al 45% WR con RR 3:1 batte un sistema\nal 60% WR con RR 0.8:1. Sempre.\n\nIl bot attuale: RR medio ~1.5x, soglia confidence 0.62.\nL\'edge non è nel WR — è nella qualità del segnale.\n\nbtcpredictor.io · 🎩🐙🪄' },
   { id: 'd6', title: 'Funding Rate Pattern', date: '2026-03-06T09:00', channel: 'tg',
+    photo: 'capello-bitcoin.png',
     text: '📊 Funding rate: l\'edge che il retail non vede.\n\nQuando il funding perp è positivo elevato (>0.05%),\ni longs pagano gli shorts ogni 8 ore.\n\nI market maker hedgiano: short spot + long perp.\nQuando il funding si azzera → chiudono lo short spot → buy pressure.\n\nIl bot monitora questo ciclo. È in input a wf01A.\n\nSettlement orari: 00:00 · 08:00 · 16:00 UTC\n\nbtcpredictor.io · 🎩🐙🪄' },
   { id: 'd7', title: 'Kelly Criterion e Sizing', date: '2026-03-07T11:00', channel: 'tg',
+    photo: 'capello-bitcoin.png',
     text: '🎯 Quanto rischiare per trade?\n\nKelly criterion: f* = (p×b − q) / b\nCon WR 55%, RR 1.5x → f* ≈ 11.7%\n\nIl bot usa ~2% del capitale. Perché?\nPerché siamo in fase di calibrazione del modello.\nKelly completo si usa quando hai 500+ trade certificati.\n\nConservatività ora = sopravvivenza statistica domani.\n\nbtcpredictor.io · 🎩🐙🪄' },
   { id: 'd8', title: 'La Notte del +7%', date: '2026-03-08T10:00', channel: 'tg',
+    photo: 'war-room.png',
     text: '🌙 Una notte, +$7.22. Era il 25 Febbraio.\n\nIn una sessione di 8 ore il bot ha fatto il 7% del capitale.\nWR quella notte: 80%.\n\nMa attenzione: 113% del PnL totale di quel mese veniva da quella singola notte.\nSenza di essa: -$2 complessivi.\n\nUna sessione non è un sistema. Per questo contiamo day per day da Day 0.\n\nbtcpredictor.io · 🎩🐙🪄' },
   { id: 'd9', title: 'Circuit Breaker', date: '2026-03-09T09:00', channel: 'tg',
+    photo: 'scheduled-tasks-mac.png',
     text: '🛡 Circuit breaker: il bot si ferma da solo.\n\n3 trade consecutivi in loss → pausa automatica.\nNessun override dall\'utente necessario.\n\nPerché? Perché 3 loss consecutive in trending market\nsuggeriscono che il regime è cambiato.\nIl modello non deve continuare ad accumulare perdite su un segnale degradato.\n\nRiattivazione manuale via Telegram Commander.\n\nbtcpredictor.io · 🎩🐙🪄' },
   { id: 'd10', title: 'Open Source', date: '2026-03-10T10:00', channel: 'tg',
+    photo: 'screenshot.png',
     text: '📂 Il codice è pubblico.\n\ngithub.com/mattiacalastri/btc_predictions\n\nTutto: Flask backend, n8n workflow exports, XGBoost training scripts, smart contract.\n\nNon perché siamo altruisti — perché la trasparenza è il prodotto.\nChiunque può forkkare, verificare, migliorare.\n\nLa fiducia non si chiede. Si guadagna commit per commit.\n\nbtcpredictor.io · 🎩🐙🪄' },
   { id: 'd11', title: 'Whale Alert Coming', date: '2026-03-11T11:00', channel: 'tg',
+    photo: 'agent-matrix.png',
     text: '🏦 Il prossimo agente: Whale Alert.\n\nOgni transazione >1000 BTC ha un lag misurabile sul prezzo: 2–8 minuti.\nI whale si muovono, il mercato reagisce — ma c\'è una finestra.\n\nStato: concept.\nPriorità: alta. Il whale data è free tier disponibile via Whale Alert API.\n\nQuando entra nel dual-gate, l\'information gain sarà significativo.\n\nbtcpredictor.io · 🎩🐙🪄' },
   { id: 'd12', title: 'Regime Detection', date: '2026-03-12T10:00', channel: 'tg',
+    photo: 'screen-mobile.png',
     text: '🔮 80% del tempo BTC è in ranging. 20% in trend.\n\nIl modello attuale non distingue i due regimi.\nUn segnale UP in ranging ha WR diverso da uno in trend.\n\nIl Regime Detector labella ogni candela: trend / ranging / volatile.\nLa label entra come feature XGBoost.\n\nPrognosi: il WR in trend supererà il 65%.\nIn ranging: scenderà sotto il 50%. → Non tradare in ranging.\n\nbtcpredictor.io · 🎩🐙🪄' },
   { id: 'd13', title: 'Agent Marketplace — Visione', date: '2026-03-13T09:00', channel: 'tg',
+    photo: 'satoshi-statue.png',
     text: '🐙 La visione a lungo termine: Agent Marketplace.\n\nDeveloper terzi deployano agenti specializzati.\nOgni agente è un modulo verificabile on-chain.\nRevenue share automatico via smart contract.\n\nChi porta un agente con edge reale (validato su dati certificati) riceve una quota del PnL.\nNessuna fiducia necessaria — la blockchain è l\'arbitro.\n\nETA: Q3 2026. Status: concept design.\n\nbtcpredictor.io · 🎩🐙🪄' },
   { id: 'd14', title: 'Settimana 1 — Riepilogo Day 0', date: '2026-03-14T10:00', channel: 'tg',
+    photo: 'logo-channel.png',
     text: '📊 Fine settimana 1 — Day 0 era.\n\nBet reali: [dinamico]\nGhost WR osservato: 63.2%\nOn-chain commit: 100% coverage\nCircuit breaker: non attivato ✅\n\nIl modello funziona. Lentamente, come deve.\nNon stiamo correndo — stiamo costruendo il dataset certificato.\n\nGrazie a chi segue il canale e verifica on-chain. 🐙\n\nbtcpredictor.io · 🎩🐙🪄' },
 ];
 
@@ -1844,17 +1861,20 @@ function pedRenderPosts() {
     var dt = p.date ? new Date(p.date).toLocaleString('it-IT',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
     var canTG = (p.channel === 'tg' || p.channel === 'all');
     var safeId = String(p.id).replace(/[^a-zA-Z0-9_\-]/g,'_');
+    var photoThumb = p.photo ? '<div class="post-photo-thumb"><img src="/static/marketing_assets/' + escHtml(p.photo) + '" alt="" loading="lazy"><span class="post-photo-name">🖼 ' + escHtml(p.photo) + '</span></div>' : '';
+    var tgLabel = p.photo ? '🖼 Invia con foto' : '✈️ Pubblica su Telegram';
     return '<div class="post-card" id="pcard_' + safeId + '">' +
       '<div class="post-card-meta">' +
         '<span class="post-date-badge">📅 ' + dt + '</span>' +
         chanBadge +
       '</div>' +
+      photoThumb +
       '<div class="post-title">' + escHtml(p.title || '') + '</div>' +
       '<div class="post-text" id="ptext_' + safeId + '">' + escHtml(p.text || '') + '</div>' +
       '<span class="post-text-toggle" onclick="pedToggleExpand(\'' + safeId + '\')">▼ leggi tutto</span>' +
       '<div class="post-actions">' +
         '<button class="btn-pub btn-pub-copy" onclick="pedCopyPost(\'' + safeId + '\')">📋 Copia</button>' +
-        (canTG ? '<button class="btn-pub btn-pub-tg" onclick="pedPublishTG(\'' + safeId + '\')">✈️ Pubblica su Telegram</button>' : '') +
+        (canTG ? '<button class="btn-pub btn-pub-tg" onclick="pedPublishTG(\'' + safeId + '\')">' + tgLabel + '</button>' : '') +
         '<button class="btn-pub btn-pub-x" disabled title="Richiede X Basic tier">𝕏 X — coming soon</button>' +
         '<button class="btn-pub btn-pub-li" disabled title="Integrazione in arrivo">💼 LinkedIn</button>' +
         '<button class="btn-pub btn-pub-rd" disabled title="Integrazione in arrivo">🤖 Reddit</button>' +
@@ -1903,7 +1923,7 @@ function pedPublishTG(id) {
   fetch('/publish-telegram', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
-    body: JSON.stringify({ text: p.text, parse_mode: 'HTML' })
+    body: JSON.stringify({ text: p.text, parse_mode: 'HTML', photo: p.photo || null })
   }).then(function(r){ return r.json(); })
     .then(function(d) {
       if(d.ok) {
