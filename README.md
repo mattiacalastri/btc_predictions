@@ -220,8 +220,9 @@ By using, forking, or deploying this software you acknowledge that you take full
 
 ## Contact
 
-**BTC Predictor** · [btcpredictor.io](https://btcpredictor.io)
-✉ [signal@btcpredictor.io](mailto:signal@btcpredictor.io)
+**BTC Predictor** by [Mattia Calastri](https://mattiacalastri.com) · [btcpredictor.io](https://btcpredictor.io)
+
+✉ [signal@btcpredictor.io](mailto:signal@btcpredictor.io) · [X/Twitter](https://x.com/mattiacalastri) · [LinkedIn](https://linkedin.com/in/mattiacalastri) · [Telegram](https://t.me/BTCPredictorBot)
 
 ---
 
