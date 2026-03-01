@@ -2355,107 +2355,75 @@ def rescue_orphaned():
 def ghost_evaluate():
     """
     Valuta l'outcome fantasma dei segnali SKIP/ALERT per training data XGBoost.
-    Per ogni segnale con bet_taken=false, ghost_evaluated_at IS NULL, signal_price non null,
-    creato tra 18 minuti e 6 ore fa: valuta se direction era corretta vs prezzo attuale BTC.
-    Chiamare da wf02 ad ogni ciclo (continueOnFail=true).
+    Per ogni segnale non ancora valutato (ghost_evaluated_at IS NULL), creato almeno
+    30 minuti fa: fetch il prezzo Binance a T+30min e valuta se direction era corretta.
+    Funziona autonomamente — non dipende da posizioni aperte.
     """
     err = _check_api_key()
     if err:
         return err
 
-    import datetime as _dt
-
     supabase_url, supabase_key = _sb_config()
-
     if not supabase_url or not supabase_key:
         return jsonify({"status": "error", "error": "Supabase not configured"}), 503
 
-    # 1. Prezzo BTC: opzionale dal body, poi Kraken public, poi Binance
-    body = request.get_json(silent=True) or {}
-    if body.get("btc_price"):
-        try:
-            current_price = float(body["btc_price"])
-        except (TypeError, ValueError):
-            current_price = None
-    else:
-        current_price = None
-
-    if not current_price:
-        for price_url, parser in [
-            ("https://api.kraken.com/0/public/Ticker?pair=XBTUSD",
-             lambda r: float(r.json()["result"]["XXBTZUSD"]["c"][0])),
-            ("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT",
-             lambda r: float(r.json()["price"])),
-        ]:
-            try:
-                pr = requests.get(price_url, timeout=5)
-                pr.raise_for_status()
-                current_price = parser(pr)
-                break
-            except Exception:
-                continue
-
-    if not current_price:
-        return jsonify({"status": "error", "error": "price_fetch_failed"}), 503
-
-    # 2. Fetch candidati: bet_taken=false, ghost_evaluated_at IS NULL,
-    #    signal_price non null, creati tra 18min e 6h fa
     now = _dt.datetime.now(_dt.timezone.utc)
-    cutoff_min = (now - _dt.timedelta(minutes=18)).isoformat()
-    cutoff_max = (now - _dt.timedelta(hours=6)).isoformat()
+    cutoff_recent = (now - _dt.timedelta(minutes=30)).isoformat()
+    cutoff_old = (now - _dt.timedelta(hours=48)).isoformat()
 
     try:
         resp = requests.get(
             f"{supabase_url}/rest/v1/{SUPABASE_TABLE}"
-            "?select=id,direction,signal_price"
+            "?select=id,direction,signal_price,created_at"
             "&bet_taken=eq.false"
             "&ghost_evaluated_at=is.null"
             "&signal_price=not.is.null"
-            f"&created_at=lte.{cutoff_min}"
-            f"&created_at=gte.{cutoff_max}"
+            f"&created_at=lte.{cutoff_recent}"
+            f"&created_at=gte.{cutoff_old}"
             "&order=created_at.asc"
             "&limit=50",
             headers={
                 "apikey": supabase_key,
                 "Authorization": f"Bearer {supabase_key}",
             },
-            timeout=6,
+            timeout=8,
         )
         candidates = resp.json() if resp.ok else []
-    except Exception as e:
-        return jsonify({"status": "error", "error": f"Supabase fetch: {e}"}), 503
+    except Exception:
+        app.logger.exception("[ghost_evaluate] Supabase fetch failed")
+        return jsonify({"status": "error", "error": "supabase_fetch_failed"}), 503
 
     if not candidates:
         return jsonify({
             "status": "ok",
             "evaluated": 0,
-            "current_price": current_price,
             "message": "No pending ghost signals",
         })
 
-    # 3. Valuta e aggiorna ciascun segnale
     evaluated = []
     errors = []
     ghost_ts = now.isoformat()
 
     for row in candidates:
         row_id = row.get("id")
-        direction = row.get("direction", "").upper()
+        direction = (row.get("direction") or "").upper()
         signal_price = row.get("signal_price")
-        if not row_id or not direction or signal_price is None:
+        created_at = row.get("created_at")
+        if not row_id or direction not in ("UP", "DOWN") or signal_price is None:
             continue
         try:
             sp = float(signal_price)
         except (TypeError, ValueError):
             continue
 
-        # Ghost correct: prezzo si è mosso nella direzione predetta
-        if direction == "UP":
-            ghost_correct = current_price > sp
-        elif direction == "DOWN":
-            ghost_correct = current_price < sp
-        else:
+        # Fetch Binance 1m kline at T+30min for precise evaluation
+        exit_price = _fetch_ghost_exit_price(created_at)
+        if exit_price is None:
+            errors.append({"id": row_id, "error": "binance_price_unavailable"})
             continue
+
+        ghost_correct = (exit_price > sp) if direction == "UP" else (exit_price < sp)
+        pnl_pct = ((exit_price - sp) / sp) if direction == "UP" else ((sp - exit_price) / sp)
 
         try:
             upd = requests.patch(
@@ -2467,31 +2435,55 @@ def ghost_evaluate():
                     "Prefer": "return=minimal",
                 },
                 json={
-                    "ghost_exit_price": current_price,
+                    "ghost_exit_price": exit_price,
                     "ghost_correct": ghost_correct,
                     "ghost_evaluated_at": ghost_ts,
+                    "correct": ghost_correct,
+                    "btc_price_exit": exit_price,
+                    "pnl_pct": round(pnl_pct if ghost_correct else -abs(pnl_pct), 6),
+                    "actual_direction": direction if ghost_correct else ("DOWN" if direction == "UP" else "UP"),
                 },
                 timeout=5,
             )
             if upd.ok:
-                evaluated.append({"id": row_id, "ghost_correct": ghost_correct})
+                evaluated.append({"id": row_id, "ghost_correct": ghost_correct, "exit_price": exit_price})
             else:
                 errors.append({"id": row_id, "error": upd.text[:100]})
-        except Exception as e:
+        except Exception:
             app.logger.exception(f"Ghost evaluate error row {row_id}")
             errors.append({"id": row_id, "error": "evaluate_error"})
 
     app.logger.info(
-        f"[ghost_evaluate] evaluated={len(evaluated)} errors={len(errors)} "
-        f"price={current_price}"
+        f"[ghost_evaluate] evaluated={len(evaluated)} errors={len(errors)}"
     )
     return jsonify({
         "status": "ok",
         "evaluated": len(evaluated),
         "errors": len(errors),
-        "current_price": current_price,
         "results": evaluated,
     })
+
+
+def _fetch_ghost_exit_price(created_at_str):
+    """
+    Fetch Binance 1m kline close price at T+30min from signal creation time.
+    Returns float price or None if unavailable.
+    """
+    try:
+        ts = _dt.datetime.fromisoformat(created_at_str.replace("Z", "+00:00"))
+        target_ms = int((ts + _dt.timedelta(minutes=30)).timestamp() * 1000)
+        url = (
+            f"https://api.binance.com/api/v3/klines"
+            f"?symbol=BTCUSDT&interval=1m&startTime={target_ms}&limit=1"
+        )
+        r = requests.get(url, timeout=5)
+        if r.ok:
+            klines = r.json()
+            if klines and len(klines) > 0:
+                return float(klines[0][4])  # close price
+    except Exception:
+        pass
+    return None
 
 
 @app.route("/admin/backfill-signal-price", methods=["POST"])
