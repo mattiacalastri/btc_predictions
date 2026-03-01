@@ -6,7 +6,7 @@ backtest.py, ecc.
 """
 
 # ── Fee ────────────────────────────────────────────────────────────────────────
-TAKER_FEE = 0.00005  # Kraken Futures taker fee: 0.005% per lato (entry + exit)
+TAKER_FEE = 0.0005  # Kraken Futures taker fee: 0.05% per lato (Tier 1, <$100K/30d)
 
 # ── Technical bias map ────────────────────────────────────────────────────────
 # Encoding ordinale: strong_bearish=-2 → neutral=0 → strong_bullish=+2
