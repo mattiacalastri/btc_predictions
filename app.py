@@ -65,6 +65,39 @@ def _sb_config() -> tuple:
     return url, key
 
 
+# ── Cockpit Log Helper ──────────────────────────────────────────────────────
+# Fire-and-forget: never blocks the caller, never raises.
+_LOG_VALID_LEVELS = {"info", "success", "warning", "error", "critical"}
+
+def _push_cockpit_log(source: str, level: str, title: str, message: str = "", metadata: dict | None = None):
+    """Insert a row into cockpit_log. Non-blocking, swallows all errors."""
+    if level not in _LOG_VALID_LEVELS:
+        level = "info"
+    try:
+        sb_url, sb_key = _sb_config()
+        if not sb_url or not sb_key:
+            return
+        requests.post(
+            f"{sb_url}/rest/v1/cockpit_log",
+            json={
+                "source": source[:50],
+                "level": level,
+                "title": title[:120],
+                "message": message[:2000],
+                "metadata": json.dumps(metadata or {}),
+            },
+            headers={
+                "apikey": sb_key,
+                "Authorization": f"Bearer {sb_key}",
+                "Content-Type": "application/json",
+                "Prefer": "return=minimal",
+            },
+            timeout=3,
+        )
+    except Exception:
+        pass  # never block the caller
+
+
 # ── Rate limiting (S-20) ──────────────────────────────────────────────────────
 _RATE_STORE: dict = {}  # key → (count, window_start)
 _RATE_LOCK = threading.Lock()  # thread-safe per Gunicorn multi-worker (stesso processo)
@@ -931,6 +964,8 @@ def close_position():
                     app.logger.info(f"[close-position] Supabase updated: bet {bet_id}, pnl={pnl_net}, correct={correct}")
             except Exception as e:
                 app.logger.warning(f"[close-position] Supabase update failed (non-critical): {e}")
+                _push_cockpit_log("app", "warning", "Close position: Supabase update failed", str(e),
+                                  {"symbol": symbol})
 
         return jsonify({
             "status": "closed" if (ok and after is None) else ("closing" if ok else "failed"),
@@ -947,6 +982,7 @@ def close_position():
 
     except Exception as e:
         app.logger.exception("Endpoint error")
+        _push_cockpit_log("app", "error", "Close position FAILED", str(e), {"symbol": symbol})
         return jsonify({"status": "error", "error": "internal_error", "symbol": symbol}), 500
 
 
@@ -1098,6 +1134,9 @@ def _check_pre_flight(direction: str, confidence: float) -> object:
                     except Exception as _cb_save_err:
                         app.logger.error(f"[CIRCUIT_BREAKER] save_paused failed (DB down?): {_cb_save_err}")
                     app.logger.warning("[CIRCUIT_BREAKER] 3 consecutive losses → bot auto-paused")
+                    _push_cockpit_log("app", "critical", "Circuit breaker tripped",
+                                      "3 consecutive losses — bot auto-paused",
+                                      {"direction": direction, "confidence": confidence})
                     return jsonify({
                         "status": "paused",
                         "reason": "circuit_breaker",
@@ -1303,9 +1342,12 @@ def place_bet():
                             )
                             if _patch_resp.status_code not in (200, 204):
                                 app.logger.error(f"[pyramid] PATCH pyramid_count failed {_patch_resp.status_code}: {_patch_resp.text[:200]}")
+                                _push_cockpit_log("app", "error", "Pyramid PATCH failed",
+                                                  f"Status {_patch_resp.status_code}: {_patch_resp.text[:200]}")
                         except Exception as _e:
                             app.logger.error(f"[pyramid] PATCH pyramid_count exception: {_e}")
                             sentry_sdk.capture_exception(_e)
+                            _push_cockpit_log("app", "error", "Pyramid exception", str(_e))
                     _pyr_order_id = ""
                     try:
                         _pyr_order_id = str(pyramid_result.get("sendStatus", {}).get("order_id", ""))
@@ -1424,6 +1466,9 @@ def place_bet():
         }
         if send_status_type in FAILED_SEND_STATUSES:
             ok = False
+            _push_cockpit_log("app", "error", f"Order rejected: {send_status_type}",
+                              f"Kraken rejected {direction} {size} {symbol}",
+                              {"direction": direction, "size": size, "status": send_status_type})
 
         confirmed_pos = wait_for_position(symbol, want_open=True, retries=15, sleep_s=0.35) if ok else None
         position_confirmed = confirmed_pos is not None
@@ -1473,6 +1518,12 @@ def place_bet():
             except Exception:
                 pass  # non bloccare il flusso principale
 
+        if ok:
+            _push_cockpit_log("app", "success", f"Bet placed: {direction} {symbol}",
+                              f"Size={size}, fill={fill_price}, conf={confidence}",
+                              {"direction": direction, "confidence": confidence, "size": size,
+                               "fill_price": fill_price, "order_id": order_id})
+
         return jsonify({
             "status": "placed" if ok else "failed",
             "direction": direction,
@@ -1495,6 +1546,8 @@ def place_bet():
 
     except Exception as e:
         app.logger.exception("Endpoint error")
+        _push_cockpit_log("app", "error", "Place bet FAILED", str(e),
+                          {"direction": direction, "confidence": confidence})
         return jsonify({"status": "error", "error": "internal_error"}), 500
 
 # ── BTC PRICE (Kraken Futures mark price) ────────────────────────────────────
@@ -4213,6 +4266,7 @@ def commit_prediction():
     except Exception as e:
         app.logger.error(f"[ONCHAIN] commit_prediction error: {e}")
         app.logger.exception("Endpoint error")
+        _push_cockpit_log("app", "error", "On-chain commit failed", str(e), {"bet_id": bet_id})
         return jsonify({"ok": False, "error": "internal_error"}), 500
 
 
@@ -4283,6 +4337,7 @@ def resolve_prediction():
     except Exception as e:
         app.logger.error(f"[ONCHAIN] resolve_prediction error: {e}")
         app.logger.exception("Endpoint error")
+        _push_cockpit_log("app", "error", "On-chain resolve failed", str(e), {"bet_id": bet_id})
         return jsonify({"ok": False, "error": "internal_error"}), 500
 
 
@@ -5577,6 +5632,9 @@ def cockpit_overview():
     except Exception as e:
         app.logger.warning("[COCKPIT] Overview error: %s", e)
 
+    # Run anomaly detection (throttled internally to 1/min)
+    _check_anomalies()
+
     return jsonify(overview), 200
 
 
@@ -5592,6 +5650,9 @@ def cockpit_bot_toggle():
     _BOT_PAUSED_REFRESHED_AT = time.time()
     _save_bot_paused(_BOT_PAUSED)
     app.logger.info("[COCKPIT] Bot toggled → paused=%s", _BOT_PAUSED)
+    _push_cockpit_log("app", "warning" if _BOT_PAUSED else "success",
+                       "Bot PAUSED" if _BOT_PAUSED else "Bot RESUMED",
+                       f"Toggled via cockpit (paused={_BOT_PAUSED})")
     return jsonify({"paused": _BOT_PAUSED}), 200
 
 
@@ -5687,6 +5748,123 @@ def cockpit_agents_update():
         return jsonify({"error": str(e)}), 502
 
     return jsonify({"ok": True}), 200
+
+
+@app.route("/cockpit/api/log", methods=["GET"])
+def cockpit_log():
+    """Return system-wide event log from cockpit_log table."""
+    err = _check_cockpit_auth()
+    if err:
+        return err
+    logs = []
+    try:
+        sb_url, sb_key = _sb_config()
+        if sb_url and sb_key:
+            headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
+            params = {
+                "select": "id,ts,source,level,title,message,metadata",
+                "order": "ts.desc",
+                "limit": "100",
+            }
+            # Optional level filter
+            level = request.args.get("level")
+            if level and level in _LOG_VALID_LEVELS:
+                params["level"] = f"eq.{level}"
+            # Optional source filter
+            source = request.args.get("source")
+            if source and re.fullmatch(r'[a-z0-9_-]{1,50}', source):
+                params["source"] = f"eq.{source}"
+            resp = requests.get(
+                f"{sb_url}/rest/v1/cockpit_log",
+                headers=headers, params=params, timeout=5,
+            )
+            if resp.ok:
+                logs = resp.json()
+    except Exception as e:
+        app.logger.warning("[COCKPIT] Log fetch error: %s", e)
+    return jsonify({"logs": logs}), 200
+
+
+@app.route("/cockpit/api/log/ingest", methods=["POST"])
+def cockpit_log_ingest():
+    """Webhook endpoint for external systems (n8n, Sentry) to push events.
+
+    Accepts: {"source": "n8n", "level": "error", "title": "...", "message": "...", "metadata": {}}
+    Auth: same COCKPIT_TOKEN via X-Cockpit-Token header.
+    """
+    err = _check_cockpit_auth()
+    if err:
+        return err
+    data = request.get_json(force=True) or {}
+    source = str(data.get("source", "external"))[:50]
+    level = str(data.get("level", "info"))
+    if level not in _LOG_VALID_LEVELS:
+        level = "info"
+    title = str(data.get("title", ""))[:120]
+    message = str(data.get("message", ""))[:2000]
+    metadata = data.get("metadata") if isinstance(data.get("metadata"), dict) else {}
+
+    _push_cockpit_log(source, level, title, message, metadata)
+    return jsonify({"ok": True}), 200
+
+
+# ── Anomaly Detection (lightweight, runs on cockpit overview refresh) ───────
+_LAST_ANOMALY_CHECK = 0
+_LAST_CONFIDENCE_VALUES: list = []
+
+
+def _check_anomalies():
+    """Lightweight anomaly checks. Called from cockpit overview, max once per 60s."""
+    global _LAST_ANOMALY_CHECK, _LAST_CONFIDENCE_VALUES
+    now = time.time()
+    if now - _LAST_ANOMALY_CHECK < 60:
+        return
+    _LAST_ANOMALY_CHECK = now
+
+    try:
+        sb_url, sb_key = _sb_config()
+        if not sb_url or not sb_key:
+            return
+        headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
+
+        # Check 1: Stuck confidence — last 5 predictions have identical confidence
+        resp = requests.get(
+            f"{sb_url}/rest/v1/predictions?select=confidence,created_at"
+            "&order=created_at.desc&limit=5",
+            headers=headers, timeout=5,
+        )
+        if resp.ok:
+            preds = resp.json()
+            confs = [p.get("confidence") for p in preds if p.get("confidence") is not None]
+            if len(confs) >= 5 and len(set(confs)) == 1:
+                # All 5 identical → anomaly
+                stuck_val = confs[0]
+                if confs != _LAST_CONFIDENCE_VALUES:
+                    _push_cockpit_log("anomaly", "critical",
+                                      f"Stuck confidence: {stuck_val}",
+                                      f"Last 5 predictions all have confidence={stuck_val}. "
+                                      "Possible model or data pipeline bug.",
+                                      {"confidence": stuck_val, "count": 5})
+            _LAST_CONFIDENCE_VALUES = confs
+
+        # Check 2: No predictions in last 2 hours (during expected active period)
+        two_hours_ago = (_dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(hours=2)).isoformat()
+        resp2 = requests.get(
+            f"{sb_url}/rest/v1/predictions?select=id&created_at=gte.{two_hours_ago}&limit=1",
+            headers=headers, timeout=5,
+        )
+        if resp2.ok and len(resp2.json()) == 0:
+            hour_utc = _dt.datetime.now(_dt.timezone.utc).hour
+            # Only alert during expected trading hours (6-22 UTC)
+            if 6 <= hour_utc <= 22:
+                _push_cockpit_log("anomaly", "warning",
+                                  "No predictions in 2h",
+                                  "No new predictions in the last 2 hours during active trading window. "
+                                  "Check n8n workflow or data feeds.",
+                                  {"last_check_utc": two_hours_ago})
+
+    except Exception as e:
+        app.logger.warning("[COCKPIT] Anomaly check error: %s", e)
 
 
 @app.route("/cockpit/api/ghosts", methods=["GET"])

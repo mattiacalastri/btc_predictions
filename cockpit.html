@@ -416,14 +416,20 @@ body.heartbeat-offline { animation: hb-flat 4s linear infinite; }
 }
 .log-level-dot.info { background: var(--blue); }
 .log-level-dot.success { background: var(--green); }
+.log-level-dot.warning { background: var(--yellow); }
 .log-level-dot.error { background: var(--red); }
+.log-level-dot.critical { background: #ff4444; box-shadow: 0 0 6px #ff4444; }
 .log-level-dot.alert { background: var(--yellow); }
+.log-entry.critical { background: rgba(255, 68, 68, 0.08); border-left: 2px solid #ff4444; }
+.log-entry.warning { border-left: 2px solid var(--yellow); }
 .log-time { color: var(--text-muted); min-width: 55px; font-size: 10px; }
 .log-source { color: var(--accent); min-width: 80px; font-weight: 600; }
 .log-msg { color: var(--text-secondary); flex: 1; min-width: 0; word-break: break-word; }
-.log-msg.alert { color: var(--yellow); }
-.log-msg.error { color: var(--red); }
-.log-msg.success { color: var(--green); }
+.log-msg strong { color: var(--text-primary); font-weight: 600; }
+.log-entry.error .log-msg { color: var(--red); }
+.log-entry.critical .log-msg { color: #ff4444; font-weight: 600; }
+.log-entry.success .log-msg { color: var(--green); }
+.log-entry.warning .log-msg { color: var(--yellow); }
 
 /* ── SETTINGS PANEL ── */
 .settings-group {
@@ -821,13 +827,15 @@ body.heartbeat-offline { animation: hb-flat 4s linear infinite; }
         <button class="log-filter active" data-level="all" onclick="filterLog('all')">All <span class="filter-count" id="log-count-all">0</span></button>
         <button class="log-filter" data-level="info" onclick="filterLog('info')">Info <span class="filter-count" id="log-count-info">0</span></button>
         <button class="log-filter" data-level="success" onclick="filterLog('success')">Success <span class="filter-count" id="log-count-success">0</span></button>
+        <button class="log-filter" data-level="warning" onclick="filterLog('warning')">Warn <span class="filter-count" id="log-count-warning">0</span></button>
         <button class="log-filter" data-level="error" onclick="filterLog('error')">Error <span class="filter-count" id="log-count-error">0</span></button>
+        <button class="log-filter" data-level="critical" onclick="filterLog('critical')">Critical <span class="filter-count" id="log-count-critical">0</span></button>
         <button class="log-clear" onclick="clearLog()">Clear</button>
       </div>
       <div class="log-container" id="log-container">
         <div class="log-empty" id="log-empty">
           <div class="log-empty-icon">&#9776;</div>
-          Log vuoto. Gli eventi appariranno quando gli agent saranno attivi.
+          Log vuoto. Gli eventi appariranno quando il sistema sar&agrave; attivo.
         </div>
       </div>
     </div>
@@ -1397,8 +1405,9 @@ function renderAgents(agents) {
 
 function toggleExpand(card) { card.classList.toggle('expanded'); }
 
-// ── RENDER LOG v2 ──
+// ── RENDER LOG v3 — reads from cockpit_log table ──
 let _logFilter = 'all';
+const _LOG_LEVELS = ['all','info','success','warning','error','critical'];
 
 function filterLog(level) {
   _logFilter = level;
@@ -1412,7 +1421,7 @@ function filterLog(level) {
 function clearLog() {
   const container = document.getElementById('log-container');
   container.innerHTML = `<div class="log-empty" id="log-empty"><div class="log-empty-icon">&#9776;</div>Log cancellato.</div>`;
-  ['all','info','success','error'].forEach(l => {
+  _LOG_LEVELS.forEach(l => {
     const el = document.getElementById('log-count-' + l);
     if (el) el.textContent = '0';
   });
@@ -1427,35 +1436,36 @@ function relativeTime(ts) {
   return new Date(ts).toISOString().slice(11, 19);
 }
 
-function renderLog(events) {
+function renderLog(logs) {
   const container = document.getElementById('log-container');
-  if (!events || events.length === 0) {
-    container.innerHTML = `<div class="log-empty" id="log-empty"><div class="log-empty-icon">&#9776;</div>Log vuoto. Gli eventi appariranno quando gli agent saranno attivi.</div>`;
-    ['all','info','success','error'].forEach(l => {
+  if (!logs || logs.length === 0) {
+    container.innerHTML = `<div class="log-empty" id="log-empty"><div class="log-empty-icon">&#9776;</div>Log vuoto. Gli eventi appariranno quando il sistema sar&agrave; attivo.</div>`;
+    _LOG_LEVELS.forEach(l => {
       const el = document.getElementById('log-count-' + l);
       if (el) el.textContent = '0';
     });
     return;
   }
 
-  const sorted = events.slice(-50).reverse();
-  const counts = { all: sorted.length, info: 0, success: 0, error: 0 };
-  sorted.forEach(e => { const l = e.level || 'info'; if (counts[l] !== undefined) counts[l]++; });
+  const counts = { all: logs.length, info: 0, success: 0, warning: 0, error: 0, critical: 0 };
+  logs.forEach(e => { const l = e.level || 'info'; if (counts[l] !== undefined) counts[l]++; });
   Object.keys(counts).forEach(l => {
     const el = document.getElementById('log-count-' + l);
     if (el) el.textContent = counts[l];
   });
 
-  container.innerHTML = sorted.map(e => {
-    const level = e.level === 'error' ? 'error' : e.level === 'success' ? 'success' : e.level === 'alert' ? 'alert' : 'info';
-    const cls = level === 'info' ? '' : level;
+  container.innerHTML = logs.map(e => {
+    const level = _LOG_LEVELS.includes(e.level) ? e.level : 'info';
     const hidden = _logFilter !== 'all' && level !== _logFilter ? ' hidden' : '';
+    const title = escapeHtml(e.title || '');
+    const msg = escapeHtml(e.message || '');
+    const displayMsg = title ? (msg ? `<strong>${title}</strong> — ${msg}` : `<strong>${title}</strong>`) : msg;
     return `
-    <div class="log-entry${hidden}" data-level="${level}">
+    <div class="log-entry ${level}${hidden}" data-level="${level}">
       <span class="log-level-dot ${level}"></span>
-      <span class="log-time">${relativeTime(e.timestamp)}</span>
-      <span class="log-source">${escapeHtml(e.source || 'SYSTEM')}</span>
-      <span class="log-msg ${cls}">${escapeHtml(e.message || '')}</span>
+      <span class="log-time">${relativeTime(e.ts)}</span>
+      <span class="log-source">${escapeHtml(e.source || 'system')}</span>
+      <span class="log-msg">${displayMsg}</span>
     </div>`;
   }).join('');
 }
@@ -1497,9 +1507,10 @@ async function refreshAll() {
     document.getElementById('connection-status').textContent = 'Refreshing...';
     document.getElementById('connection-status').style.background = 'var(--yellow-dim)';
 
-    const [agentsData, overviewData] = await Promise.all([
+    const [agentsData, overviewData, logData] = await Promise.all([
       apiFetch('/cockpit/api/agents'),
-      apiFetch('/cockpit/api/overview')
+      apiFetch('/cockpit/api/overview'),
+      apiFetch('/cockpit/api/log')
     ]);
 
     STATE.connectionAlive = true;
@@ -1510,7 +1521,7 @@ async function refreshAll() {
     overviewData._agentErrors = errorCount;
 
     renderAgents(agents);
-    renderLog(agentsData.events || []);
+    renderLog(logData.logs || []);
     renderMetrics(overviewData);
 
     // Lazy load ghosts on overview tab

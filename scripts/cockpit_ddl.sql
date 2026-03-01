@@ -39,3 +39,26 @@ ALTER TABLE cockpit_events ADD COLUMN IF NOT EXISTS priority BOOLEAN DEFAULT fal
 
 -- Nota: il cockpit usa UPSERT (Prefer: resolution=merge-duplicates)
 -- quindi clone_id come PK garantisce una sola riga per agent.
+
+-- v4: cockpit_log — Centralized event log hub
+-- Aggregates: Sentry errors, circuit breaker, trading errors, anomalies, n8n failures
+CREATE TABLE IF NOT EXISTS cockpit_log (
+    id             BIGSERIAL PRIMARY KEY,
+    ts             TIMESTAMPTZ NOT NULL DEFAULT now(),
+    source         TEXT NOT NULL DEFAULT 'system',     -- app, n8n, sentry, orchestrator, anomaly
+    level          TEXT NOT NULL DEFAULT 'info',        -- info, success, warning, error, critical
+    title          TEXT NOT NULL DEFAULT '',            -- Short summary (max 120 chars)
+    message        TEXT NOT NULL DEFAULT '',            -- Full message body
+    metadata       JSONB DEFAULT '{}'                   -- Extra data (bet_id, confidence, stack trace, etc.)
+);
+
+-- Index for dashboard queries (newest first, limited to ~500)
+CREATE INDEX IF NOT EXISTS idx_cockpit_log_ts
+    ON cockpit_log (ts DESC);
+
+-- Index for filtering by level
+CREATE INDEX IF NOT EXISTS idx_cockpit_log_level
+    ON cockpit_log (level, ts DESC);
+
+-- Auto-cleanup: keep only last 7 days of logs (run via pg_cron or manual)
+-- DELETE FROM cockpit_log WHERE ts < now() - interval '7 days';
