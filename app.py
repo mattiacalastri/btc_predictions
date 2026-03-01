@@ -665,6 +665,7 @@ def _close_prev_bet_on_reverse(old_side: str, exit_price: float, closed_size: fl
             "pnl_usd":            pnl_net,
             "close_reason":       "closed_by_reverse_bet",
             "has_real_exit_fill": False,
+            "source_updated_by":  "place_bet_reverse",
         }
         if funding_fee != 0.0:
             patch_data["funding_fee"] = round(funding_fee, 6)
@@ -973,6 +974,7 @@ def close_position():
                     "pnl_usd":          _pnl,
                     "fees_total":       round(_fee, 6),
                     "close_reason":     "sl_already_closed",
+                    "source_updated_by": "close_orphan_sl",
                 }
                 if _funding_cost != 0.0:
                     _patch["funding_fee"] = round(-_funding_cost, 6)
@@ -1092,6 +1094,7 @@ def close_position():
                         "fees_total":         round(fee - funding_fee, 6),
                         "has_real_exit_fill": True,
                         "close_reason":       "manual_close",
+                        "source_updated_by":  "wf02_close",
                     }
                     if funding_fee != 0.0:
                         patch_data["funding_fee"] = round(funding_fee, 6)
@@ -2669,7 +2672,7 @@ def rescue_orphaned():
                         "Content-Type": "application/json",
                         "Prefer": "return=minimal",
                     },
-                    json={"exit_fill_price": exit_price, "correct": correct, "pnl_pct": pnl},
+                    json={"exit_fill_price": exit_price, "correct": correct, "pnl_pct": pnl, "source_updated_by": "rescue_stale"},
                     timeout=6,
                 )
                 if upd.ok:
@@ -2810,6 +2813,7 @@ def ghost_evaluate():
                     "btc_price_exit": exit_price,
                     "pnl_pct": round(pnl_pct if ghost_correct else -abs(pnl_pct), 6),
                     "actual_direction": direction if ghost_correct else ("DOWN" if direction == "UP" else "UP"),
+                    "source_updated_by": "wf08",
                 },
                 timeout=5,
             )
@@ -3653,6 +3657,7 @@ def backfill_bet(bet_id):
         "fees_total": round(fee_est, 6),
         "correct": correct,
         "close_reason": "manual_backfill",
+        "source_updated_by": "manual_backfill",
     }
     try:
         pr = requests.patch(

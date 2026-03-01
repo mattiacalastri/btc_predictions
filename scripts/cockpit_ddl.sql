@@ -68,3 +68,20 @@ ALTER TABLE btc_predictions ADD COLUMN IF NOT EXISTS price_drift_pct FLOAT DEFAU
 
 -- v6: funding rate — track funding fee paid/received during position lifetime
 ALTER TABLE btc_predictions ADD COLUMN IF NOT EXISTS funding_fee FLOAT DEFAULT NULL;
+
+-- v7: n8n workflow traceability — track which workflow/node/execution created or modified each row
+-- Populated by n8n nodes on INSERT (wf01A Save to Supabase) and UPDATE (wf02, wf08)
+ALTER TABLE btc_predictions ADD COLUMN IF NOT EXISTS source_workflow TEXT DEFAULT NULL;
+ALTER TABLE btc_predictions ADD COLUMN IF NOT EXISTS source_node TEXT DEFAULT NULL;
+ALTER TABLE btc_predictions ADD COLUMN IF NOT EXISTS source_execution_id TEXT DEFAULT NULL;
+ALTER TABLE btc_predictions ADD COLUMN IF NOT EXISTS source_updated_by TEXT DEFAULT NULL;
+
+-- Index for filtering by workflow source (dashboard chart, debugging, audit)
+CREATE INDEX IF NOT EXISTS idx_btc_predictions_source_wf
+    ON btc_predictions (source_workflow)
+    WHERE source_workflow IS NOT NULL;
+
+COMMENT ON COLUMN btc_predictions.source_workflow IS 'n8n workflow that created this row (e.g. wf01A, wf01B, wf02, wf08)';
+COMMENT ON COLUMN btc_predictions.source_node IS 'n8n node name that wrote this row (e.g. Save to Supabase, XGBoost Gate)';
+COMMENT ON COLUMN btc_predictions.source_execution_id IS 'n8n execution ID that created this row (for audit trail)';
+COMMENT ON COLUMN btc_predictions.source_updated_by IS 'Last n8n workflow that modified this row (e.g. wf02 on close, wf08 on ghost eval)';

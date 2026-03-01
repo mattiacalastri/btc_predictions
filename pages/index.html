@@ -4048,13 +4048,14 @@ function renderBtcPredictionMarkers() {
     var isBet = d.classification === 'BET';
     var isUp  = d.direction === 'UP';
     var conf  = d.confidence ? (parseFloat(d.confidence) * 100).toFixed(0) + '%' : '';
+    var wf    = d.source_workflow ? '[' + d.source_workflow + '] ' : '';
     if (isBet) {
       // ── BET marker: prominent arrow ──
       var isOpen = d.correct === null;
       var isWin  = d.correct === true;
       var color  = isOpen ? '#ffaa00' : (isWin ? '#00ff88' : '#ff4466');
       var pnl    = isOpen ? '' : ((parseFloat(d.pnl_usd || 0) >= 0 ? '+' : '') + '$' + parseFloat(d.pnl_usd || 0).toFixed(2));
-      var label  = d.direction + (conf ? ' ' + conf : '') + (pnl ? ' · ' + pnl : '');
+      var label  = wf + d.direction + (conf ? ' ' + conf : '') + (pnl ? ' · ' + pnl : '');
       markers.push({
         time: best,
         position: isUp ? 'belowBar' : 'aboveBar',
@@ -4068,7 +4069,7 @@ function renderBtcPredictionMarkers() {
       var ghostColor = gc === true ? 'rgba(0,255,136,0.4)' : gc === false ? 'rgba(255,68,102,0.4)' : 'rgba(74,96,112,0.35)';
       var outcome = gc === true ? '✓' : gc === false ? '✗' : '?';
       var tag = (d.classification || 'GHOST').charAt(0);
-      var ghostLabel = tag + ' ' + d.direction + (conf ? ' ' + conf : '') + ' ' + outcome;
+      var ghostLabel = wf + tag + ' ' + d.direction + (conf ? ' ' + conf : '') + ' ' + outcome;
       markers.push({
         time: best,
         position: isUp ? 'belowBar' : 'aboveBar',
