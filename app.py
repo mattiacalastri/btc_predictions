@@ -176,13 +176,18 @@ _XGB_CLEAN_CACHE_TTL = 600               # 10 min
 # [confidence, fear_greed, rsi14, technical_score, hour_sin, hour_cos,
 #  technical_bias_score, signal_fg_fear, dow_sin, dow_cos, session]
 
+import threading as _threading_models
+_model_lock = _threading_models.Lock()
+
 def _load_xgb_model():
     global _XGB_MODEL
     model_path = os.path.join(os.path.dirname(__file__), "models", "xgb_direction.pkl")
     if os.path.exists(model_path):
-        _XGB_MODEL = joblib_load(model_path)
+        temp = joblib_load(model_path)
         from xgboost import XGBClassifier
-        assert isinstance(_XGB_MODEL, XGBClassifier), "Direction model type mismatch"
+        assert isinstance(temp, XGBClassifier), "Direction model type mismatch"
+        with _model_lock:
+            _XGB_MODEL = temp
         print(f"[XGB] Model loaded from {model_path}")
     else:
         print(f"[XGB] Model not found at {model_path} — /predict-xgb will return agree=True")
@@ -897,12 +902,12 @@ def close_position():
                 _oq = (
                     f"{_sb_url}/rest/v1/{SUPABASE_TABLE}"
                     f"?id=eq.{_explicit}&bet_taken=eq.true&correct=is.null"
-                    f"&select=id,entry_fill_price,btc_price_entry,bet_size,direction"
+                    f"&select=id,entry_fill_price,btc_price_entry,bet_size,direction,funding_rate,created_at"
                 ) if _explicit else (
                     f"{_sb_url}/rest/v1/{SUPABASE_TABLE}"
                     f"?bet_taken=eq.true&correct=is.null"
                     f"&order=id.desc&limit=1"
-                    f"&select=id,entry_fill_price,btc_price_entry,bet_size,direction"
+                    f"&select=id,entry_fill_price,btc_price_entry,bet_size,direction,funding_rate,created_at"
                 )
                 _or = requests.get(_oq, headers=_sb_h, timeout=5)
                 _orphans = _or.json() if _or.ok else []
@@ -943,8 +948,24 @@ def close_position():
                     _correct = _cur_price < _entry
                     _adir = "DOWN" if _correct else "UP"
                 _fee = _bsize * (_entry + _cur_price) * TAKER_FEE
-                _pnl = round(_pg - _fee, 6)
-                _supabase_update(_obid, {
+
+                # P0: Funding cost from Supabase funding_rate + hold time
+                _funding_cost = 0.0
+                _fr = _row.get("funding_rate")
+                _created = _row.get("created_at")
+                if _fr is not None and _created:
+                    try:
+                        _fr_f = float(_fr)
+                        from datetime import datetime as _dt_fc, timezone as _tz_fc
+                        _created_dt = _dt_fc.fromisoformat(_created.replace("Z", "+00:00"))
+                        _mins_held = max(0, (_dt_fc.now(_tz_fc.utc) - _created_dt).total_seconds() / 60)
+                        _funding_cost = _bsize * _fr_f * (_mins_held / 480) * _cur_price
+                        app.logger.info(f"[FUNDING] orphan bet {_obid}: rate={_fr_f}, mins={_mins_held:.0f}, cost={_funding_cost:.6f}")
+                    except Exception as _fc_err:
+                        app.logger.warning(f"[FUNDING] orphan bet {_obid} calc failed: {_fc_err}")
+
+                _pnl = round(_pg - _fee - _funding_cost, 6)
+                _patch = {
                     "exit_fill_price":  _cur_price,
                     "btc_price_exit":   _cur_price,
                     "correct":          _correct,
@@ -952,19 +973,24 @@ def close_position():
                     "pnl_usd":          _pnl,
                     "fees_total":       round(_fee, 6),
                     "close_reason":     "sl_already_closed",
-                })
+                }
+                if _funding_cost != 0.0:
+                    _patch["funding_fee"] = round(-_funding_cost, 6)
+                _supabase_update(_obid, _patch)
                 app.logger.info(
                     f"[close-position] Orphan bet {_obid} risolta: "
-                    f"SL già eseguito su Kraken. pnl={_pnl}, correct={_correct}"
+                    f"SL già eseguito su Kraken. pnl={_pnl}, correct={_correct}, funding_cost={_funding_cost:.6f}"
                 )
                 return jsonify({
-                    "status":          "resolved_orphan",
-                    "message":         "Posizione Kraken già chiusa da SL — bet orfana risolta.",
-                    "bet_id":          _obid,
-                    "exit_price_used": _cur_price,
-                    "pnl_usd":         _pnl,
-                    "correct":         _correct,
-                    "symbol":          symbol,
+                    "status":              "resolved_orphan",
+                    "message":             "Posizione Kraken già chiusa da SL — bet orfana risolta.",
+                    "bet_id":              _obid,
+                    "exit_price_used":     _cur_price,
+                    "pnl_usd":             _pnl,
+                    "funding_cost_usd":    round(_funding_cost, 6),
+                    "funding_adjusted_pnl": _pnl,
+                    "correct":             _correct,
+                    "symbol":              symbol,
                 })
 
             app.logger.warning(
@@ -1027,14 +1053,14 @@ def close_position():
                 if explicit_bet_id:
                     query = (
                         f"{supabase_url}/rest/v1/{SUPABASE_TABLE}"
-                        f"?id=eq.{explicit_bet_id}&select=id,entry_fill_price,btc_price_entry,bet_size,direction"
+                        f"?id=eq.{explicit_bet_id}&select=id,entry_fill_price,btc_price_entry,bet_size,direction,funding_rate,created_at"
                     )
                 else:
                     query = (
                         f"{supabase_url}/rest/v1/{SUPABASE_TABLE}"
                         f"?bet_taken=eq.true&correct=is.null"
                         f"&order=id.desc&limit=1"
-                        f"&select=id,entry_fill_price,btc_price_entry,bet_size,direction"
+                        f"&select=id,entry_fill_price,btc_price_entry,bet_size,direction,funding_rate,created_at"
                     )
                 resp = requests.get(query, headers=headers, timeout=5)
                 rows = resp.json() if resp.ok else []
@@ -3002,7 +3028,9 @@ def auto_retrain():
             global _xgb_correctness
             corr_path = os.path.join(base, "models", "xgb_correctness.pkl")
             if os.path.exists(corr_path):
-                _xgb_correctness = joblib_load(corr_path)
+                temp_corr = joblib_load(corr_path)
+                with _model_lock:
+                    _xgb_correctness = temp_corr
 
             # Refresh calibration thresholds
             refresh_calibration()
