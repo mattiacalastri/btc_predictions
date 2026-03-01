@@ -2521,7 +2521,7 @@ def ghost_evaluate():
 def _fetch_ghost_exit_price(created_at_str):
     """
     Fetch close price at T+30min from signal creation time.
-    Tries Binance 1m klines first, falls back to Kraken OHLC.
+    Tries Binance 1m klines first, falls back to CryptoCompare histominute.
     Returns float price or None if unavailable.
     """
     try:
@@ -2550,26 +2550,24 @@ def _fetch_ghost_exit_price(created_at_str):
     except Exception as e:
         app.logger.warning(f"[ghost] Binance exception: {e}")
 
-    # Fallback: Kraken OHLC (1min candles, public API)
+    # Fallback: CryptoCompare histominute (no geo-restriction, precise timestamp)
     try:
         r2 = requests.get(
-            f"https://api.kraken.com/0/public/OHLC"
-            f"?pair=XBTUSD&interval=1&since={target_unix}",
+            f"https://min-api.cryptocompare.com/data/v2/histominute"
+            f"?fsym=BTC&tsym=USD&limit=1&toTs={target_unix}",
             timeout=8,
         )
         if r2.ok:
             data = r2.json()
-            result = data.get("result", {})
-            for key in result:
-                if key != "last":
-                    candles = result[key]
-                    if candles and len(candles) > 0:
-                        return float(candles[0][4])  # close price
-            app.logger.warning(f"[ghost] Kraken OHLC empty ts={target_unix}")
+            if data.get("Response") == "Success":
+                candles = data.get("Data", {}).get("Data", [])
+                if candles:
+                    return float(candles[-1]["close"])
+            app.logger.warning(f"[ghost] CryptoCompare empty ts={target_unix}")
         else:
-            app.logger.warning(f"[ghost] Kraken HTTP {r2.status_code}")
+            app.logger.warning(f"[ghost] CryptoCompare HTTP {r2.status_code}")
     except Exception as e:
-        app.logger.warning(f"[ghost] Kraken exception: {e}")
+        app.logger.warning(f"[ghost] CryptoCompare exception: {e}")
 
     return None
 
