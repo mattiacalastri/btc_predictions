@@ -142,6 +142,33 @@
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='15' fill='%230d0d0d'/%3E%3Ctext x='50' y='72' font-size='70' text-anchor='middle' fill='%2300ff88' font-family='Arial'%3E%E2%82%BF%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="/static/style.css?v=__CACHE_BUST__">
+<!-- TradingView Lightweight Charts v4 — primary CDN + fallback -->
+<script>
+(function(){
+  var loaded = false;
+  function onLwcLoad(){ loaded = true; }
+  function loadScript(src, cb){
+    var s = document.createElement('script');
+    s.src = src; s.async = true;
+    s.onload = function(){ onLwcLoad(); if(cb) cb(true); };
+    s.onerror = function(){ if(cb) cb(false); };
+    document.head.appendChild(s);
+  }
+  loadScript('https://unpkg.com/lightweight-charts@4/dist/lightweight-charts.standalone.production.js', function(ok){
+    if(!ok) loadScript('https://cdn.jsdelivr.net/npm/lightweight-charts@4/dist/lightweight-charts.standalone.production.js');
+  });
+  window._waitForLwc = function(timeout){
+    return new Promise(function(resolve, reject){
+      if(loaded && window.LightweightCharts) return resolve();
+      var t0 = Date.now();
+      var iv = setInterval(function(){
+        if(window.LightweightCharts){ clearInterval(iv); resolve(); }
+        else if(Date.now()-t0 > (timeout||5000)){ clearInterval(iv); reject(new Error('LWC timeout')); }
+      }, 100);
+    });
+  };
+})();
+</script>
 <!-- Cloudflare Turnstile (invisible CAPTCHA — Satoshi lead) -->
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" defer></script>
 <!-- reCAPTCHA v3 (all forms) -->
@@ -829,24 +856,36 @@
     </div>
   </div>
 
-  <!-- CHARTS GRID — BTC Price vs Predictions + Rolling Win Rate -->
+  <!-- CHARTS GRID — BTC/USDT Candlestick Chart + Rolling Win Rate -->
   <div class="charts-grid">
 
-    <!-- Chart 1: BTC Price + Predictions Overlay -->
-    <div class="panel">
+    <!-- Chart 1: BTC/USDT Live Candlestick Chart -->
+    <div class="panel" id="btcCandlePanel">
       <div class="panel-header">
-        <div class="panel-title">BTC Price vs Predictions</div>
-        <div style="display:flex;gap:8px;font-size:9px;">
-          <span style="color:var(--accent);">● correct</span>
-          <span style="color:var(--danger);">● wrong</span>
-          <span style="color:var(--muted);">▲▼ = direction</span>
+        <div class="panel-title">BTC/USDT Live Chart</div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="btc-tf-selector" id="btcTfSelector">
+            <button class="btc-tf-btn" data-tf="1m">1m</button>
+            <button class="btc-tf-btn active" data-tf="5m">5m</button>
+            <button class="btc-tf-btn" data-tf="15m">15m</button>
+            <button class="btc-tf-btn" data-tf="1h">1h</button>
+            <button class="btc-tf-btn" data-tf="4h">4h</button>
+          </div>
+          <div style="display:flex;gap:8px;font-size:9px;">
+            <span style="color:#00ff88;">▲ WIN</span>
+            <span style="color:#ff4466;">▼ LOSS</span>
+            <span style="color:#ffaa00;">◆ OPEN</span>
+          </div>
         </div>
       </div>
-      <div style="padding:12px 16px 8px;">
-        <svg id="btcOverlaySvg" width="100%" height="110" viewBox="0 0 600 110" preserveAspectRatio="none"></svg>
-        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:2px;">
-          <span>oldest</span><span>newest</span>
-        </div>
+      <div class="btc-candle-container" id="btcCandleEl"></div>
+      <div class="btc-candle-error" id="btcCandleError">
+        <div>CHART UNAVAILABLE</div>
+        <button onclick="initBtcCandleChart()">RETRY</button>
+      </div>
+      <div class="btc-candle-footer">
+        <span>FUNDING: <span id="btcFundingRate" class="funding-val" style="color:var(--muted)">—</span></span>
+        <span>Candles from Binance · Predictions from Supabase</span>
       </div>
     </div>
 
@@ -2749,6 +2788,13 @@ async function fetchLiveBtcPrice() {
     const kp = price >= 1000 ? '$' + Math.round(price / 1000) + 'k' : '$' + Math.round(price);
     document.title = '₿ ' + kp + ' · BTC Bot';
     renderLivePosition(); // aggiorna gauge live ogni volta che arriva un nuovo prezzo
+    // Funding rate in candlestick chart footer
+    const frEl = document.getElementById('btcFundingRate');
+    if (frEl && data.funding_rate_pct != null) {
+      const fr = parseFloat(data.funding_rate_pct);
+      frEl.textContent = (fr > 0 ? '+' : '') + fr.toFixed(4) + '%';
+      frEl.style.color = fr > 0 ? 'var(--danger)' : fr < 0 ? 'var(--accent)' : 'var(--muted)';
+    }
   } catch(e) {
     const priceEl = document.getElementById('btcLivePrice');
     if (priceEl.textContent === '—' && allData.length) {
@@ -3023,7 +3069,7 @@ function render(data) {
     renderConfidenceOverTime(chronoAll);
     renderRollingWinRate(chronoBets);
     renderPnlBarsLarge(chronoBets);
-    renderBtcPredictionsOverlay(chronoAll);
+    renderBtcPredictionMarkers();
   });
 
   const tag = document.getElementById('totalPnlTag');
@@ -3904,6 +3950,147 @@ function renderBtcPredictionsOverlay(chronoAll) {
     el.addEventListener('touchend',   () => setTimeout(() => { btcTip.style.display = 'none'; }, 1500));
   });
   svg.style.touchAction = 'none';
+}
+
+// ── BTC CANDLESTICK CHART (TradingView Lightweight Charts) ───────────────────
+
+const BTC_CHART = { chart: null, candleSeries: null, currentTf: '5m', candles: [], refreshTimer: null, isInitialized: false };
+const _BTC_TF_REFRESH = { '1m': 15000, '5m': 30000, '15m': 60000, '1h': 120000, '4h': 300000 };
+const _BTC_TF_BINANCE = { '1m': '1m', '5m': '5m', '15m': '15m', '1h': '1h', '4h': '4h' };
+
+async function initBtcCandleChart() {
+  const el = document.getElementById('btcCandleEl');
+  const errEl = document.getElementById('btcCandleError');
+  errEl.classList.remove('visible');
+  try {
+    await _waitForLwc(6000);
+  } catch(e) {
+    errEl.classList.add('visible');
+    return;
+  }
+  if (BTC_CHART.chart) { BTC_CHART.chart.remove(); BTC_CHART.chart = null; }
+  const LWC = window.LightweightCharts;
+  BTC_CHART.chart = LWC.createChart(el, {
+    width: el.clientWidth, height: el.clientHeight,
+    layout: { background: { type: 'solid', color: '#111820' }, textColor: '#4a6070', fontFamily: 'JetBrains Mono, monospace', fontSize: 10 },
+    grid: { vertLines: { color: 'rgba(30,45,61,0.4)' }, horzLines: { color: 'rgba(30,45,61,0.4)' } },
+    crosshair: { mode: LWC.CrosshairMode.Normal, vertLine: { color: 'rgba(0,255,136,0.3)', width: 1, style: LWC.LineStyle.Dashed }, horzLine: { color: 'rgba(0,255,136,0.3)', width: 1, style: LWC.LineStyle.Dashed } },
+    rightPriceScale: { borderColor: '#1e2d3d', scaleMargins: { top: 0.1, bottom: 0.08 } },
+    timeScale: { borderColor: '#1e2d3d', timeVisible: true, secondsVisible: false, rightOffset: 5 },
+    handleScroll: { vertTouchDrag: false },
+  });
+  BTC_CHART.candleSeries = BTC_CHART.chart.addCandlestickSeries({
+    upColor: '#00ff88', downColor: '#ff4466', borderUpColor: '#00ff88', borderDownColor: '#ff4466',
+    wickUpColor: '#00ff88', wickDownColor: '#ff4466',
+  });
+  // Timeframe buttons
+  document.getElementById('btcTfSelector').addEventListener('click', function(e) {
+    const btn = e.target.closest('.btc-tf-btn');
+    if (!btn) return;
+    switchBtcTf(btn.dataset.tf);
+  });
+  // Responsive resize
+  const ro = new ResizeObserver(function(entries) {
+    if (BTC_CHART.chart) BTC_CHART.chart.applyOptions({ width: el.clientWidth, height: el.clientHeight });
+  });
+  ro.observe(el);
+  BTC_CHART.isInitialized = true;
+  await loadBtcCandles(BTC_CHART.currentTf);
+}
+
+async function fetchBinanceCandles(interval, limit) {
+  const url = 'https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=' + interval + '&limit=' + (limit || 500);
+  const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+  if (!res.ok) throw new Error('Binance ' + res.status);
+  const raw = await res.json();
+  return raw.map(function(k) {
+    return { time: Math.floor(k[0] / 1000), open: parseFloat(k[1]), high: parseFloat(k[2]), low: parseFloat(k[3]), close: parseFloat(k[4]) };
+  });
+}
+
+async function loadBtcCandles(tf) {
+  const errEl = document.getElementById('btcCandleError');
+  try {
+    BTC_CHART.candles = await fetchBinanceCandles(_BTC_TF_BINANCE[tf] || '5m', 500);
+    BTC_CHART.candleSeries.setData(BTC_CHART.candles);
+    BTC_CHART.chart.timeScale().fitContent();
+    errEl.classList.remove('visible');
+    renderBtcPredictionMarkers();
+    startBtcRefreshLoop(tf);
+  } catch(e) {
+    console.warn('BTC candle load failed:', e);
+    errEl.classList.add('visible');
+  }
+}
+
+function renderBtcPredictionMarkers() {
+  if (!BTC_CHART.candleSeries || !BTC_CHART.candles.length) return;
+  if (!window.allData || !allData.length) { BTC_CHART.candleSeries.setMarkers([]); return; }
+  const bets = allData.filter(function(d) { return d.classification === 'BET' && d.btc_price_entry; });
+  if (!bets.length) { BTC_CHART.candleSeries.setMarkers([]); return; }
+  // Build candle open-time index for snapping
+  const candleTimes = BTC_CHART.candles.map(function(c) { return c.time; });
+  var markers = [];
+  bets.forEach(function(d) {
+    var ts = Math.floor(new Date(d.created_at).getTime() / 1000);
+    // Snap to nearest candle open
+    var best = candleTimes[0], bestDiff = Math.abs(ts - candleTimes[0]);
+    for (var i = 1; i < candleTimes.length; i++) {
+      var diff = Math.abs(ts - candleTimes[i]);
+      if (diff < bestDiff) { best = candleTimes[i]; bestDiff = diff; }
+      else break; // sorted, no need to continue
+    }
+    var isOpen = d.correct === null;
+    var isWin  = d.correct === true;
+    var isUp   = d.direction === 'UP';
+    var color  = isOpen ? '#ffaa00' : (isWin ? '#00ff88' : '#ff4466');
+    var conf   = d.confidence ? (parseFloat(d.confidence) * 100).toFixed(0) + '%' : '';
+    var pnl    = isOpen ? '' : ((parseFloat(d.pnl_usd || 0) >= 0 ? '+' : '') + '$' + parseFloat(d.pnl_usd || 0).toFixed(2));
+    var label  = d.direction + (conf ? ' ' + conf : '') + (pnl ? ' · ' + pnl : '');
+    markers.push({
+      time: best,
+      position: isUp ? 'belowBar' : 'aboveBar',
+      color: color,
+      shape: isUp ? 'arrowUp' : 'arrowDown',
+      text: label,
+    });
+  });
+  // Sort by time (required by LWC)
+  markers.sort(function(a, b) { return a.time - b.time; });
+  BTC_CHART.candleSeries.setMarkers(markers);
+}
+
+function startBtcRefreshLoop(tf) {
+  if (BTC_CHART.refreshTimer) clearInterval(BTC_CHART.refreshTimer);
+  var interval = _BTC_TF_REFRESH[tf] || 30000;
+  BTC_CHART.refreshTimer = setInterval(async function() {
+    try {
+      var fresh = await fetchBinanceCandles(_BTC_TF_BINANCE[tf] || '5m', 3);
+      fresh.forEach(function(c) {
+        BTC_CHART.candleSeries.update(c);
+      });
+      // Also update last candle with live price if available
+      if (lastBtcPrice && BTC_CHART.candles.length) {
+        var last = fresh[fresh.length - 1] || BTC_CHART.candles[BTC_CHART.candles.length - 1];
+        BTC_CHART.candleSeries.update({
+          time: last.time,
+          open: last.open,
+          high: Math.max(last.high, lastBtcPrice),
+          low: Math.min(last.low, lastBtcPrice),
+          close: lastBtcPrice,
+        });
+      }
+      renderBtcPredictionMarkers();
+    } catch(e) { /* fail-open: chart stays with old data */ }
+  }, interval);
+}
+
+function switchBtcTf(tf) {
+  BTC_CHART.currentTf = tf;
+  document.querySelectorAll('.btc-tf-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.tf === tf);
+  });
+  loadBtcCandles(tf);
 }
 
 // ── INIT ─────────────────────────────────────────────────────────────────────
@@ -4927,6 +5114,7 @@ refreshAccountSummary();
 setInterval(refreshAccountSummary, CONFIG.ACCT_REFRESH);
 
 fetchEquityHistory();
+initBtcCandleChart();
 fetchTradingStats();
 fetchErrorPatterns();
 fetchTrainingStatus();
@@ -5435,7 +5623,7 @@ fetch(CONFIG.RAILWAY_URL + '/health')
   /* ── CHART INFO POPUP ─────────────────────────────────────── */
   window.CHART_INFO = {
     'Cumulative Equity': { cat:'PERFORMANCE', color:'#00ff88', desc:'Capital curve built from real PnL of every closed bet. Steady upward trend = positive edge. Drawdowns visible as dips. Click any point to inspect that trade.' },
-    'BTC Price vs Predictions': { cat:'TECHNICAL', color:'#3399ee', desc:'BTC price action overlaid with AI prediction markers. ▲ Green = UP prediction (correct if price rose). ▼ Red = DOWN prediction. Diamonds = high-confidence bets taken. Shows if predictions align with price movement.' },
+    'BTC/USDT Live Chart': { cat:'TECHNICAL', color:'#3399ee', desc:'Real-time BTC/USDT candlestick chart (TradingView Lightweight Charts). ▲ Green = WIN, ▼ Red = LOSS, ◆ Amber = OPEN. Candles from Binance, prediction markers from Supabase. Supports 1m/5m/15m/1h/4h timeframes.' },
     'Rolling Win Rate': { cat:'STATISTICS', color:'#ffbb00', desc:'Rolling 10-bet and 20-bet win rate curves. Target > 55% for profitability at 1:1 RR. Downward trend = potential model decay. Dashed line = overall WR.' },
     'Prediction Galaxy': { cat:'ML ANALYSIS', color:'#aa66ff', desc:'Scatter plot: X-axis = confidence (0.75–1.0), Y-axis = PnL per bet. Cluster top-right = high-confidence wins. Bottom-left = low-confidence losses. Useful to detect if model calibration is working.' },
     'BTC Regime & Confidence': { cat:'ML ANALYSIS', color:'#aa66ff', desc:'Confidence levels over time with BTC price context. Spikes = model conviction. Low-confidence periods may correlate with choppy/ranging market conditions.' },

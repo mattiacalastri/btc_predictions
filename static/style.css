@@ -2823,3 +2823,80 @@
 /* Pre-Day0 historical rows */
 .sl-pre-day0 { opacity: 0.75; }
 .sl-pre-day0:hover { opacity: 1; }
+
+/* ── TradingView Candlestick Chart ──────────────────────────────────────────── */
+.btc-candle-container {
+  position: relative;
+  width: 100%;
+  height: 380px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.btc-candle-error {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgba(8,11,15,0.92);
+  z-index: 10;
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 1px;
+}
+.btc-candle-error.visible { display: flex; }
+.btc-candle-error button {
+  background: rgba(0,255,136,0.1);
+  border: 1px solid rgba(0,255,136,0.3);
+  color: var(--accent);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  padding: 6px 18px;
+  border-radius: 2px;
+  cursor: pointer;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  transition: all 0.2s;
+}
+.btc-candle-error button:hover { background: rgba(0,255,136,0.2); }
+.btc-tf-selector { display: flex; gap: 4px; }
+.btc-tf-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 2px;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: all 0.2s;
+}
+.btc-tf-btn:hover { border-color: rgba(0,255,136,0.4); color: var(--text); }
+.btc-tf-btn.active {
+  background: rgba(0,255,136,0.1);
+  border-color: rgba(0,255,136,0.5);
+  color: var(--accent);
+}
+.btc-candle-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 16px 8px;
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.8px;
+}
+.btc-candle-footer .funding-val { font-weight: 700; }
+
+@media (max-width: 900px) {
+  .btc-candle-container { height: 260px; }
+}
+@media (max-width: 600px) {
+  .btc-candle-container { height: 220px; }
+  .btc-tf-btn { padding: 2px 6px; font-size: 8px; }
+  .btc-candle-footer { flex-direction: column; gap: 2px; align-items: flex-start; }
+}
