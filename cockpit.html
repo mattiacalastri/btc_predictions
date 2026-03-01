@@ -808,6 +808,7 @@ const STATE = {
   refreshTimer: null,
   lastAgentStatuses: {},
   ghostsLoaded: false,
+  lastPredictionId: null,
 };
 
 // ── Sound engine (Web Audio API) ──
@@ -997,7 +998,7 @@ function renderMetrics(overview) {
     pnlEl.textContent = `$${totalPnl.toFixed(2)}`;
     pnlEl.style.color = totalPnl >= 0 ? 'var(--green)' : 'var(--red)';
   }
-  document.getElementById('m-pnl-detail').textContent = overview.winrate_detail || '';
+  document.getElementById('m-pnl-detail').textContent = overview.total_pnl ? 'last 50 evaluated' : '';
 
   const todayPnl = overview.today_pnl;
   const tdPnlEl = document.getElementById('m-today-pnl');
@@ -1044,6 +1045,13 @@ function renderMetrics(overview) {
 
   // Voice
   document.getElementById('voice-text').textContent = generateVoice(overview);
+
+  // Sound ping on new prediction
+  const lp = overview.latest_prediction;
+  if (lp && lp.created_at && lp.created_at !== STATE.lastPredictionId) {
+    if (STATE.lastPredictionId !== null) soundPing(); // don't ping on first load
+    STATE.lastPredictionId = lp.created_at;
+  }
 
   // On-Chain Badge
   const tx = overview.latest_onchain_tx;
@@ -1253,8 +1261,6 @@ async function refreshAll() {
 
     document.getElementById('connection-status').textContent = 'Connected';
     document.getElementById('connection-status').style.background = 'var(--green-dim)';
-
-    soundPing();
   } catch (err) {
     STATE.failCount++;
     STATE.connectionAlive = STATE.failCount < 3;
