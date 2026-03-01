@@ -30,7 +30,7 @@ def set_security_headers(response):
     response.headers["X-Frame-Options"] = "SAMEORIGIN"
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
         "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com "
@@ -582,7 +582,7 @@ def health():
         "capital": capital,
         "wallet_equity": wallet_equity,
         "base_size": base_size,
-        "confidence_threshold": float(os.environ.get("CONF_THRESHOLD", "0.62")),
+        "confidence_threshold": float(os.environ.get("CONF_THRESHOLD", "0.55")),
         "xgb_gate_active": _clean_bets >= _XGB_GATE_MIN_BETS,
         "xgb_clean_bets": _clean_bets,
         "xgb_min_bets": _XGB_GATE_MIN_BETS,
@@ -615,7 +615,7 @@ def publish_telegram():
     tg_token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
     if not tg_token:
         return jsonify({"error": "TELEGRAM_BOT_TOKEN not configured"}), 503
-    channel_id = "-1003762450968"
+    channel_id = os.environ.get("TELEGRAM_CHANNEL_ID", "-1003762450968")
     photo_filename = data.get("photo")
     try:
         if photo_filename:
@@ -3735,12 +3735,107 @@ def training_status():
         "calibration_cooldown_remaining_secs": cal_remaining_secs,
         # Bot configuration & model status (for Training Tab in dashboard)
         "dead_hours": sorted(list(DEAD_HOURS_UTC)),
-        "confidence_threshold": float(os.environ.get("CONF_THRESHOLD", "0.62")),
+        "confidence_threshold": float(os.environ.get("CONF_THRESHOLD", "0.55")),
         "base_size_btc": float(os.environ.get("BASE_SIZE", "0.002")),
         "xgb_loaded": _XGB_MODEL is not None,
         "correctness_loaded": _xgb_correctness is not None,
         "model_path": model_path if os.path.exists(model_path) else None,
     })
+
+
+# ── CONFIDENCE WATCHER ────────────────────────────────────────────────────────
+
+@app.route("/confidence-stats", methods=["GET"])
+def confidence_stats():
+    """
+    Analizza la distribuzione delle confidence degli ultimi N segnali.
+    Rileva pattern 'stuck' (confidenza bloccata su un valore fisso).
+    """
+    try:
+        n = min(int(request.args.get("n", 50)), 200)
+        supabase_url, supabase_key = _sb_config()
+        if not supabase_url or not supabase_key:
+            return jsonify({"error": "supabase not configured"}), 500
+
+        url = (
+            f"{supabase_url}/rest/v1/{SUPABASE_TABLE}"
+            f"?select=id,confidence,direction,bet_taken,created_at"
+            f"&order=id.desc&limit={n}"
+        )
+        res = requests.get(url, headers={
+            "apikey": supabase_key,
+            "Authorization": f"Bearer {supabase_key}"
+        }, timeout=8)
+        if not res.ok:
+            return jsonify({"error": f"supabase {res.status_code}"}), 502
+
+        rows = res.json()
+        if not rows:
+            return jsonify({"error": "no data"}), 404
+
+        confs = [float(r["confidence"]) for r in rows if r.get("confidence") is not None]
+        if not confs:
+            return jsonify({"error": "no confidence data"}), 404
+
+        avg = sum(confs) / len(confs)
+        variance = sum((c - avg) ** 2 for c in confs) / len(confs)
+        std = variance ** 0.5
+        mn, mx = min(confs), max(confs)
+
+        # Distribuzione per bucket
+        buckets = {
+            "0.50-0.54": 0, "0.55-0.59": 0, "0.60-0.64": 0,
+            "0.65-0.69": 0, "0.70-0.74": 0, "0.75-0.80": 0
+        }
+        for c in confs:
+            if c < 0.55: buckets["0.50-0.54"] += 1
+            elif c < 0.60: buckets["0.55-0.59"] += 1
+            elif c < 0.65: buckets["0.60-0.64"] += 1
+            elif c < 0.70: buckets["0.65-0.69"] += 1
+            elif c < 0.75: buckets["0.70-0.74"] += 1
+            else: buckets["0.75-0.80"] += 1
+
+        # Threshold corrente
+        threshold = float(os.environ.get("CONF_THRESHOLD", "0.55"))
+        below_threshold = sum(1 for c in confs if c < threshold)
+
+        # Trend: ultimi 10 vs precedenti
+        recent = confs[:10] if len(confs) >= 10 else confs
+        older = confs[10:30] if len(confs) >= 20 else []
+        avg_recent = sum(recent) / len(recent)
+        avg_older = sum(older) / len(older) if older else avg_recent
+        trend = "rising" if avg_recent > avg_older + 0.01 else (
+            "falling" if avg_recent < avg_older - 0.01 else "flat"
+        )
+
+        # Stuck detection: std < 0.02 su ultimi 10 segnali
+        std_recent = (sum((c - avg_recent) ** 2 for c in recent) / len(recent)) ** 0.5
+        stuck = std_recent < 0.02 and avg_recent < threshold + 0.05
+        stuck_range = f"{min(recent):.2f}-{max(recent):.2f}" if stuck else None
+
+        # Beat rate: % segnali che superano threshold
+        beat_pct = round(100 * (len(confs) - below_threshold) / len(confs), 1)
+
+        return jsonify({
+            "n": len(confs),
+            "avg": round(avg, 4),
+            "std": round(std, 4),
+            "min": round(mn, 4),
+            "max": round(mx, 4),
+            "threshold": threshold,
+            "below_threshold": below_threshold,
+            "beat_threshold_pct": beat_pct,
+            "distribution": buckets,
+            "trend": trend,
+            "avg_recent_10": round(avg_recent, 4),
+            "avg_older_10_30": round(avg_older, 4),
+            "stuck": stuck,
+            "stuck_range": stuck_range,
+            "status": "🔴 STUCK" if stuck else ("🟡 LOW" if avg < threshold else "🟢 OK"),
+        })
+    except Exception as exc:
+        app.logger.error("confidence_stats error: %s", exc)
+        return jsonify({"error": str(exc)}), 500
 
 
 # ── TRADING STATS ─────────────────────────────────────────────────────────────
@@ -4734,7 +4829,7 @@ def satoshi_lead():
         # 201 = inserted, 409 = duplicate (already captured) — both are ok
         if resp.status_code in (201, 204, 409):
             return jsonify({"ok": True})
-        app.logger.error("satoshi_lead supabase error: %s %s", resp.status_code, resp.text[:200])
+        app.logger.error("satoshi_lead supabase error: %s", resp.status_code)
         return jsonify({"ok": False, "error": "server_error"}), 500
     except Exception as exc:
         app.logger.error("satoshi_lead error: %s", exc)

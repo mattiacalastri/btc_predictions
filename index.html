@@ -440,6 +440,10 @@
       <button class="time-pill desktop-period-pill active" data-period="TODAY" onclick="setTimePeriod(this)">TODAY</button>
       <div class="tab-controls-sep" style="width:1px;height:20px;background:var(--border);"></div>
       <button class="war-room-btn" id="warRoomToggle" onclick="toggleWarRoom(this)">&#9876;&#65039; War Room</button>
+      <div class="tab-controls-sep" style="width:1px;height:20px;background:var(--border);"></div>
+      <button id="syncDataBtn" onclick="syncAllData()" style="display:flex;align-items:center;gap:5px;padding:4px 11px;background:rgba(0,212,170,0.1);border:1px solid rgba(0,212,170,0.35);border-radius:4px;color:var(--accent);font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all 0.2s;font-family:inherit" title="Resync all dashboard data from Supabase and Railway">
+        <span id="syncIcon" style="display:inline-block;transition:transform 0.6s">↻</span> SYNC DATA
+      </button>
     </div>
   </div>
 
@@ -1353,7 +1357,7 @@
       <div class="tab-intro-icon">💸</div>
       <div class="tab-intro-text">
         <div class="tab-intro-title">Operational Costs</div>
-        <div class="tab-intro-desc">Real-time breakdown of all costs to run the bot: Kraken trading fees, Anthropic API, n8n VPS, Railway hosting, and Claude Code. Includes one-time build cost ($709.48 Claude Code sessions, Feb 2026). Monthly operational cost: ~$11/mo. Profit only counts after all costs are covered.</div>
+        <div class="tab-intro-desc">Real-time breakdown of all costs to run the bot: Kraken trading fees, AI APIs, n8n VPS, Railway hosting, and Claude Code. Build cost: $709.48 (Feb 2026, Claude Pro). From 1 Mar 2026: Claude Max plan (€218.11/mo, unlimited sessions, Opus 4.6). Infra: ~$11/mo. Profit counts only after all costs are covered.</div>
       </div>
     </div>
 
@@ -1379,7 +1383,7 @@
         <div class="kpi-value purple" id="costKpiClaudeApiVal">—</div>
         <div class="kpi-sub" id="costKpiClaudeApiSub">loading...</div>
       </div>
-      <div class="kpi" style="--kc:#e5251b" id="costKpiClaudeCode" data-tip="Claude Code CLI — development sessions.<br>One-time build cost: $709.48 (Feb 2026, 409 commits, 29.6k lines added).<br>Monthly dev maintenance: set manually.">
+      <div class="kpi" style="--kc:#e5251b" id="costKpiClaudeCode" data-tip="Claude Code CLI — development sessions.<br>Build cost: $709.48 (Feb 2026, Pro plan · 409 commits).<br>From 1 Mar 2026: Claude Max €218.11/mo (20× usage, unlimited sessions).">
         <div class="kpi-label">Claude Code</div>
         <div class="kpi-value" style="color:#e5251b" id="costKpiClaudeCodeVal">—</div>
         <div class="kpi-sub" id="costKpiClaudeCodeSub">loading...</div>
@@ -1492,14 +1496,17 @@
               <td style="color:var(--muted);font-size:10px">Full system build · Feb 2026</td>
             </tr>
             <tr>
-              <td colspan="2" style="color:var(--muted);font-size:10px">Monthly dev maintenance</td>
-              <td style="font-weight:700;color:var(--warn)">~$0–20</td>
-              <td colspan="3" style="color:var(--muted);font-size:10px">Bug fixes · features · optimizations</td>
+              <td style="color:var(--muted);font-size:10px">1 Mar 2026+</td>
+              <td><span style="font-size:9px;color:#e5251b">Claude Max</span></td>
+              <td style="font-weight:700;color:var(--warn)">€218.11/mo</td>
+              <td style="color:var(--muted);font-size:10px">illimitato</td>
+              <td style="color:var(--accent);font-size:10px">20× usage vs Pro</td>
+              <td style="color:var(--muted);font-size:10px">Opus 4.6 · sessioni illimitate</td>
             </tr>
             <tr>
               <td colspan="2" style="font-weight:700">TOTAL BUILD COST</td>
               <td style="font-weight:700;color:#e5251b">$709.48</td>
-              <td colspan="3" style="font-size:10px;color:var(--muted)">one-time · operational cost ~$11/mo</td>
+              <td colspan="3" style="font-size:10px;color:var(--muted)">one-time · ongoing: €218.11/mo Claude Max + ~$11/mo infra</td>
             </tr>
           </tbody>
         </table>
@@ -3940,6 +3947,32 @@ function dismissTrainingBanner() {
   try { localStorage.setItem('trainingBannerDismissed', '1'); } catch(e) {}
 }
 
+// ── CONFIDENCE WATCHER ────────────────────────────────────────────────────────
+// Polls /confidence-stats every 5 min. Colors AVG CONF red if stuck.
+(function initConfidenceWatcher() {
+  function pollConfidence() {
+    fetch('/confidence-stats?n=20').then(r => r.ok ? r.json() : null).then(d => {
+      if (!d) return;
+      const el = document.getElementById('slStatConf');
+      if (!el) return;
+      const pct = Math.round((d.avg || 0) * 100);
+      el.textContent = pct + '%';
+      if (d.stuck) {
+        el.style.color = 'var(--danger)';
+        el.title = '⚠️ CONFIDENCE BLOCCATA: ' + d.stuck_range + ' (std ' + (d.std*100).toFixed(1) + '%) — agente potrebbe girare a vuoto';
+      } else if (d.avg < d.threshold) {
+        el.style.color = 'var(--warn)';
+        el.title = 'Confidence sotto soglia ' + Math.round(d.threshold*100) + '% — bot in SKIP (trend: ' + d.trend + ')';
+      } else {
+        el.style.color = 'var(--accent)';
+        el.title = 'Confidence OK — ' + d.beat_threshold_pct + '% segnali sopra soglia (trend: ' + d.trend + ')';
+      }
+    }).catch(() => {});
+  }
+  pollConfidence();
+  setInterval(pollConfidence, 5 * 60 * 1000);
+})();
+
 // ── GA4 CUSTOM EVENTS ─────────────────────────────────────────────────────────
 
 function trackEvent(name, params) {
@@ -5974,6 +6007,53 @@ function stopWarRoomClock() {
   if (_warRoomClockInterval) { clearInterval(_warRoomClockInterval); _warRoomClockInterval = null; }
 }
 
+// ── SYNC DATA ─────────────────────────────────────────────────────────────────
+// Full dashboard resync: account, signals, stats, agents, training, alerts.
+async function syncAllData() {
+  var btn  = document.getElementById('syncDataBtn');
+  var icon = document.getElementById('syncIcon');
+  if (!btn || btn.disabled) return;
+
+  // Visual feedback: spin + disable
+  btn.disabled = true;
+  btn.style.opacity = '0.6';
+  btn.style.cursor  = 'not-allowed';
+  var deg = 0;
+  var spinInterval = setInterval(function() {
+    deg += 30;
+    if (icon) icon.style.transform = 'rotate(' + deg + 'deg)';
+  }, 80);
+
+  trackEvent('sync_data_manual', {});
+
+  try {
+    await Promise.allSettled([
+      refresh(),                // main fetchData + renderAll
+      refreshAccountSummary(),  // balance + equity
+      fetchTradingStats(),      // WR, PnL, regime stats
+      fetchBotAlerts(),         // circuit breaker, error count
+      fetchTrainingStatus(),    // XGBoost retrain window
+      fetchEquityHistory(),     // equity sparkline
+      fetchErrorPatterns(),     // error pattern widget
+    ]);
+    // If agents tab is visible, refresh it too
+    if (document.getElementById('tab-agents') &&
+        document.getElementById('tab-agents').classList.contains('active')) {
+      await refreshAgentsTab();
+    }
+  } finally {
+    clearInterval(spinInterval);
+    // Full rotation + restore
+    if (icon) icon.style.transform = 'rotate(360deg)';
+    setTimeout(function() {
+      if (icon) icon.style.transform = 'rotate(0deg)';
+      btn.disabled = false;
+      btn.style.opacity = '';
+      btn.style.cursor  = '';
+    }, 600);
+  }
+}
+
 // Restore War Room on page load
 (function() {
   if (localStorage.getItem('warRoomActive') === '1') {
@@ -7150,6 +7230,7 @@ window.addEventListener('load', function() {
 
   function doSaveEmail(email,cfToken){
     emailDone=true;
+    trackEvent('lead_submit', { method: 'satoshi_widget', has_token: !!cfToken });
     fetch('/satoshi-lead',{
       method:'POST',
       headers:{'Content-Type':'application/json'},

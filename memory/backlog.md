@@ -31,6 +31,7 @@
 |---|------|------|
 | 6 | Social publishing attivo post go-live | 09A ora su OpenRouter Gemini Flash. Attivare dopo 10+ trade certificati. Il go-live del 1° Marzo è un evento narrativo forte. |
 | 7 | Migrare nodi Anthropic → OpenRouter (workflow INATTIVI) | Da fare: 07_Telegram_Commander, 09B_Social_Publisher, 12_Email_Handler. Tutti INACTIVE, no urgenza. |
+| 11 | **[ML-01] Claude Opus 4.6 su nodo Brain wf01B — senza Extended Context** | Il nodo LLM di wf01B usa `google/gemini-2.5-flash`. Sostituire con `claude-opus-4-6` via OpenRouter. **Constraint esplicito**: NON usare la Extended Context Window da 1M token — usare il context window standard. Motivo: costo, latenza e il prompt di wf01B non supera le ~8K token (16 fonti + history). Trade-off: latenza +6-10s, costo +$3.5/mese, quality gain su ragionamento confidence finanziario. **Prerequisito**: wf01A → wf01B < 8 min con Opus. Testare sandbox. |
 
 ---
 
