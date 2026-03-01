@@ -1636,10 +1636,15 @@ async function apiPost(path, body) {
 }
 
 // ── GLOBAL ACTIONS (v3) ──
+let _actionBusy = false;
+
 async function toggleBotPause() {
+  if (_actionBusy) return;
+  _actionBusy = true;
+  const btn = document.getElementById('btn-bot-toggle');
+  btn.disabled = true;
   try {
     const data = await apiPost('/cockpit/api/bot-toggle');
-    const btn = document.getElementById('btn-bot-toggle');
     if (data.paused) {
       btn.innerHTML = '&#9654; Resume Bot';
       btn.classList.remove('accent');
@@ -1651,11 +1656,14 @@ async function toggleBotPause() {
     }
     refreshAll();
   } catch (e) { console.error('Bot toggle error:', e); }
+  finally { btn.disabled = false; _actionBusy = false; }
 }
 
 function resetAllAgents() {
+  if (_actionBusy) return;
   if (!confirm('Reset ALL agents to pending? This clears messages, costs, and notes.')) return;
-  apiPost('/cockpit/api/agents/reset').then(() => refreshAll()).catch(e => console.error('Reset all error:', e));
+  _actionBusy = true;
+  apiPost('/cockpit/api/agents/reset').then(() => refreshAll()).catch(e => console.error('Reset all error:', e)).finally(() => { _actionBusy = false; });
 }
 
 function downloadReport() {
@@ -1681,8 +1689,10 @@ function downloadReport() {
 
 // ── AGENT CARD ACTIONS (v3) ──
 function resetAgent(cloneId) {
+  if (_actionBusy) return;
   if (!confirm(`Reset agent ${cloneId}?`)) return;
-  apiPost('/cockpit/api/agents/reset', { clone_id: cloneId }).then(() => refreshAll()).catch(e => console.error('Reset error:', e));
+  _actionBusy = true;
+  apiPost('/cockpit/api/agents/reset', { clone_id: cloneId }).then(() => refreshAll()).catch(e => console.error('Reset error:', e)).finally(() => { _actionBusy = false; });
 }
 
 function annotateAgent(cloneId) {
