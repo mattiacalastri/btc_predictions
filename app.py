@@ -2516,23 +2516,57 @@ def ghost_evaluate():
 
 def _fetch_ghost_exit_price(created_at_str):
     """
-    Fetch Binance 1m kline close price at T+30min from signal creation time.
+    Fetch close price at T+30min from signal creation time.
+    Tries Binance 1m klines first, falls back to Kraken OHLC.
     Returns float price or None if unavailable.
     """
     try:
         ts = _dt.datetime.fromisoformat(created_at_str.replace("Z", "+00:00"))
-        target_ms = int((ts + _dt.timedelta(minutes=30)).timestamp() * 1000)
-        url = (
+        target = ts + _dt.timedelta(minutes=30)
+        target_ms = int(target.timestamp() * 1000)
+        target_unix = int(target.timestamp())
+    except Exception as e:
+        app.logger.warning(f"[ghost] parse error: {e}")
+        return None
+
+    # Try Binance first
+    try:
+        r = requests.get(
             f"https://api.binance.com/api/v3/klines"
-            f"?symbol=BTCUSDT&interval=1m&startTime={target_ms}&limit=1"
+            f"?symbol=BTCUSDT&interval=1m&startTime={target_ms}&limit=1",
+            timeout=8,
         )
-        r = requests.get(url, timeout=5)
         if r.ok:
             klines = r.json()
             if klines and len(klines) > 0:
-                return float(klines[0][4])  # close price
-    except Exception:
-        pass
+                return float(klines[0][4])
+            app.logger.warning(f"[ghost] Binance klines empty ts={target_ms}")
+        else:
+            app.logger.warning(f"[ghost] Binance HTTP {r.status_code}: {r.text[:100]}")
+    except Exception as e:
+        app.logger.warning(f"[ghost] Binance exception: {e}")
+
+    # Fallback: Kraken OHLC (1min candles, public API)
+    try:
+        r2 = requests.get(
+            f"https://api.kraken.com/0/public/OHLC"
+            f"?pair=XBTUSD&interval=1&since={target_unix}",
+            timeout=8,
+        )
+        if r2.ok:
+            data = r2.json()
+            result = data.get("result", {})
+            for key in result:
+                if key != "last":
+                    candles = result[key]
+                    if candles and len(candles) > 0:
+                        return float(candles[0][4])  # close price
+            app.logger.warning(f"[ghost] Kraken OHLC empty ts={target_unix}")
+        else:
+            app.logger.warning(f"[ghost] Kraken HTTP {r2.status_code}")
+    except Exception as e:
+        app.logger.warning(f"[ghost] Kraken exception: {e}")
+
     return None
 
 
