@@ -1,3 +1,5 @@
+  .grecaptcha-badge { visibility: hidden !important; }
+
   :root {
     --bg: #080b0f;
     --surface: #0d1117;
