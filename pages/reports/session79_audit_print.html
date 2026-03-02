@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Session 79 Full Audit — BTC Predictor Bot</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=IBM+Plex+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+@page { size: A4; margin: 0; }
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #080b0f; --card: #0f1119; --border: #1a1c2e;
+  --teal: #00d4aa; --teal-dim: #00d4aa30;
+  --gold: #f0b429; --gold-dim: #f0b42930;
+  --red: #ff4757; --red-dim: #ff475720;
+  --green: #2ecc71; --green-dim: #2ecc7120;
+  --amber: #f39c12; --amber-dim: #f39c1220;
+  --text: #e8eaf0; --text-dim: #8891b0; --text-muted: #4a5080;
+  --fd: 'Outfit', sans-serif;
+  --fm: 'IBM Plex Mono', monospace;
+  --px: 36pt; /* page horizontal padding */
+  --py: 28pt; /* page vertical padding */
+}
+
+html { font-size: 9.5pt; }
+body { background: var(--bg); color: var(--text); font-family: var(--fd); line-height: 1.5; }
+
+/* Every section gets internal padding so bg bleeds edge-to-edge */
+section, .cover, footer { padding: var(--py) var(--px); }
+section + section { border-top: 1px solid var(--border); }
+
+/* Page number bottom-right */
+.page-num {
+  position: fixed; bottom: 10pt; right: var(--px);
+  font-family: var(--fm); font-size: 6pt; color: var(--text-muted);
+}
+
+/* === COVER === */
+.cover {
+  text-align: center;
+  padding-top: 80pt;
+  padding-bottom: 40pt;
+  page-break-after: always;
+  min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.cover-tag {
+  display: inline-block; padding: 4px 16px;
+  border: 1px solid var(--teal-dim); border-radius: 100px;
+  font-family: var(--fm); font-size: 6.5pt; color: var(--teal);
+  letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 24pt;
+}
+.cover h1 { font-size: 30pt; font-weight: 800; letter-spacing: -0.03em; color: #fff; line-height: 1.1; margin-bottom: 6pt; }
+.cover h1 span { color: var(--teal); }
+.cover-sub { font-family: var(--fm); font-size: 8.5pt; color: var(--text-dim); margin-bottom: 20pt; }
+.cover-badges { display: flex; justify-content: center; gap: 10pt; flex-wrap: wrap; margin-bottom: 28pt; }
+.cover-badges span {
+  font-family: var(--fm); font-size: 7pt; color: var(--text-dim);
+  padding: 3pt 10pt; border: 1px solid var(--border); border-radius: 5pt;
+}
+.cover-badges .live { color: var(--green); border-color: var(--green-dim); }
+.cover-badges .accent { color: var(--teal); border-color: var(--teal-dim); }
+.cover-box {
+  text-align: left; max-width: 380pt; width: 100%;
+  background: var(--card); border: 1px solid var(--border); border-radius: 8pt; padding: 14pt 18pt;
+}
+.cover-box h3 { font-family: var(--fm); font-size: 6pt; color: var(--teal); letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 6pt; }
+.cover-box p { font-size: 8pt; color: var(--text-dim); line-height: 1.55; }
+.cover-box strong { color: var(--text); }
+
+/* === TAGS & TITLES === */
+.stag { font-family: var(--fm); font-size: 6pt; color: var(--teal); letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 3pt; display: block; }
+.stitle { font-size: 15pt; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 14pt; color: #fff; }
+
+/* === HERO GRID === */
+.hgrid { display: grid; grid-template-columns: repeat(6,1fr); gap: 6pt; }
+.hcard { background: var(--card); border: 1px solid var(--border); border-radius: 6pt; padding: 10pt 6pt; text-align: center; }
+.hnum { font-size: 19pt; font-weight: 900; line-height: 1; }
+.hnum.teal{color:var(--teal)}.hnum.red{color:var(--red)}.hnum.amber{color:var(--amber)}.hnum.gold{color:var(--gold)}.hnum.green{color:var(--green)}
+.hlbl { font-family: var(--fm); font-size: 5.5pt; color: var(--text-dim); margin-top: 3pt; line-height: 1.3; }
+
+/* === CHAIN === */
+.chain { display: flex; flex-direction: column; align-items: center; max-width: 420pt; margin: 0 auto; }
+.cnode { width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: 6pt; padding: 8pt 12pt; }
+.cnode.brk { border-left: 3px solid var(--red); }
+.cnode.wrn { border-left: 3px solid var(--amber); }
+.cnode.ok { border-left: 3px solid var(--green); }
+.clvl { font-family: var(--fm); font-size: 5pt; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 2pt; }
+.ctitle { font-weight: 700; font-size: 7.5pt; color: #fff; margin-bottom: 1pt; }
+.cdesc { font-family: var(--fm); font-size: 6pt; color: var(--text-dim); line-height: 1.4; }
+.cfix { display: inline-block; font-family: var(--fm); font-size: 5pt; color: var(--green); margin-top: 3pt; padding: 1pt 6pt; border: 1px solid var(--green-dim); border-radius: 100px; }
+.carrow { width: 1px; height: 10pt; background: var(--red); }
+.carrow.g { background: var(--green); }
+
+/* === TABLE === */
+.twrap { border: 1px solid var(--border); border-radius: 6pt; overflow: hidden; background: var(--card); }
+.ftable { width: 100%; border-collapse: collapse; font-size: 6.5pt; }
+.ftable th { font-family: var(--fm); font-size: 5pt; letter-spacing: 0.1em; text-transform: uppercase; color: var(--teal); padding: 5pt 7pt; text-align: left; border-bottom: 1px solid var(--border); background: var(--bg); }
+.ftable td { padding: 4pt 7pt; border-bottom: 1px solid #12132a; vertical-align: top; }
+.fn { font-family: var(--fm); color: var(--teal); font-weight: 600; font-size: 6pt; }
+.ft { font-family: var(--fm); color: var(--gold); font-size: 6pt; }
+.fi { font-family: var(--fm); color: var(--text-dim); font-size: 6pt; }
+.rcrit td { background: #ff475710; }
+
+/* === AGENTS === */
+.agrid { display: grid; grid-template-columns: repeat(3,1fr); gap: 6pt; }
+.acard { background: var(--card); border: 1px solid var(--border); border-radius: 6pt; padding: 8pt; display: flex; gap: 7pt; }
+.abadge { flex-shrink: 0; width: 20pt; height: 20pt; border-radius: 5pt; display: flex; align-items: center; justify-content: center; font-family: var(--fm); font-weight: 700; font-size: 6.5pt; }
+.abadge.p{background:var(--green-dim);color:var(--green)}.abadge.w{background:var(--amber-dim);color:var(--amber)}.abadge.f{background:var(--red-dim);color:var(--red)}
+.aname { font-weight: 600; font-size: 7pt; color: #fff; }
+.ast { font-family: var(--fm); font-size: 5.5pt; letter-spacing: 0.04em; margin: 1pt 0; }
+.ast.p{color:var(--green)}.ast.w{color:var(--amber)}.ast.f{color:var(--red)}
+.afind { font-family: var(--fm); font-size: 5.5pt; color: var(--text-dim); line-height: 1.35; }
+
+/* === METRICS === */
+.mgrid { display: grid; grid-template-columns: repeat(6,1fr); gap: 6pt; }
+.mcard { background: var(--card); border: 1px solid var(--border); border-radius: 6pt; padding: 10pt 8pt; border-top: 2.5pt solid transparent; }
+.mcard.red{border-top-color:var(--red)}.mcard.green{border-top-color:var(--green)}.mcard.amber{border-top-color:var(--amber)}
+.mval { font-size: 15pt; font-weight: 800; line-height: 1; }
+.mval.red{color:var(--red)}.mval.green{color:var(--green)}.mval.amber{color:var(--amber)}
+.mlbl { font-family: var(--fm); font-size: 5.5pt; color: var(--text-dim); margin-top: 3pt; }
+.msub { font-family: var(--fm); font-size: 5pt; color: var(--text-muted); margin-top: 1pt; }
+
+/* === BARS === */
+.bchart { max-width: 420pt; }
+.brow { display: flex; align-items: center; gap: 6pt; margin-bottom: 6pt; }
+.blbl { font-family: var(--fm); font-size: 6.5pt; color: var(--text-dim); width: 55pt; text-align: right; flex-shrink: 0; }
+.btrack { flex: 1; height: 16pt; background: #12132a; border-radius: 3pt; overflow: hidden; }
+.bfill { height: 100%; border-radius: 2pt; display: flex; align-items: center; justify-content: flex-end; padding-right: 5pt; font-family: var(--fm); font-size: 5.5pt; font-weight: 600; }
+.bfill.red{background:linear-gradient(90deg,#ff475730,var(--red));color:#fff}
+.bfill.amber{background:linear-gradient(90deg,#f39c1230,var(--amber));color:#000}
+.bfill.green{background:linear-gradient(90deg,#2ecc7130,var(--green));color:#000}
+.bn { font-family: var(--fm); font-size: 5.5pt; color: var(--text-muted); width: 30pt; flex-shrink: 0; }
+.binsight { margin-top: 8pt; padding: 7pt 10pt; background: var(--card); border: 1px solid var(--teal-dim); border-radius: 5pt; font-family: var(--fm); font-size: 6pt; color: var(--teal); line-height: 1.45; }
+
+/* === VERIFY === */
+.vcard { background: var(--card); border: 2px solid var(--green); border-radius: 8pt; padding: 14pt 16pt; margin-bottom: 10pt; }
+.vcard h3 { color: var(--green); font-size: 10pt; font-weight: 700; margin-bottom: 8pt; }
+.vgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8pt; }
+.vsig { background: var(--bg); border: 1px solid var(--border); border-radius: 6pt; padding: 10pt; }
+.vsig-id { font-family: var(--fm); font-size: 6.5pt; color: var(--teal); font-weight: 600; margin-bottom: 5pt; }
+.vsig-row { display: flex; justify-content: space-between; font-family: var(--fm); font-size: 6pt; padding: 1.5pt 0; border-bottom: 1px solid #12132a; }
+.vsig-row:last-child { border-bottom: none; }
+.sk { color: var(--text-dim); }
+.sv { color: var(--text); font-weight: 500; }
+.sv.g{color:var(--green)}.sv.r{color:var(--red)}
+
+/* === PRIORITY === */
+.plist { max-width: 420pt; }
+.pitem { display: flex; gap: 8pt; align-items: flex-start; padding: 6pt 10pt; background: var(--card); border: 1px solid var(--border); border-radius: 6pt; margin-bottom: 5pt; }
+.ptag { flex-shrink: 0; font-family: var(--fm); font-size: 5pt; font-weight: 700; letter-spacing: 0.08em; padding: 2pt 7pt; border-radius: 3pt; text-transform: uppercase; }
+.ptag.p0{background:var(--red-dim);color:var(--red)}.ptag.p1{background:var(--amber-dim);color:var(--amber)}.ptag.p2{background:var(--teal-dim);color:var(--teal)}
+.ptxt { font-size: 7pt; line-height: 1.35; }
+.pwhen { font-family: var(--fm); font-size: 5pt; color: var(--text-muted); margin-top: 1pt; }
+
+/* === ENV === */
+.estats { display: flex; gap: 8pt; margin-bottom: 8pt; }
+.estat { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: 6pt; padding: 8pt; display: flex; align-items: center; gap: 8pt; }
+.enum { font-size: 16pt; font-weight: 800; color: var(--teal); }
+.enum.w { color: var(--amber); }
+.edet { font-family: var(--fm); font-size: 5.5pt; color: var(--text-dim); line-height: 1.35; }
+.eunused { padding: 6pt 10pt; border: 1px solid var(--border); border-radius: 5pt; font-family: var(--fm); font-size: 6pt; color: var(--text-dim); }
+.eunused code { color: var(--amber); background: #f0b42910; padding: 0 3pt; border-radius: 2pt; font-size: 5.5pt; }
+
+/* === FOOTER === */
+footer { text-align: center; border-top: 1px solid var(--border); padding-top: 16pt; padding-bottom: 16pt; }
+.fbadge { display: inline-block; padding: 5pt 14pt; border: 1px solid var(--teal-dim); border-radius: 100px; font-family: var(--fm); font-size: 6.5pt; color: var(--teal); letter-spacing: 0.04em; }
+.fsub { font-family: var(--fm); font-size: 5pt; color: var(--text-muted); margin-top: 6pt; }
+
+/* page breaks */
+.pb { page-break-before: always; }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="cover">
+  <div class="cover-tag">LIVE SYSTEM &bull; CONFIDENTIAL</div>
+  <h1>BTC Predictor Bot<br><span>Full System Audit</span></h1>
+  <p class="cover-sub">Sessione 79 &mdash; 2 Marzo 2026 &mdash; 9 Agenti Paralleli</p>
+  <div class="cover-badges">
+    <span class="live">LIVE v2.5.2</span>
+    <span>Equity $90.28</span>
+    <span>266 signals</span>
+    <span>10 bets placed</span>
+    <span class="accent">19 fixes applied</span>
+  </div>
+  <div class="cover-box">
+    <h3>Executive Summary</h3>
+    <p>Audit completo con <strong>9 agenti AI in parallelo</strong>. Scoperta e risolta una <strong>catena di fallimento a 6 livelli</strong> nel pipeline wf01B che impediva al bot di piazzare bet dal go-live. <strong>19 fix applicati</strong> (4 P0 Critical). Pipeline <strong>verificato funzionante</strong> con 2 bet consecutivi (#295, #296).</p>
+  </div>
+</div>
+
+<!-- 01 EXECUTIVE SUMMARY -->
+<section>
+  <span class="stag">01 / Executive Summary</span>
+  <h2 class="stitle">Audit ad alta intensit&agrave;</h2>
+  <div class="hgrid">
+    <div class="hcard"><div class="hnum teal">19</div><div class="hlbl">Fix applicati<br>in sessione</div></div>
+    <div class="hcard"><div class="hnum red">4</div><div class="hlbl">P0 Critical<br>risolti</div></div>
+    <div class="hcard"><div class="hnum amber">4</div><div class="hlbl">P1 High<br>risolti</div></div>
+    <div class="hcard"><div class="hnum gold">6</div><div class="hlbl">P2 Medium<br>identificati</div></div>
+    <div class="hcard"><div class="hnum teal">9</div><div class="hlbl">Agenti<br>in parallelo</div></div>
+    <div class="hcard"><div class="hnum green">32</div><div class="hlbl">Env vars<br>verificate</div></div>
+  </div>
+</section>
+
+<!-- 02 ROOT CAUSE -->
+<section>
+  <span class="stag">02 / Root Cause Analysis</span>
+  <h2 class="stitle">La catena di fallimento a 6 livelli</h2>
+  <div class="chain">
+    <div class="cnode brk">
+      <div class="clvl">Level 1 &mdash; LLM Model</div>
+      <div class="ctitle">Gemini Flash ancorato al 0.55</div>
+      <div class="cdesc">Temperatura 0.15 + json_object = output deterministico. 0.55 come &ldquo;scelta sicura&rdquo;.</div>
+      <div class="cfix">FIX: temp 0.15 &rarr; 0.30 + prompt riscritto</div>
+    </div>
+    <div class="carrow"></div>
+    <div class="cnode brk">
+      <div class="clvl">Level 2 &mdash; n8n Gate Node</div>
+      <div class="ctitle">&ldquo;If Confidence > 62&rdquo; confronta undefined</div>
+      <div class="cdesc">effective_threshold calcolata a valle &rarr; undefined &rarr; TUTTI i segnali in SKIP.</div>
+      <div class="cfix">FIX: threshold fissato a 0.50</div>
+    </div>
+    <div class="carrow"></div>
+    <div class="cnode brk">
+      <div class="clvl">Level 3 &mdash; Recalibrator Irraggiungibile</div>
+      <div class="ctitle">Anti-Noise Filter mai eseguito</div>
+      <div class="cdesc">Gate al L2 bloccava tutto prima del recalibrator a 7 fattori.</div>
+      <div class="cfix">FIX: gate aperto &rarr; recalibrator raggiungibile</div>
+    </div>
+    <div class="carrow"></div>
+    <div class="cnode brk">
+      <div class="clvl">Level 4 &mdash; API Key Sbagliata</div>
+      <div class="ctitle">6 nodi HTTP con key errata &rarr; 403 su tutto</div>
+      <div class="cdesc">Tutti i nodi Railway usavano 03c936d3... invece della corretta BOT_API_KEY.</div>
+      <div class="cfix">FIX: API key corretta in tutti e 6 i nodi</div>
+    </div>
+    <div class="carrow"></div>
+    <div class="cnode wrn">
+      <div class="clvl">Level 5 &mdash; Confidence Source Errata</div>
+      <div class="ctitle">Open Position leggeva dal LLM, non dal Recalibrator</div>
+      <div class="cdesc">$('BTC Prediction Bot').confidence (raw 0.55) invece di $('Anti-Noise Filter').confidence.</div>
+      <div class="cfix">FIX: source aggiornata al recalibrator</div>
+    </div>
+    <div class="carrow"></div>
+    <div class="cnode brk">
+      <div class="clvl">Level 6 &mdash; Dead Webhook + Merge1 + Execution Order</div>
+      <div class="ctitle">3 bug concatenati bloccavano il pipeline downstream</div>
+      <div class="cdesc">Webhook morto &rarr; Merge1 hung. Bypass Merge1. Signal Message Format crashava referenziando nodo non eseguito &rarr; gate mai raggiunto.</div>
+      <div class="cfix">FIX: bypass Merge1 + Signal Msg Format dopo Anti-Noise</div>
+    </div>
+    <div class="carrow g"></div>
+    <div class="cnode ok">
+      <div class="clvl">Pipeline Verified</div>
+      <div class="ctitle">FIRST BET #295 &mdash; 08:55 UTC, 2 Marzo 2026</div>
+      <div class="cdesc">Create a row &rarr; gate &rarr; macro guard &rarr; anti-noise &rarr; Open Position &rarr; FILLED.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 03 FIXES -->
+<section class="pb">
+  <span class="stag">03 / Fixes Applied</span>
+  <h2 class="stitle">19 interventi in una sessione</h2>
+  <div class="twrap">
+  <table class="ftable">
+    <thead><tr><th>#</th><th>Fix</th><th>Target</th><th>Impact</th></tr></thead>
+    <tbody>
+      <tr><td class="fn">#1</td><td>Gzip compression</td><td class="ft">app.py</td><td class="fi">Dashboard 411KB &rarr; 104KB (74%)</td></tr>
+      <tr><td class="fn">#2</td><td>XGBoost retrain</td><td class="ft">models/</td><td class="fi">198 samples, 92.7% direction accuracy</td></tr>
+      <tr><td class="fn">#3</td><td>build_dataset.py auth</td><td class="ft">SUPABASE_SERVICE_KEY</td><td class="fi">Fixed 401 Unauthorized</td></tr>
+      <tr><td class="fn">#4</td><td>wf01B prompt rewrite</td><td class="ft">n8n LLM</td><td class="fi">&ldquo;NEVER default to 0.55&rdquo;, range 0.50&ndash;0.90</td></tr>
+      <tr><td class="fn">#5</td><td>Blocked hours reduce</td><td class="ft">n8n Anti-Noise</td><td class="fi">[0,1,5,7,10,11] &rarr; [5,10]</td></tr>
+      <tr><td class="fn">#6</td><td>Confidence recalibrator</td><td class="ft">n8n Anti-Noise</td><td class="fi">7-factor algorithmic confidence</td></tr>
+      <tr><td class="fn">#7</td><td>LLM temperature bump</td><td class="ft">n8n OpenRouter</td><td class="fi">0.15 &rarr; 0.30</td></tr>
+      <tr><td class="fn">#8</td><td>Confidence gate fix</td><td class="ft">n8n &ldquo;If Conf&gt;62&rdquo;</td><td class="fi">undefined &rarr; fixed 0.50</td></tr>
+      <tr><td class="fn">#9</td><td>wf08 reactivation</td><td class="ft">n8n Pos. Monitor</td><td class="fi">Inactive since Mar 1 &rarr; active</td></tr>
+      <tr><td class="fn">#10</td><td>rescue_orphaned PnL</td><td class="ft">app.py</td><td class="fi">Direction-aware (was always UP formula)</td></tr>
+      <tr><td class="fn">#11</td><td>rescue_orphaned fields</td><td class="ft">app.py</td><td class="fi">+pnl_usd, fees_total, actual_direction</td></tr>
+      <tr><td class="fn">#12</td><td>Ghost dedup fix</td><td class="ft">build_dataset.py</td><td class="fi">bet_taken filter prevents 2x count</td></tr>
+      <tr><td class="fn">#13</td><td>Cockpit env vars</td><td class="ft">app.py</td><td class="fi">KRAKEN_API_KEY &rarr; FUTURES_API_KEY</td></tr>
+      <tr><td class="fn">#14</td><td>Cockpit table name</td><td class="ft">app.py</td><td class="fi">predictions &rarr; btc_predictions (5x)</td></tr>
+      <tr><td class="fn">#15</td><td>requirements.txt</td><td class="ft">deps</td><td class="fi">+python-dotenv, +pandas</td></tr>
+      <tr class="rcrit"><td class="fn">#16</td><td>n8n API key fix</td><td class="ft">wf01B (6 nodi)</td><td class="fi">403 Unauthorized &rarr; auth corretta</td></tr>
+      <tr class="rcrit"><td class="fn">#17</td><td>Confidence source</td><td class="ft">wf01B Open Pos.</td><td class="fi">LLM raw &rarr; Anti-Noise recalibrator</td></tr>
+      <tr class="rcrit"><td class="fn">#18</td><td>Merge1 bypass</td><td class="ft">wf01B</td><td class="fi">Dead webhook + Merge hang &rarr; direct</td></tr>
+      <tr class="rcrit"><td class="fn">#19</td><td>Signal Msg Format</td><td class="ft">wf01B</td><td class="fi">Moved after Anti-Noise (was crashing)</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- 04 AGENTS -->
+<section>
+  <span class="stag">04 / Agent Results</span>
+  <h2 class="stitle">9 agenti, 9 verdetti</h2>
+  <div class="agrid">
+    <div class="acard"><div class="abadge p">1</div><div><div class="aname">app.py Health</div><div class="ast p">PASS</div><div class="afind">10/10 check. 2 MEDIUM fixati.</div></div></div>
+    <div class="acard"><div class="abadge p">2</div><div><div class="aname">ML Pipeline</div><div class="ast p">PASS</div><div class="afind">TimeSeriesSplit OK. Ghost dedup fixato.</div></div></div>
+    <div class="acard"><div class="abadge w">3</div><div><div class="aname">n8n Workflows</div><div class="ast w">7/8 OK</div><div class="afind">wf08 inattivo &rarr; riattivato.</div></div></div>
+    <div class="acard"><div class="abadge p">4</div><div><div class="aname">Dashboard</div><div class="ast p">PASS</div><div class="afind">12/12 HTML validi. Gzip attivo.</div></div></div>
+    <div class="acard"><div class="abadge w">5</div><div><div class="aname">Local Env</div><div class="ast w">WARN</div><div class="afind">3 pkg mancanti &rarr; installati.</div></div></div>
+    <div class="acard"><div class="abadge w">6</div><div><div class="aname">Supabase</div><div class="ast w">WARN</div><div class="afind">58 ghost pending. wf08 riattivato.</div></div></div>
+    <div class="acard"><div class="abadge p">7</div><div><div class="aname">Strategy</div><div class="ast p">ANALYSIS</div><div class="afind">Contrarian WR 60.8%. Polarit&agrave; invertita.</div></div></div>
+    <div class="acard"><div class="abadge f">8</div><div><div class="aname">Bug Sweep</div><div class="ast f">2 P0</div><div class="afind">rescue_orphaned PnL + campi &rarr; fixati.</div></div></div>
+    <div class="acard"><div class="abadge w">9</div><div><div class="aname">Performance</div><div class="ast w">INSIGHT</div><div class="afind">8 ore WR&lt;35%. Blocco &rarr; 54% WR.</div></div></div>
+  </div>
+</section>
+
+<!-- 05 METRICS -->
+<section>
+  <span class="stag">05 / Critical Metrics</span>
+  <h2 class="stitle">I numeri che contano</h2>
+  <div class="mgrid">
+    <div class="mcard red"><div class="mval red">39.2%</div><div class="mlbl">Ghost Win Rate</div><div class="msub">74/189 evaluated</div></div>
+    <div class="mcard green"><div class="mval green">60.8%</div><div class="mlbl">Contrarian WR</div><div class="msub">Signal invertito</div></div>
+    <div class="mcard amber"><div class="mval amber">56.1%</div><div class="mlbl">Signals at 0.55</div><div class="msub">142/253 totali</div></div>
+    <div class="mcard red"><div class="mval red">69.2%</div><div class="mlbl">DOWN Bias</div><div class="msub">175 DOWN vs 78 UP</div></div>
+    <div class="mcard green"><div class="mval green">6.6m</div><div class="mlbl">Max Signal Gap</div><div class="msub">wf01A stabile</div></div>
+    <div class="mcard green"><div class="mval green">1.0s</div><div class="mlbl">Dashboard Load</div><div class="msub">Was 4s+ (gzip)</div></div>
+  </div>
+</section>
+
+<!-- 06 WR CHART -->
+<section>
+  <span class="stag">06 / Win Rate per Confidence</span>
+  <h2 class="stitle">La curva a U</h2>
+  <div class="bchart">
+    <div class="brow"><div class="blbl">0.50&ndash;0.55</div><div class="btrack"><div class="bfill red" style="width:36.6%">36.6%</div></div><div class="bn">n=142</div></div>
+    <div class="brow"><div class="blbl">0.56&ndash;0.60</div><div class="btrack"><div class="bfill amber" style="width:48.3%">48.3%</div></div><div class="bn">n=29</div></div>
+    <div class="brow"><div class="blbl">0.61&ndash;0.70</div><div class="btrack"><div class="bfill red" style="width:25%">25.0%</div></div><div class="bn">n=12</div></div>
+    <div class="brow"><div class="blbl">0.71+</div><div class="btrack"><div class="bfill green" style="width:83.3%">83.3%</div></div><div class="bn">n=6</div></div>
+  </div>
+  <div class="binsight">Curva a U: edge reale agli estremi (0.71+: 83.3%) e segnale contrarian nel dead zone (0.50&ndash;0.55: 63.4% invertito). Mid-range 0.61&ndash;0.70 = &ldquo;late consensus trap&rdquo;.</div>
+</section>
+
+<!-- 07 PIPELINE VERIFICATION -->
+<section class="pb">
+  <span class="stag">07 / Pipeline Verification</span>
+  <h2 class="stitle">2 bet consecutivi &mdash; pipeline operativo</h2>
+  <div class="vcard">
+    <h3>End-to-End Verified</h3>
+    <div class="vgrid">
+      <div class="vsig">
+        <div class="vsig-id">Signal #295 &mdash; FIRST BET POST-FIX</div>
+        <div class="vsig-row"><span class="sk">Timestamp</span><span class="sv">08:55:30 UTC</span></div>
+        <div class="vsig-row"><span class="sk">Direction</span><span class="sv r">DOWN (SHORT)</span></div>
+        <div class="vsig-row"><span class="sk">Confidence</span><span class="sv">0.55</span></div>
+        <div class="vsig-row"><span class="sk">Entry fill</span><span class="sv g">$66,211</span></div>
+        <div class="vsig-row"><span class="sk">Take Profit</span><span class="sv">$64,621.90</span></div>
+        <div class="vsig-row"><span class="sk">Stop Loss</span><span class="sv">$67,005.50</span></div>
+        <div class="vsig-row"><span class="sk">Slippage</span><span class="sv g">0.0037%</span></div>
+        <div class="vsig-row"><span class="sk">Size</span><span class="sv">0.001 BTC</span></div>
+      </div>
+      <div class="vsig">
+        <div class="vsig-id">Signal #296 &mdash; REVERSAL</div>
+        <div class="vsig-row"><span class="sk">Timestamp</span><span class="sv">09:01:28 UTC</span></div>
+        <div class="vsig-row"><span class="sk">Direction</span><span class="sv g">UP (LONG)</span></div>
+        <div class="vsig-row"><span class="sk">Confidence</span><span class="sv">0.58</span></div>
+        <div class="vsig-row"><span class="sk">Entry fill</span><span class="sv g">$66,210</span></div>
+        <div class="vsig-row"><span class="sk">Note</span><span class="sv">Auto-reverse SHORT &rarr; LONG</span></div>
+      </div>
+    </div>
+  </div>
+  <div style="font-family:var(--fm);font-size:6.5pt;color:var(--text-dim);padding:8pt 12pt;background:var(--card);border:1px solid var(--border);border-radius:6pt;line-height:1.7">
+    <strong style="color:var(--teal)">Flusso verificato:</strong> Create a row &rarr; If Conf > 0.50 &rarr; Macro Guard &rarr; GET Bet Size &rarr; Anti-Noise Filter &rarr; Open Position &rarr; <strong style="color:var(--green)">FILLED</strong><br>
+    <strong style="color:var(--teal)">Sistema finale:</strong> Bot UP | Equity $90.28 | v2.5.2 | DRY_RUN off | 6/6 workflows attivi | 10 bet totali
+  </div>
+</section>
+
+<!-- 08 NEXT STEPS -->
+<section>
+  <span class="stag">08 / Strategic Next Steps</span>
+  <h2 class="stitle">Roadmap operativa</h2>
+  <div class="plist">
+    <div class="pitem"><div class="ptag p0">P0</div><div><div class="ptxt">Validare gate fix: monitorare 50 segnali per confermare confidence diversificata</div><div class="pwhen">Prossime 24 ore</div></div></div>
+    <div class="pitem"><div class="ptag p0">P0</div><div><div class="ptxt">Inversione condizionale: dead zone 0.50&ndash;0.55 &rarr; flip direction (contrarian WR 63.4%)</div><div class="pwhen">Prossime 24 ore</div></div></div>
+    <div class="pitem"><div class="ptag p1">P1</div><div><div class="ptxt">Swap Gemini Flash &rarr; Claude Sonnet per reasoning migliore</div><div class="pwhen">Questa settimana</div></div></div>
+    <div class="pitem"><div class="ptag p1">P1</div><div><div class="ptxt">Bloccare 8 ore peggiori (WR &lt;35%) &mdash; WR complessiva &rarr; 54.3%</div><div class="pwhen">Questa settimana</div></div></div>
+    <div class="pitem"><div class="ptag p2">P2</div><div><div class="ptxt">Raggiungere 100 bet per attivare XGB Gate (attualmente 10/100)</div><div class="pwhen">30 giorni</div></div></div>
+    <div class="pitem"><div class="ptag p2">P2</div><div><div class="ptxt">Semplificare prompt a 7 regole essenziali</div><div class="pwhen">30 giorni</div></div></div>
+  </div>
+</section>
+
+<!-- 09 ENV AUDIT -->
+<section>
+  <span class="stag">09 / Railway Environment Audit</span>
+  <h2 class="stitle">32 variabili verificate</h2>
+  <div class="estats">
+    <div class="estat"><div class="enum">28</div><div class="edet">Correttamente<br>mappate al codice</div></div>
+    <div class="estat"><div class="enum w">3</div><div class="edet">Non usate<br>da app.py</div></div>
+    <div class="estat"><div class="enum w">1</div><div class="edet">Divergenza nomi<br>N8N_URL vs N8N_HOST</div></div>
+  </div>
+  <div class="eunused">
+    Non usate: <code>ANTHROPIC_API_KEY</code> <code>KRAKEN_FUTURES_BASE_URL</code> <code>SENTRY_AUTH_TOKEN</code><br>
+    <span style="color:var(--text-muted);display:block;margin-top:3pt">Railway ha <code>N8N_URL</code>, locale usa <code>N8N_HOST</code> &mdash; app.py usa correttamente N8N_URL.</span>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="fbadge">Generato da AI Oracle &mdash; Sessione 79 | 2 Marzo 2026</div>
+  <div class="fsub">BTC Predictor Bot v2.5.2 &mdash; btcpredictor.io &mdash; 9 agenti, 19 fix, pipeline verified</div>
+</footer>
+
+</body>
+</html>
