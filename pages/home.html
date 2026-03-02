@@ -63,10 +63,10 @@ if(localStorage.getItem('btcp_ga_consent')==='granted'){
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='15' fill='%230d0d0d'/%3E%3Ctext x='50' y='72' font-size='70' text-anchor='middle' fill='%2300ff88' font-family='Arial'%3E%E2%82%BF%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg:      #080b0f;
+    --bg:      #0a0a0f;
     --surface: #0d1117;
     --card:    #111820;
     --border:  #1e2d3d;
@@ -86,6 +86,7 @@ if(localStorage.getItem('btcp_ga_consent')==='granted'){
     color: var(--text);
     font-family: 'JetBrains Mono', monospace;
     -webkit-font-smoothing: antialiased;
+    padding-top: 48px;
   }
 
   /* ── Noise texture overlay ── */
@@ -369,9 +370,51 @@ if(localStorage.getItem('btcp_ga_consent')==='granted'){
     .nav-card  { padding: 22px 18px; }
     .price-strip { flex-wrap: wrap; gap: 10px; }
   }
+
+  /* ─── UNIFIED GNAV ─── */
+  .gnav{position:fixed;top:0;left:0;right:0;z-index:9000;height:48px;background:rgba(10,10,15,0.8);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;}
+  .gnav-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:#fff;font-size:14px;font-weight:600;letter-spacing:-0.01em;}
+  .gnav-mark{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;background:#00ff88;color:#000;font-size:11px;font-weight:800;border-radius:6px;flex-shrink:0;}
+  .gnav-name{white-space:nowrap;}
+  .gnav-links{display:flex;align-items:center;gap:4px;}
+  .gnav-link{text-decoration:none;color:rgba(255,255,255,0.5);font-size:13px;font-weight:400;padding:6px 12px;border-radius:6px;transition:color 0.2s,background 0.2s;white-space:nowrap;}
+  .gnav-link:hover{color:rgba(255,255,255,0.9);background:rgba(255,255,255,0.04);}
+  .gnav-link.active{color:#fff;}
+  .gnav-link.active::after{content:'';display:block;height:1px;background:#00ff88;margin-top:2px;border-radius:1px;}
+  .gnav-private{position:relative;padding-left:22px;}
+  .gnav-private::before{content:'';position:absolute;left:10px;top:50%;transform:translateY(-50%);width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,0.2);}
+  .gnav-burger{display:none;align-items:center;justify-content:center;background:none;border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);padding:6px 8px;border-radius:6px;cursor:pointer;transition:border-color 0.2s,color 0.2s;}
+  .gnav-burger:hover{border-color:rgba(255,255,255,0.25);color:rgba(255,255,255,0.9);}
+  @media(max-width:768px){
+  .gnav-links{display:none;position:fixed;top:48px;right:0;bottom:0;width:260px;background:rgba(10,10,15,0.96);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-left:1px solid rgba(255,255,255,0.06);flex-direction:column;align-items:stretch;padding:12px 0;gap:0;overflow-y:auto;transform:translateX(100%);transition:transform 0.25s cubic-bezier(0.4,0,0.2,1);}
+  .gnav-links.gnav-open{display:flex;transform:translateX(0);}
+  .gnav-link{font-size:14px;padding:12px 20px;border-radius:0;}
+  .gnav-link.active::after{display:none;}
+  .gnav-link.active{background:rgba(0,255,136,0.06);}
+  .gnav-burger{display:flex;}
+  }
 </style>
 </head>
 <body>
+<nav class="gnav">
+  <a href="/" class="gnav-brand">
+    <span class="gnav-mark">B</span>
+    <span class="gnav-name">BTC Predictor</span>
+  </a>
+  <div class="gnav-links" id="gnavLinks">
+    <a href="/dashboard" class="gnav-link" data-page="dashboard">Dashboard</a>
+    <a href="/xgboost-spiegato" class="gnav-link" data-page="xgboost">How It Works</a>
+    <a href="/investors" class="gnav-link" data-page="investors">Investors</a>
+    <a href="/audit" class="gnav-link" data-page="audit">Audit Ledger</a>
+    <a href="/marketing" class="gnav-link gnav-private" data-page="marketing">Ops</a>
+    <a href="/cockpit" class="gnav-link gnav-private" data-page="cockpit">Cockpit</a>
+  </div>
+  <button class="gnav-burger" id="gnavBurger" aria-label="Menu">
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <path d="M2 4.5h14M2 9h14M2 13.5h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+  </button>
+</nav>
 <h1 style="position:absolute;left:-9999px;visibility:hidden;">BTC Predictor — AI Bitcoin Trading Bot with On-Chain Audit</h1>
 <div class="wrapper">
 
@@ -540,6 +583,13 @@ if(localStorage.getItem('btcp_ga_consent')==='granted'){
       if(b){b.style.display='flex';}
     },1500);
   }
+})();
+</script>
+<script>
+(function(){
+  var b=document.getElementById('gnavBurger'),l=document.getElementById('gnavLinks');
+  if(b&&l){b.addEventListener('click',function(){l.classList.toggle('gnav-open');});
+  document.addEventListener('click',function(e){if(!l.contains(e.target)&&!b.contains(e.target))l.classList.remove('gnav-open');});}
 })();
 </script>
 </body>
