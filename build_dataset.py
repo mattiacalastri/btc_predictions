@@ -17,6 +17,7 @@ Env vars (stessi di app.py):
 import os
 import json
 import csv
+import logging
 import math
 import random
 import argparse
@@ -26,6 +27,8 @@ from datetime import datetime
 import urllib.request
 import urllib.parse
 from constants import _BIAS_MAP
+
+logging.basicConfig(level=logging.INFO, format="%(levelname)s  %(message)s")
 
 _SSL_CTX = ssl.create_default_context(cafile=certifi.where())
 
@@ -130,7 +133,8 @@ def fetch_cvd_6m(timestamp_ms: int) -> float | None:
         cvd_6m_pct = (cvd_sum / total_vol_6m) * 100.0
         return round(cvd_6m_pct, 4)
 
-    except Exception:
+    except Exception as e:
+        logging.warning("fetch_cvd_6m failed: %s", e)
         return None
 
 
@@ -198,7 +202,8 @@ def fetch_regime_4h(timestamp_ms: int) -> int | None:
         else:
             return 0  # RANGING
 
-    except Exception:
+    except Exception as e:
+        logging.warning("fetch_regime_4h failed: %s", e)
         return None
 
 
