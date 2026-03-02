@@ -282,6 +282,7 @@ def fetch_resolved_predictions() -> list:
         rows = supabase_get("btc_predictions", {
             "select": columns,
             "correct": "not.is.null",
+            "bet_taken": "eq.true",  # P1 fix: exclude ghosts (they have correct set by ghost-evaluate)
             "order": "created_at.asc",
             "limit": page_size,
             "offset": offset,

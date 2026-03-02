@@ -2644,7 +2644,16 @@ def rescue_orphaned():
                 if direction == "DOWN":
                     gross_delta = -gross_delta
                 correct = gross_delta > 0
-                pnl = round((exit_price - entry) / entry * 100, 4) if entry else 0
+                # PnL direction-aware (P0 fix: was always UP formula)
+                if direction == "UP":
+                    pnl = round((exit_price - entry) / entry * 100, 4) if entry else 0
+                else:
+                    pnl = round((entry - exit_price) / entry * 100, 4) if entry else 0
+                actual_dir = "UP" if exit_price > entry else "DOWN" if exit_price < entry else direction
+                bet_size = float(bet.get("bet_size") or 0.001)
+                pnl_gross = (exit_price - entry) * bet_size if direction == "UP" else (entry - exit_price) * bet_size
+                fee = bet_size * (entry + exit_price) * TAKER_FEE
+                pnl_usd = round(pnl_gross - fee, 6)
                 # Aggiorna Supabase — &correct=is.null previene doppia risoluzione (S-17)
                 upd = requests.patch(
                     f"{supabase_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{bet_id}&correct=is.null",
@@ -2654,7 +2663,9 @@ def rescue_orphaned():
                         "Content-Type": "application/json",
                         "Prefer": "return=minimal",
                     },
-                    json={"exit_fill_price": exit_price, "correct": correct, "pnl_pct": pnl, "source_updated_by": "rescue_stale"},
+                    json={"exit_fill_price": exit_price, "correct": correct, "pnl_pct": pnl,
+                          "pnl_usd": pnl_usd, "fees_total": round(fee, 6),
+                          "actual_direction": actual_dir, "source_updated_by": "rescue_stale"},
                     timeout=6,
                 )
                 if upd.ok:
@@ -5898,8 +5909,8 @@ def cockpit_overview():
         try:
             from kraken.futures import User as _KUser
             _ku = _KUser(
-                key=os.environ.get("KRAKEN_API_KEY", ""),
-                secret=os.environ.get("KRAKEN_API_SECRET", "")
+                key=os.environ.get("KRAKEN_FUTURES_API_KEY", ""),
+                secret=os.environ.get("KRAKEN_FUTURES_API_SECRET", "")
             )
             _positions = _ku.get_open_positions()
             if isinstance(_positions, dict):
@@ -5922,7 +5933,7 @@ def cockpit_overview():
         # Today's predictions (expanded select for pnl + ghost + latest)
         today_str = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%d")
         resp = requests.get(
-            f"{sb_url}/rest/v1/predictions?select=id,correct,confidence,direction,pnl_usd,bet_taken,created_at,tx_hash"
+            f"{sb_url}/rest/v1/btc_predictions?select=id,correct,confidence,direction,pnl_usd,bet_taken,created_at,tx_hash"
             f"&created_at=gte.{today_str}T00:00:00Z&order=created_at.desc",
             headers=headers, timeout=5
         )
@@ -5956,7 +5967,7 @@ def cockpit_overview():
 
         # Overall win rate (last 50 evaluated bets) + total P&L + profit factor
         resp2 = requests.get(
-            f"{sb_url}/rest/v1/predictions?select=correct,pnl_usd"
+            f"{sb_url}/rest/v1/btc_predictions?select=correct,pnl_usd"
             f"&correct=not.is.null&bet_taken=eq.true&order=created_at.desc&limit=50",
             headers=headers, timeout=5
         )
@@ -6209,7 +6220,7 @@ def _check_anomalies():
 
         # Check 1: Stuck confidence — last 5 predictions have identical confidence
         resp = requests.get(
-            f"{sb_url}/rest/v1/predictions?select=confidence,created_at"
+            f"{sb_url}/rest/v1/btc_predictions?select=confidence,created_at"
             "&order=created_at.desc&limit=5",
             headers=headers, timeout=5,
         )
@@ -6230,7 +6241,7 @@ def _check_anomalies():
         # Check 2: No predictions in last 2 hours (during expected active period)
         two_hours_ago = (_dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(hours=2)).isoformat()
         resp2 = requests.get(
-            f"{sb_url}/rest/v1/predictions?select=id&created_at=gte.{two_hours_ago}&limit=1",
+            f"{sb_url}/rest/v1/btc_predictions?select=id&created_at=gte.{two_hours_ago}&limit=1",
             headers=headers, timeout=5,
         )
         if resp2.ok and len(resp2.json()) == 0:
@@ -6259,7 +6270,7 @@ def cockpit_ghosts():
         if sb_url and sb_key:
             headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
             resp = requests.get(
-                f"{sb_url}/rest/v1/predictions"
+                f"{sb_url}/rest/v1/btc_predictions"
                 f"?select=id,direction,confidence,reason,created_at,ghost_correct,signal_price"
                 f"&bet_taken=eq.false&order=created_at.desc&limit=10",
                 headers=headers, timeout=5,

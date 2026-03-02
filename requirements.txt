@@ -9,3 +9,5 @@ scikit-learn
 web3==6.15.0
 sentry-sdk[flask]
 certifi
+python-dotenv
+pandas
