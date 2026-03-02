@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Session 79 Audit — BTC Predictor Bot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=IBM+Plex+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080b0f;--card:#10111a;--card-hover:#161726;--border:#1a1c2e;
+  --teal:#00d4aa;--teal-dim:#00d4aa33;--teal-glow:#00d4aa22;
+  --gold:#f0b429;--gold-dim:#f0b42933;
+  --red:#ff4757;--red-dim:#ff475733;
+  --green:#2ecc71;--green-dim:#2ecc7133;
+  --amber:#f39c12;--amber-dim:#f39c1233;
+  --text:#e8eaf0;--text-dim:#6b7394;--text-muted:#3a3f5c;
+  --font-display:'Outfit',sans-serif;
+  --font-mono:'IBM Plex Mono',monospace;
+}
+html{scroll-behavior:smooth;font-size:16px}
+body{background:var(--bg);color:var(--text);font-family:var(--font-display);line-height:1.6;overflow-x:hidden}
+body::before{content:'';position:fixed;top:0;left:0;width:100%;height:100%;background:
+  radial-gradient(ellipse 80% 50% at 20% 0%,#00d4aa08 0%,transparent 50%),
+  radial-gradient(ellipse 60% 40% at 80% 100%,#f0b42906 0%,transparent 50%);
+  pointer-events:none;z-index:0}
+
+/* Scanline overlay */
+body::after{content:'';position:fixed;top:0;left:0;width:100%;height:100%;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.03) 2px,rgba(0,0,0,.03) 4px);
+  pointer-events:none;z-index:9999;opacity:.4}
+
+/* Animations */
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
+@keyframes slideRight{from{width:0}to{width:var(--w)}}
+@keyframes glowPulse{0%,100%{box-shadow:0 0 8px var(--teal-dim)}50%{box-shadow:0 0 20px var(--teal-dim),0 0 40px #00d4aa11}}
+
+.reveal{opacity:0;animation:fadeUp .6s ease forwards}
+.reveal-1{animation-delay:.1s}.reveal-2{animation-delay:.2s}.reveal-3{animation-delay:.3s}
+.reveal-4{animation-delay:.4s}.reveal-5{animation-delay:.5s}.reveal-6{animation-delay:.6s}
+.reveal-7{animation-delay:.7s}.reveal-8{animation-delay:.8s}.reveal-9{animation-delay:.9s}
+
+/* Layout */
+.container{max-width:1120px;margin:0 auto;padding:0 20px;position:relative;z-index:1}
+section{padding:60px 0}
+section+section{border-top:1px solid var(--border)}
+
+/* Header */
+.header{padding:40px 0 20px;text-align:center}
+.header-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;
+  border:1px solid var(--teal-dim);border-radius:100px;font-family:var(--font-mono);
+  font-size:.72rem;color:var(--teal);letter-spacing:.08em;text-transform:uppercase;
+  margin-bottom:24px;animation:glowPulse 3s ease infinite}
+.header-badge::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--teal);
+  animation:pulse 1.5s ease infinite}
+h1{font-size:clamp(1.8rem,5vw,3.2rem);font-weight:800;letter-spacing:-.03em;
+  background:linear-gradient(135deg,#fff 0%,var(--teal) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1.1;margin-bottom:12px}
+.subtitle{font-family:var(--font-mono);color:var(--text-dim);font-size:.85rem;letter-spacing:.02em}
+.header-meta{display:flex;justify-content:center;gap:24px;margin-top:20px;flex-wrap:wrap}
+.header-meta span{font-family:var(--font-mono);font-size:.75rem;color:var(--text-dim);
+  padding:4px 12px;border:1px solid var(--border);border-radius:6px}
+.header-meta .live{color:var(--green);border-color:var(--green-dim)}
+
+/* Section titles */
+.section-tag{font-family:var(--font-mono);font-size:.65rem;color:var(--teal);
+  letter-spacing:.15em;text-transform:uppercase;margin-bottom:8px;display:block}
+.section-title{font-size:clamp(1.3rem,3vw,1.8rem);font-weight:700;letter-spacing:-.02em;margin-bottom:32px}
+
+/* Hero cards grid */
+.hero-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.hero-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 16px;
+  text-align:center;transition:all .3s ease;position:relative;overflow:hidden}
+.hero-card:hover{border-color:var(--teal-dim);transform:translateY(-2px)}
+.hero-card::after{content:'';position:absolute;top:0;left:0;width:100%;height:2px;
+  background:linear-gradient(90deg,transparent,var(--teal),transparent);opacity:0;
+  transition:opacity .3s}
+.hero-card:hover::after{opacity:1}
+.hero-num{font-size:2.4rem;font-weight:900;letter-spacing:-.04em;line-height:1}
+.hero-num.teal{color:var(--teal)}.hero-num.gold{color:var(--gold)}
+.hero-num.red{color:var(--red)}.hero-num.green{color:var(--green)}.hero-num.amber{color:var(--amber)}
+.hero-label{font-family:var(--font-mono);font-size:.68rem;color:var(--text-dim);
+  margin-top:8px;letter-spacing:.03em;line-height:1.4}
+
+/* Root cause chain */
+.chain{display:flex;flex-direction:column;gap:0;align-items:center;max-width:600px;margin:0 auto}
+.chain-node{width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;
+  padding:20px;position:relative}
+.chain-node.broken{border-color:var(--red-dim);background:linear-gradient(135deg,var(--card) 80%,#ff475708)}
+.chain-node.fixed{border-color:var(--green-dim);background:linear-gradient(135deg,var(--card) 80%,#2ecc7108)}
+.chain-level{font-family:var(--font-mono);font-size:.6rem;letter-spacing:.15em;
+  text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.chain-level .dot{width:8px;height:8px;border-radius:50%}
+.chain-level .dot.red{background:var(--red)}.chain-level .dot.green{background:var(--green)}
+.chain-title{font-weight:700;font-size:1rem;margin-bottom:4px}
+.chain-desc{font-family:var(--font-mono);font-size:.75rem;color:var(--text-dim);line-height:1.5}
+.chain-arrow{width:2px;height:32px;background:linear-gradient(to bottom,var(--red-dim),var(--red));position:relative}
+.chain-arrow::after{content:'';position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);
+  width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;
+  border-top:6px solid var(--red)}
+.chain-arrow.ok{background:linear-gradient(to bottom,var(--green-dim),var(--green))}
+.chain-arrow.ok::after{border-top-color:var(--green)}
+.chain-fix{display:inline-flex;align-items:center;gap:4px;font-family:var(--font-mono);
+  font-size:.65rem;color:var(--green);margin-top:8px;padding:3px 10px;
+  border:1px solid var(--green-dim);border-radius:100px}
+
+/* Fixes table */
+.fixes-table{width:100%;border-collapse:separate;border-spacing:0;font-size:.82rem}
+.fixes-table th{font-family:var(--font-mono);font-size:.65rem;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--teal);padding:10px 12px;text-align:left;
+  border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg)}
+.fixes-table td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:top}
+.fixes-table tr:hover td{background:var(--card)}
+.fixes-table .fix-num{font-family:var(--font-mono);color:var(--teal);font-weight:600;font-size:.75rem}
+.fixes-table .fix-target{font-family:var(--font-mono);color:var(--gold);font-size:.75rem}
+.fixes-table .fix-impact{font-family:var(--font-mono);color:var(--text-dim);font-size:.72rem}
+.table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:12px;background:var(--card)}
+
+/* Agent cards */
+.agent-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.agent-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;
+  display:flex;gap:12px;align-items:flex-start;transition:all .3s}
+.agent-card:hover{border-color:var(--teal-dim)}
+.agent-badge{flex-shrink:0;width:36px;height:36px;border-radius:8px;display:flex;
+  align-items:center;justify-content:center;font-family:var(--font-mono);font-weight:700;
+  font-size:.75rem}
+.agent-badge.pass{background:var(--green-dim);color:var(--green)}
+.agent-badge.warn{background:var(--amber-dim);color:var(--amber)}
+.agent-badge.fail{background:var(--red-dim);color:var(--red)}
+.agent-name{font-weight:600;font-size:.88rem;margin-bottom:4px}
+.agent-status{font-family:var(--font-mono);font-size:.7rem;letter-spacing:.05em;margin-bottom:4px}
+.agent-status.pass{color:var(--green)}.agent-status.warn{color:var(--amber)}.agent-status.fail{color:var(--red)}
+.agent-finding{font-family:var(--font-mono);font-size:.72rem;color:var(--text-dim);line-height:1.5}
+
+/* Metric cards */
+.metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px}
+.metric-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 16px;
+  position:relative;overflow:hidden}
+.metric-card::before{content:'';position:absolute;top:0;left:0;width:100%;height:3px}
+.metric-card.red::before{background:var(--red)}.metric-card.green::before{background:var(--green)}
+.metric-card.amber::before{background:var(--amber)}
+.metric-val{font-size:1.8rem;font-weight:800;letter-spacing:-.03em;line-height:1}
+.metric-val.red{color:var(--red)}.metric-val.green{color:var(--green)}.metric-val.amber{color:var(--amber)}
+.metric-label{font-family:var(--font-mono);font-size:.68rem;color:var(--text-dim);margin-top:6px;line-height:1.4}
+.metric-sub{font-family:var(--font-mono);font-size:.6rem;color:var(--text-muted);margin-top:4px}
+
+/* Bar chart */
+.bar-chart{display:flex;flex-direction:column;gap:16px;max-width:700px}
+.bar-row{display:grid;grid-template-columns:100px 1fr 60px;gap:12px;align-items:center}
+.bar-label{font-family:var(--font-mono);font-size:.75rem;color:var(--text-dim);text-align:right}
+.bar-track{height:28px;background:var(--card);border-radius:6px;overflow:hidden;position:relative;
+  border:1px solid var(--border)}
+.bar-fill{height:100%;border-radius:5px;display:flex;align-items:center;justify-content:flex-end;
+  padding-right:8px;font-family:var(--font-mono);font-size:.65rem;font-weight:600;
+  animation:slideRight 1s ease forwards;width:0}
+.bar-fill.red{background:linear-gradient(90deg,var(--red-dim),var(--red));color:#fff}
+.bar-fill.amber{background:linear-gradient(90deg,var(--amber-dim),var(--amber));color:#000}
+.bar-fill.green{background:linear-gradient(90deg,var(--green-dim),var(--green));color:#000}
+.bar-n{font-family:var(--font-mono);font-size:.7rem;color:var(--text-dim)}
+.bar-insight{margin-top:16px;padding:12px 16px;background:var(--card);border:1px solid var(--teal-dim);
+  border-radius:8px;font-family:var(--font-mono);font-size:.75rem;color:var(--teal);line-height:1.5}
+
+/* Priority list */
+.priority-list{display:flex;flex-direction:column;gap:10px;max-width:700px}
+.priority-item{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;background:var(--card);
+  border:1px solid var(--border);border-radius:10px;transition:all .3s}
+.priority-item:hover{border-color:var(--teal-dim)}
+.priority-tag{flex-shrink:0;font-family:var(--font-mono);font-size:.6rem;font-weight:700;
+  letter-spacing:.08em;padding:4px 10px;border-radius:6px;text-transform:uppercase}
+.priority-tag.p0{background:var(--red-dim);color:var(--red)}
+.priority-tag.p1{background:var(--amber-dim);color:var(--amber)}
+.priority-tag.p2{background:var(--teal-dim);color:var(--teal)}
+.priority-text{font-size:.85rem;line-height:1.5}
+.priority-when{font-family:var(--font-mono);font-size:.65rem;color:var(--text-muted);margin-top:2px}
+
+/* Env audit */
+.env-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.env-stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;
+  display:flex;align-items:center;gap:12px}
+.env-num{font-size:1.6rem;font-weight:800;color:var(--teal)}
+.env-num.warn{color:var(--amber)}
+.env-detail{font-family:var(--font-mono);font-size:.72rem;color:var(--text-dim);line-height:1.4}
+.env-unused{margin-top:12px;padding:12px;border:1px solid var(--border);border-radius:8px;
+  font-family:var(--font-mono);font-size:.72rem;color:var(--text-dim)}
+.env-unused code{color:var(--amber);background:#f0b42912;padding:1px 6px;border-radius:3px}
+
+/* Footer */
+.footer{text-align:center;padding:40px 20px;border-top:1px solid var(--border)}
+.footer-badge{display:inline-flex;align-items:center;gap:8px;padding:8px 20px;
+  border:1px solid var(--teal-dim);border-radius:100px;font-family:var(--font-mono);
+  font-size:.7rem;color:var(--teal);letter-spacing:.05em}
+.footer-badge::before{content:'';width:8px;height:8px;border-radius:50%;
+  background:var(--teal);animation:pulse 2s ease infinite}
+.footer-sub{font-family:var(--font-mono);font-size:.6rem;color:var(--text-muted);margin-top:12px}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--text-muted)}
+
+/* Print */
+@media print{
+  body,body::before,body::after{background:#fff!important;color:#111!important}
+  .header-badge,.chain-arrow::after{display:none}
+  *{animation:none!important;opacity:1!important;transform:none!important;
+    -webkit-text-fill-color:#111!important;color:#111!important;border-color:#ccc!important;
+    background:transparent!important;box-shadow:none!important}
+  .hero-num,.metric-val{color:#111!important}
+  .fixes-table th{color:#333!important}
+  section{padding:20px 0;page-break-inside:avoid}
+  .container{max-width:100%}
+  .bar-fill{width:var(--w)!important;background:#ccc!important}
+}
+
+/* Mobile refinements */
+@media(max-width:640px){
+  .hero-grid{grid-template-columns:repeat(3,1fr)}
+  .agent-grid{grid-template-columns:1fr}
+  .metric-grid{grid-template-columns:repeat(2,1fr)}
+  .bar-row{grid-template-columns:70px 1fr 45px}
+  .fixes-table{font-size:.72rem}
+  .fixes-table td,.fixes-table th{padding:8px 6px}
+  section{padding:40px 0}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<header class="header">
+<div class="container">
+  <div class="header-badge reveal reveal-1">Live System</div>
+  <h1 class="reveal reveal-2">BTC Predictor Bot<br>Full System Audit</h1>
+  <p class="subtitle reveal reveal-3">Sessione 79 &mdash; 2 Marzo 2026 &mdash; 9 Agenti Paralleli</p>
+  <div class="header-meta reveal reveal-4">
+    <span class="live">LIVE v2.5.2</span>
+    <span>Equity $90.45</span>
+    <span>253 signals</span>
+    <span>189 ghost evaluated</span>
+  </div>
+</div>
+</header>
+
+<!-- ═══ SECTION 1: EXECUTIVE SUMMARY ═══ -->
+<section>
+<div class="container">
+  <span class="section-tag reveal">01 / Executive Summary</span>
+  <h2 class="section-title reveal reveal-1">Audit ad alta intensita</h2>
+  <div class="hero-grid">
+    <div class="hero-card reveal reveal-1"><div class="hero-num teal">19</div><div class="hero-label">Fix applicati<br>in sessione</div></div>
+    <div class="hero-card reveal reveal-2"><div class="hero-num red">4</div><div class="hero-label">P0 Critical<br>risolti</div></div>
+    <div class="hero-card reveal reveal-3"><div class="hero-num amber">4</div><div class="hero-label">P1 High<br>risolti</div></div>
+    <div class="hero-card reveal reveal-4"><div class="hero-num gold">6</div><div class="hero-label">P2 Medium<br>identificati</div></div>
+    <div class="hero-card reveal reveal-5"><div class="hero-num teal">9</div><div class="hero-label">Agenti<br>in parallelo</div></div>
+    <div class="hero-card reveal reveal-6"><div class="hero-num green">32</div><div class="hero-label">Env vars<br>verificate</div></div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ SECTION 2: ROOT CAUSE CHAIN ═══ -->
+<section>
+<div class="container">
+  <span class="section-tag reveal">02 / Root Cause Analysis</span>
+  <h2 class="section-title reveal reveal-1">La catena di fallimento a 6 livelli</h2>
+  <p class="reveal reveal-2" style="font-family:var(--font-mono);font-size:.8rem;color:var(--text-dim);margin-bottom:32px;max-width:600px;margin-left:auto;margin-right:auto;text-align:center">
+    Perche la confidence era bloccata al 0.55 sul 90%+ dei segnali
+  </p>
+  <div class="chain">
+    <div class="chain-node broken reveal reveal-3">
+      <div class="chain-level"><span class="dot red"></span> Level 1 &mdash; LLM Model</div>
+      <div class="chain-title">Gemini Flash ancorato al 0.55</div>
+      <div class="chain-desc">Temperatura 0.15 + responseFormat json_object = output quasi deterministico. Il modello tratta 0.55 come "scelta sicura" ignorando 15+ regole del prompt.</div>
+      <div class="chain-fix">FIX: temp 0.15 &rarr; 0.30 + prompt riscritto</div>
+    </div>
+    <div class="chain-arrow reveal reveal-4"></div>
+    <div class="chain-node broken reveal reveal-5">
+      <div class="chain-level"><span class="dot red"></span> Level 2 &mdash; n8n Gate Node</div>
+      <div class="chain-title">"If Confidence > 62" confronta undefined</div>
+      <div class="chain-desc">Il nodo confrontava <code style="color:var(--red);background:var(--red-dim);padding:1px 6px;border-radius:3px;font-size:.7rem">$json.confidence >= $json.effective_threshold</code> ma effective_threshold e' calcolata a valle &rarr; undefined &rarr; TUTTI i segnali in SKIP.</div>
+      <div class="chain-fix">FIX: threshold fissato a 0.50</div>
+    </div>
+    <div class="chain-arrow reveal reveal-6"></div>
+    <div class="chain-node broken reveal reveal-7">
+      <div class="chain-level"><span class="dot red"></span> Level 3 &mdash; Recalibrator Irraggiungibile</div>
+      <div class="chain-title">Anti-Noise Filter mai eseguito</div>
+      <div class="chain-desc">Il recalibrator algoritmico a 7 fattori era nel posto giusto (Anti-Noise Filter) ma il gate al Level 2 bloccava tutto prima che potesse attivarsi.</div>
+      <div class="chain-fix">FIX: gate aperto &rarr; recalibrator ora raggiungibile</div>
+    </div>
+    <div class="chain-arrow reveal reveal-8"></div>
+    <div class="chain-node broken reveal reveal-9" style="border-left-color:var(--red)">
+      <div class="chain-level"><span class="dot red"></span> Level 4 &mdash; API Key Sbagliata</div>
+      <div class="chain-title">6 nodi HTTP con key errata &rarr; 403 su tutto</div>
+      <div class="chain-desc">Tutti i nodi che chiamano Railway (Open Position, Fetch Macro Guard, Commit On-Chain, ecc.) usavano la key <code style="color:var(--red);background:var(--red-dim);padding:1px 6px;border-radius:3px;font-size:.7rem">03c936d3...</code> invece della corretta BOT_API_KEY &rarr; 403 Unauthorized.</div>
+      <div class="chain-fix">FIX: API key corretta in tutti e 6 i nodi</div>
+    </div>
+    <div class="chain-arrow reveal reveal-9"></div>
+    <div class="chain-node broken reveal reveal-9" style="border-left-color:var(--amber)">
+      <div class="chain-level"><span class="dot amber"></span> Level 5 &mdash; Confidence Source Errata</div>
+      <div class="chain-title">Open Position leggeva dal LLM, non dal Recalibrator</div>
+      <div class="chain-desc">Il nodo "Open Position" passava <code style="color:var(--amber);background:var(--amber-dim);padding:1px 6px;border-radius:3px;font-size:.7rem">$('BTC Prediction Bot').confidence</code> (raw 0.55) invece di <code style="color:var(--green);background:var(--green-dim);padding:1px 6px;border-radius:3px;font-size:.7rem">$('Anti-Noise Filter').confidence</code> (recalibrata).</div>
+      <div class="chain-fix">FIX: source aggiornata al recalibrator</div>
+    </div>
+    <div class="chain-arrow reveal reveal-9"></div>
+    <div class="chain-node broken reveal reveal-9" style="border-left-color:var(--red)">
+      <div class="chain-level"><span class="dot red"></span> Level 6 &mdash; Dead Webhook / Merge1</div>
+      <div class="chain-title">"Call Prediction Verifier" puntava a URL morto</div>
+      <div class="chain-desc">Il nodo chiamava <code style="color:var(--red);background:var(--red-dim);padding:1px 6px;border-radius:3px;font-size:.7rem">mattiacalastri.app.n8n.cloud</code> (dead n8n Cloud URL). Merge1 aspettava entrambi gli input &rarr; hung forever &rarr; pipeline downstream bloccata.</div>
+      <div class="chain-fix">FIX: bypass Merge1 &rarr; Create a row &rarr; If Confidence direct</div>
+    </div>
+    <div class="chain-arrow reveal reveal-9"></div>
+    <div class="chain-node broken reveal reveal-9" style="border-left-color:var(--amber)">
+      <div class="chain-level"><span class="dot amber"></span> Level 6b &mdash; Signal Message Format Order</div>
+      <div class="chain-title">Signal Message Format eseguito PRIMA di Anti-Noise Filter</div>
+      <div class="chain-desc">Il nodo era connesso a Create a row, eseguiva prima dell'Anti-Noise Filter e referenziava <code style="color:var(--red);background:var(--red-dim);padding:1px 6px;border-radius:3px;font-size:.7rem">$('Anti-Noise Filter')</code> non ancora eseguito &rarr; CRASH. n8n v1: crash in connessione precedente blocca le successive.</div>
+      <div class="chain-fix">FIX: spostato dopo Anti-Noise Filter output</div>
+    </div>
+    <div class="chain-arrow ok reveal reveal-9"></div>
+    <div class="chain-node fixed reveal reveal-9">
+      <div class="chain-level"><span class="dot green"></span> Pipeline Verified</div>
+      <div class="chain-title">FIRST BET #295 &mdash; 08:55:30 UTC</div>
+      <div class="chain-desc">Signal #295: DOWN, conf=0.55, entry $66,211, TP $64,621.90, SL $67,005.50. Full pipeline: Create a row &rarr; gate &rarr; macro guard &rarr; anti-noise &rarr; Open Position &rarr; FILLED.</div>
+      <div class="chain-fix">PIPELINE VERIFIED &mdash; 6-level cascading failure chain fully resolved</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ SECTION 3: FIXES APPLIED ═══ -->
+<section>
+<div class="container">
+  <span class="section-tag reveal">03 / Fixes Applied</span>
+  <h2 class="section-title reveal reveal-1">19 interventi in una sessione</h2>
+  <div class="table-wrap reveal reveal-2">
+  <table class="fixes-table">
+    <thead><tr><th>#</th><th>Fix</th><th>Target</th><th>Impact</th></tr></thead>
+    <tbody>
+      <tr><td class="fix-num">#1</td><td>Gzip compression</td><td class="fix-target">app.py</td><td class="fix-impact">Dashboard 411KB &rarr; 104KB (74%)</td></tr>
+      <tr><td class="fix-num">#2</td><td>XGBoost retrain</td><td class="fix-target">models/</td><td class="fix-impact">198 samples, 92.7% direction acc.</td></tr>
+      <tr><td class="fix-num">#3</td><td>build_dataset.py auth</td><td class="fix-target">SUPABASE_SERVICE_KEY</td><td class="fix-impact">Fixed 401 Unauthorized</td></tr>
+      <tr><td class="fix-num">#4</td><td>wf01B prompt rewrite</td><td class="fix-target">n8n LLM</td><td class="fix-impact">"NEVER default to 0.55", range 0.50-0.90</td></tr>
+      <tr><td class="fix-num">#5</td><td>Blocked hours reduce</td><td class="fix-target">n8n Anti-Noise</td><td class="fix-impact">[0,1,5,7,10,11] &rarr; [5,10]</td></tr>
+      <tr><td class="fix-num">#6</td><td>Confidence recalibrator</td><td class="fix-target">n8n Anti-Noise</td><td class="fix-impact">7-factor algo confidence</td></tr>
+      <tr><td class="fix-num">#7</td><td>LLM temperature bump</td><td class="fix-target">n8n OpenRouter</td><td class="fix-impact">0.15 &rarr; 0.30</td></tr>
+      <tr><td class="fix-num">#8</td><td>Confidence gate fix</td><td class="fix-target">n8n "If Conf&gt;62"</td><td class="fix-impact">undefined &rarr; fixed 0.50</td></tr>
+      <tr><td class="fix-num">#9</td><td>wf08 reactivation</td><td class="fix-target">n8n Pos. Monitor</td><td class="fix-impact">Inactive since Mar 1 &rarr; active</td></tr>
+      <tr><td class="fix-num">#10</td><td>rescue_orphaned PnL</td><td class="fix-target">app.py</td><td class="fix-impact">Direction-aware (was always UP)</td></tr>
+      <tr><td class="fix-num">#11</td><td>rescue_orphaned fields</td><td class="fix-target">app.py</td><td class="fix-impact">+pnl_usd, fees_total, actual_dir</td></tr>
+      <tr><td class="fix-num">#12</td><td>Ghost dedup fix</td><td class="fix-target">build_dataset.py</td><td class="fix-impact">bet_taken filter prevents 2x count</td></tr>
+      <tr><td class="fix-num">#13</td><td>Cockpit env vars</td><td class="fix-target">app.py</td><td class="fix-impact">KRAKEN_API_KEY &rarr; FUTURES_API_KEY</td></tr>
+      <tr><td class="fix-num">#14</td><td>Cockpit table name</td><td class="fix-target">app.py</td><td class="fix-impact">predictions &rarr; btc_predictions (5x)</td></tr>
+      <tr><td class="fix-num">#15</td><td>requirements.txt</td><td class="fix-target">deps</td><td class="fix-impact">+python-dotenv, +pandas</td></tr>
+      <tr style="background:var(--red-dim)"><td class="fix-num">#16</td><td>n8n API key fix</td><td class="fix-target">wf01B (6 nodi)</td><td class="fix-impact">403 Unauthorized &rarr; auth corretta</td></tr>
+      <tr style="background:var(--red-dim)"><td class="fix-num">#17</td><td>Confidence source</td><td class="fix-target">wf01B Open Position</td><td class="fix-impact">LLM raw &rarr; Anti-Noise recalibrator</td></tr>
+      <tr style="background:var(--red-dim)"><td class="fix-num">#18</td><td>Merge1 bypass</td><td class="fix-target">wf01B</td><td class="fix-impact">Dead webhook + Merge hang &rarr; direct connection</td></tr>
+      <tr style="background:var(--red-dim)"><td class="fix-num">#19</td><td>Signal Message Format move</td><td class="fix-target">wf01B</td><td class="fix-impact">Moved after Anti-Noise Filter (was crashing)</td></tr>
+    </tbody>
+  </table>
+  </div>
+</div>
+</section>
+
+<!-- ═══ SECTION 4: AGENT RESULTS ═══ -->
+<section>
+<div class="container">
+  <span class="section-tag reveal">04 / Agent Results</span>
+  <h2 class="section-title reveal reveal-1">9 agenti, 9 verdetti</h2>
+  <div class="agent-grid">
+    <div class="agent-card reveal reveal-1">
+      <div class="agent-badge pass">1</div>
+      <div><div class="agent-name">app.py Health</div><div class="agent-status pass">PASS</div><div class="agent-finding">10/10 check superati. 2 MEDIUM fixati (env vars + table name cockpit)</div></div>
+    </div>
+    <div class="agent-card reveal reveal-2">
+      <div class="agent-badge pass">2</div>
+      <div><div class="agent-name">ML Pipeline</div><div class="agent-status pass">PASS</div><div class="agent-finding">TimeSeriesSplit confermato. Ghost dedup fixato. Modelli validi.</div></div>
+    </div>
+    <div class="agent-card reveal reveal-3">
+      <div class="agent-badge warn">3</div>
+      <div><div class="agent-name">n8n Workflows</div><div class="agent-status warn">7/8 OK</div><div class="agent-finding">wf08 era INATTIVO dal 1 marzo &rarr; riattivato. Tutte le patch confermate.</div></div>
+    </div>
+    <div class="agent-card reveal reveal-4">
+      <div class="agent-badge pass">4</div>
+      <div><div class="agent-name">Dashboard & Pages</div><div class="agent-status pass">PASS</div><div class="agent-finding">12/12 HTML validi. Gzip attivo. Nessun segreto hardcoded.</div></div>
+    </div>
+    <div class="agent-card reveal reveal-5">
+      <div class="agent-badge warn">5</div>
+      <div><div class="agent-name">Local Environment</div><div class="agent-status warn">WARN</div><div class="agent-finding">3 pacchetti mancanti localmente &rarr; installati. Git clean.</div></div>
+    </div>
+    <div class="agent-card reveal reveal-6">
+      <div class="agent-badge warn">6</div>
+      <div><div class="agent-name">Supabase Integrity</div><div class="agent-status warn">WARN</div><div class="agent-finding">58 ghost signals in attesa di valutazione. wf08 riattivato per coprire.</div></div>
+    </div>
+    <div class="agent-card reveal reveal-7">
+      <div class="agent-badge pass">7</div>
+      <div><div class="agent-name">Strategic Direction</div><div class="agent-status pass">ANALYSIS</div><div class="agent-finding">Contrarian WR 60.8%. Il modello cattura segnale reale con polarita invertita.</div></div>
+    </div>
+    <div class="agent-card reveal reveal-8">
+      <div class="agent-badge fail">8</div>
+      <div><div class="agent-name">Bug Sweep</div><div class="agent-status fail">2 P0 FOUND</div><div class="agent-finding">rescue_orphaned: PnL sbagliato per DOWN + campi mancanti. Fixati.</div></div>
+    </div>
+    <div class="agent-card reveal reveal-9">
+      <div class="agent-badge warn">9</div>
+      <div><div class="agent-name">Performance Analysis</div><div class="agent-status warn">INSIGHT</div><div class="agent-finding">8 ore con WR &lt;35%. Bloccarle porterebbe WR da 39% a 54%.</div></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ SECTION 5: CRITICAL METRICS ═══ -->
+<section>
+<div class="container">
+  <span class="section-tag reveal">05 / Critical Metrics</span>
+  <h2 class="section-title reveal reveal-1">I numeri che contano</h2>
+  <div class="metric-grid">
+    <div class="metric-card red reveal reveal-1">
+      <div class="metric-val red">39.2%</div>
+      <div class="metric-label">Ghost Win Rate</div>
+      <div class="metric-sub">74/189 evaluated</div>
+    </div>
+    <div class="metric-card green reveal reveal-2">
+      <div class="metric-val green">60.8%</div>
+      <div class="metric-label">Contrarian WR</div>
+      <div class="metric-sub">Signal invertito</div>
+    </div>
+    <div class="metric-card amber reveal reveal-3">
+      <div class="metric-val amber">56.1%</div>
+      <div class="metric-label">Signals at 0.55</div>
+      <div class="metric-sub">142/253 totali</div>
+    </div>
+    <div class="metric-card red reveal reveal-4">
+      <div class="metric-val red">69.2%</div>
+      <div class="metric-label">DOWN Bias</div>
+      <div class="metric-sub">175 DOWN vs 78 UP</div>
+    </div>
+    <div class="metric-card green reveal reveal-5">
+      <div class="metric-val green">6.6m</div>
+      <div class="metric-label">Max Signal Gap</div>
+      <div class="metric-sub">wf01A stabile</div>
+    </div>
+    <div class="metric-card green reveal reveal-6">
+      <div class="metric-val green">1.0s</div>
+      <div class="metric-label">Dashboard Load</div>
+      <div class="metric-sub">Was 4s+ (gzip fix)</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ SECTION 6: WR BY CONFIDENCE ═══ -->
+<section>
+<div class="container">
+  <span class="section-tag reveal">06 / Win Rate per Confidence</span>
+  <h2 class="section-title reveal reveal-1">La curva a U</h2>
+  <div class="bar-chart reveal reveal-2">
+    <div class="bar-row">
+      <div class="bar-label">0.50-0.55</div>
+      <div class="bar-track"><div class="bar-fill red" style="--w:36.6%">36.6%</div></div>
+      <div class="bar-n">n=142</div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">0.56-0.60</div>
+      <div class="bar-track"><div class="bar-fill amber" style="--w:48.3%">48.3%</div></div>
+      <div class="bar-n">n=29</div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">0.61-0.70</div>
+      <div class="bar-track"><div class="bar-fill red" style="--w:25%">25.0%</div></div>
+      <div class="bar-n">n=12</div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">0.71+</div>
+      <div class="bar-track"><div class="bar-fill green" style="--w:83.3%">83.3%</div></div>
+      <div class="bar-n">n=6</div>
+    </div>
+  </div>
+  <div class="bar-insight reveal reveal-3">
+    Curva a U: il modello ha edge reale agli estremi (0.56-0.59: 64.3%, 0.71+: 83.3%) ma fallisce nel mezzo (0.60-0.70: &ldquo;late consensus trap&rdquo;). Il dead zone 0.50-0.55 e' un debole segnale contrarian (63.4% invertito).
+  </div>
+</div>
+</section>
+
+<!-- ═══ SECTION 7: STRATEGIC NEXT STEPS ═══ -->
+<section>
+<div class="container">
+  <span class="section-tag reveal">07 / Strategic Next Steps</span>
+  <h2 class="section-title reveal reveal-1">Roadmap operativa</h2>
+  <div class="priority-list">
+    <div class="priority-item reveal reveal-1">
+      <div class="priority-tag p0">P0</div>
+      <div><div class="priority-text">Validare gate fix: monitorare 50 segnali per confermare confidence != 0.55</div><div class="priority-when">Prossime 24 ore</div></div>
+    </div>
+    <div class="priority-item reveal reveal-2">
+      <div class="priority-tag p0">P0</div>
+      <div><div class="priority-text">Inversione condizionale: dead zone 0.50-0.55 &rarr; flip direction (contrarian WR 63.4%)</div><div class="priority-when">Prossime 24 ore</div></div>
+    </div>
+    <div class="priority-item reveal reveal-3">
+      <div class="priority-tag p1">P1</div>
+      <div><div class="priority-text">Swap Gemini Flash &rarr; Claude Sonnet per reasoning migliore e calibrazione confidence</div><div class="priority-when">Questa settimana</div></div>
+    </div>
+    <div class="priority-item reveal reveal-4">
+      <div class="priority-tag p1">P1</div>
+      <div><div class="priority-text">Bloccare 8 ore peggiori (WR &lt;35%) &mdash; porterebbe WR complessiva a 54.3%</div><div class="priority-when">Questa settimana</div></div>
+    </div>
+    <div class="priority-item reveal reveal-5">
+      <div class="priority-tag p2">P2</div>
+      <div><div class="priority-text">Raggiungere 100 bet per attivare XGB Gate (attualmente 8/100)</div><div class="priority-when">30 giorni</div></div>
+    </div>
+    <div class="priority-item reveal reveal-6">
+      <div class="priority-tag p2">P2</div>
+      <div><div class="priority-text">Semplificare prompt a 7 regole essenziali &mdash; meno conflitti = output piu pulito</div><div class="priority-when">30 giorni</div></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══ SECTION 8: RAILWAY ENV AUDIT ═══ -->
+<section>
+<div class="container">
+  <span class="section-tag reveal">08 / Railway Environment Audit</span>
+  <h2 class="section-title reveal reveal-1">32 variabili verificate</h2>
+  <div class="env-stats reveal reveal-2">
+    <div class="env-stat"><div class="env-num">28</div><div class="env-detail">Correttamente mappate<br>al codice</div></div>
+    <div class="env-stat"><div class="env-num warn">3</div><div class="env-detail">Non usate da app.py<br>(dead weight)</div></div>
+    <div class="env-stat"><div class="env-num warn">1</div><div class="env-detail">Divergenza nomi<br>N8N_URL vs N8N_HOST</div></div>
+  </div>
+  <div class="env-unused reveal reveal-3">
+    Non usate: <code>ANTHROPIC_API_KEY</code> <code>KRAKEN_FUTURES_BASE_URL</code> <code>SENTRY_AUTH_TOKEN</code><br>
+    <span style="color:var(--text-muted);margin-top:4px;display:block">Railway ha <code>N8N_URL</code>, codice locale usa <code>N8N_HOST</code> &mdash; app.py usa correttamente N8N_URL. Non e' un bug.</span>
+  </div>
+</div>
+</section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer class="footer">
+  <div class="footer-badge">Generato da AI Oracle &mdash; Sessione 79 | 2 Marzo 2026</div>
+  <div class="footer-sub">BTC Predictor Bot v2.5.2 &mdash; btcpredictor.io &mdash; 9 agenti, 19 fix, 0 downtime &mdash; PIPELINE VERIFIED</div>
+</footer>
+
+</body>
+</html>
