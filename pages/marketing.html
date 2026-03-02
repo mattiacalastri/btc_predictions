@@ -481,9 +481,12 @@
   .btn-pub-copy:hover { color:var(--text); border-color:rgba(232,224,208,.25); }
   .btn-pub-tg    { background:rgba(0,212,255,.08); color:var(--cyan); border-color:rgba(0,212,255,.3); }
   .btn-pub-tg:hover { background:rgba(0,212,255,.18); }
-  .btn-pub-x     { background:rgba(232,224,208,.04); color:rgba(232,224,208,.3); border-color:rgba(232,224,208,.08); cursor:not-allowed; }
-  .btn-pub-li    { background:rgba(0,119,181,.05); color:rgba(74,168,209,.3); border-color:rgba(0,119,181,.1); cursor:not-allowed; }
-  .btn-pub-rd    { background:rgba(255,69,0,.05); color:rgba(255,107,53,.3); border-color:rgba(255,69,0,.1); cursor:not-allowed; }
+  .btn-pub-x     { background:rgba(232,224,208,.04); color:rgba(232,224,208,.3); border-color:rgba(232,224,208,.08); cursor:pointer; }
+  .btn-pub-x:hover { color:rgba(232,224,208,.5); border-color:rgba(232,224,208,.2); }
+  .btn-pub-li    { background:rgba(0,119,181,.05); color:rgba(74,168,209,.3); border-color:rgba(0,119,181,.1); cursor:pointer; }
+  .btn-pub-li:hover { color:rgba(74,168,209,.5); border-color:rgba(0,119,181,.25); }
+  .btn-pub-rd    { background:rgba(255,69,0,.05); color:rgba(255,107,53,.3); border-color:rgba(255,69,0,.1); cursor:pointer; }
+  .btn-pub-rd:hover { color:rgba(255,107,53,.5); border-color:rgba(255,69,0,.25); }
   .btn-pub-del   { background:rgba(255,68,102,.06); color:rgba(255,68,102,.4); border-color:rgba(255,68,102,.15); cursor:pointer; }
   .btn-pub-del:hover { color:var(--red); border-color:rgba(255,68,102,.35); }
   .post-photo-thumb { display:flex; align-items:center; gap:10px; margin-bottom:10px; padding:8px 10px; background:rgba(0,255,136,.04); border:1px solid rgba(0,255,136,.1); border-radius:6px; }
@@ -1839,9 +1842,9 @@ function pedRenderPosts() {
       '<div class="post-actions">' +
         '<button class="btn-pub btn-pub-copy" onclick="pedCopyPost(\'' + safeId + '\')">📋 Copia</button>' +
         (canTG ? '<button class="btn-pub btn-pub-tg" onclick="pedPublishTG(\'' + safeId + '\')">' + tgLabel + '</button>' : '') +
-        '<button class="btn-pub btn-pub-x" disabled title="Richiede X Basic tier">𝕏 X — coming soon</button>' +
-        '<button class="btn-pub btn-pub-li" disabled title="Integrazione in arrivo">💼 LinkedIn</button>' +
-        '<button class="btn-pub btn-pub-rd" disabled title="Integrazione in arrivo">🤖 Reddit</button>' +
+        '<button class="btn-pub btn-pub-x" onclick="pedComingSoon(\'X\')">𝕏 X</button>' +
+        '<button class="btn-pub btn-pub-li" onclick="pedComingSoon(\'LinkedIn\')">💼 LinkedIn</button>' +
+        '<button class="btn-pub btn-pub-rd" onclick="pedComingSoon(\'Reddit\')">🤖 Reddit</button>' +
         '<button class="btn-pub btn-pub-del" onclick="pedDeletePost(\'' + safeId + '\')" style="margin-left:auto;">🗑</button>' +
       '</div>' +
     '</div>';
@@ -1953,6 +1956,10 @@ function pedSaveNewPost() {
   pedShowToast('✅ Post salvato in bozza', false);
 }
 
+function pedComingSoon(channel) {
+  pedShowToast('⏳ ' + channel + ' — integrazione in arrivo', true);
+}
+
 function pedShowToast(msg, isErr) {
   var t = document.getElementById('pedToast');
   if(!t) {
@@ -1962,8 +1969,9 @@ function pedShowToast(msg, isErr) {
   }
   t.textContent = msg;
   t.className = 'pub-toast' + (isErr ? ' err' : '');
+  if(t._hideTimer) clearTimeout(t._hideTimer);
   setTimeout(function(){ t.classList.add('show'); }, 10);
-  setTimeout(function(){ t.classList.remove('show'); }, 3200);
+  t._hideTimer = setTimeout(function(){ t.classList.remove('show'); }, isErr ? 5000 : 3200);
 }
 
 // Init PED on load
