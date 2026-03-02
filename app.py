@@ -4614,8 +4614,8 @@ def commit_prediction():
             resp["warning"] = sb_warning
         return jsonify(resp)
 
-    except Exception as e:
-        app.logger.error(f"[ONCHAIN] commit_prediction error: {e}")
+    except (Exception, SystemExit) as e:
+        app.logger.error(f"[ONCHAIN] commit_prediction error: {type(e).__name__}: {e}")
         app.logger.exception("Endpoint error")
         _push_cockpit_log("app", "error", "On-chain commit failed", str(e), {"bet_id": bet_id})
         return jsonify({"ok": False, "error": "internal_error"}), 500
@@ -4701,8 +4701,8 @@ def resolve_prediction():
             resp["warning"] = sb_warning
         return jsonify(resp)
 
-    except Exception as e:
-        app.logger.error(f"[ONCHAIN] resolve_prediction error: {e}")
+    except (Exception, SystemExit) as e:
+        app.logger.error(f"[ONCHAIN] resolve_prediction error: {type(e).__name__}: {e}")
         app.logger.exception("Endpoint error")
         _push_cockpit_log("app", "error", "On-chain resolve failed", str(e), {"bet_id": bet_id})
         return jsonify({"ok": False, "error": "internal_error"}), 500
@@ -4773,7 +4773,7 @@ def commit_inputs():
 
         return jsonify({"ok": True, "tx": tx_hex, "onchain_id": onchain_id})
 
-    except Exception as e:
+    except (Exception, SystemExit) as e:
         app.logger.error(f"[ONCHAIN] commit_inputs error: {type(e).__name__}: {e}")
         app.logger.exception("Endpoint error")
         return jsonify({"ok": False, "error": "internal_error"}), 500
@@ -4828,7 +4828,7 @@ def commit_fill():
 
         return jsonify({"ok": True, "tx": tx_hex, "onchain_id": onchain_id})
 
-    except Exception as e:
+    except (Exception, SystemExit) as e:
         app.logger.error(f"[ONCHAIN] commit_fill error: {type(e).__name__}: {e}")
         app.logger.exception("Endpoint error")
         return jsonify({"ok": False, "error": "internal_error"}), 500
@@ -4884,7 +4884,7 @@ def commit_stops():
 
         return jsonify({"ok": True, "tx": tx_hex, "onchain_id": onchain_id})
 
-    except Exception as e:
+    except (Exception, SystemExit) as e:
         app.logger.error(f"[ONCHAIN] commit_stops error: {type(e).__name__}: {e}")
         app.logger.exception("Endpoint error")
         return jsonify({"ok": False, "error": "internal_error"}), 500
