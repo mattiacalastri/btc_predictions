@@ -12,6 +12,7 @@ import requests
 import sentry_sdk
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import Flask, request, jsonify, redirect
+from flask_compress import Compress
 from kraken.futures import Trade, User
 from constants import TAKER_FEE, _BIAS_MAP
 
@@ -22,6 +23,7 @@ sentry_sdk.init(
 )
 
 app = Flask(__name__)
+Compress(app)  # gzip all responses >500 bytes — cuts dashboard from 411KB to ~80KB
 
 
 @app.before_request
