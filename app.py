@@ -5020,6 +5020,8 @@ def news_fact_check():
             "chainId": 137,
         })
         tx_hex = _send_onchain_tx(w3, account, tx, label=f"news_fc id={news_id}")
+        if tx_hex is None:
+            return jsonify({"ok": False, "error": "onchain_tx_failed", "detail": "sign/send failed — check logs"}), 502
         polygonscan_url = f"https://polygonscan.com/tx/{tx_hex}"
         app.logger.info(f"[NEWS-FC] id={news_id} onchain_id={onchain_id} → tx {tx_hex}")
 
