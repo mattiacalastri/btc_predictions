@@ -47,12 +47,6 @@ Rules:
 OPPOSITE = {"UP": "DOWN", "DOWN": "UP"}
 # _BIAS_MAP importato da constants.py
 
-# Colonne numeriche per features.csv
-NUMERIC_FEATURES = [
-    "confidence", "btc_price_entry", "fear_greed_value",
-    "rsi14", "technical_score",
-]
-
 # ─── Supabase REST helper ───────────────────────────────────────────────────────
 def supabase_get(table: str, params: dict) -> list:
     if not SUPABASE_URL or not SUPABASE_KEY:

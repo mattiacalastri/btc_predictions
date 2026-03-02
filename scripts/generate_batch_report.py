@@ -21,7 +21,6 @@ from reportlab.platypus import (
     TableStyle, PageBreak, KeepTogether, HRFlowable
 )
 from reportlab.graphics.shapes import Drawing, Rect, String, Line
-from reportlab.pdfbase import pdfmetrics
 
 # ──────────────────────────────────────────────
 # CONFIG
@@ -276,7 +275,6 @@ def sp(h=6):
 # TABLE HELPERS
 # ──────────────────────────────────────────────
 def dark_table(data, col_widths, style_extra=None):
-    n_rows = len(data)
     base_style = [
         ('BACKGROUND', (0, 0), (-1, 0), ACCENT),
         ('TEXTCOLOR', (0, 0), (-1, 0), DARK_BG),

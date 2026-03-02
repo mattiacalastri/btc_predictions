@@ -9,7 +9,6 @@ import json
 import ssl
 import subprocess
 import urllib.request
-import urllib.error
 from datetime import datetime
 
 LOG_FILE = "/tmp/btcbot_n8n_backup.log"

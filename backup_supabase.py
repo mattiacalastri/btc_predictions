@@ -9,7 +9,6 @@ import csv
 import json
 import ssl
 import urllib.request
-import urllib.error
 from datetime import datetime
 
 import certifi as _certifi

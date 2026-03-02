@@ -178,8 +178,7 @@ _XGB_CLEAN_CACHE_TTL = 600               # 10 min
 # [confidence, fear_greed, rsi14, technical_score, hour_sin, hour_cos,
 #  technical_bias_score, signal_fg_fear, dow_sin, dow_cos, session]
 
-import threading as _threading_models
-_model_lock = _threading_models.Lock()
+_model_lock = threading.Lock()
 
 def _load_xgb_model():
     global _XGB_MODEL
@@ -416,15 +415,6 @@ if not os.environ.get("BOT_API_KEY"):
     app.logger.warning("[SECURITY] BOT_API_KEY not set — all protected endpoints are unauthenticated!")
     sentry_sdk.capture_message("SECURITY: BOT_API_KEY missing at startup", level="warning")
 
-# Refresh calibration all'avvio — DOPO la definizione di SUPABASE_TABLE
-try:
-    refresh_calibration()
-    refresh_dead_hours()
-    _refresh_bot_paused()   # sync _BOT_PAUSED da Supabase → evita "Bot Paused" falso al boot
-except Exception:
-    pass
-
-
 def _refresh_bot_paused():
     """Read paused state from Supabase bot_state. Called on restart and every 5 min.
     Fail-safe: _BOT_PAUSED defaults True at boot; only set False when Supabase confirms.
@@ -452,6 +442,15 @@ def _refresh_bot_paused():
         # Network error / timeout: leave _BOT_PAUSED unchanged (fail-safe True at boot)
         # Don't update _BOT_PAUSED_REFRESHED_AT → will retry on next place_bet() call
         pass
+
+
+# Refresh calibration all'avvio — DOPO la definizione di SUPABASE_TABLE e _refresh_bot_paused
+try:
+    refresh_calibration()
+    refresh_dead_hours()
+    _refresh_bot_paused()   # sync _BOT_PAUSED da Supabase → evita "Bot Paused" falso al boot
+except Exception:
+    pass
 
 
 def _save_bot_paused(paused: bool):
@@ -510,12 +509,11 @@ def _make_contribution_token(contrib_id: int, action: str, hour_bucket: int = No
     Token specifico per contrib_id+action+hour_bucket: non riutilizzabile su altri endpoint.
     Non espone BOT_API_KEY nell'URL. Il bucket orario scade entro 2h (S-16).
     """
-    import hashlib as _hl
     if hour_bucket is None:
         hour_bucket = int(time.time()) // 3600
     bot_key = os.environ.get("BOT_API_KEY", "anonymous")
     raw = f"{bot_key}:{contrib_id}:{action}:{hour_bucket}"
-    return _hl.sha256(raw.encode()).hexdigest()[:32]
+    return hashlib.sha256(raw.encode()).hexdigest()[:32]
 
 
 def _valid_contribution_token(token: str, contrib_id: int, action: str) -> bool:
@@ -1194,9 +1192,6 @@ def _get_clean_bet_count() -> int:
 def _run_xgb_gate(direction: str, confidence: float, data: dict, current_hour_utc: int) -> tuple:
     """Esegue il dual-gate XGBoost. Restituisce (xgb_prob_up, early_exit_response_or_None).
     Se XGB non è disponibile o fallisce → (0.5, None) = continua normalmente."""
-    import math as _math
-    from datetime import datetime as _dt_xgb
-
     xgb_prob_up = 0.5
     if _XGB_MODEL is None:
         return xgb_prob_up, None
@@ -1212,19 +1207,19 @@ def _run_xgb_gate(direction: str, confidence: float, data: dict, current_hour_ut
 
     try:
         _h = current_hour_utc
-        _dow_xgb = _dt_xgb.utcnow().weekday()
+        _dow_xgb = _dt.datetime.utcnow().weekday()
         _session_xgb = 0 if _h < 8 else (1 if _h < 14 else 2)
         feat_row = [[
             confidence,
             float(data.get("fear_greed", data.get("fear_greed_value", 50))),
             float(data.get("rsi14", 50)),
             float(data.get("technical_score", 0)),
-            _math.sin(2 * _math.pi * _h / 24),
-            _math.cos(2 * _math.pi * _h / 24),
+            math.sin(2 * math.pi * _h / 24),
+            math.cos(2 * math.pi * _h / 24),
             float(_BIAS_MAP.get((data.get("technical_bias") or "").lower().strip(), 0)),
             1.0 if float(data.get("fear_greed_value", data.get("fear_greed", 50)) or 50) < 45 else 0.0,
-            _math.sin(2 * _math.pi * _dow_xgb / 7),
-            _math.cos(2 * _math.pi * _dow_xgb / 7),
+            math.sin(2 * math.pi * _dow_xgb / 7),
+            math.cos(2 * math.pi * _dow_xgb / 7),
             float(_session_xgb),
         ]]
         prob = _XGB_MODEL.predict_proba(feat_row)[0]  # [P(DOWN), P(UP)]
@@ -2325,16 +2320,10 @@ def predict_xgb():
         return jsonify({"xgb_direction": None, "agree": True, "reason": "model_not_loaded"})
 
     try:
-        ema_trend    = request.args.get("ema_trend", "").lower()
         tech_bias    = request.args.get("technical_bias", "").lower()
-        sig_tech     = request.args.get("signal_technical", "").lower()
-        sig_sent     = request.args.get("signal_sentiment", "").lower()
-        sig_fg       = request.args.get("signal_fear_greed", "").lower()
-        sig_vol      = request.args.get("signal_volume", "").lower()
 
-        from datetime import datetime as _dt_xgb2
         _h2 = _safe_int(request.args.get("hour_utc", 12), default=12, min_v=0, max_v=23)
-        _dow2 = _dt_xgb2.utcnow().weekday()  # 0=Mon..6=Sun
+        _dow2 = _dt.datetime.utcnow().weekday()  # 0=Mon..6=Sun
         _session2 = 0 if _h2 < 8 else (1 if _h2 < 14 else 2)  # 0=Asia 1=London 2=NY
         _fg2 = _safe_float(request.args.get("fear_greed_value", 50), default=50.0, min_v=0.0, max_v=100.0)
 
@@ -2409,19 +2398,10 @@ def bet_sizing():
     rsi14      = _safe_float(request.args.get("rsi14", 50),            default=50.0, min_v=0.0,   max_v=100.0)
     tech_score = _safe_float(request.args.get("technical_score", 0),   default=0.0,  min_v=-10.0, max_v=10.0)
     hour_utc   = _safe_int(request.args.get("hour_utc", time.gmtime().tm_hour), default=12, min_v=0, max_v=23)
-    ema_trend   = request.args.get("ema_trend", "").lower()
     tech_bias   = request.args.get("technical_bias", "").lower()
-    sig_tech    = request.args.get("signal_technical", "").lower()
-    sig_sent    = request.args.get("signal_sentiment", "").lower()
-    sig_fg      = request.args.get("signal_fear_greed", "").lower()
-    sig_vol     = request.args.get("signal_volume", "").lower()
 
-    ema_trend_up       = 1 if ("bullish" in ema_trend or "bull" in ema_trend or ema_trend == "up") else 0
     tech_bias_score    = float(_BIAS_MAP.get(tech_bias.strip(), 0))
-    sig_tech_buy       = 1 if sig_tech in ("buy", "bullish") else 0
-    sig_sent_pos       = 1 if sig_sent in ("positive", "pos", "buy", "bullish") else 0
     sig_fg_fear        = 1.0 if fear_greed < 45 else 0.0
-    sig_vol_high       = 1 if "high" in sig_vol else 0
 
     try:
         supabase_url, supabase_key = _sb_config()
@@ -2495,19 +2475,17 @@ def bet_sizing():
         corr_multiplier = 1.0
         if _xgb_correctness is not None:
             try:
-                import math as _math3
-                from datetime import datetime as _dt_xgb3
-                _dow3 = _dt_xgb3.utcnow().weekday()  # 0=Mon..6=Sun
+                _dow3 = _dt.datetime.utcnow().weekday()  # 0=Mon..6=Sun
                 _session3 = 0 if hour_utc < 8 else (1 if hour_utc < 14 else 2)
                 feat_row = [[
                     confidence, fear_greed,
                     rsi14, tech_score,
-                    _math3.sin(2 * _math3.pi * hour_utc / 24),  # hour_sin
-                    _math3.cos(2 * _math3.pi * hour_utc / 24),  # hour_cos
+                    math.sin(2 * math.pi * hour_utc / 24),  # hour_sin
+                    math.cos(2 * math.pi * hour_utc / 24),  # hour_cos
                     tech_bias_score,                             # technical_bias_score
                     sig_fg_fear,                                 # signal_fg_fear
-                    _math3.sin(2 * _math3.pi * _dow3 / 7),      # dow_sin
-                    _math3.cos(2 * _math3.pi * _dow3 / 7),      # dow_cos
+                    math.sin(2 * math.pi * _dow3 / 7),      # dow_sin
+                    math.cos(2 * math.pi * _dow3 / 7),      # dow_cos
                     float(_session3),                            # session
                 ]]
                 corr_prob = float(_xgb_correctness.predict_proba(feat_row)[0][1])  # P(CORRECT)
@@ -4538,7 +4516,6 @@ def _get_web3_contract():
     return w3, contract, account
 
 
-import threading
 _onchain_nonce_lock = threading.Lock()
 
 

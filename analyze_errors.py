@@ -19,7 +19,6 @@ import os
 import json
 import ssl
 import urllib.request
-import urllib.parse
 from datetime import datetime, timezone
 
 # ── Config ────────────────────────────────────────────────────────────────────
