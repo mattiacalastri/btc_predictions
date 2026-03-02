@@ -2662,9 +2662,6 @@ async function toggleHistory(btn) {
   applySignalFilters();
 }
 
-function fmtTime(ts) {
-  return new Date(ts).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
-}
 function fmtDate(ts) {
   const d = new Date(ts);
   return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' }) + ' '
@@ -3884,76 +3881,6 @@ function renderPnlBarsLarge(chronoBets) {
   document.getElementById('pnlBarsTag').textContent = chronoBets.length + ' BETS';
 }
 
-function renderBtcPredictionsOverlay(chronoAll) {
-  const svg = document.getElementById('btcOverlaySvg');
-  const pts = chronoAll.filter(d => d.btc_price_entry && parseFloat(d.btc_price_entry) > 0);
-  if (pts.length < 2) {
-    svg.innerHTML = '<text x="10" y="55" fill="var(--muted)" font-size="10" font-family="JetBrains Mono,monospace">Not enough data</text>';
-    return;
-  }
-  const W = 600, H = 100;
-  const prices = pts.map(d => parseFloat(d.btc_price_entry));
-  const minP = Math.min(...prices), maxP = Math.max(...prices);
-  const range = maxP - minP || 1;
-  const toX = i => (i / Math.max(pts.length - 1, 1)) * W;
-  const toY = p => H - ((p - minP) / range) * (H - 14) - 7;
-  const pricePts = pts.map((d, i) => `${toX(i).toFixed(1)},${toY(parseFloat(d.btc_price_entry)).toFixed(1)}`).join(' ');
-  const markers = pts.map((d, i) => {
-    if (d.classification !== 'BET') return '';
-    const x = toX(i), y = toY(parseFloat(d.btc_price_entry));
-    // I-08: open bets (correct===null) shown in amber; closed bets green/red as before
-    const isOpen  = d.correct === null;
-    const color   = isOpen ? 'var(--warn)' : (d.correct ? 'var(--accent)' : 'var(--danger)');
-    const isUp    = d.direction === 'UP';
-    const tri = isUp
-      ? `${x.toFixed(1)},${(y-9).toFixed(1)} ${(x-4).toFixed(1)},${(y-1).toFixed(1)} ${(x+4).toFixed(1)},${(y-1).toFixed(1)}`
-      : `${x.toFixed(1)},${(y+9).toFixed(1)} ${(x-4).toFixed(1)},${(y+1).toFixed(1)} ${(x+4).toFixed(1)},${(y+1).toFixed(1)}`;
-    const pnlStr  = isOpen ? '—' : ((parseFloat(d.pnl_usd || 0) >= 0 ? '+' : '') + '$' + parseFloat(d.pnl_usd || 0).toFixed(2));
-    const conf    = d.confidence ? (parseFloat(d.confidence) * 100).toFixed(0) + '%' : '—';
-    const escDir  = escapeHtml(d.direction || '—');
-    const outcome = isOpen ? '⏳ OPEN' : (d.correct ? '✓ WIN' : '✗ LOSS');
-    const dataAttrs = `data-btc-x="${x.toFixed(1)}" data-btc-y="${y.toFixed(1)}" data-btc-color="${color}" data-btc-label="${escDir} ${conf} · ${pnlStr} · ${outcome}"`;
-    const opacity = isOpen ? '1' : '0.9';
-    return `<polygon points="${tri}" fill="${color}" opacity="${opacity}"/>
-<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="10" fill="transparent" class="btc-hit" ${dataAttrs}/>`;
-  }).join('');
-  svg.innerHTML = `
-    <defs>
-      <linearGradient id="btcG" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="var(--muted)" stop-opacity="0.15"/>
-        <stop offset="100%" stop-color="var(--muted)" stop-opacity="0"/>
-      </linearGradient>
-    </defs>
-    <polygon points="${pricePts} ${W},${H} 0,${H}" fill="url(#btcG)"/>
-    <polyline points="${pricePts}" fill="none" stroke="var(--muted)" stroke-width="1.2" stroke-linejoin="round" opacity="0.6"/>
-    ${markers}`;
-
-  // Tooltip (reuse or create)
-  let btcTip = document.getElementById('btcTip');
-  if (!btcTip) {
-    btcTip = document.createElement('div');
-    btcTip.id = 'btcTip';
-    btcTip.style.cssText = 'position:fixed;background:rgba(8,12,25,0.95);border:1px solid rgba(0,255,136,0.3);color:#eee;font-size:10px;font-family:JetBrains Mono,monospace;padding:5px 10px;border-radius:2px;pointer-events:none;display:none;z-index:9999;white-space:nowrap;';
-    document.body.appendChild(btcTip);
-  }
-  svg.querySelectorAll('.btc-hit').forEach(el => {
-    function btcShowTip(clientX, clientY) {
-      const label = el.getAttribute('data-btc-label');
-      const col   = el.getAttribute('data-btc-color');
-      btcTip.innerHTML = `<span style="color:${col}">${escapeHtml(label)}</span>`;
-      btcTip.style.display = 'block';
-      btcTip.style.left = Math.min(clientX + 14, window.innerWidth - 240) + 'px';
-      btcTip.style.top  = Math.max(10, clientY - 56) + 'px';
-    }
-    el.addEventListener('mouseenter', e => btcShowTip(e.clientX, e.clientY));
-    el.addEventListener('mousemove',  e => btcShowTip(e.clientX, e.clientY));
-    el.addEventListener('mouseleave', () => { btcTip.style.display = 'none'; });
-    el.addEventListener('touchstart', e => { e.preventDefault(); btcShowTip(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
-    el.addEventListener('touchend',   () => setTimeout(() => { btcTip.style.display = 'none'; }, 1500));
-  });
-  svg.style.touchAction = 'none';
-}
-
 // ── BTC CANDLESTICK CHART (TradingView Lightweight Charts) ───────────────────
 
 const BTC_CHART = { chart: null, candleSeries: null, currentTf: '5m', candles: [], refreshTimer: null, isInitialized: false };
@@ -4295,7 +4222,6 @@ async function fetchExpectancyTab() {
 
     // Render KPI row
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-    const setHtml = (id, val) => { const el = document.getElementById(id); if (el) el.innerHTML = val; };
     const fmtE = v => (v >= 0 ? '+' : '') + '$' + Math.abs(v).toFixed(3);
 
     set('exp-expectancy',   fmtE(expectancy));

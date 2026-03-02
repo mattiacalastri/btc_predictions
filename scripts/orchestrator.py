@@ -165,8 +165,6 @@ try:
     from rich.table import Table
     from rich.live import Live
     from rich.panel import Panel
-    from rich.layout import Layout
-    from rich.text import Text
     HAS_RICH = True
 except ImportError:
     HAS_RICH = False

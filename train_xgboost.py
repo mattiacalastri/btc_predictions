@@ -27,12 +27,10 @@ import shutil
 
 import requests
 import pandas as pd
-import numpy as np
 from xgboost import XGBClassifier
 from sklearn.model_selection import TimeSeriesSplit, cross_val_score
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 from constants import XGB_PARAMS
-from sklearn.preprocessing import LabelEncoder
 
 # ─── Features usate per la predizione ─────────────────────────────────────────
 # Nota: hour_utc NON è incluso direttamente.

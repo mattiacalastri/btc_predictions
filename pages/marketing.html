@@ -1442,13 +1442,6 @@ function computeNextEvent() {
 computeNextEvent();
 
 /* ── UTILS ── */
-function fmtTs(ts) {
-  if(!ts) return '—';
-  var d = new Date(ts * 1000);
-  return d.toLocaleDateString('it-IT', { day:'2-digit', month:'2-digit', year:'numeric' }) +
-         ' ' + d.toLocaleTimeString('it-IT', { hour:'2-digit', minute:'2-digit' });
-}
-
 function truncAddr(addr) {
   if(!addr || addr.length < 16) return addr;
   return addr.slice(0, 8) + '…' + addr.slice(-6);
