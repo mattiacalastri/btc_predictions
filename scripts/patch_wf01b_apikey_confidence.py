@@ -3,8 +3,8 @@
 Patch wf01B: Fix wrong API key + confidence source (Session 79 continuation)
 
 TWO CRITICAL BUGS FOUND:
-1. All 6 HTTP nodes calling Railway used wrong API key (03c936d3...)
-   instead of correct BOT_API_KEY (10df4ce9...) → 403 Unauthorized on every call
+1. All 6 HTTP nodes calling Railway used wrong API key
+   instead of correct BOT_API_KEY → 403 Unauthorized on every call
 2. "Open Position" node read confidence from LLM output instead of
    Anti-Noise Filter recalibrator → always sent 0.55 to /place-bet
 
@@ -22,8 +22,8 @@ ctx = ssl.create_default_context(cafile=certifi.where())
 api_key = os.environ['N8N_API_KEY']
 host = os.environ['N8N_HOST']
 
-OLD_KEY = "REDACTED_OLD_BOT_API_KEY"
-NEW_KEY = os.environ.get('BOT_API_KEY', 'REDACTED_BOT_API_KEY')
+OLD_KEY = os.environ.get('BOT_API_KEY_OLD', '')  # vecchia chiave da sostituire nei nodi n8n
+NEW_KEY = os.environ['BOT_API_KEY']  # chiave corrente — NEVER hardcode
 
 WF_ID = "OMgFa9Min4qXRnhq"  # 01B_BTC_Prediction_Bot
 
