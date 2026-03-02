@@ -4504,8 +4504,16 @@ _BTCBOT_AUDIT_ABI = [
      "stateMutability":"view","type":"function"},
 ]
 
+_POLYGON_RPC_FALLBACKS = [
+    "https://polygon-bor-rpc.publicnode.com",
+    "https://polygon-rpc.com",
+    "https://rpc-mainnet.maticvigil.com",
+]
+
+
 def _get_web3_contract():
-    """Restituisce (w3, contract, account) oppure raise RuntimeError se non configurato."""
+    """Restituisce (w3, contract, account) oppure raise RuntimeError se non configurato.
+    Tries primary RPC from env, then falls back through public RPCs."""
     try:
         from web3 import Web3
         from web3.middleware import geth_poa_middleware
@@ -4517,9 +4525,23 @@ def _get_web3_contract():
     if not private_key or not contract_address:
         raise RuntimeError("POLYGON_PRIVATE_KEY o POLYGON_CONTRACT_ADDRESS non configurati")
 
-    rpc_url = os.environ.get("POLYGON_RPC_URL", "https://polygon-bor-rpc.publicnode.com")
-    w3 = Web3(Web3.HTTPProvider(rpc_url, request_kwargs={"timeout": 15}))
-    w3.middleware_onion.inject(geth_poa_middleware, layer=0)
+    primary_rpc = os.environ.get("POLYGON_RPC_URL", "")
+    rpc_list = ([primary_rpc] if primary_rpc else []) + _POLYGON_RPC_FALLBACKS
+
+    w3 = None
+    for rpc_url in rpc_list:
+        try:
+            candidate = Web3(Web3.HTTPProvider(rpc_url, request_kwargs={"timeout": 10}))
+            candidate.middleware_onion.inject(geth_poa_middleware, layer=0)
+            if candidate.is_connected():
+                w3 = candidate
+                break
+        except Exception:
+            continue
+
+    if w3 is None:
+        w3 = Web3(Web3.HTTPProvider(rpc_list[0], request_kwargs={"timeout": 10}))
+        w3.middleware_onion.inject(geth_poa_middleware, layer=0)
 
     account = w3.eth.account.from_key(private_key)
     contract = w3.eth.contract(
@@ -4533,7 +4555,9 @@ _onchain_nonce_lock = threading.Lock()
 
 
 def _send_onchain_tx(w3, account, tx_built, label=""):
-    """Sign, send and wait for receipt. Fail-open: returns tx_hex or None on failure."""
+    """Sign, send and wait for receipt. Fail-open: returns tx_hex or None on failure.
+    Receipt wait reduced to 8s to stay within Railway's 30s request timeout.
+    The tx is already broadcast after send_raw_transaction — receipt is just confirmation."""
     tx_hex = None
     try:
         with _onchain_nonce_lock:
@@ -4544,9 +4568,9 @@ def _send_onchain_tx(w3, account, tx_built, label=""):
         app.logger.error(f"[ONCHAIN] {label} sign/send FAILED: {type(e).__name__}: {e}")
         return None
     try:
-        w3.eth.wait_for_transaction_receipt(tx_hash, timeout=30)
+        w3.eth.wait_for_transaction_receipt(tx_hash, timeout=8)
     except Exception as e:
-        app.logger.warning(f"[ONCHAIN] {label} receipt timeout for tx {tx_hex}: {e}")
+        app.logger.warning(f"[ONCHAIN] {label} receipt timeout for tx {tx_hex} (tx already broadcast): {e}")
     return tx_hex
 
 
