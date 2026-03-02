@@ -4533,11 +4533,16 @@ _onchain_nonce_lock = threading.Lock()
 
 
 def _send_onchain_tx(w3, account, tx_built, label=""):
-    """Sign, send and wait for receipt. Fail-open: returns tx_hex even if receipt times out."""
-    with _onchain_nonce_lock:
-        signed = account.sign_transaction(tx_built)
-        tx_hash = w3.eth.send_raw_transaction(signed.rawTransaction)
-    tx_hex = tx_hash.hex()
+    """Sign, send and wait for receipt. Fail-open: returns tx_hex or None on failure."""
+    tx_hex = None
+    try:
+        with _onchain_nonce_lock:
+            signed = account.sign_transaction(tx_built)
+            tx_hash = w3.eth.send_raw_transaction(signed.rawTransaction)
+        tx_hex = tx_hash.hex()
+    except Exception as e:
+        app.logger.error(f"[ONCHAIN] {label} sign/send FAILED: {type(e).__name__}: {e}")
+        return None
     try:
         w3.eth.wait_for_transaction_receipt(tx_hash, timeout=30)
     except Exception as e:
@@ -4591,6 +4596,8 @@ def commit_prediction():
             "chainId": 137,
         })
         tx_hex = _send_onchain_tx(w3, account, tx, label=f"commit #{bet_id}")
+        if tx_hex is None:
+            return jsonify({"ok": False, "error": "onchain_tx_failed", "detail": "sign/send failed — check logs"}), 502
 
         commit_hash_hex = commit_hash.hex()
 
@@ -4627,9 +4634,8 @@ def commit_prediction():
             resp["warning"] = sb_warning
         return jsonify(resp)
 
-    except (Exception, SystemExit) as e:
+    except Exception as e:
         app.logger.error(f"[ONCHAIN] commit_prediction error: {type(e).__name__}: {e}")
-        app.logger.exception("Endpoint error")
         _push_cockpit_log("app", "error", "On-chain commit failed", str(e), {"bet_id": bet_id})
         return jsonify({"ok": False, "error": "internal_error"}), 500
 
@@ -4678,6 +4684,8 @@ def resolve_prediction():
             "chainId": 137,
         })
         tx_hex = _send_onchain_tx(w3, account, tx, label=f"resolve #{bet_id}")
+        if tx_hex is None:
+            return jsonify({"ok": False, "error": "onchain_tx_failed", "detail": "sign/send failed — check logs"}), 502
 
         resolve_hash_hex = resolve_hash.hex()
 
@@ -4714,9 +4722,8 @@ def resolve_prediction():
             resp["warning"] = sb_warning
         return jsonify(resp)
 
-    except (Exception, SystemExit) as e:
+    except Exception as e:
         app.logger.error(f"[ONCHAIN] resolve_prediction error: {type(e).__name__}: {e}")
-        app.logger.exception("Endpoint error")
         _push_cockpit_log("app", "error", "On-chain resolve failed", str(e), {"bet_id": bet_id})
         return jsonify({"ok": False, "error": "internal_error"}), 500
 
@@ -4774,6 +4781,9 @@ def commit_inputs():
             "gas": 120_000, "gasPrice": w3.to_wei("30", "gwei"), "chainId": 137,
         })
         tx_hex = _send_onchain_tx(w3, account, tx, label=f"inputs id={onchain_id}")
+        if tx_hex is None:
+            return jsonify({"ok": False, "error": "onchain_tx_failed", "detail": "sign/send failed — check logs"}), 502
+
         app.logger.info(f"[ONCHAIN] inputs onchain_id={onchain_id} → tx {tx_hex}")
 
         if bet_id > 0:
@@ -4786,9 +4796,8 @@ def commit_inputs():
 
         return jsonify({"ok": True, "tx": tx_hex, "onchain_id": onchain_id})
 
-    except (Exception, SystemExit) as e:
+    except Exception as e:
         app.logger.error(f"[ONCHAIN] commit_inputs error: {type(e).__name__}: {e}")
-        app.logger.exception("Endpoint error")
         return jsonify({"ok": False, "error": "internal_error"}), 500
 
 
@@ -4831,6 +4840,9 @@ def commit_fill():
             "gas": 120_000, "gasPrice": w3.to_wei("30", "gwei"), "chainId": 137,
         })
         tx_hex = _send_onchain_tx(w3, account, tx, label=f"fill bet #{bet_id}")
+        if tx_hex is None:
+            return jsonify({"ok": False, "error": "onchain_tx_failed", "detail": "sign/send failed — check logs"}), 502
+
         app.logger.info(f"[ONCHAIN] fill bet #{bet_id} price={fill_price} → tx {tx_hex}")
 
         try:
@@ -4841,9 +4853,8 @@ def commit_fill():
 
         return jsonify({"ok": True, "tx": tx_hex, "onchain_id": onchain_id})
 
-    except (Exception, SystemExit) as e:
+    except Exception as e:
         app.logger.error(f"[ONCHAIN] commit_fill error: {type(e).__name__}: {e}")
-        app.logger.exception("Endpoint error")
         return jsonify({"ok": False, "error": "internal_error"}), 500
 
 
@@ -4887,6 +4898,9 @@ def commit_stops():
             "gas": 120_000, "gasPrice": w3.to_wei("30", "gwei"), "chainId": 137,
         })
         tx_hex = _send_onchain_tx(w3, account, tx, label=f"stops bet #{bet_id}")
+        if tx_hex is None:
+            return jsonify({"ok": False, "error": "onchain_tx_failed", "detail": "sign/send failed — check logs"}), 502
+
         app.logger.info(f"[ONCHAIN] stops bet #{bet_id} sl={sl_price} tp={tp_price} → tx {tx_hex}")
 
         try:
@@ -4897,9 +4911,8 @@ def commit_stops():
 
         return jsonify({"ok": True, "tx": tx_hex, "onchain_id": onchain_id})
 
-    except (Exception, SystemExit) as e:
+    except Exception as e:
         app.logger.error(f"[ONCHAIN] commit_stops error: {type(e).__name__}: {e}")
-        app.logger.exception("Endpoint error")
         return jsonify({"ok": False, "error": "internal_error"}), 500
 
 
