@@ -85,3 +85,42 @@ COMMENT ON COLUMN btc_predictions.source_workflow IS 'n8n workflow that created 
 COMMENT ON COLUMN btc_predictions.source_node IS 'n8n node name that wrote this row (e.g. Save to Supabase, XGBoost Gate)';
 COMMENT ON COLUMN btc_predictions.source_execution_id IS 'n8n execution ID that created this row (for audit trail)';
 COMMENT ON COLUMN btc_predictions.source_updated_by IS 'Last n8n workflow that modified this row (e.g. wf02 on close, wf08 on ghost eval)';
+
+-- v8: bot_errors — Error Intelligence Hub (wf00)
+-- Centralized error logging, classification, dedup, and recovery tracking
+CREATE TABLE IF NOT EXISTS bot_errors (
+    id                 BIGSERIAL PRIMARY KEY,
+    created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    workflow_id        TEXT NOT NULL,
+    workflow_name      TEXT,
+    node_name          TEXT,
+    execution_id       TEXT,
+    severity           TEXT NOT NULL CHECK (severity IN ('P0','P1','P2','P3')),
+    error_type         TEXT NOT NULL,
+    error_message      TEXT,
+    error_fingerprint  TEXT NOT NULL,
+    context            JSONB DEFAULT '{}',
+    resolved           BOOLEAN DEFAULT FALSE,
+    resolved_at        TIMESTAMPTZ,
+    resolved_by        TEXT,
+    recovery_attempted BOOLEAN DEFAULT FALSE,
+    recovery_result    TEXT,
+    notification_sent  BOOLEAN DEFAULT FALSE,
+    duplicate_of       BIGINT REFERENCES bot_errors(id)
+);
+
+-- Dedup: lookup by fingerprint (recent errors with same fingerprint)
+CREATE INDEX IF NOT EXISTS idx_bot_errors_fingerprint
+    ON bot_errors (error_fingerprint, created_at DESC);
+
+-- Dashboard: open errors by severity
+CREATE INDEX IF NOT EXISTS idx_bot_errors_severity
+    ON bot_errors (severity, created_at DESC)
+    WHERE resolved = FALSE;
+
+-- Timeline: newest first
+CREATE INDEX IF NOT EXISTS idx_bot_errors_created
+    ON bot_errors (created_at DESC);
+
+-- Auto-cleanup: keep only last 30 days of resolved errors (run via pg_cron or manual)
+-- DELETE FROM bot_errors WHERE resolved = TRUE AND created_at < now() - interval '30 days';
