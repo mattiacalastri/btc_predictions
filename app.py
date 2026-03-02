@@ -687,9 +687,13 @@ def health():
     try:
         user = get_user_client()
         flex = user.get_wallets().get("accounts", {}).get("flex", {})
-        wallet_equity = float(flex.get("marginEquity") or 0) or None
+        me = flex.get("marginEquity")
+        if me is None:
+            me = flex.get("pv") or flex.get("portfolioValue")
+        if me is not None:
+            wallet_equity = float(me)
     except Exception:
-        pass
+        app.logger.debug("[health] wallet equity fetch failed", exc_info=True)
 
     # base_size — from bet-sizing logic (last 10 trades, default conf 0.62)
     base_size = 0.002
