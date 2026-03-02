@@ -755,6 +755,164 @@ def health():
     })
 
 
+# ── BRAIN STATE (wf08 Brain Monitor) ────────────────────────────────────────
+
+@app.route("/brain-state", methods=["GET"])
+def brain_state():
+    """Aggregated bot state for wf08 Brain Monitor. Single call = full picture.
+    No auth required (read-only monitoring data)."""
+    now = _dt.datetime.now(_dt.timezone.utc)
+    state = {
+        "ts": now.isoformat(),
+        "version": "2.5.2",
+        "paused": bool(_BOT_PAUSED),
+        "dry_run": DRY_RUN,
+        "conf_threshold": float(os.environ.get("CONF_THRESHOLD", "0.56")),
+        "capital": float(os.environ.get("CAPITAL_USD") or os.environ.get("CAPITAL", 100)),
+    }
+
+    # 1. BTC Price
+    try:
+        mk = get_market_client()
+        ticker = mk.get_ticker(DEFAULT_SYMBOL)
+        state["btc_price"] = float(ticker.get("markPrice") or 0) or None
+    except Exception:
+        state["btc_price"] = None
+
+    # 2. Wallet equity
+    try:
+        user = get_user_client()
+        flex = user.get_wallets().get("accounts", {}).get("flex", {})
+        me = flex.get("marginEquity")
+        if me is None:
+            me = flex.get("pv") or flex.get("portfolioValue")
+        state["equity"] = float(me) if me is not None else None
+    except Exception:
+        state["equity"] = None
+
+    # 3. Open position
+    try:
+        pos = get_open_position(DEFAULT_SYMBOL)
+        state["position"] = pos  # None if flat, {side, size, price} if open
+    except Exception:
+        state["position"] = None
+
+    # 4. Recent signals + derived stats (last 6h)
+    sb_url, sb_key = _sb_config()
+    state["signals_6h"] = []
+    state["direction_bias"] = None
+    state["avg_confidence"] = None
+    state["ghost"] = {"evaluated": 0, "correct": 0, "pending": 0, "wr": None}
+    state["streak"] = {"direction": None, "count": 0}
+    state["performance"] = None
+
+    if sb_url and sb_key:
+        sb_headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
+        cutoff_6h = (now - _dt.timedelta(hours=6)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        try:
+            r = requests.get(
+                f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
+                "?select=id,direction,confidence,bet_taken,correct,ghost_correct,"
+                "ghost_evaluated_at,created_at,signal_price,noise_reason"
+                f"&created_at=gte.{cutoff_6h}"
+                "&order=created_at.desc&limit=30",
+                headers=sb_headers, timeout=5,
+            )
+            signals = r.json() if r.ok else []
+            state["signals_6h"] = signals
+
+            # Direction bias
+            up = sum(1 for s in signals if s.get("direction") == "UP")
+            down = sum(1 for s in signals if s.get("direction") == "DOWN")
+            state["direction_bias"] = {"up": up, "down": down, "total": len(signals)}
+
+            # Avg confidence
+            confs = [float(s["confidence"]) for s in signals if s.get("confidence")]
+            state["avg_confidence"] = round(sum(confs) / len(confs), 3) if confs else None
+
+            # Ghost stats
+            ghost_eval = [s for s in signals if s.get("ghost_evaluated_at")]
+            ghost_correct = sum(1 for s in ghost_eval if s.get("ghost_correct"))
+            ghost_pending = sum(1 for s in signals if not s.get("ghost_evaluated_at"))
+            state["ghost"] = {
+                "evaluated": len(ghost_eval),
+                "correct": ghost_correct,
+                "pending": ghost_pending,
+                "wr": round(ghost_correct / len(ghost_eval) * 100, 1) if ghost_eval else None,
+            }
+
+            # Streak (consecutive same direction)
+            streak_count, streak_dir = 0, None
+            for s in signals:
+                d = s.get("direction")
+                if streak_dir is None:
+                    streak_dir = d
+                    streak_count = 1
+                elif d == streak_dir:
+                    streak_count += 1
+                else:
+                    break
+            state["streak"] = {"direction": streak_dir, "count": streak_count}
+        except Exception:
+            app.logger.debug("[brain-state] signals fetch failed", exc_info=True)
+
+        # 5. Performance (last 10 resolved bets)
+        try:
+            r = requests.get(
+                f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
+                "?select=correct,pnl_usd,confidence,direction"
+                "&bet_taken=eq.true&correct=not.is.null"
+                "&order=id.desc&limit=10",
+                headers=sb_headers, timeout=5,
+            )
+            resolved = r.json() if r.ok else []
+            if resolved:
+                wins = sum(1 for t in resolved if t.get("correct"))
+                state["performance"] = {
+                    "wr_10": round(wins / len(resolved) * 100, 1),
+                    "pnl_5": round(sum(float(t.get("pnl_usd") or 0) for t in resolved[:5]), 4),
+                    "resolved_count": len(resolved),
+                }
+        except Exception:
+            pass
+
+    # 6. Macro events (next 2h)
+    try:
+        cal = _fetch_macro_calendar()
+        events_raw = cal.get("data", []) if isinstance(cal, dict) else []
+        window_end = now + _dt.timedelta(hours=2)
+        upcoming = []
+        for ev in events_raw:
+            if ev.get("country") != "USD" or ev.get("impact") not in ("High", "red"):
+                continue
+            raw_date = ev.get("date", "")
+            if not raw_date:
+                continue
+            try:
+                ev_dt = _dt.datetime.fromisoformat(raw_date).astimezone(_dt.timezone.utc)
+                if now <= ev_dt <= window_end:
+                    delta_min = int((ev_dt - now).total_seconds() / 60)
+                    upcoming.append({
+                        "title": ev.get("title", "?"),
+                        "impact": ev.get("impact"),
+                        "minutes_away": delta_min,
+                    })
+            except Exception:
+                continue
+        state["macro_events"] = upcoming
+    except Exception:
+        state["macro_events"] = []
+
+    # 7. XGB gate
+    _clean = _get_clean_bet_count()
+    state["xgb_gate"] = {
+        "active": _clean >= _XGB_GATE_MIN_BETS,
+        "clean_bets": _clean,
+        "min_bets": _XGB_GATE_MIN_BETS,
+    }
+
+    return jsonify(state)
+
 
 # ── PUBLISH TELEGRAM ─────────────────────────────────────────────────────────
 
