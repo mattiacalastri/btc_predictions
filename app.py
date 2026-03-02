@@ -1266,7 +1266,7 @@ def _check_pre_flight(direction: str, confidence: float) -> object:
             cb_query = (
                 f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
                 "?select=correct&bet_taken=eq.true&correct=not.is.null"
-                "&order=id.desc&limit=3"
+                "&order=id.desc&limit=5"
             )
             if _RESUMED_AT:
                 cb_query += f"&created_at=gte.{_RESUMED_AT}"
@@ -1277,19 +1277,19 @@ def _check_pre_flight(direction: str, confidence: float) -> object:
             )
             if r_cb.status_code == 200:
                 last3 = r_cb.json()
-                if len(last3) == 3 and all(row.get("correct") is False for row in last3):
+                if len(last3) == 5 and all(row.get("correct") is False for row in last3):
                     try:
                         _save_bot_paused(True)
                     except Exception as _cb_save_err:
                         app.logger.error(f"[CIRCUIT_BREAKER] save_paused failed (DB down?): {_cb_save_err}")
-                    app.logger.warning("[CIRCUIT_BREAKER] 3 consecutive losses → bot auto-paused")
+                    app.logger.warning("[CIRCUIT_BREAKER] 5 consecutive losses → bot auto-paused")
                     _push_cockpit_log("app", "critical", "Circuit breaker tripped",
-                                      "3 consecutive losses — bot auto-paused",
+                                      "5 consecutive losses — bot auto-paused",
                                       {"direction": direction, "confidence": confidence})
                     return jsonify({
                         "status": "paused",
                         "reason": "circuit_breaker",
-                        "message": "3 perdite consecutive — bot auto-pausato. Riattivare manualmente con /resume.",
+                        "message": "5 perdite consecutive — bot auto-pausato. Riattivare manualmente con /resume.",
                         "direction": direction,
                         "confidence": confidence,
                     }), 200
