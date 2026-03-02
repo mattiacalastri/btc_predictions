@@ -771,11 +771,14 @@ def brain_state():
         "capital": float(os.environ.get("CAPITAL_USD") or os.environ.get("CAPITAL", 100)),
     }
 
-    # 1. BTC Price
+    # 1. BTC Price (via Kraken Futures tickers)
     try:
-        mk = get_market_client()
-        ticker = mk.get_ticker(DEFAULT_SYMBOL)
-        state["btc_price"] = float(ticker.get("markPrice") or 0) or None
+        trade = get_trade_client()
+        result = trade.request(method="GET", uri="/derivatives/api/v3/tickers", auth=False)
+        tickers = result.get("tickers", []) or []
+        ticker = next((t for t in tickers if (t.get("symbol") or "").upper() == DEFAULT_SYMBOL.upper()), None)
+        mp = ticker.get("markPrice") if ticker else None
+        state["btc_price"] = float(mp) if mp is not None else None
     except Exception:
         state["btc_price"] = None
 

@@ -137,12 +137,14 @@ return [{ json: { send: shouldSend, message: lines.join('\n'), category } }];
 nodes = [
     {
         "parameters": {
-            "rule": {"interval": [{"field": "minutes", "minutesInterval": 3}]}
+            "triggerTimes": {
+                "item": [{"mode": "everyX", "value": 3, "unit": "minutes"}]
+            }
         },
         "id": "brain-trigger",
         "name": "Every 3 Minutes",
-        "type": "n8n-nodes-base.scheduleTrigger",
-        "typeVersion": 1.2,
+        "type": "n8n-nodes-base.cron",
+        "typeVersion": 1,
         "position": [0, 300],
     },
     {
