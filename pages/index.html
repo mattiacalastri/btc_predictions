@@ -6522,6 +6522,7 @@ function updateMiniStatusBar(agentsData, railwayOk) {
       } catch(e) {}
     }
     if (last === 'success') { _msbSet(dotId, cfg.txt, 'green', 'OK'); }
+    else if (!last && isActive) { _msbSet(dotId, cfg.txt, 'green', 'ON'); }
     else                    { _msbSet(dotId, cfg.txt, 'yellow', '…'); }
   });
 }
@@ -6732,11 +6733,17 @@ window.addEventListener('load', function() {
   // Railway dot: green immediately (page loaded = API reachable)
   _msbSet('statusRailway', 'stxtRailway', 'green', 'OK');
 
-  // Agents section: n8n workflow status
-  fetch(CONFIG.RAILWAY_URL + '/n8n-status', { signal: AbortSignal.timeout(12000) })
-    .then(function(r) { return r.ok ? r.json() : null; })
-    .then(function(data) { updateMiniStatusBar(data, true); })
-    .catch(function() { updateMiniStatusBar(null, true); });
+  // Agents section: n8n workflow status (retry once on failure)
+  function fetchAgentStatus() {
+    return fetch(CONFIG.RAILWAY_URL + '/n8n-status', { signal: AbortSignal.timeout(12000) })
+      .then(function(r) { return r.ok ? r.json() : null; })
+      .then(function(data) { updateMiniStatusBar(data, true); return data; });
+  }
+  fetchAgentStatus().catch(function() {
+    setTimeout(function() { fetchAgentStatus().catch(function() { updateMiniStatusBar(null, true); }); }, 4000);
+  });
+  // Refresh agent status every 60s
+  setInterval(function() { fetchAgentStatus().catch(function(){}); }, 60000);
 
   // Bot + Live sections: health + signals + positions
   refreshMiniStatusBarLive();
