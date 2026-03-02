@@ -44,5 +44,9 @@ opencode.jsonc
 .claude/settings.local.jsonc
 scripts/results/
 
+# Generated reports (HTML/PDF) — rigenerabili con scripts/generate_reports.py
+reports/*.html
+reports/*.pdf
+
 # Memory files live in Claude project memory, not repo
 memory/
