@@ -124,3 +124,69 @@ CREATE INDEX IF NOT EXISTS idx_bot_errors_created
 
 -- Auto-cleanup: keep only last 30 days of resolved errors (run via pg_cron or manual)
 -- DELETE FROM bot_errors WHERE resolved = TRUE AND created_at < now() - interval '30 days';
+
+-- v9: Adaptive Calibration Engine (ACE) — bot_adaptive_state + bot_adaptive_log
+-- bot_adaptive_state: single-row current state of the adaptive engine
+CREATE TABLE IF NOT EXISTS bot_adaptive_state (
+    id                      INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),  -- single row
+    updated_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
+    signals_since_last_calc INTEGER NOT NULL DEFAULT 0,
+    total_signals_used      INTEGER NOT NULL DEFAULT 0,
+
+    -- Rolling WR windows
+    wr_50                   FLOAT,     -- WR last 50 signals
+    wr_100                  FLOAT,     -- WR last 100 signals
+    wr_200                  FLOAT,     -- WR last 200 signals
+    wr_up                   FLOAT,     -- WR UP direction only
+    wr_down                 FLOAT,     -- WR DOWN direction only
+
+    -- Adaptive threshold
+    optimal_threshold       FLOAT NOT NULL DEFAULT 0.56,
+    best_band_label         TEXT,      -- e.g. "0.60-0.65"
+    best_band_expectancy    FLOAT,     -- E = (WR×avg_win) - ((1-WR)×avg_loss)
+
+    -- Direction bias
+    direction_bias_adj      FLOAT NOT NULL DEFAULT 0.0,
+    bias_direction          TEXT,      -- 'UP' or 'DOWN' if biased, NULL if balanced
+    bias_pct                FLOAT,     -- % of dominant direction in last 30
+
+    -- Market regime
+    regime                  TEXT NOT NULL DEFAULT 'UNKNOWN',  -- RANGING, TRENDING, VOLATILE, UNKNOWN
+    regime_adj              FLOAT NOT NULL DEFAULT 0.0,
+    regime_size_factor      FLOAT NOT NULL DEFAULT 1.0,
+
+    -- Momentum
+    momentum_factor         FLOAT NOT NULL DEFAULT 1.0,
+    wr_recent_10            FLOAT,     -- WR last 10
+    wr_baseline_50          FLOAT,     -- WR last 50 (momentum baseline)
+
+    -- Composite result
+    effective_threshold     FLOAT NOT NULL DEFAULT 0.56,
+    calibration_wr_factor   FLOAT NOT NULL DEFAULT 1.0
+);
+
+-- Seed the single row if empty
+INSERT INTO bot_adaptive_state (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
+
+-- bot_adaptive_log: history of parameter changes (audit trail)
+CREATE TABLE IF NOT EXISTS bot_adaptive_log (
+    id                  BIGSERIAL PRIMARY KEY,
+    ts                  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    trigger_reason      TEXT NOT NULL,         -- 'scheduled', 'retrain', 'ghost_batch', 'manual'
+    signals_used        INTEGER NOT NULL,
+    optimal_threshold   FLOAT NOT NULL,
+    effective_threshold FLOAT NOT NULL,
+    direction_bias_adj  FLOAT NOT NULL DEFAULT 0.0,
+    regime              TEXT NOT NULL DEFAULT 'UNKNOWN',
+    regime_adj          FLOAT NOT NULL DEFAULT 0.0,
+    momentum_factor     FLOAT NOT NULL DEFAULT 1.0,
+    calibration_wr_factor FLOAT NOT NULL DEFAULT 1.0,
+    details             JSONB DEFAULT '{}'     -- full breakdown for debugging
+);
+
+-- Index: newest first for dashboard/monitoring queries
+CREATE INDEX IF NOT EXISTS idx_adaptive_log_ts
+    ON bot_adaptive_log (ts DESC);
+
+-- Auto-cleanup: keep only last 90 days (run via pg_cron or manual)
+-- DELETE FROM bot_adaptive_log WHERE ts < now() - interval '90 days';

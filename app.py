@@ -285,6 +285,25 @@ try:
 except Exception as _e:
     print(f"[XGB] Correctness model NOT loaded: {_e}")
 
+# ── Adaptive Calibration Engine (ACE) ────────────────────────────────────────
+from adaptive_engine import AdaptiveEngine
+_sb_url_ace, _sb_key_ace = (
+    os.environ.get("SUPABASE_URL", "").rstrip("/"),
+    os.environ.get("SUPABASE_SERVICE_KEY") or os.environ.get("SUPABASE_KEY", ""),
+)
+_adaptive_engine = AdaptiveEngine(
+    sb_url=_sb_url_ace, sb_key=_sb_key_ace,
+    table=os.environ.get("SUPABASE_TABLE", "btc_predictions"),
+)
+# Initial calculation (background, non-blocking)
+def _ace_initial_calc():
+    try:
+        _adaptive_engine.recalculate(trigger="startup")
+    except Exception:
+        pass
+threading.Thread(target=_ace_initial_calc, daemon=True).start()
+print(f"[ACE] Adaptive engine initialized (disabled={_adaptive_engine.disabled})")
+
 # ── Confidence calibration table (storico WR per bucket) ─────────────────────
 CONF_CALIBRATION = {
     # (min_conf, max_conf): win_rate_storico
@@ -755,6 +774,14 @@ def health():
     })
 
 
+# ── ADAPTIVE ENGINE ESTIMATE ──────────────────────────────────────────────────
+
+@app.route("/adaptive-estimate", methods=["GET"])
+def adaptive_estimate():
+    """Current adaptive engine state. No auth (read-only monitoring)."""
+    return jsonify(_adaptive_engine.get_estimate())
+
+
 # ── BRAIN STATE (wf08 Brain Monitor) ────────────────────────────────────────
 
 @app.route("/brain-state", methods=["GET"])
@@ -913,6 +940,22 @@ def brain_state():
         "clean_bets": _clean,
         "min_bets": _XGB_GATE_MIN_BETS,
     }
+
+    # 8. Adaptive engine
+    try:
+        ace_st = _adaptive_engine.state
+        state["adaptive"] = {
+            "disabled": _adaptive_engine.disabled,
+            "effective_threshold": ace_st.effective_threshold,
+            "optimal_threshold": ace_st.optimal_threshold,
+            "regime": ace_st.regime,
+            "regime_adj": ace_st.regime_adj,
+            "direction_bias_adj": ace_st.direction_bias_adj,
+            "momentum_factor": ace_st.momentum_factor,
+            "wr_50": ace_st.wr_50,
+        }
+    except Exception:
+        state["adaptive"] = {"disabled": True, "error": "unavailable"}
 
     return jsonify(state)
 
@@ -1522,6 +1565,20 @@ def place_bet():
             "reason": "dead_hour",
             "hour_utc": current_hour_utc,
             "message": f"Hour {current_hour_utc}h UTC has historically low WR (<45%). Skipping bet."
+        }), 200
+
+    # ACE — Adaptive Calibration Engine gate
+    ace_result = _adaptive_engine.evaluate(confidence, direction)
+    if not ace_result.get("should_trade", True):
+        _push_cockpit_log("app", "info", "ACE skip",
+                          f"dir={direction} conf={confidence:.2f} adj={ace_result.get('adjusted_conf'):.3f} "
+                          f"thr={ace_result.get('effective_threshold'):.3f}")
+        return jsonify({
+            "status": "skipped",
+            "reason": "adaptive_threshold",
+            "direction": direction,
+            "raw_confidence": confidence,
+            "adaptive": ace_result,
         }), 200
 
     # Dual-gate: bet solo se XGB direction == LLM direction
@@ -2983,6 +3040,14 @@ def ghost_evaluate():
             app.logger.exception(f"Ghost evaluate error row {row_id}")
             errors.append({"id": row_id, "error": "evaluate_error"})
 
+    # ACE: trigger maybe_recalculate after ghost evaluation batch
+    ace_recalc = False
+    if evaluated:
+        try:
+            ace_recalc = _adaptive_engine.maybe_recalculate(trigger="ghost_batch")
+        except Exception:
+            pass
+
     app.logger.info(
         f"[ghost_evaluate] evaluated={len(evaluated)} errors={len(errors)}"
     )
@@ -2993,6 +3058,7 @@ def ghost_evaluate():
         "remaining": len(candidates) - batch_limit,
         "results": evaluated,
         "error_details": errors[:5],
+        "ace_recalculated": ace_recalc,
     })
 
 
@@ -3197,6 +3263,9 @@ def auto_retrain():
             # Refresh calibration thresholds
             refresh_calibration()
             refresh_dead_hours()
+
+            # Refresh adaptive engine
+            _adaptive_engine.recalculate(trigger="retrain")
 
             app.logger.info("[RETRAIN] Pipeline completed successfully")
 
@@ -5895,6 +5964,128 @@ def marketing_stats():
 @app.route("/privacy", methods=["GET"])
 def privacy():
     return _read_page("privacy.html"), 200, {"Content-Type": "text/html"}
+
+
+@app.route("/audit", methods=["GET"])
+def audit_page():
+    return _read_page("audit.html"), 200, {"Content-Type": "text/html"}
+
+
+@app.route("/api/audit", methods=["GET"])
+def api_audit():
+    """Public audit ledger API — returns trade history with on-chain proof."""
+    sb_url, sb_key = _sb_config()
+    if not sb_url or not sb_key:
+        return jsonify({"error": "no_supabase"}), 500
+
+    try:
+        page = max(1, int(request.args.get("page", 1)))
+    except (ValueError, TypeError):
+        page = 1
+    try:
+        limit = max(1, min(int(request.args.get("limit", 50)), 200))
+    except (ValueError, TypeError):
+        limit = 50
+
+    direction = request.args.get("direction", "").strip().upper()
+    correct = request.args.get("correct", "").strip().lower()
+    date_from = request.args.get("from", "").strip()
+    date_to = request.args.get("to", "").strip()
+
+    offset = (page - 1) * limit
+
+    select_cols = (
+        "id,direction,confidence,correct,pnl_usd,created_at,"
+        "signal_price,exit_price,onchain_commit_tx,onchain_resolve_tx"
+    )
+    url = (
+        f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
+        f"?select={select_cols}"
+        f"&bet_taken=eq.true"
+        f"&order=id.desc"
+        f"&limit={limit}&offset={offset}"
+    )
+
+    if direction in ("UP", "DOWN"):
+        url += f"&direction=eq.{direction}"
+    if correct == "true":
+        url += "&correct=eq.true"
+    elif correct == "false":
+        url += "&correct=eq.false"
+    if date_from:
+        url += f"&created_at=gte.{date_from}T00:00:00Z"
+    if date_to:
+        url += f"&created_at=lte.{date_to}T23:59:59Z"
+
+    sb_headers = {
+        "apikey": sb_key,
+        "Authorization": f"Bearer {sb_key}",
+        "Prefer": "count=exact",
+    }
+    try:
+        res = requests.get(url, headers=sb_headers, timeout=10)
+        if not res.ok:
+            return jsonify({"error": f"supabase_{res.status_code}"}), 502
+
+        data = res.json()
+        total_count = 0
+        cr = res.headers.get("Content-Range", "")
+        if "/" in cr:
+            try:
+                total_count = int(cr.split("/")[1])
+            except (ValueError, IndexError):
+                total_count = len(data)
+        else:
+            total_count = len(data)
+
+        stats = {}
+        try:
+            count_headers = {**sb_headers, "Prefer": "count=exact"}
+            stat_base = f"{sb_url}/rest/v1/{SUPABASE_TABLE}?select=id&bet_taken=eq.true"
+            if direction in ("UP", "DOWN"):
+                stat_base += f"&direction=eq.{direction}"
+            if date_from:
+                stat_base += f"&created_at=gte.{date_from}T00:00:00Z"
+            if date_to:
+                stat_base += f"&created_at=lte.{date_to}T23:59:59Z"
+
+            r_total = requests.get(stat_base + "&limit=0", headers=count_headers, timeout=5)
+            stat_total = int(r_total.headers.get("content-range", "*/0").split("/")[-1])
+
+            r_wins = requests.get(stat_base + "&correct=eq.true&limit=0", headers=count_headers, timeout=5)
+            stat_wins = int(r_wins.headers.get("content-range", "*/0").split("/")[-1])
+
+            r_closed = requests.get(stat_base + "&correct=not.is.null&limit=0", headers=count_headers, timeout=5)
+            stat_closed = int(r_closed.headers.get("content-range", "*/0").split("/")[-1])
+
+            r_sample = requests.get(
+                f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
+                f"?select=confidence,onchain_commit_tx&bet_taken=eq.true&order=id.desc&limit=2000",
+                headers=sb_headers, timeout=8,
+            )
+            sample = r_sample.json() if r_sample.ok else []
+            confs = [r["confidence"] for r in sample if r.get("confidence") is not None]
+            onchain_count = sum(1 for r in sample if r.get("onchain_commit_tx"))
+
+            stats = {
+                "total": stat_total,
+                "win_rate": round(100.0 * stat_wins / stat_closed, 1) if stat_closed > 0 else None,
+                "avg_confidence": round(sum(confs) / len(confs), 4) if confs else None,
+                "onchain_rate": round(100.0 * onchain_count / len(sample), 1) if sample else None,
+            }
+        except Exception:
+            stats = {}
+
+        return jsonify({
+            "data": data,
+            "total_count": total_count,
+            "page": page,
+            "limit": limit,
+            "stats": stats,
+        })
+    except Exception as e:
+        app.logger.exception("api_audit error")
+        return jsonify({"error": "internal_error"}), 500
 
 
 _CACHE_BUST = os.environ.get("RAILWAY_GIT_COMMIT_SHA", "1")[:8]
