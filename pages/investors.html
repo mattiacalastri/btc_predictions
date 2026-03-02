@@ -1521,7 +1521,7 @@
           if (typeof grecaptcha !== 'undefined') {
             rcToken = await new Promise(res => grecaptcha.ready(() => grecaptcha.execute('6LcxXHwsAAAAAPLXvyh0lDdMI9StRq3glnC1KPjJ', {action: 'submit_contribution'}).then(res).catch(() => res(''))));
           }
-          const res = await fetch('https://web-production-e27d0.up.railway.app/contribute', {
+          const res = await fetch((window.RAILWAY_URL||window.location.origin)+'/contribute', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

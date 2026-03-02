@@ -5555,7 +5555,21 @@ def on_chain_audit():
 
 @app.route("/marketing", methods=["GET"])
 def marketing():
-    return _read_page("marketing.html"), 200, {"Content-Type": "text/html"}
+    # Auth gate: reuse COCKPIT_TOKEN to protect marketing ops page
+    cockpit_token = os.environ.get("COCKPIT_TOKEN", "")
+    if not cockpit_token:
+        return "Marketing dashboard disabled (COCKPIT_TOKEN not set)", 503
+    # Allow access via query param ?token=... or cookie
+    from flask import make_response
+    token = request.args.get("token", "") or request.cookies.get("mkt_token", "")
+    if not token or not _hmac.compare_digest(token, cockpit_token):
+        return _read_page("marketing.html").replace(
+            '<body',
+            '<script>var t=prompt("Token di accesso:");if(t)window.location=window.location.pathname+"?token="+t;</script><body'
+        ), 200, {"Content-Type": "text/html"}
+    resp = make_response(_read_page("marketing.html"), 200, {"Content-Type": "text/html"})
+    resp.set_cookie("mkt_token", cockpit_token, httponly=True, secure=True, samesite="Strict", max_age=86400)
+    return resp
 
 
 @app.route("/marketing-stats", methods=["GET"])
