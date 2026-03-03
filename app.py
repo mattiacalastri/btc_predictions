@@ -268,11 +268,12 @@ def _compute_regime_4h_live() -> dict:
             "regime_name":    _REGIME_LABELS[label],
             "atr_4h_pct":     atr_4h_pct,
             "trend_strength": trend_strength,
+            "trend_direction": "UP" if ema5 > ema20 else "DOWN",
         }
 
     except Exception as e:
         app.logger.warning("_compute_regime_4h_live error: %s", e)
-        return {"regime_label": 0, "regime_name": "RANGING", "atr_4h_pct": 0.0, "trend_strength": 0.0, "error": str(e)}
+        return {"regime_label": 0, "regime_name": "RANGING", "atr_4h_pct": 0.0, "trend_strength": 0.0, "trend_direction": "UP", "error": str(e)}
 
 
 # ── XGBoost correctness model (caricato una volta all'avvio) ─────────────────
@@ -434,6 +435,19 @@ _BOT_PAUSED = True               # fail-safe default: paused until Supabase conf
 _BOT_PAUSED_REFRESHED_AT = 0.0  # timestamp of last Supabase read (0.0 → forces refresh on first call)
 _RESUMED_AT = ""                 # ISO timestamp of last /resume — circuit breaker ignores bets before this
 _costs_cache = {"data": None, "ts": 0.0}
+
+# [FIX3] Trade cooldown — prevent over-trading (31 trades in 3h = fee drag)
+_LAST_TRADE_PLACED_AT = 0.0
+TRADE_COOLDOWN_MINUTES = _safe_float(os.environ.get("TRADE_COOLDOWN_MINUTES", "30"), default=30.0, min_v=0.0, max_v=1440.0)
+
+# [FIX4] Minimum ATR filter — skip low-volatility signals below breakeven threshold
+MIN_ATR_PCT = _safe_float(os.environ.get("MIN_ATR_PCT", "0.15"), default=0.15, min_v=0.0, max_v=5.0)
+
+# [FIX5] Trend alignment filter — block counter-trend trades in trending regimes
+TREND_ALIGN_FILTER = os.environ.get("TREND_ALIGN_FILTER", "true").lower() == "true"
+
+# [FIX2] Prediction horizon (env-driven, used by /config and ATR scaling)
+PREDICTION_HORIZON_MINUTES = _safe_float(os.environ.get("PREDICTION_HORIZON_MINUTES", "30"), default=30.0, min_v=1.0, max_v=1440.0)
 
 # Startup security validation (H-3)
 if not os.environ.get("BOT_API_KEY"):
@@ -761,7 +775,7 @@ def health():
         "serverTime": get_kraken_servertime(),
         "symbol": DEFAULT_SYMBOL,
         "api_key_set": bool(API_KEY),
-        "version": "2.5.2",
+        "version": "2.6.0",
         "dry_run": DRY_RUN,
         "supabase_table": SUPABASE_TABLE,
         "paused": _BOT_PAUSED,
@@ -775,6 +789,25 @@ def health():
         "xgb_min_bets": _XGB_GATE_MIN_BETS,
         "polygon_configured": _polygon_configured,
         "supabase_ok": supabase_ok,
+    })
+
+
+# ── CONFIG (FIX 2C — exposes runtime config for n8n wf02) ────────────────────
+
+@app.route("/config", methods=["GET"])
+def get_config():
+    """Exposes runtime configuration for n8n and monitoring. No auth (read-only)."""
+    return jsonify({
+        "prediction_horizon_minutes": PREDICTION_HORIZON_MINUTES,
+        "trade_cooldown_minutes": TRADE_COOLDOWN_MINUTES,
+        "min_atr_pct": MIN_ATR_PCT,
+        "trend_align_filter": TREND_ALIGN_FILTER,
+        "sl_pct_env": float(os.environ.get("SL_PCT", "0.5")),
+        "tp_pct_env": float(os.environ.get("TP_PCT", "1.0")),
+        "dead_hours_utc": sorted(list(DEAD_HOURS_UTC)),
+        "dry_run": DRY_RUN,
+        "paused": bool(_BOT_PAUSED),
+        "conf_threshold": float(os.environ.get("CONF_THRESHOLD", "0.56")),
     })
 
 
@@ -795,7 +828,7 @@ def brain_state():
     now = _dt.datetime.now(_dt.timezone.utc)
     state = {
         "ts": now.isoformat(),
-        "version": "2.5.2",
+        "version": "2.6.0",
         "paused": bool(_BOT_PAUSED),
         "dry_run": DRY_RUN,
         "conf_threshold": float(os.environ.get("CONF_THRESHOLD", "0.56")),
@@ -1388,35 +1421,79 @@ def close_position():
                     "symbol": symbol
                 })
 
-            # Bet orfana trovata — SL ha già chiuso la posizione Kraken.
-            # Risolvi usando il prezzo corrente da Binance.
-            try:
-                _px = requests.get(
-                    "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT",
-                    timeout=5,
-                )
-                _cur_price = float(_px.json()["price"]) if _px.ok else 0.0
-            except Exception:
-                _cur_price = 0.0
-
+            # [FIX1A] Bet orfana trovata — SL ha già chiuso la posizione Kraken.
+            # Prima cerca il fill reale da Kraken, poi fallback a position_gone.
             _row = _orphans[0]
             _obid = _row["id"]
             _entry = float(_row.get("entry_fill_price") or _row.get("btc_price_entry") or 0)
             _bsize = float(_row.get("bet_size") or 0.001)
             _dir   = _row.get("direction", "UP")
 
-            if _cur_price > 0 and _entry > 0:
+            # Step 1: Try to find real SL fill from Kraken
+            _real_exit_price = None
+            _fill_source = None
+            try:
+                _trade_k = get_trade_client()
+                _fills_resp = _trade_k.request(
+                    method="GET",
+                    uri="/derivatives/api/v3/fills",
+                    auth=True,
+                )
+                _all_fills = _fills_resp.get("fills", []) or []
+                # Look for recent fills on our symbol that are reduceOnly (SL fills)
+                # Sort by fill_time desc, take the most recent one matching our size
+                _symbol_fills = [
+                    f for f in _all_fills
+                    if (f.get("symbol") or "").upper() == symbol.upper()
+                ]
+                if _symbol_fills:
+                    # Most recent fill first
+                    _symbol_fills.sort(key=lambda f: f.get("fillTime", ""), reverse=True)
+                    _real_exit_price = float(_symbol_fills[0].get("price", 0))
+                    _fill_source = "kraken_fill"
+                    app.logger.info(
+                        f"[FIX1] Orphan {_obid}: found Kraken fill price={_real_exit_price} "
+                        f"(order={_symbol_fills[0].get('order_id')})"
+                    )
+            except Exception as _fill_err:
+                app.logger.warning(f"[FIX1] Kraken fills lookup failed for orphan {_obid}: {_fill_err}")
+
+            # Step 2: If no fill found, mark as position_gone with NULL pnl
+            if not _real_exit_price or _real_exit_price <= 0:
+                _patch = {
+                    "correct":           None,
+                    "close_reason":      "position_gone",
+                    "source_updated_by": "close_orphan_no_fill",
+                }
+                _supabase_update(_obid, _patch)
+                app.logger.warning(
+                    f"[FIX1] Orphan bet {_obid}: no Kraken fill found. "
+                    f"Marked position_gone with pnl=NULL (not fabricated)."
+                )
+                _push_cockpit_log("app", "warning", "Orphan: position_gone",
+                                  f"Bet {_obid}: no fill found on Kraken, pnl not fabricated")
+                return jsonify({
+                    "status":        "resolved_orphan",
+                    "message":       "Position gone — no fill found on Kraken. PnL not fabricated.",
+                    "bet_id":        _obid,
+                    "close_reason":  "position_gone",
+                    "pnl_usd":       None,
+                    "symbol":        symbol,
+                })
+
+            # Step 3: Calculate real PnL from Kraken fill
+            if _entry > 0:
                 if _dir == "UP":
-                    _pg = (_cur_price - _entry) * _bsize
-                    _correct = _cur_price > _entry
+                    _pg = (_real_exit_price - _entry) * _bsize
+                    _correct = _real_exit_price > _entry
                     _adir = "UP" if _correct else "DOWN"
                 else:
-                    _pg = (_entry - _cur_price) * _bsize
-                    _correct = _cur_price < _entry
+                    _pg = (_entry - _real_exit_price) * _bsize
+                    _correct = _real_exit_price < _entry
                     _adir = "DOWN" if _correct else "UP"
-                _fee = _bsize * (_entry + _cur_price) * TAKER_FEE
+                _fee = _bsize * (_entry + _real_exit_price) * TAKER_FEE
 
-                # P0: Funding cost from Supabase funding_rate + hold time
+                # Funding cost from Supabase funding_rate + hold time
                 _funding_cost = 0.0
                 _fr = _row.get("funding_rate")
                 _created = _row.get("created_at")
@@ -1426,50 +1503,58 @@ def close_position():
                         from datetime import datetime as _dt_fc, timezone as _tz_fc
                         _created_dt = _dt_fc.fromisoformat(_created.replace("Z", "+00:00"))
                         _mins_held = max(0, (_dt_fc.now(_tz_fc.utc) - _created_dt).total_seconds() / 60)
-                        _funding_cost = _bsize * _fr_f * (_mins_held / 480) * _cur_price
+                        _funding_cost = _bsize * _fr_f * (_mins_held / 480) * _real_exit_price
                         app.logger.info(f"[FUNDING] orphan bet {_obid}: rate={_fr_f}, mins={_mins_held:.0f}, cost={_funding_cost:.6f}")
                     except Exception as _fc_err:
                         app.logger.warning(f"[FUNDING] orphan bet {_obid} calc failed: {_fc_err}")
 
                 _pnl = round(_pg - _fee - _funding_cost, 6)
                 _patch = {
-                    "exit_fill_price":  _cur_price,
-                    "btc_price_exit":   _cur_price,
+                    "exit_fill_price":  _real_exit_price,
+                    "btc_price_exit":   _real_exit_price,
                     "correct":          _correct,
                     "actual_direction": _adir,
                     "pnl_usd":          _pnl,
                     "fees_total":       round(_fee, 6),
                     "close_reason":     "sl_already_closed",
-                    "source_updated_by": "close_orphan_sl",
+                    "source_updated_by": f"close_orphan_{_fill_source}",
                 }
                 if _funding_cost != 0.0:
                     _patch["funding_fee"] = round(-_funding_cost, 6)
                 _supabase_update(_obid, _patch)
                 app.logger.info(
-                    f"[close-position] Orphan bet {_obid} risolta: "
-                    f"SL già eseguito su Kraken. pnl={_pnl}, correct={_correct}, funding_cost={_funding_cost:.6f}"
+                    f"[FIX1] Orphan bet {_obid} resolved via {_fill_source}: "
+                    f"exit={_real_exit_price}, pnl={_pnl}, correct={_correct}"
                 )
                 return jsonify({
                     "status":              "resolved_orphan",
-                    "message":             "Posizione Kraken già chiusa da SL — bet orfana risolta.",
+                    "message":             f"Orphan resolved via {_fill_source}.",
                     "bet_id":              _obid,
-                    "exit_price_used":     _cur_price,
+                    "exit_price_used":     _real_exit_price,
+                    "fill_source":         _fill_source,
                     "pnl_usd":             _pnl,
                     "funding_cost_usd":    round(_funding_cost, 6),
-                    "funding_adjusted_pnl": _pnl,
                     "correct":             _correct,
                     "symbol":              symbol,
                 })
 
+            # entry price missing — can't calculate PnL
+            _patch = {
+                "correct":           None,
+                "close_reason":      "position_gone",
+                "source_updated_by": "close_orphan_no_entry",
+            }
+            _supabase_update(_obid, _patch)
             app.logger.warning(
-                f"[close-position] Orphan bet {_obid} trovata ma prezzo non disponibile "
-                f"(cur={_cur_price}, entry={_entry}) — wf02 riproverà."
+                f"[FIX1] Orphan bet {_obid}: fill found but entry price missing. "
+                f"Marked position_gone."
             )
             return jsonify({
-                "status":        "no_position",
-                "message":       "Nessuna posizione aperta, nulla da chiudere.",
-                "orphan_bet_id": _obid,
-                "warning":       "Bet orfana trovata ma prezzo corrente non disponibile.",
+                "status":        "resolved_orphan",
+                "message":       "Orphan resolved but entry price missing — PnL not calculated.",
+                "bet_id":        _obid,
+                "close_reason":  "position_gone",
+                "pnl_usd":       None,
                 "symbol":        symbol,
             })
 
@@ -1823,6 +1908,69 @@ def place_bet():
             "message": f"Hour {current_hour_utc}h UTC has historically low WR (<45%). Skipping bet."
         }), 200
 
+    # [FIX3B] Cooldown — prevent over-trading (was 31 trades in 3h)
+    global _LAST_TRADE_PLACED_AT
+    _cooldown_elapsed = time.time() - _LAST_TRADE_PLACED_AT
+    _cooldown_required = TRADE_COOLDOWN_MINUTES * 60
+    if _cooldown_elapsed < _cooldown_required:
+        _remaining = round((_cooldown_required - _cooldown_elapsed) / 60, 1)
+        app.logger.info(f"[FIX3] Cooldown active: {_remaining}min remaining")
+        return jsonify({
+            "status": "skipped",
+            "reason": "cooldown",
+            "cooldown_minutes": TRADE_COOLDOWN_MINUTES,
+            "remaining_minutes": _remaining,
+            "direction": direction,
+            "confidence": confidence,
+        }), 200
+
+    # [FIX4+5] Regime check (single Binance API call for volatility + trend filters)
+    _regime_data = None
+    try:
+        _regime_data = _compute_regime_4h_live()
+    except Exception as _reg_err:
+        app.logger.warning(f"[FIX4] Regime check failed (fail-open): {_reg_err}")
+        # fail-open: skip both filters
+
+    if _regime_data and "error" not in _regime_data:
+        # [FIX4B] Volatility filter — skip if ATR below breakeven threshold
+        _atr_pct = _regime_data.get("atr_4h_pct", 0.0)
+        if _atr_pct < MIN_ATR_PCT:
+            app.logger.info(
+                f"[FIX4] Low volatility skip: ATR={_atr_pct:.4f}% < MIN={MIN_ATR_PCT}%"
+            )
+            return jsonify({
+                "status": "skipped",
+                "reason": "low_volatility",
+                "atr_4h_pct": _atr_pct,
+                "min_atr_pct": MIN_ATR_PCT,
+                "direction": direction,
+                "confidence": confidence,
+            }), 200
+
+        # [FIX5C] Counter-trend filter — block trades against strong trend
+        if TREND_ALIGN_FILTER:
+            _regime_name = _regime_data.get("regime_name", "")
+            _trend_dir = _regime_data.get("trend_direction", "")
+            _trend_str = _regime_data.get("trend_strength", 0.0)
+            if (_regime_name == "TRENDING"
+                    and _trend_str > 0.3
+                    and _trend_dir
+                    and direction != _trend_dir):
+                app.logger.info(
+                    f"[FIX5] Counter-trend skip: signal={direction} vs trend={_trend_dir} "
+                    f"(strength={_trend_str:.4f}%, regime={_regime_name})"
+                )
+                return jsonify({
+                    "status": "skipped",
+                    "reason": "counter_trend",
+                    "signal_direction": direction,
+                    "trend_direction": _trend_dir,
+                    "trend_strength": _trend_str,
+                    "regime": _regime_name,
+                    "confidence": confidence,
+                }), 200
+
     # ACE — Adaptive Calibration Engine gate
     ace_result = _adaptive_engine.evaluate(confidence, direction)
     if not ace_result.get("should_trade", True):
@@ -1917,6 +2065,36 @@ def place_bet():
         pos = get_open_position(symbol)
         trade = get_trade_client()
         base_size = size  # preserve original size from payload
+
+        # [FIX1B] Sync check: Kraken has position but Supabase has no open bet → orphan
+        if pos:
+            try:
+                sb_url, sb_key = _sb_config()
+                if sb_url and sb_key:
+                    _sync_r = requests.get(
+                        f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
+                        "?select=id&bet_taken=eq.true&correct=is.null&limit=1",
+                        headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
+                        timeout=3,
+                    )
+                    if _sync_r.ok and not _sync_r.json():
+                        # Kraken position exists but no open bet in Supabase → close orphan
+                        app.logger.warning(
+                            f"[FIX1B] Orphan position detected: Kraken has {pos['side']} "
+                            f"but Supabase has no open bets. Closing orphan."
+                        )
+                        _push_cockpit_log("app", "warning", "Orphan position sync",
+                                          f"Kraken {pos['side']} {pos.get('size')} — no Supabase bet. Closing.")
+                        _close_side = "sell" if pos["side"] == "long" else "buy"
+                        trade.create_order(
+                            orderType="mkt", symbol=symbol, side=_close_side,
+                            size=pos["size"], reduceOnly=True,
+                        )
+                        wait_for_position(symbol, want_open=False, retries=10, sleep_s=0.3)
+                        pos = None  # position closed, proceed as flat
+            except Exception as _sync_err:
+                app.logger.warning(f"[FIX1B] Sync check failed (fail-open): {_sync_err}")
+                # fail-open: proceed normally
 
         # ── Portfolio-Aware Decision Engine ────────────────────────────────────
         # Gather context for the Portfolio Engine (Supabase + Kraken)
@@ -2271,8 +2449,25 @@ def place_bet():
                 if _exec and _exec.get("price"):
                     fill_price = float(_exec["price"])
 
-                sl_pct = float(data.get("sl_pct", 1.2))
-                tp_pct = float(data.get("tp_pct", sl_pct * 2))  # default 2× SL
+                # [FIX2B] ATR-based SL/TP — scale ATR from 4h to prediction horizon
+                _sl_fallback = float(os.environ.get("SL_PCT", "0.5"))
+                _tp_fallback = float(os.environ.get("TP_PCT", "1.0"))
+                sl_pct = _sl_fallback
+                tp_pct = _tp_fallback
+                if _regime_data and "error" not in _regime_data:
+                    _atr_4h = _regime_data.get("atr_4h_pct", 0.0)
+                    if _atr_4h > 0:
+                        _scale = math.sqrt(PREDICTION_HORIZON_MINUTES / 240.0)
+                        _atr_horizon = _atr_4h * _scale
+                        sl_pct = max(0.3, min(1.5, _atr_horizon * 1.5))
+                        tp_pct = sl_pct * 2
+                        app.logger.info(
+                            f"[FIX2B] ATR SL/TP: atr_4h={_atr_4h:.4f}%, scale={_scale:.3f}, "
+                            f"atr_horizon={_atr_horizon:.4f}%, sl={sl_pct:.3f}%, tp={tp_pct:.3f}%"
+                        )
+                # Allow POST body override
+                sl_pct = float(data.get("sl_pct", sl_pct))
+                tp_pct = float(data.get("tp_pct", tp_pct))
                 entry_price = fill_price or float(confirmed_pos.get("price") or 0) or _get_mark_price(symbol)
                 if entry_price > 0:
                     if not fill_price:
@@ -2299,10 +2494,24 @@ def place_bet():
                     sl_status = sl_result.get("sendStatus", {}) or {}
                     if sl_status.get("status") not in FAILED_SEND_STATUSES:
                         sl_order_id = sl_status.get("order_id")
-            except Exception:
-                pass  # non bloccare il flusso principale
+                    else:
+                        # [FIX1C] SL rejected — log explicitly
+                        _sl_fail_status = sl_status.get("status", "unknown")
+                        app.logger.error(
+                            f"[FIX1C] SL order REJECTED: status={_sl_fail_status} "
+                            f"direction={direction} sl_price={sl_price} size={size}"
+                        )
+                        _push_cockpit_log("app", "error", "SL order rejected",
+                                          f"Status={_sl_fail_status}, sl_price={sl_price}, "
+                                          f"direction={direction}, size={size}")
+            except Exception as _sl_err:
+                app.logger.error(f"[FIX1C] SL order exception: {_sl_err}")
+                _push_cockpit_log("app", "error", "SL order exception", str(_sl_err))
 
         if ok:
+            # [FIX3C] Update cooldown timestamp after successful trade
+            _LAST_TRADE_PLACED_AT = time.time()
+
             _push_cockpit_log("app", "success", f"Bet placed: {direction} {symbol}",
                               f"Size={size}, fill={fill_price}, conf={confidence}",
                               {"direction": direction, "confidence": confidence, "size": size,
@@ -6634,7 +6843,7 @@ def cockpit_overview():
         "current_phase": "-",
         "phase_detail": "",
         "uptime": "-",
-        "version": "2.5.2",
+        "version": "2.6.0",
         # v2 fields
         "total_pnl": 0.0,
         "today_pnl": 0.0,

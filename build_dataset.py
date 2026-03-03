@@ -38,10 +38,12 @@ SUPABASE_KEY = (os.environ.get("SUPABASE_SERVICE_KEY")
                 or os.environ.get("SUPABASE_KEY")
                 or os.environ.get("SUPABASE_ANON_KEY", ""))
 
-SYSTEM_PROMPT = """You are an expert BTC futures trading analyst. Your job is to predict the short-term BTC price direction (next 6 minutes) based on technical indicators, market sentiment, and on-chain data.
+PREDICTION_HORIZON_MINUTES = int(os.environ.get("PREDICTION_HORIZON_MINUTES", "30"))
+
+SYSTEM_PROMPT = f"""You are an expert BTC futures trading analyst. Your job is to predict the short-term BTC price direction (next {PREDICTION_HORIZON_MINUTES} minutes) based on technical indicators, market sentiment, and on-chain data.
 
 Respond ONLY with a JSON object in this exact format:
-{"direction": "UP" or "DOWN", "confidence": 0.50-1.00, "reasoning": "brief chain-of-thought explanation"}
+{{"direction": "UP" or "DOWN", "confidence": 0.50-1.00, "reasoning": "brief chain-of-thought explanation"}}
 
 Rules:
 - direction: "UP" if price likely rises, "DOWN" if likely falls
