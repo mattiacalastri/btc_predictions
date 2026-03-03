@@ -1,0 +1,1407 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='15' fill='%230d0d0d'/%3E%3Ctext x='50' y='72' font-size='70' text-anchor='middle' fill='%2300ff88' font-family='Arial'%3E%E2%82%BF%3C/text%3E%3C/svg%3E">
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('consent','default',{'analytics_storage':'denied'});
+if(localStorage.getItem('btcp_ga_consent')==='granted'){
+  var s=document.createElement('script');s.async=true;
+  s.src='https://www.googletagmanager.com/gtag/js?id=G-K2E2B4FVQ5';
+  document.head.appendChild(s);gtag('js',new Date());gtag('config','G-K2E2B4FVQ5');
+}
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Il Consiglio di AI — BTC Predictor</title>
+<meta name="description" content="Come nasce una decisione collettiva: dalle origini del prompt engineering al Consiglio di AI. Sei menti artificiali che deliberano ogni trade.">
+<meta name="robots" content="index, follow">
+<meta name="author" content="Mattia Calastri">
+<link rel="canonical" href="https://btcpredictor.io/council">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Il Consiglio di AI — BTC Predictor">
+<meta property="og:description" content="Dalle origini del prompt engineering al Consiglio di AI: sei menti artificiali che deliberano ogni trade.">
+<meta property="og:url" content="https://btcpredictor.io/council">
+<meta property="og:site_name" content="BTC Predictor">
+<meta property="og:locale" content="it_IT">
+<meta property="og:image" content="https://btcpredictor.io/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Il Consiglio di AI — BTC Predictor">
+<meta name="twitter:description" content="Sei menti artificiali. Una deliberazione. Nessun singolo punto di fallimento.">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Article","headline":"Il Consiglio di AI","description":"Come nasce una decisione collettiva: dalle origini del prompt engineering al Consiglio di AI.","url":"https://btcpredictor.io/council","author":{"@type":"Person","name":"Mattia Calastri","url":"https://mattiacalastri.com"},"publisher":{"@type":"Organization","name":"BTC Predictor","url":"https://btcpredictor.io"},"inLanguage":"it"}
+</script>
+<h1 style="position:absolute;left:-9999px;visibility:hidden;">Il Consiglio di AI — BTC Predictor</h1>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:ital,wght@0,400;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+
+/* ── GNAV ── */
+.gnav{position:fixed;top:0;left:0;right:0;z-index:9000;height:48px;background:rgba(10,10,15,0.8);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;}
+.gnav-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:#fff;font-size:14px;font-weight:600;letter-spacing:-0.01em;}
+.gnav-mark{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;background:#00ff88;color:#000;font-size:11px;font-weight:800;border-radius:6px;flex-shrink:0;}
+.gnav-name{white-space:nowrap;}
+.gnav-links{display:flex;align-items:center;gap:4px;}
+.gnav-link{text-decoration:none;color:rgba(255,255,255,0.5);font-size:13px;font-weight:400;padding:6px 12px;border-radius:6px;transition:color .2s,background .2s;white-space:nowrap;}
+.gnav-link:hover{color:rgba(255,255,255,0.9);background:rgba(255,255,255,0.04);}
+.gnav-link.active{color:#fff;}
+.gnav-link.active::after{content:'';display:block;height:1px;background:#00ff88;margin-top:2px;border-radius:1px;}
+.gnav-private{position:relative;padding-left:22px;}
+.gnav-private::before{content:'';position:absolute;left:10px;top:50%;transform:translateY(-50%);width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,0.2);}
+.gnav-burger{display:none;align-items:center;justify-content:center;background:none;border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);padding:6px 8px;border-radius:6px;cursor:pointer;transition:border-color .2s,color .2s;}
+.gnav-burger:hover{border-color:rgba(255,255,255,0.25);color:rgba(255,255,255,0.9);}
+@media(max-width:768px){
+.gnav-links{display:none;position:fixed;top:48px;right:0;bottom:0;width:260px;background:rgba(10,10,15,0.96);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-left:1px solid rgba(255,255,255,0.06);flex-direction:column;align-items:stretch;padding:12px 0;gap:0;overflow-y:auto;transform:translateX(100%);transition:transform .25s cubic-bezier(.4,0,.2,1);}
+.gnav-links.gnav-open{display:flex;transform:translateX(0);}
+.gnav-link{font-size:14px;padding:12px 20px;border-radius:0;}
+.gnav-link.active::after{display:none;}
+.gnav-link.active{background:rgba(0,255,136,0.06);}
+.gnav-burger{display:flex;}
+}
+
+:root {
+  --void:    #050508;
+  --deep:    #08080f;
+  --surface: #0c0c16;
+  --card:    #10101c;
+  --border:  rgba(255,255,255,0.05);
+  --cyan:    #00d4ff;
+  --orange:  #f7931a;
+  --green:   #00ff88;
+  --purple:  #aa66ff;
+  --red:     #ff3b5c;
+  --gold:    #ffd700;
+  --text:    #e0e0e8;
+  --muted:   #555568;
+  --dim:     #2a2a3a;
+  --serif:   'EB Garamond', Georgia, serif;
+  --mono:    'IBM Plex Mono', 'Courier New', monospace;
+  --display: 'Bebas Neue', Impact, sans-serif;
+  --heading: 'Syne', sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+body {
+  background: var(--void);
+  color: var(--text);
+  font-family: var(--serif);
+  font-size: clamp(18px, 1.5vw, 21px);
+  line-height: 1.75;
+  overflow-x: hidden;
+  cursor: default;
+  padding-top: 48px;
+}
+::selection { background: rgba(0,212,255,0.2); }
+
+/* ── PROGRESS BAR ── */
+#progress {
+  position: fixed; left: 0; top: 0;
+  width: 3px; height: 0%;
+  background: linear-gradient(180deg, var(--cyan), var(--purple), var(--orange));
+  z-index: 9999;
+  transition: height 0.1s linear;
+  border-radius: 0 0 2px 0;
+}
+
+/* ── CHAPTER COUNTER ── */
+#chapter-indicator {
+  position: fixed; right: 28px; top: 50%;
+  transform: translateY(-50%);
+  z-index: 8000;
+  display: flex; flex-direction: column;
+  gap: 12px; align-items: center;
+}
+.ch-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: transparent;
+  transition: all 0.4s cubic-bezier(.22,.61,.36,1);
+  cursor: pointer;
+  position: relative;
+}
+.ch-dot.active {
+  background: var(--cyan);
+  border-color: var(--cyan);
+  box-shadow: 0 0 12px rgba(0,212,255,0.4);
+  transform: scale(1.4);
+}
+.ch-dot::after {
+  content: attr(data-label);
+  position: absolute;
+  right: 20px; top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0);
+  white-space: nowrap;
+  transition: color 0.3s;
+  pointer-events: none;
+}
+.ch-dot:hover::after,
+.ch-dot.active::after { color: rgba(255,255,255,0.5); }
+
+@media(max-width:900px) { #chapter-indicator { display: none; } }
+
+/* ── HERO ── */
+.hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  overflow: hidden;
+}
+#neural-canvas {
+  position: absolute; inset: 0;
+  opacity: 0.35;
+  pointer-events: none;
+}
+.hero-content { position: relative; z-index: 2; padding: 40px 24px; }
+.hero-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  color: var(--cyan);
+  margin-bottom: 24px;
+  opacity: 0;
+  animation: fadeUp 1s 0.3s forwards;
+}
+.hero-title {
+  font-family: var(--display);
+  font-size: clamp(60px, 12vw, 160px);
+  line-height: 0.9;
+  letter-spacing: 3px;
+  color: transparent;
+  -webkit-text-stroke: 1.5px var(--cyan);
+  margin-bottom: 16px;
+  opacity: 0;
+  animation: fadeUp 1s 0.5s forwards;
+}
+.hero-title span {
+  display: block;
+  -webkit-text-stroke-color: var(--orange);
+}
+.hero-sub {
+  font-family: var(--serif);
+  font-size: clamp(18px, 2vw, 26px);
+  font-style: italic;
+  color: var(--muted);
+  max-width: 600px;
+  margin: 0 auto;
+  opacity: 0;
+  animation: fadeUp 1s 0.8s forwards;
+}
+.hero-scroll {
+  position: absolute;
+  bottom: 40px; left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--muted);
+  opacity: 0;
+  animation: fadeUp 1s 1.2s forwards;
+}
+.hero-scroll::after {
+  content: '';
+  display: block;
+  width: 1px; height: 40px;
+  background: linear-gradient(180deg, var(--muted), transparent);
+  margin: 12px auto 0;
+  animation: scrollPulse 2s ease-in-out infinite;
+}
+@keyframes scrollPulse {
+  0%,100% { opacity: 0.3; transform: scaleY(1); }
+  50% { opacity: 1; transform: scaleY(1.3); }
+}
+
+/* ── SECTIONS ── */
+.chapter {
+  position: relative;
+  padding: clamp(80px, 12vh, 140px) clamp(24px, 6vw, 120px);
+  max-width: 900px;
+  margin: 0 auto;
+}
+.chapter-num {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--cyan);
+  margin-bottom: 20px;
+  display: flex; align-items: center; gap: 12px;
+}
+.chapter-num::after {
+  content: '';
+  flex: 1; height: 1px;
+  background: linear-gradient(90deg, var(--cyan), transparent);
+  opacity: 0.2;
+}
+.chapter h2 {
+  font-family: var(--display);
+  font-size: clamp(36px, 6vw, 72px);
+  letter-spacing: 2px;
+  line-height: 1;
+  margin-bottom: 32px;
+  color: #fff;
+}
+.chapter h2 em {
+  font-style: normal;
+  color: var(--orange);
+}
+.chapter p {
+  margin-bottom: 24px;
+  color: rgba(224,224,232,0.82);
+}
+.chapter p strong {
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ── REVEAL ANIMATION ── */
+.reveal {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 0.8s cubic-bezier(.22,.61,.36,1), transform 0.8s cubic-bezier(.22,.61,.36,1);
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── TERMINAL BLOCK ── */
+.terminal {
+  background: #0a0a10;
+  border: 1px solid rgba(0,212,255,0.12);
+  border-radius: 8px;
+  padding: 28px 32px;
+  margin: 40px 0;
+  position: relative;
+  overflow: hidden;
+}
+.terminal::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+  opacity: 0.4;
+}
+.terminal-header {
+  display: flex; gap: 6px;
+  margin-bottom: 20px;
+}
+.terminal-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+}
+.terminal-dot:nth-child(1) { background: #ff5f56; }
+.terminal-dot:nth-child(2) { background: #ffbd2e; }
+.terminal-dot:nth-child(3) { background: #27c93f; }
+.terminal-line {
+  font-family: var(--mono);
+  font-size: 14px;
+  line-height: 2;
+  color: var(--green);
+}
+.terminal-line .prompt { color: var(--cyan); }
+.terminal-line .comment { color: var(--muted); font-style: italic; }
+.terminal-line .str { color: var(--orange); }
+.terminal-line .dim { color: var(--muted); }
+.cursor-blink {
+  display: inline-block;
+  width: 8px; height: 16px;
+  background: var(--green);
+  vertical-align: middle;
+  animation: blink 0.8s step-end infinite;
+  margin-left: 2px;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+/* ── SINGLE NODE (lonely AI) ── */
+.lonely-node {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 320px;
+  margin: 48px 0;
+  position: relative;
+}
+.node-core {
+  width: 120px; height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,212,255,0.15) 0%, transparent 70%);
+  border: 1px solid rgba(0,212,255,0.3);
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+  animation: nodePulse 3s ease-in-out infinite;
+}
+.node-core::before {
+  content: '';
+  position: absolute;
+  inset: -20px;
+  border-radius: 50%;
+  border: 1px dashed rgba(0,212,255,0.1);
+  animation: spin 20s linear infinite;
+}
+.node-core::after {
+  content: '';
+  position: absolute;
+  inset: -40px;
+  border-radius: 50%;
+  border: 1px dashed rgba(0,212,255,0.05);
+  animation: spin 35s linear infinite reverse;
+}
+.node-icon {
+  font-size: 40px;
+  filter: grayscale(0.3);
+}
+.node-label {
+  position: absolute;
+  bottom: 20px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+@keyframes nodePulse {
+  0%,100% { box-shadow: 0 0 40px rgba(0,212,255,0.1); }
+  50% { box-shadow: 0 0 80px rgba(0,212,255,0.2); }
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── PULL QUOTE ── */
+.pull-quote {
+  border-left: 2px solid var(--orange);
+  padding: 20px 0 20px 28px;
+  margin: 40px 0;
+  font-size: clamp(20px, 2.2vw, 28px);
+  line-height: 1.5;
+  font-style: italic;
+  color: rgba(255,255,255,0.7);
+}
+.pull-quote cite {
+  display: block;
+  margin-top: 12px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-style: normal;
+  letter-spacing: 2px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+/* ── COUNCIL VISUALIZATION ── */
+.council-ring {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  aspect-ratio: 1;
+  margin: 60px auto;
+}
+.council-center {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(170,102,255,0.2), transparent 70%);
+  border: 1px solid rgba(170,102,255,0.3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px;
+  z-index: 3;
+}
+.council-member {
+  position: absolute;
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px;
+  z-index: 2;
+  transition: transform 0.4s cubic-bezier(.22,.61,.36,1), box-shadow 0.4s;
+}
+.council-member:hover {
+  transform: translate(-50%,-50%) scale(1.2) !important;
+}
+.council-member::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 1px dashed;
+  opacity: 0.2;
+  animation: spin 15s linear infinite;
+}
+.cm-tech   { background: radial-gradient(circle, rgba(0,212,255,0.2), transparent 70%); border: 1px solid rgba(0,212,255,0.3); }
+.cm-tech::before { border-color: var(--cyan); }
+.cm-sent   { background: radial-gradient(circle, rgba(0,255,136,0.2), transparent 70%); border: 1px solid rgba(0,255,136,0.3); }
+.cm-sent::before { border-color: var(--green); }
+.cm-chain  { background: radial-gradient(circle, rgba(247,147,26,0.2), transparent 70%); border: 1px solid rgba(247,147,26,0.3); }
+.cm-chain::before { border-color: var(--orange); }
+.cm-quant  { background: radial-gradient(circle, rgba(255,215,0,0.2), transparent 70%); border: 1px solid rgba(255,215,0,0.3); }
+.cm-quant::before { border-color: var(--gold); }
+.cm-devil  { background: radial-gradient(circle, rgba(255,59,92,0.2), transparent 70%); border: 1px solid rgba(255,59,92,0.3); }
+.cm-devil::before { border-color: var(--red); }
+.cm-arb    { background: radial-gradient(circle, rgba(170,102,255,0.2), transparent 70%); border: 1px solid rgba(170,102,255,0.3); }
+.cm-arb::before { border-color: var(--purple); }
+
+/* lines from members to center */
+.council-line {
+  position: absolute;
+  top: 50%; left: 50%;
+  height: 1px;
+  transform-origin: 0 0;
+  z-index: 1;
+  opacity: 0.15;
+}
+
+.member-tooltip {
+  position: absolute;
+  bottom: -38px; left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+.council-member:hover .member-tooltip { opacity: 1; }
+
+/* ── MEMBER CARDS ── */
+.member-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin: 48px 0;
+}
+.m-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 24px 20px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.m-card:hover {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 30px var(--glow);
+}
+.m-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--accent-color);
+  opacity: 0.6;
+}
+.m-card-icon { font-size: 32px; margin-bottom: 12px; }
+.m-card-role {
+  font-family: var(--heading);
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.m-card-model {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: var(--accent-color);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.m-card-desc {
+  font-family: var(--serif);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.m-card-weight {
+  position: absolute;
+  top: 14px; right: 16px;
+  font-family: var(--mono);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent-color);
+  opacity: 0.3;
+}
+@media(max-width:768px) { .member-cards { grid-template-columns: 1fr; } }
+
+/* ── DELIBERATION TIMELINE ── */
+.delib-timeline {
+  position: relative;
+  margin: 60px 0;
+  padding-left: 48px;
+}
+.delib-timeline::before {
+  content: '';
+  position: absolute;
+  left: 18px; top: 0; bottom: 0;
+  width: 2px;
+  background: linear-gradient(180deg, var(--cyan), var(--purple), var(--orange));
+  opacity: 0.3;
+  border-radius: 1px;
+}
+.delib-round {
+  position: relative;
+  margin-bottom: 48px;
+}
+.delib-round:last-child { margin-bottom: 0; }
+.delib-dot {
+  position: absolute;
+  left: -38px; top: 6px;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  border: 2px solid;
+  background: var(--void);
+  z-index: 2;
+}
+.delib-round:nth-child(1) .delib-dot { border-color: var(--cyan); }
+.delib-round:nth-child(2) .delib-dot { border-color: var(--red); }
+.delib-round:nth-child(3) .delib-dot { border-color: var(--purple); }
+.delib-tag {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.delib-round:nth-child(1) .delib-tag { color: var(--cyan); }
+.delib-round:nth-child(2) .delib-tag { color: var(--red); }
+.delib-round:nth-child(3) .delib-tag { color: var(--purple); }
+.delib-title {
+  font-family: var(--heading);
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 10px;
+}
+.delib-desc {
+  font-family: var(--serif);
+  font-size: 16px;
+  line-height: 1.7;
+  color: rgba(224,224,232,0.7);
+}
+
+/* ── VOTE SIMULATION ── */
+.vote-sim {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 32px;
+  margin: 48px 0;
+  overflow: hidden;
+}
+.vote-header {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--cyan);
+  margin-bottom: 20px;
+  display: flex; align-items: center; gap: 10px;
+}
+.vote-header .live-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--cyan);
+  animation: pulse 1.5s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.vote-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.vote-row:last-child { border-bottom: none; }
+.vote-icon { font-size: 20px; flex-shrink: 0; width: 32px; text-align: center; }
+.vote-name { color: var(--text); width: 100px; flex-shrink: 0; }
+.vote-dir {
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  letter-spacing: 1px;
+  width: 56px; text-align: center;
+  flex-shrink: 0;
+}
+.vote-up { color: var(--green); background: rgba(0,255,136,0.08); }
+.vote-down { color: var(--red); background: rgba(255,59,92,0.08); }
+.vote-bar-wrap {
+  flex: 1;
+  height: 4px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.vote-bar {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 1.5s cubic-bezier(.22,.61,.36,1);
+  width: 0;
+}
+.vote-conf {
+  color: var(--muted);
+  width: 40px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.vote-result {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.vote-result-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.vote-result-val {
+  font-family: var(--heading);
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--green);
+}
+.vote-result-conf {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--cyan);
+}
+
+/* ── EVOLUTION GRAPH ── */
+.evo-bars {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  height: 160px;
+  margin: 48px 0;
+  padding: 0 8px;
+}
+.evo-bar-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  height: 100%;
+  justify-content: flex-end;
+}
+.evo-bar {
+  width: 100%;
+  border-radius: 4px 4px 0 0;
+  transition: height 1.5s cubic-bezier(.22,.61,.36,1);
+  height: 0;
+  min-height: 4px;
+}
+.evo-label {
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* ── FINAL QUOTE ── */
+.finale {
+  text-align: center;
+  padding: clamp(100px, 15vh, 180px) 24px;
+  position: relative;
+}
+.finale-quote {
+  font-family: var(--display);
+  font-size: clamp(32px, 6vw, 80px);
+  letter-spacing: 2px;
+  line-height: 1.1;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(255,255,255,0.4);
+  margin-bottom: 24px;
+}
+.finale-quote em {
+  font-style: normal;
+  -webkit-text-stroke-color: var(--orange);
+}
+.finale-sub {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: clamp(16px, 1.8vw, 22px);
+  color: var(--muted);
+  max-width: 500px;
+  margin: 0 auto 40px;
+}
+.finale-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--cyan);
+  padding: 14px 32px;
+  border: 1px solid rgba(0,212,255,0.25);
+  border-radius: 4px;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+.finale-cta::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: rgba(0,212,255,0.05);
+  transform: translateX(-100%);
+  transition: transform 0.3s;
+}
+.finale-cta:hover { border-color: var(--cyan); color: #fff; }
+.finale-cta:hover::before { transform: translateX(0); }
+
+/* ── FOOTER ── */
+.colophon {
+  text-align: center;
+  padding: 40px 24px;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ── GRAIN ── */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9998;
+  opacity: 0.5;
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="gnav">
+  <a href="/" class="gnav-brand"><span class="gnav-mark">B</span><span class="gnav-name">BTC Predictor</span></a>
+  <div class="gnav-links" id="gnav-links">
+    <a href="/dashboard" class="gnav-link gnav-private">Dashboard</a>
+    <a href="/manifesto" class="gnav-link">Manifesto</a>
+    <a href="/council" class="gnav-link active">Council</a>
+    <a href="/contributors" class="gnav-link">Contributors</a>
+  </div>
+  <button class="gnav-burger" onclick="document.getElementById('gnav-links').classList.toggle('gnav-open')" aria-label="Menu">
+    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h12M3 12h12"/></svg>
+  </button>
+</nav>
+
+<!-- PROGRESS -->
+<div id="progress"></div>
+
+<!-- CHAPTER DOTS -->
+<div id="chapter-indicator">
+  <div class="ch-dot active" data-label="Hero" data-target="hero"></div>
+  <div class="ch-dot" data-label="Origini" data-target="ch1"></div>
+  <div class="ch-dot" data-label="Limite" data-target="ch2"></div>
+  <div class="ch-dot" data-label="Consiglio" data-target="ch3"></div>
+  <div class="ch-dot" data-label="Membri" data-target="ch4"></div>
+  <div class="ch-dot" data-label="Deliberazione" data-target="ch5"></div>
+  <div class="ch-dot" data-label="Evoluzione" data-target="ch6"></div>
+  <div class="ch-dot" data-label="Futuro" data-target="finale"></div>
+</div>
+
+<!-- ═══════════════ HERO ═══════════════ -->
+<section class="hero" id="hero">
+  <canvas id="neural-canvas"></canvas>
+  <div class="hero-content">
+    <div class="hero-label">btcpredictor.io // architettura cognitiva</div>
+    <h2 class="hero-title">
+      Il Consiglio
+      <span>di AI</span>
+    </h2>
+    <p class="hero-sub">Sei menti artificiali. Una deliberazione.<br>Nessun singolo punto di fallimento.</p>
+  </div>
+  <div class="hero-scroll">Scorri per esplorare</div>
+</section>
+
+<!-- ═══════════════ CH.1 — ORIGINI ═══════════════ -->
+<section class="chapter reveal" id="ch1">
+  <div class="chapter-num">Capitolo I</div>
+  <h2>In principio<br>era il <em>prompt</em></h2>
+
+  <p>
+    C'era un tempo in cui l'intelligenza artificiale rispondeva come un impiegato annoiato.
+    Neutra. Piatta. Senza personalit&agrave;. Poi qualcuno scrisse due parole che cambiarono tutto.
+  </p>
+
+  <div class="terminal reveal">
+    <div class="terminal-header">
+      <div class="terminal-dot"></div><div class="terminal-dot"></div><div class="terminal-dot"></div>
+    </div>
+    <div class="terminal-line"><span class="prompt">&gt;</span> <span class="str">"Act as a senior financial trader with 20 years of experience in derivatives markets."</span></div>
+    <div class="terminal-line"><span class="dim">// La risposta cambi&ograve;. Non le parole &mdash; la struttura del pensiero.</span></div>
+    <div class="terminal-line"><span class="prompt">&gt;</span> <span class="cursor-blink"></span></div>
+  </div>
+
+  <p>
+    <strong>&ldquo;Agisci come&rdquo;</strong> &mdash; due parole che hanno aperto una porta.
+    La scoperta fu semplice e profonda: un modello linguistico non cambia solo il tono
+    quando gli assegni un'identit&agrave;. Cambia la <strong>struttura del ragionamento</strong>.
+    Un &ldquo;trader istituzionale&rdquo; non usa le stesse euristiche di un &ldquo;assistente generico&rdquo;.
+    Pesa i rischi diversamente. Nota pattern diversi. Ha bias diversi.
+  </p>
+
+  <p>
+    Fu l'inizio del <strong>prompt engineering</strong> come disciplina. Non programmazione.
+    Non configurazione. Qualcosa di pi&ugrave; simile alla <em>direzione di un attore</em>:
+    dai un ruolo, e l'intelligenza si riorganizza attorno a quel ruolo.
+  </p>
+
+  <div class="pull-quote reveal">
+    Un LLM &egrave; come un diamante grezzo con infinite facce.
+    Il prompt non crea l'intelligenza &mdash; sceglie quale faccia illuminare.
+    <cite>&mdash; Lezione appresa, sessione 1</cite>
+  </div>
+</section>
+
+<!-- ═══════════════ CH.2 — IL LIMITE ═══════════════ -->
+<section class="chapter reveal" id="ch2">
+  <div class="chapter-num">Capitolo II</div>
+  <h2>Il limite del<br><em>singolo esperto</em></h2>
+
+  <p>
+    Cos&igrave; costruimmo il nostro primo predittore. Un singolo modello AI &mdash; Claude Sonnet &mdash;
+    con un prompt da 3.000 parole. Quindici regole. Dodici sorgenti dati.
+    Lo battezzammo <strong>il Trader</strong>.
+  </p>
+
+  <div class="lonely-node reveal">
+    <div class="node-core">
+      <span class="node-icon">&#129302;</span>
+    </div>
+    <div class="node-label">Un singolo modello. Una singola mente. Un singolo bias.</div>
+  </div>
+
+  <p>
+    E per un po' funzion&ograve;. Poi i dati parlarono: su 613 predizioni,
+    il Trader diceva <strong>&ldquo;DOWN&rdquo; il 74% delle volte</strong>.
+    Come un analista che ha vissuto il crollo del 2008 e da allora vede bear market ovunque.
+    Non perch&eacute; i dati lo suggerissero &mdash; perch&eacute; la sua &ldquo;personalit&agrave;&rdquo; lo portava l&igrave;.
+  </p>
+
+  <p>
+    Il problema non era il modello. Il problema era <strong>il singolo punto di fallimento cognitivo</strong>.
+    Un cervello, per quanto brillante, ha angoli ciechi. Ha bias che non riesce a vedere
+    perch&eacute; sono parte della sua stessa struttura percettiva.
+  </p>
+
+  <p>
+    Nessun fondo hedge serio lascia decidere un singolo trader.
+    Nessun consiglio di amministrazione ha un solo membro.
+    Nessun tribunale ha un solo giudice.
+    <strong>Perch&eacute; dovremmo farlo con l'AI?</strong>
+  </p>
+</section>
+
+<!-- ═══════════════ CH.3 — IL CONSIGLIO ═══════════════ -->
+<section class="chapter reveal" id="ch3">
+  <div class="chapter-num">Capitolo III</div>
+  <h2>Dal singolo<br>al <em>collettivo</em></h2>
+
+  <p>
+    L'ispirazione non viene dalla tecnologia. Viene dalla storia.
+  </p>
+
+  <p>
+    Nel 1950, la RAND Corporation invent&ograve; il <strong>Metodo Delphi</strong>:
+    riunire esperti indipendenti, farli votare anonimamente, condividere i reasoning,
+    ripetere. La saggezza collettiva batteva sistematicamente il singolo esperto.
+    Non perch&eacute; il gruppo era pi&ugrave; intelligente &mdash; ma perch&eacute;
+    <strong>il disaccordo informato produce decisioni migliori del consenso cieco</strong>.
+  </p>
+
+  <p>
+    Questo &egrave; il principio del Consiglio di AI. Non un &ldquo;ensemble&rdquo; &mdash;
+    quello &egrave; solo votazione. Non un &ldquo;mixture of experts&rdquo; &mdash;
+    quello &egrave; routing. Il Consiglio &egrave; qualcosa di diverso:
+  </p>
+
+  <div class="pull-quote reveal">
+    Sei intelligenze artificiali, ognuna con una competenza specifica,
+    ognuna con input diversi, che <strong>argomentano</strong> la loro posizione
+    prima di convergere su una decisione.
+    O su nessuna decisione &mdash; perch&eacute; a volte il coraggio &egrave; non agire.
+  </div>
+
+  <div class="council-ring reveal" id="council-ring">
+    <svg id="council-lines" style="position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none;"></svg>
+    <div class="council-center" title="Decisione">&#9878;</div>
+    <!-- Members positioned by JS -->
+    <div class="council-member cm-tech" data-angle="270" title="Tecnico">
+      &#128295;<span class="member-tooltip" style="color:var(--cyan)">Tecnico</span>
+    </div>
+    <div class="council-member cm-sent" data-angle="330" title="Sentiment">
+      &#129504;<span class="member-tooltip" style="color:var(--green)">Sentiment</span>
+    </div>
+    <div class="council-member cm-chain" data-angle="30" title="On-Chain">
+      &#9939;<span class="member-tooltip" style="color:var(--orange)">On-Chain</span>
+    </div>
+    <div class="council-member cm-quant" data-angle="90" title="Quant">
+      &#128202;<span class="member-tooltip" style="color:var(--gold)">Quant</span>
+    </div>
+    <div class="council-member cm-devil" data-angle="150" title="Contrarian">
+      &#128520;<span class="member-tooltip" style="color:var(--red)">Contrarian</span>
+    </div>
+    <div class="council-member cm-arb" data-angle="210" title="Arbitro">
+      &#9878;<span class="member-tooltip" style="color:var(--purple)">Arbitro</span>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ CH.4 — I MEMBRI ═══════════════ -->
+<section class="chapter reveal" id="ch4">
+  <div class="chapter-num">Capitolo IV</div>
+  <h2>Le sei <em>menti</em></h2>
+
+  <p>
+    Ogni membro del Consiglio ha un ruolo preciso, un modello AI dedicato
+    e &mdash; cruciale &mdash; <strong>input diversi</strong>.
+    Non vedono tutti gli stessi dati. Come in un vero consiglio di amministrazione,
+    il CFO non legge gli stessi report del CTO.
+  </p>
+
+  <div class="member-cards reveal">
+    <div class="m-card" style="--accent-color: var(--cyan); --glow: rgba(0,212,255,0.15);">
+      <div class="m-card-weight">30%</div>
+      <div class="m-card-icon">&#128295;</div>
+      <div class="m-card-role">Il Tecnico</div>
+      <div class="m-card-model">Claude Sonnet 4.6</div>
+      <div class="m-card-desc">RSI, EMA, MACD, Bollinger, candlestick, order book. Legge il grafico come un chirurgo legge una TAC.</div>
+    </div>
+    <div class="m-card" style="--accent-color: var(--green); --glow: rgba(0,255,136,0.15);">
+      <div class="m-card-weight">15%</div>
+      <div class="m-card-icon">&#129504;</div>
+      <div class="m-card-role">Il Sentiment</div>
+      <div class="m-card-model">Gemini 2.0 Flash</div>
+      <div class="m-card-desc">Fear &amp; Greed, funding rate, long/short ratio, news. Sente il polso della folla e sa quando sta mentendo.</div>
+    </div>
+    <div class="m-card" style="--accent-color: var(--orange); --glow: rgba(247,147,26,0.15);">
+      <div class="m-card-weight">15%</div>
+      <div class="m-card-icon">&#9939;</div>
+      <div class="m-card-role">L'On-Chain</div>
+      <div class="m-card-model">GPT-4o-mini</div>
+      <div class="m-card-desc">SOPR, MVRV, whale alerts, exchange netflow. Vede quello che la folla non pu&ograve; vedere: i movimenti sotto la superficie.</div>
+    </div>
+    <div class="m-card" style="--accent-color: var(--gold); --glow: rgba(255,215,0,0.15);">
+      <div class="m-card-weight">25%</div>
+      <div class="m-card-icon">&#128202;</div>
+      <div class="m-card-role">Il Quant</div>
+      <div class="m-card-model">XGBoost &times;3</div>
+      <div class="m-card-desc">Niente linguaggio, solo numeri. Tre modelli: trend-follower, mean-reversion, regime-classifier. Freddo, statistico, implacabile.</div>
+    </div>
+    <div class="m-card" style="--accent-color: var(--red); --glow: rgba(255,59,92,0.15);">
+      <div class="m-card-weight">5%</div>
+      <div class="m-card-icon">&#128520;</div>
+      <div class="m-card-role">Il Contrarian</div>
+      <div class="m-card-model">Claude Haiku 4.5</div>
+      <div class="m-card-desc">Il ruolo pi&ugrave; scomodo e pi&ugrave; importante. Quando tutti dicono UP, lui deve spiegare perch&eacute; potrebbe essere DOWN. L'avvocato del diavolo.</div>
+    </div>
+    <div class="m-card" style="--accent-color: var(--purple); --glow: rgba(170,102,255,0.15);">
+      <div class="m-card-weight">10%</div>
+      <div class="m-card-icon">&#9878;</div>
+      <div class="m-card-role">L'Arbitro</div>
+      <div class="m-card-model">Claude Opus 4.6</div>
+      <div class="m-card-desc">Non un dittatore. Un sintetizzatore. Interviene solo quando c'&egrave; disaccordo forte e pesa le argomentazioni, non i voti.</div>
+    </div>
+  </div>
+
+  <p>
+    I pesi non sono fissi. Si <strong>auto-calibrano</strong> in base al track record
+    di ogni membro. In un mercato in trend, il Tecnico pesa di pi&ugrave;.
+    In un mercato dominato dalla paura, il Sentiment guida.
+    Il sistema impara chi ha ragione, e quando.
+  </p>
+</section>
+
+<!-- ═══════════════ CH.5 — DELIBERAZIONE ═══════════════ -->
+<section class="chapter reveal" id="ch5">
+  <div class="chapter-num">Capitolo V</div>
+  <h2>La <em>deliberazione</em></h2>
+
+  <p>
+    Il Consiglio non vota e basta. <strong>Delibera.</strong>
+    La differenza &egrave; enorme: votare &egrave; contare mani alzate.
+    Deliberare &egrave; ascoltare ragionamenti, pesare argomentazioni, accogliere il dissenso.
+  </p>
+
+  <div class="delib-timeline reveal">
+    <div class="delib-round">
+      <div class="delib-dot"></div>
+      <div class="delib-tag">Round 1 &mdash; Voto Indipendente</div>
+      <div class="delib-title">Ogni membro parla senza sapere cosa dicono gli altri</div>
+      <div class="delib-desc">
+        Tecnico, Sentiment, On-Chain e Quant analizzano i propri dati in parallelo.
+        Ciascuno produce: direzione, confidenza, ragionamento.
+        Nessuno vede i voti altrui. Indipendenza totale.
+      </div>
+    </div>
+    <div class="delib-round">
+      <div class="delib-dot"></div>
+      <div class="delib-tag">Round 2 &mdash; L'avvocato del diavolo</div>
+      <div class="delib-title">Il Contrarian sfida il consenso</div>
+      <div class="delib-desc">
+        Se il disaccordo &egrave; basso (&gt;70% accordo), si procede.
+        Se c'&egrave; tensione, il Contrarian entra in scena.
+        Riceve tutti i voti e presenta il <em>counter-argument</em> pi&ugrave; forte
+        contro la posizione di maggioranza. Non per dispetto &mdash; per stress-test.
+      </div>
+    </div>
+    <div class="delib-round">
+      <div class="delib-dot"></div>
+      <div class="delib-tag">Round 3 &mdash; Sintesi</div>
+      <div class="delib-title">L'Arbitro sintetizza o dichiara SKIP</div>
+      <div class="delib-desc">
+        L'Arbitro vede tutto: voti, reasoning, counter-argument.
+        Ha tre opzioni: <strong>confermare</strong> la maggioranza,
+        <strong>ribaltare</strong> se il Contrarian ha ragione,
+        o <strong>SKIP</strong> &mdash; nessun trade.
+        Perch&eacute; a volte la decisione pi&ugrave; coraggiosa &egrave; non prenderne una.
+      </div>
+    </div>
+  </div>
+
+  <div class="vote-sim reveal" id="vote-sim">
+    <div class="vote-header">
+      <div class="live-dot"></div>
+      Simulazione deliberazione &mdash; ciclo #644
+    </div>
+    <div class="vote-row">
+      <div class="vote-icon">&#128295;</div>
+      <div class="vote-name">Tecnico</div>
+      <div class="vote-dir vote-up">UP</div>
+      <div class="vote-bar-wrap"><div class="vote-bar" data-width="68" style="background:var(--cyan);"></div></div>
+      <div class="vote-conf">0.68</div>
+    </div>
+    <div class="vote-row">
+      <div class="vote-icon">&#129504;</div>
+      <div class="vote-name">Sentiment</div>
+      <div class="vote-dir vote-up">UP</div>
+      <div class="vote-bar-wrap"><div class="vote-bar" data-width="58" style="background:var(--green);"></div></div>
+      <div class="vote-conf">0.58</div>
+    </div>
+    <div class="vote-row">
+      <div class="vote-icon">&#9939;</div>
+      <div class="vote-name">On-Chain</div>
+      <div class="vote-dir vote-down">DOWN</div>
+      <div class="vote-bar-wrap"><div class="vote-bar" data-width="54" style="background:var(--orange);"></div></div>
+      <div class="vote-conf">0.54</div>
+    </div>
+    <div class="vote-row">
+      <div class="vote-icon">&#128202;</div>
+      <div class="vote-name">Quant</div>
+      <div class="vote-dir vote-up">UP</div>
+      <div class="vote-bar-wrap"><div class="vote-bar" data-width="71" style="background:var(--gold);"></div></div>
+      <div class="vote-conf">0.71</div>
+    </div>
+    <div class="vote-row">
+      <div class="vote-icon">&#128520;</div>
+      <div class="vote-name">Contrarian</div>
+      <div class="vote-dir vote-down">DOWN</div>
+      <div class="vote-bar-wrap"><div class="vote-bar" data-width="47" style="background:var(--red);"></div></div>
+      <div class="vote-conf">0.47</div>
+    </div>
+    <div class="vote-row">
+      <div class="vote-icon">&#9878;</div>
+      <div class="vote-name">Arbitro</div>
+      <div class="vote-dir vote-up">UP</div>
+      <div class="vote-bar-wrap"><div class="vote-bar" data-width="62" style="background:var(--purple);"></div></div>
+      <div class="vote-conf">0.62</div>
+    </div>
+    <div class="vote-result">
+      <div>
+        <div class="vote-result-label">Decisione Consiglio</div>
+        <div class="vote-result-val">&#8593; UP</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="vote-result-label">Confidenza pesata</div>
+        <div class="vote-result-conf">0.643 &mdash; agreement 78%</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ CH.6 — EVOLUZIONE ═══════════════ -->
+<section class="chapter reveal" id="ch6">
+  <div class="chapter-num">Capitolo VI</div>
+  <h2>L'<em>evoluzione</em></h2>
+
+  <p>
+    Il Consiglio non &egrave; statico. <strong>Impara.</strong>
+  </p>
+
+  <p>
+    Dopo ogni trade, il sistema registra chi aveva ragione e chi no.
+    I pesi si spostano. Il Tecnico che ha predetto correttamente il 65% dei trend
+    guadagna influenza nelle fasi di trend. Il Sentiment che ha letto il panico
+    meglio degli altri guadagna peso nelle fasi di fear.
+  </p>
+
+  <div class="evo-bars reveal" id="evo-bars">
+    <div class="evo-bar-group">
+      <div class="evo-bar" data-height="75" style="background: var(--cyan);"></div>
+      <div class="evo-label">Tecnico</div>
+    </div>
+    <div class="evo-bar-group">
+      <div class="evo-bar" data-height="45" style="background: var(--green);"></div>
+      <div class="evo-label">Sentiment</div>
+    </div>
+    <div class="evo-bar-group">
+      <div class="evo-bar" data-height="52" style="background: var(--orange);"></div>
+      <div class="evo-label">On-Chain</div>
+    </div>
+    <div class="evo-bar-group">
+      <div class="evo-bar" data-height="68" style="background: var(--gold);"></div>
+      <div class="evo-label">Quant</div>
+    </div>
+    <div class="evo-bar-group">
+      <div class="evo-bar" data-height="38" style="background: var(--red);"></div>
+      <div class="evo-label">Contrarian</div>
+    </div>
+    <div class="evo-bar-group">
+      <div class="evo-bar" data-height="55" style="background: var(--purple);"></div>
+      <div class="evo-label">Arbitro</div>
+    </div>
+  </div>
+
+  <p>
+    Ma la vera evoluzione non &egrave; nei pesi. &Egrave; nel <strong>self-improvement loop</strong>:
+    ogni settimana il sistema analizza i propri errori, identifica pattern ricorrenti
+    e aggiorna i prompt dei consiglieri. Non &egrave; un umano a decidere cosa cambiare.
+    &Egrave; il Consiglio stesso che riflette su se stesso.
+  </p>
+
+  <div class="pull-quote reveal">
+    La differenza tra un sistema intelligente e un sistema che impara
+    &egrave; la capacit&agrave; di guardarsi allo specchio
+    e non piacersi.
+  </div>
+
+  <p>
+    E quando il disaccordo &egrave; troppo alto? Quando il Consiglio non riesce a convergere?
+    La risposta &egrave; la pi&ugrave; saggia di tutte: <strong>SKIP</strong>.
+    Non tradare. Aspettare. Perch&eacute; il mercato sar&agrave; ancora l&igrave; domani,
+    ma il capitale perso non torna.
+  </p>
+</section>
+
+<!-- ═══════════════ FINALE ═══════════════ -->
+<section class="finale reveal" id="finale">
+  <div class="finale-quote">
+    Il futuro non si predice.<br><em>Si delibera.</em>
+  </div>
+  <p class="finale-sub">
+    Sei menti. Un tavolo di guerra. Una decisione collettiva
+    migliore di qualsiasi decisione individuale &mdash;
+    non perch&eacute; i singoli sono perfetti,
+    ma perch&eacute; il disaccordo informato &egrave; il motore della saggezza.
+  </p>
+  <a href="/dashboard" class="finale-cta">
+    Osserva il Consiglio in azione &rarr;
+  </a>
+</section>
+
+<!-- COLOPHON -->
+<div class="colophon">
+  btcpredictor.io &mdash; il consiglio di ai &mdash; architettura cognitiva v1 &mdash; 2026
+</div>
+
+<!-- ═══════════════ SCRIPTS ═══════════════ -->
+<script>
+/* ── Neural Network Canvas ── */
+(function(){
+  const c = document.getElementById('neural-canvas');
+  const ctx = c.getContext('2d');
+  let W, H, nodes = [], edges = [];
+
+  function resize(){
+    W = c.width = c.parentElement.offsetWidth;
+    H = c.height = c.parentElement.offsetHeight;
+    init();
+  }
+
+  function init(){
+    nodes = [];
+    const count = Math.min(Math.floor((W * H) / 18000), 80);
+    for(let i = 0; i < count; i++){
+      nodes.push({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.3,
+        r: Math.random() * 2 + 1,
+        pulse: Math.random() * Math.PI * 2
+      });
+    }
+  }
+
+  function draw(){
+    ctx.clearRect(0, 0, W, H);
+
+    // edges
+    ctx.lineWidth = 0.5;
+    for(let i = 0; i < nodes.length; i++){
+      for(let j = i + 1; j < nodes.length; j++){
+        const dx = nodes[i].x - nodes[j].x;
+        const dy = nodes[i].y - nodes[j].y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if(dist < 150){
+          const alpha = (1 - dist / 150) * 0.15;
+          ctx.strokeStyle = `rgba(0,212,255,${alpha})`;
+          ctx.beginPath();
+          ctx.moveTo(nodes[i].x, nodes[i].y);
+          ctx.lineTo(nodes[j].x, nodes[j].y);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // nodes
+    const t = Date.now() * 0.001;
+    for(const n of nodes){
+      n.x += n.vx;
+      n.y += n.vy;
+      if(n.x < 0 || n.x > W) n.vx *= -1;
+      if(n.y < 0 || n.y > H) n.vy *= -1;
+      const glow = 0.4 + 0.3 * Math.sin(t + n.pulse);
+      ctx.fillStyle = `rgba(0,212,255,${glow})`;
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    requestAnimationFrame(draw);
+  }
+
+  window.addEventListener('resize', resize);
+  resize();
+  draw();
+})();
+
+/* ── Scroll Progress ── */
+window.addEventListener('scroll', function(){
+  const h = document.documentElement.scrollHeight - window.innerHeight;
+  const pct = h > 0 ? (window.scrollY / h) * 100 : 0;
+  document.getElementById('progress').style.height = pct + '%';
+});
+
+/* ── Reveal on Scroll ── */
+const revealObs = new IntersectionObserver(function(entries){
+  entries.forEach(function(e){
+    if(e.isIntersecting){
+      e.target.classList.add('visible');
+      // Trigger vote bars animation
+      if(e.target.id === 'vote-sim'){
+        e.target.querySelectorAll('.vote-bar').forEach(function(bar){
+          bar.style.width = bar.dataset.width + '%';
+        });
+      }
+      // Trigger evo bars
+      if(e.target.id === 'evo-bars'){
+        e.target.querySelectorAll('.evo-bar').forEach(function(bar){
+          bar.style.height = bar.dataset.height + '%';
+        });
+      }
+    }
+  });
+}, { threshold: 0.15 });
+document.querySelectorAll('.reveal').forEach(function(el){ revealObs.observe(el); });
+
+/* ── Chapter Dots ── */
+const chapters = document.querySelectorAll('section[id]');
+const dots = document.querySelectorAll('.ch-dot');
+const chObs = new IntersectionObserver(function(entries){
+  entries.forEach(function(e){
+    if(e.isIntersecting){
+      dots.forEach(function(d){ d.classList.remove('active'); });
+      const target = e.target.id;
+      const dot = document.querySelector('.ch-dot[data-target="'+target+'"]');
+      if(dot) dot.classList.add('active');
+    }
+  });
+}, { threshold: 0.3 });
+chapters.forEach(function(ch){ chObs.observe(ch); });
+dots.forEach(function(d){
+  d.addEventListener('click', function(){
+    const target = d.dataset.target;
+    const el = document.getElementById(target);
+    if(el) el.scrollIntoView({ behavior: 'smooth' });
+  });
+});
+
+/* ── Position Council Members in Ring ── */
+(function(){
+  const ring = document.getElementById('council-ring');
+  if(!ring) return;
+  const members = ring.querySelectorAll('.council-member');
+  const svg = document.getElementById('council-lines');
+  const cx = 50, cy = 50; // center %
+  const radius = 38; // % of container
+
+  const colors = ['#00d4ff','#00ff88','#f7931a','#ffd700','#ff3b5c','#aa66ff'];
+
+  members.forEach(function(m, i){
+    const angle = parseInt(m.dataset.angle) * (Math.PI / 180);
+    const x = cx + radius * Math.cos(angle);
+    const y = cy + radius * Math.sin(angle);
+    m.style.left = x + '%';
+    m.style.top = y + '%';
+    m.style.transform = 'translate(-50%,-50%)';
+
+    // SVG line
+    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1', cx + '%');
+    line.setAttribute('y1', cy + '%');
+    line.setAttribute('x2', x + '%');
+    line.setAttribute('y2', y + '%');
+    line.setAttribute('stroke', colors[i]);
+    line.setAttribute('stroke-width', '1');
+    line.setAttribute('stroke-opacity', '0.12');
+    line.setAttribute('stroke-dasharray', '4 4');
+    svg.appendChild(line);
+  });
+})();
+</script>
+</body>
+</html>

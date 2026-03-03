@@ -6222,6 +6222,11 @@ def contributors():
     return _read_page("contributors.html"), 200, {"Content-Type": "text/html"}
 
 
+@app.route("/council", methods=["GET"])
+def council():
+    return _read_page("council.html"), 200, {"Content-Type": "text/html"}
+
+
 _EMAIL_RE = re.compile(r'^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$')
 
 @app.route("/satoshi-lead", methods=["POST"])
