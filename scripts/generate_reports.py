@@ -32,7 +32,7 @@ from collections import Counter, defaultdict
 REPO = Path(__file__).resolve().parent.parent
 REPORTS_DIR = REPO / "reports"
 CSS_FILE = REPORTS_DIR / "report_style.css"
-ICLOUD_DIR = Path.home() / "Library/Mobile Documents/com~apple~CloudDocs" / "\U0001f916 BTC Predictor Bot" / "\U0001f4c4 Docs"
+ICLOUD_DIR = Path.home() / "Library/Mobile Documents/com~apple~CloudDocs" / "\U0001f916 BTC Predictor Bot" / "\U0001f4c4 Docs" / "\U0001f4cb System Audit"
 
 # Chrome for Testing path
 CHROME = "/Applications/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"
@@ -275,7 +275,7 @@ def compute_analytics(data):
         "profit_factor": profit_factor,
         "hourly_stats": dict(hourly_stats),
         "conf_buckets": dict(conf_buckets),
-        "streak_type": "WIN" if streak_type else "LOSS",
+        "streak_type": "WIN" if streak_type is True else ("LOSS" if streak_type is False else "N/A"),
         "streak_count": streak_count,
         "wr_10": wr_10,
         "wr_50": wr_50,
@@ -292,10 +292,12 @@ def _parse_ts(ts_str):
     if not ts_str:
         return None
     try:
-        s = ts_str.replace("Z", "+00:00")
-        if "+" not in s and len(s) > 19:
-            s = s[:19] + "+00:00"
-        elif "+" not in s:
+        s = str(ts_str).strip()
+        # Handle Z suffix
+        if s.endswith("Z"):
+            s = s[:-1] + "+00:00"
+        # If no timezone info at all, assume UTC
+        if "+" not in s and s.count("-") <= 2:
             s += "+00:00"
         return datetime.fromisoformat(s)
     except (ValueError, TypeError):
@@ -307,7 +309,10 @@ def _parse_ts(ts_str):
 # ═══════════════════════════════════════════════════════════════
 def _css():
     """Read the shared CSS file."""
-    return CSS_FILE.read_text()
+    if not CSS_FILE.exists():
+        logger.warning(f"CSS file not found: {CSS_FILE}")
+        return "/* CSS file missing */"
+    return CSS_FILE.read_text(encoding="utf-8")
 
 
 def _html_wrap(title, subtitle, meta_chips, body_html, generated_at):
@@ -1131,7 +1136,8 @@ def convert_to_pdf(html_paths):
             print(f"  [PDF] {pdf_name} ({size_kb:.0f} KB)")
             pdf_paths.append(pdf_path)
         except subprocess.CalledProcessError as e:
-            print(f"  [ERROR] PDF {pdf_name}: {e.stderr[:200] if e.stderr else e}")
+            stderr = e.stderr.decode("utf-8", errors="replace")[:200] if isinstance(e.stderr, bytes) else (e.stderr[:200] if e.stderr else str(e))
+            print(f"  [ERROR] PDF {pdf_name}: {stderr}")
         except FileNotFoundError:
             print(f"  [ERROR] Chrome not found at: {chrome}")
             break

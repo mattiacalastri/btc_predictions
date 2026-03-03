@@ -70,7 +70,10 @@ _PAGES_DIR = os.path.join(os.path.dirname(__file__), "pages")
 
 def _read_page(filename):
     """Read an HTML page from the pages/ directory."""
-    with open(os.path.join(_PAGES_DIR, filename), "r") as f:
+    path = os.path.join(_PAGES_DIR, filename)
+    if not os.path.isfile(path):
+        return f"<h1>404</h1><p>Page not found: {filename}</p>"
+    with open(path, "r") as f:
         return f.read()
 
 
@@ -600,8 +603,8 @@ def _make_contribution_token(contrib_id: int, action: str, hour_bucket: int = No
     if hour_bucket is None:
         hour_bucket = int(time.time()) // 3600
     bot_key = os.environ.get("BOT_API_KEY", "anonymous")
-    raw = f"{bot_key}:{contrib_id}:{action}:{hour_bucket}"
-    return hashlib.sha256(raw.encode()).hexdigest()[:32]
+    raw = f"{contrib_id}:{action}:{hour_bucket}"
+    return _hmac.new(bot_key.encode(), raw.encode(), hashlib.sha256).hexdigest()[:32]
 
 
 def _valid_contribution_token(token: str, contrib_id: int, action: str) -> bool:
@@ -3851,13 +3854,15 @@ _force_retrain_last: float = 0.0
 @app.route("/force-retrain", methods=["POST"])
 def force_retrain():
     """
-    Public endpoint — anyone can trigger calibration refresh when bets >= 30.
+    Trigger calibration refresh when bets >= 30.
     Rate limited: 1 request per hour. Does NOT run XGBoost training.
     Only refreshes in-memory confidence thresholds + dead hours from live Supabase data.
     """
+    err = _check_read_key()
+    if err:
+        return err
     global _force_retrain_last
-    import time as _time
-    now = _time.time()
+    now = time.time()
     cooldown = 3600  # 1 hour
     if now - _force_retrain_last < cooldown:
         remaining = int(cooldown - (now - _force_retrain_last))
@@ -4536,6 +4541,8 @@ def backfill_bet(bet_id):
     if bet.get("correct") is not None:
         return jsonify({"error": "bet already closed"}), 400
 
+    if bet.get("btc_price_entry") is None or bet.get("bet_size") is None:
+        return jsonify({"error": "bet missing entry_price or bet_size"}), 400
     entry_price = float(bet["btc_price_entry"])
     bet_size = float(bet["bet_size"])
     direction = bet["direction"]
@@ -6685,6 +6692,13 @@ def api_audit():
     correct = request.args.get("correct", "").strip().lower()
     date_from = request.args.get("from", "").strip()
     date_to = request.args.get("to", "").strip()
+    # Sanitize date params to prevent PostgREST injection (YYYY-MM-DD only)
+    import re as _re_audit
+    _date_re = _re_audit.compile(r"^\d{4}-\d{2}-\d{2}$")
+    if date_from and not _date_re.match(date_from):
+        date_from = ""
+    if date_to and not _date_re.match(date_to):
+        date_to = ""
 
     offset = (page - 1) * limit
 
@@ -6842,7 +6856,10 @@ def cockpit_auth():
     """Validate cockpit token. Rate limited: max 5 attempts per minute per IP."""
     ip = request.remote_addr or "unknown"
     now = time.time()
-    # Rate limit cleanup
+    # Rate limit cleanup — purge all stale IPs to prevent memory leak
+    stale_ips = [k for k, v in _cockpit_rl.items() if all(now - t >= 60 for t in v)]
+    for k in stale_ips:
+        del _cockpit_rl[k]
     _cockpit_rl[ip] = [t for t in _cockpit_rl.get(ip, []) if now - t < 60]
     if len(_cockpit_rl.get(ip, [])) >= 5:
         app.logger.warning("[COCKPIT] Auth rate limited for %s", ip)

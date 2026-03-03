@@ -1478,9 +1478,9 @@ function truncAddr(addr) {
 }
 
 /* ── COPY WALLET ── */
-function copyWallet() {
+function copyWallet(event) {
   navigator.clipboard.writeText('0x7Ac896F18ce52a0520dA49C3129520f7B70d51f0').then(function() {
-    var btn = document.querySelector('.btn-copy');
+    var btn = (event && event.target) || document.querySelector('.btn-copy');
     if(btn) { btn.textContent = '✅ Copiato!'; setTimeout(function(){ btn.textContent = '📋 Copia'; }, 2000); }
   });
 }
@@ -1706,9 +1706,9 @@ function showMaintenanceState() {
     '<div style="font-size:28px;margin-bottom:10px;">🔧</div>' +
     '<div style="color:var(--yellow);font-size:13px;font-weight:600;margin-bottom:6px;">Sistema in Manutenzione</div>' +
     '<div style="color:var(--muted);font-size:12px;line-height:1.7;">' +
-    'Il bot è in pausa dal 28 Feb 2026.<br>' +
-    'L\'audit ledger si popolerà automaticamente al go-live (1° Marzo).<br>' +
-    'Le colonne <span style="color:var(--purple)">onchain_commit_tx / resolve_tx</span> sono già nel DB ✓' +
+    'Il bot è attualmente in pausa per manutenzione.<br>' +
+    'L\'audit ledger si popolerà automaticamente alla riattivazione.<br>' +
+    'Le colonne <span style="color:var(--purple)">onchain_commit_tx / resolve_tx</span> sono nel DB ✓' +
     '</div></div>';
   // pipeline in pausa
   ['pipeInputs','pipeBrain','pipeFill','pipeMonitor'].forEach(function(id){
