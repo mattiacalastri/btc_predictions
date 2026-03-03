@@ -15,6 +15,7 @@ from flask import Flask, request, jsonify, redirect
 from flask_compress import Compress
 from kraken.futures import Trade, User
 from constants import TAKER_FEE, _BIAS_MAP
+from portfolio_engine import PortfolioEngine, PortfolioDecision
 
 sentry_sdk.init(
     dsn=os.environ.get("SENTRY_DSN", ""),
@@ -303,6 +304,9 @@ def _ace_initial_calc():
         pass
 threading.Thread(target=_ace_initial_calc, daemon=True).start()
 print(f"[ACE] Adaptive engine initialized (disabled={_adaptive_engine.disabled})")
+
+_portfolio_engine = PortfolioEngine()
+print(f"[PE] Portfolio engine initialized (disabled={_portfolio_engine.disabled})")
 
 # ── Confidence calibration table (storico WR per bucket) ─────────────────────
 CONF_CALIBRATION = {
@@ -956,6 +960,43 @@ def brain_state():
         }
     except Exception:
         state["adaptive"] = {"disabled": True, "error": "unavailable"}
+
+    # 9. Portfolio engine
+    try:
+        _pe_pos = state.get("position")  # already fetched in section 3
+        _pe_eq = state.get("equity") or float(os.environ.get("CAPITAL_USD") or os.environ.get("CAPITAL", 100))
+        _pe_btc = state.get("btc_price") or 0.0
+        _pe_perf = state.get("performance") or {}
+        _pe_wr = _pe_perf.get("wr_10", 50.0) if _pe_perf else 50.0
+
+        # PnL% for open position
+        _pe_pnl_pct = 0.0
+        if _pe_pos and _pe_btc > 0:
+            _pe_entry = float(_pe_pos.get("price", 0) or 0)
+            if _pe_entry > 0:
+                _pe_sign = 1 if _pe_pos.get("side") == "long" else -1
+                _pe_pnl_pct = (_pe_btc - _pe_entry) / _pe_entry * _pe_sign
+
+        _pe_st = _portfolio_engine.build_state(
+            position=_pe_pos,
+            equity=_pe_eq,
+            btc_price=_pe_btc,
+            regime=state.get("adaptive", {}).get("regime", "UNKNOWN") if isinstance(state.get("adaptive"), dict) else "UNKNOWN",
+            wr_10=_pe_wr,
+            existing_pnl_pct=_pe_pnl_pct,
+        )
+        state["portfolio"] = {
+            "disabled": _portfolio_engine.disabled,
+            "net_direction": _pe_st.net_direction,
+            "total_exposure_btc": _pe_st.total_exposure_btc,
+            "total_exposure_pct": _pe_st.total_exposure_pct,
+            "unrealized_pnl_usd": _pe_st.unrealized_pnl_usd,
+            "unrealized_pnl_pct": round(_pe_pnl_pct * 100, 3),
+            "risk_score": _pe_st.risk_score,
+            "max_exposure_btc": _pe_st.max_exposure_btc,
+        }
+    except Exception:
+        state["portfolio"] = {"disabled": True, "error": "unavailable"}
 
     return jsonify(state)
 
@@ -1874,17 +1915,24 @@ def place_bet():
 
     try:
         pos = get_open_position(symbol)
+        trade = get_trade_client()
+        base_size = size  # preserve original size from payload
 
-        # NO stacking: se stessa direzione => valuta pyramid o skip
-        if pos and pos["side"] == desired_side:
-            existing_bet_info = {}
-            kraken_entry_price = float(pos.get("price", 0) or 0)
-            # default conservativo: non pyramisare se non riusciamo a leggere Supabase
-            pyramid_count_existing = 1
+        # ── Portfolio-Aware Decision Engine ────────────────────────────────────
+        # Gather context for the Portfolio Engine (Supabase + Kraken)
+        existing_bet_info = {}
+        pyramid_count_existing = 1  # conservative default
+        existing_entry_price = float(pos.get("price", 0) or 0) if pos else 0.0
+        current_pnl_pct = 0.0
+        _pe_wr_10 = 50.0
+        _pe_streak_count = 0
+        _pe_streak_dir = ""
+
+        if pos:
+            # Hard cap: count ALL open bets
             try:
                 sb_url, sb_key = _sb_config()
                 if sb_url and sb_key:
-                    # Hard cap: count ALL open bets before pyramid logic
                     r_all = requests.get(
                         f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
                         "?select=id&bet_taken=eq.true&correct=is.null",
@@ -1900,15 +1948,14 @@ def place_bet():
                         except Exception:
                             open_count = len(r_all.json())
                     if open_count >= 2:
-                        app.logger.warning(f"[pyramid] Hard cap: {open_count} open bets — blocking new position")
+                        app.logger.warning(f"[PE] Hard cap: {open_count} open bets — blocking")
                         return jsonify({
                             "status": "skipped",
                             "reason": f"MAX_OPEN_BETS reached ({open_count} open bets)",
-                            "symbol": symbol,
-                            "direction": direction,
-                            "no_stack": True,
+                            "symbol": symbol, "direction": direction, "no_stack": True,
                         }), 200
-                    # Fetch latest open bet for pyramid_count info
+
+                    # Fetch latest open bet info
                     r = requests.get(
                         f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
                         "?select=id,created_at,direction,entry_fill_price,pyramid_count"
@@ -1924,175 +1971,261 @@ def place_bet():
                             "existing_bet_entry": row.get("entry_fill_price"),
                         }
                         pyramid_count_existing = int(row.get("pyramid_count") or 0)
-            except Exception:
-                pass
+                        if row.get("entry_fill_price"):
+                            existing_entry_price = float(row["entry_fill_price"])
 
-            existing_entry_price = existing_bet_info.get("existing_bet_entry") or kraken_entry_price
-
-            # --- Pyramid evaluation ---
-            pyramid_size = max(0.001, float(os.environ.get("BASE_SIZE", "0.002")) * 0.5)
-            current_pos_size = float(pos.get("size", 0))
-            mark_price = _get_mark_price(symbol) or float(existing_entry_price or 0)
-
-            # PnL% posizione corrente
-            current_pnl_pct = 0.0
-            if existing_entry_price and float(existing_entry_price) > 0:
-                _sign = 1 if pos["side"] == "long" else -1
-                current_pnl_pct = (mark_price - float(existing_entry_price)) / float(existing_entry_price) * _sign
-
-            # Età posizione in minuti
-            position_age_min = 0
-            bet_created_at = existing_bet_info.get("existing_bet_created_at")
-            if bet_created_at:
-                try:
-                    from datetime import datetime, timezone
-                    _created_dt = datetime.fromisoformat(bet_created_at.replace("Z", "+00:00"))
-                    position_age_min = (datetime.now(timezone.utc) - _created_dt).total_seconds() / 60
-                except Exception:
-                    pass
-
-            can_pyramid = False
-            pyramid_reason = None
-            if pyramid_count_existing == 0 and (current_pos_size + pyramid_size) <= 0.005:
-                # Condizione B — Strong signal: XGB prob > 0.70 AND conf > 0.72 (bypassa PnL)
-                _strong_xgb = xgb_prob_up if direction == "UP" else (1.0 - xgb_prob_up)
-                if _strong_xgb > 0.70 and confidence > 0.72:
-                    can_pyramid = True
-                    pyramid_reason = "B"
-                # Condizione A — Standard: posizione matura, in profitto, conf alta
-                if not can_pyramid and position_age_min > 15 and current_pnl_pct > 0.003 and confidence > 0.70:
-                    can_pyramid = True
-                    pyramid_reason = "A"
-
-            if can_pyramid:
-                try:
-                    trade = get_trade_client()
-                    _order_side = "buy" if direction == "UP" else "sell"
-                    pyramid_result = trade.create_order(
-                        orderType="mkt",
-                        symbol=symbol,
-                        side=_order_side,
-                        size=pyramid_size,
+                    # Fetch WR(10) and streak
+                    r_perf = requests.get(
+                        f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
+                        "?select=correct&bet_taken=eq.true&correct=not.is.null"
+                        "&order=id.desc&limit=10",
+                        headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
+                        timeout=3,
                     )
-                    # UPDATE Supabase: pyramid_count=1, bet_size aggiornata
-                    bet_id = existing_bet_info.get("existing_bet_id")
-                    if bet_id:
-                        _sb_url, _sb_key = _sb_config()
-                        try:
-                            _patch_resp = requests.patch(
-                                f"{_sb_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{bet_id}",
-                                json={"pyramid_count": pyramid_count_existing + 1, "bet_size": round(current_pos_size + pyramid_size, 4)},
-                                headers={
-                                    "apikey": _sb_key,
-                                    "Authorization": f"Bearer {_sb_key}",
-                                    "Content-Type": "application/json",
-                                    "Prefer": "return=minimal",
-                                },
-                                timeout=5,
-                            )
-                            if _patch_resp.status_code not in (200, 204):
-                                app.logger.error(f"[pyramid] PATCH pyramid_count failed {_patch_resp.status_code}: {_patch_resp.text[:200]}")
-                                _push_cockpit_log("app", "error", "Pyramid PATCH failed",
-                                                  f"Status {_patch_resp.status_code}: {_patch_resp.text[:200]}")
-                        except Exception as _e:
-                            app.logger.error(f"[pyramid] PATCH pyramid_count exception: {_e}")
-                            sentry_sdk.capture_exception(_e)
-                            _push_cockpit_log("app", "error", "Pyramid exception", str(_e))
-                    _pyr_order_id = ""
-                    try:
-                        _pyr_order_id = str(pyramid_result.get("sendStatus", {}).get("order_id", ""))
-                    except Exception:
-                        pass
-                    return jsonify({
-                        "status": "pyramided",
-                        "direction": direction,
-                        "existing_bet_id": existing_bet_info.get("existing_bet_id"),
-                        "pyramid_add_size": pyramid_size,
-                        "total_position_size": round(current_pos_size + pyramid_size, 4),
-                        "current_pnl_pct": round(current_pnl_pct, 4),
-                        "pyramid_reason": pyramid_reason,
-                        "order_id": _pyr_order_id,
-                        "confidence": confidence,
-                        "symbol": symbol,
-                    }), 200
-                except Exception:
-                    pass  # pyramid fallito → skip normale
+                    if r_perf.status_code == 200 and r_perf.json():
+                        resolved = r_perf.json()
+                        wins = sum(1 for t in resolved if t.get("correct"))
+                        _pe_wr_10 = round(wins / len(resolved) * 100, 1)
+                        # Streak
+                        for t in resolved:
+                            _c = t.get("correct")
+                            _s = "win" if _c else "loss"
+                            if _pe_streak_count == 0:
+                                _pe_streak_dir = _s
+                                _pe_streak_count = 1
+                            elif _s == _pe_streak_dir:
+                                _pe_streak_count += 1
+                            else:
+                                break
+            except Exception:
+                pass  # fail-open: defaults will be used
 
-            # Skip normale (pyramid non possibile o fallito)
+            # Calculate PnL%
+            mark_price = _get_mark_price(symbol) or existing_entry_price
+            if existing_entry_price > 0:
+                _sign = 1 if pos["side"] == "long" else -1
+                current_pnl_pct = (mark_price - existing_entry_price) / existing_entry_price * _sign
+
+        # Get equity for risk score
+        _pe_equity = float(os.environ.get("CAPITAL_USD") or os.environ.get("CAPITAL", 100))
+        try:
+            user = get_user_client()
+            flex = user.get_wallets().get("accounts", {}).get("flex", {})
+            _eq = flex.get("marginEquity") or flex.get("pv") or flex.get("portfolioValue")
+            if _eq:
+                _pe_equity = float(_eq)
+        except Exception:
+            pass
+
+        _pe_btc_price = _get_mark_price(symbol) or 0.0
+
+        # Build portfolio state and evaluate signal
+        _pe_decision = None
+        if not _portfolio_engine.disabled:
+            try:
+                _pe_state = _portfolio_engine.build_state(
+                    position=pos,
+                    equity=_pe_equity,
+                    btc_price=_pe_btc_price,
+                    regime=ace_result.get("regime", "UNKNOWN") if isinstance(ace_result, dict) else "UNKNOWN",
+                    wr_10=_pe_wr_10,
+                    streak_count=_pe_streak_count,
+                    streak_direction=_pe_streak_dir,
+                    existing_pnl_pct=current_pnl_pct,
+                    existing_entry_price=existing_entry_price,
+                    pyramid_count=pyramid_count_existing if pos else 0,
+                )
+                _pe_decision = _portfolio_engine.evaluate_signal(
+                    portfolio=_pe_state,
+                    direction=direction,
+                    confidence=confidence,
+                    xgb_prob_up=xgb_prob_up,
+                    base_size=base_size,
+                )
+                app.logger.info(
+                    f"[PE] action={_pe_decision.action} reason={_pe_decision.reason} "
+                    f"size={_pe_decision.size} risk={_pe_state.risk_score:.0f} "
+                    f"pnl={current_pnl_pct*100:.2f}%"
+                )
+            except Exception as _pe_err:
+                app.logger.error(f"[PE] evaluate_signal failed, falling back to legacy: {_pe_err}")
+                sentry_sdk.capture_exception(_pe_err)
+                _pe_decision = None  # fallback to legacy
+
+        # ── Legacy fallback (PE disabled or errored) ──────────────────────────
+        if _pe_decision is None:
+            if pos is None:
+                _pe_decision = PortfolioDecision(action="OPEN", size=base_size, reason="legacy_flat")
+            elif pos["side"] == desired_side:
+                # Legacy pyramid logic
+                _legacy_xgb = xgb_prob_up if direction == "UP" else (1.0 - xgb_prob_up)
+                _legacy_pyr_size = max(0.001, base_size * 0.5)
+                _legacy_can = (
+                    pyramid_count_existing == 0
+                    and (float(pos.get("size", 0)) + _legacy_pyr_size) <= 0.005
+                    and ((_legacy_xgb > 0.70 and confidence > 0.72) or current_pnl_pct > 0.003)
+                )
+                if _legacy_can:
+                    _pe_decision = PortfolioDecision(
+                        action="PYRAMID", size=_legacy_pyr_size,
+                        reason="legacy_pyramid", is_fallback=True,
+                    )
+                else:
+                    _pe_decision = PortfolioDecision(action="SKIP", reason="legacy_same_dir_skip", is_fallback=True)
+            else:
+                # Legacy reverse logic
+                _legacy_mark = _get_mark_price(symbol) or float(pos.get("price") or 0)
+                _legacy_entry = float(pos.get("price") or 0)
+                _legacy_profit = (
+                    (_legacy_mark > _legacy_entry) if pos["side"] == "long"
+                    else (_legacy_mark < _legacy_entry)
+                ) if _legacy_entry > 0 and _legacy_mark > 0 else False
+                if _legacy_profit:
+                    _pe_decision = PortfolioDecision(action="SKIP", reason="legacy_preserve_profit", is_fallback=True)
+                elif confidence >= 0.75:
+                    _pe_decision = PortfolioDecision(
+                        action="REVERSE", size=base_size,
+                        close_size=float(pos.get("size", 0)),
+                        reason="legacy_reverse", is_fallback=True,
+                    )
+                else:
+                    _pe_decision = PortfolioDecision(action="SKIP", reason="legacy_low_conf_reverse", is_fallback=True)
+
+        # ── Log decision to Supabase (best-effort) ────────────────────────────
+        try:
+            sb_url, sb_key = _sb_config()
+            if sb_url and sb_key:
+                requests.post(
+                    f"{sb_url}/rest/v1/bot_portfolio_decisions",
+                    json={
+                        "action": _pe_decision.action,
+                        "reason": _pe_decision.reason[:200],
+                        "confidence": round(confidence, 4),
+                        "risk_score": round(_pe_state.risk_score, 1) if _pe_decision and not _pe_decision.is_fallback else None,
+                        "portfolio_exposure_btc": round(_pe_state.total_exposure_btc, 6) if _pe_decision and not _pe_decision.is_fallback else None,
+                        "unrealized_pnl_pct": round(current_pnl_pct, 6),
+                        "position_direction": pos["side"] if pos else "flat",
+                        "signal_direction": direction,
+                        "size_decided": round(_pe_decision.size, 6),
+                        "is_fallback": _pe_decision.is_fallback,
+                    },
+                    headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}",
+                             "Content-Type": "application/json", "Prefer": "return=minimal"},
+                    timeout=3,
+                )
+        except Exception:
+            pass  # non-blocking
+
+        # ── Execute decision ──────────────────────────────────────────────────
+
+        # SKIP
+        if _pe_decision.action == "SKIP":
             return jsonify({
                 "status": "skipped",
-                "reason": f"Posizione {pos['side']} già aperta nella stessa direzione (no stacking).",
+                "reason": _pe_decision.reason,
                 "symbol": symbol,
-                "existing_position": pos,
-                "existing_entry_price": existing_entry_price,
-                "confidence": confidence,
                 "direction": direction,
-                "no_stack": True,
+                "confidence": confidence,
+                "existing_position": pos,
+                "no_stack": pos is not None and pos.get("side") == desired_side,
+                "portfolio_decision": _pe_decision.to_dict(),
                 **existing_bet_info,
             }), 200
 
-        trade = get_trade_client()
-
-        # se opposta => controlla PnL corrente prima di invertire (R-03)
-        if pos and pos["side"] != desired_side:
-            # Leggi il prezzo corrente PRIMA di fare qualsiasi ordine
-            current_mark = _get_mark_price(symbol) or float(pos.get("price") or 0)
-            entry_p = float(pos.get("price") or 0)
-
-            # Calcola se la posizione esistente è in profitto
-            in_profit = False
-            if entry_p > 0 and current_mark > 0:
-                in_profit = (
-                    (current_mark > entry_p) if pos["side"] == "long"
-                    else (current_mark < entry_p)
+        # PYRAMID
+        if _pe_decision.action == "PYRAMID":
+            pyramid_size = _pe_decision.size
+            current_pos_size = float(pos.get("size", 0))
+            try:
+                _order_side = "buy" if direction == "UP" else "sell"
+                pyramid_result = trade.create_order(
+                    orderType="mkt",
+                    symbol=symbol,
+                    side=_order_side,
+                    size=pyramid_size,
                 )
-
-            # Se in profitto: ignora il segnale inverso — non tagliare un vincitore
-            if in_profit:
-                app.logger.info(
-                    f"[reverse-bet] Posizione {pos['side']} in profitto "
-                    f"(entry={entry_p:.1f} mark={current_mark:.1f}) — segnale opposto ignorato"
-                )
+                # UPDATE Supabase: pyramid_count + bet_size
+                bet_id = existing_bet_info.get("existing_bet_id")
+                if bet_id:
+                    _sb_url, _sb_key = _sb_config()
+                    try:
+                        _patch_resp = requests.patch(
+                            f"{_sb_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{bet_id}",
+                            json={"pyramid_count": pyramid_count_existing + 1,
+                                  "bet_size": round(current_pos_size + pyramid_size, 4)},
+                            headers={"apikey": _sb_key, "Authorization": f"Bearer {_sb_key}",
+                                     "Content-Type": "application/json", "Prefer": "return=minimal"},
+                            timeout=5,
+                        )
+                        if _patch_resp.status_code not in (200, 204):
+                            app.logger.error(f"[PE/pyramid] PATCH failed {_patch_resp.status_code}")
+                            _push_cockpit_log("app", "error", "Pyramid PATCH failed",
+                                              f"Status {_patch_resp.status_code}")
+                    except Exception as _e:
+                        app.logger.error(f"[PE/pyramid] PATCH exception: {_e}")
+                        sentry_sdk.capture_exception(_e)
+                _pyr_order_id = ""
+                try:
+                    _pyr_order_id = str(pyramid_result.get("sendStatus", {}).get("order_id", ""))
+                except Exception:
+                    pass
+                return jsonify({
+                    "status": "pyramided",
+                    "direction": direction,
+                    "existing_bet_id": existing_bet_info.get("existing_bet_id"),
+                    "pyramid_add_size": pyramid_size,
+                    "total_position_size": round(current_pos_size + pyramid_size, 4),
+                    "current_pnl_pct": round(current_pnl_pct, 4),
+                    "pyramid_reason": _pe_decision.reason,
+                    "order_id": _pyr_order_id,
+                    "confidence": confidence,
+                    "symbol": symbol,
+                    "portfolio_decision": _pe_decision.to_dict(),
+                }), 200
+            except Exception:
+                # Pyramid failed → skip
                 return jsonify({
                     "status": "skipped",
-                    "reason": "Posizione opposta in profitto — reverse ignorato per preservare guadagno",
-                    "symbol": symbol,
-                    "existing_side": pos["side"],
-                    "current_mark": current_mark,
-                    "entry_price": entry_p,
-                    "confidence": confidence,
+                    "reason": "pyramid_order_failed",
+                    "symbol": symbol, "direction": direction, "confidence": confidence,
+                    "no_stack": True, **existing_bet_info,
                 }), 200
 
-            # Se in perdita ma confidence < 0.75: non abbastanza segnale per invertire
-            if confidence < 0.75:
-                app.logger.info(
-                    f"[reverse-bet] Posizione {pos['side']} in perdita ma conf={confidence:.2f} < 0.75 — skip reverse"
-                )
-                return jsonify({
-                    "status": "skipped",
-                    "reason": f"Reverse: posizione in perdita ma confidence ({confidence:.2f}) < 0.75 — non invertire",
-                    "symbol": symbol,
-                    "confidence": confidence,
-                }), 200
-
-            # Procedi: posizione in perdita E confidence >= 0.75 → inverti
+        # REVERSE — close existing position, then fall through to OPEN
+        if _pe_decision.action == "REVERSE":
             app.logger.info(
-                f"[reverse-bet] Posizione {pos['side']} in perdita (entry={entry_p:.1f} mark={current_mark:.1f}) "
-                f"e conf={confidence:.2f} >= 0.75 — procedo con inversione"
+                f"[PE/reverse] Closing {pos['side']} position (reason={_pe_decision.reason})"
             )
             close_side = "sell" if pos["side"] == "long" else "buy"
-            _funding_on_reverse = _get_funding_fee()  # read BEFORE closing position
+            _funding_on_reverse = _get_funding_fee()
             trade.create_order(
-                orderType="mkt",
-                symbol=symbol,
-                side=close_side,
-                size=pos["size"],
-                reduceOnly=True,
+                orderType="mkt", symbol=symbol, side=close_side,
+                size=pos["size"], reduceOnly=True,
             )
             wait_for_position(symbol, want_open=False, retries=15, sleep_s=0.35)
-            exit_price_at_close = _get_mark_price(symbol) or current_mark
+            exit_price_at_close = _get_mark_price(symbol) or _pe_btc_price
             _close_prev_bet_on_reverse(pos["side"], exit_price_at_close, pos["size"], _funding_on_reverse)
-            time.sleep(2)  # buffer Kraken: attendi che il conto si assesti prima di aprire nuova posizione
+            time.sleep(2)
+            size = _pe_decision.size  # use PE-decided size for new position
+
+        # PARTIAL_CLOSE_AND_OPEN — close part of existing position, then open opposite
+        if _pe_decision.action == "PARTIAL_CLOSE_AND_OPEN":
+            app.logger.info(
+                f"[PE/partial] Partial close {_pe_decision.close_size:.4f} of {pos['side']} "
+                f"(reason={_pe_decision.reason})"
+            )
+            close_side = "sell" if pos["side"] == "long" else "buy"
+            _funding_on_partial = _get_funding_fee()
+            trade.create_order(
+                orderType="mkt", symbol=symbol, side=close_side,
+                size=_pe_decision.close_size, reduceOnly=True,
+            )
+            time.sleep(1)  # wait for partial fill
+            size = _pe_decision.size  # reduced size for new opposite position
+
+        # OPEN — standard new position (also reached after REVERSE/PARTIAL_CLOSE_AND_OPEN)
+        if _pe_decision.action == "OPEN":
+            size = _pe_decision.size
 
         # apri nuova posizione
         order_side = "buy" if direction == "UP" else "sell"
@@ -2206,6 +2339,7 @@ def place_bet():
             "tp_price":    tp_price,
             "rr_ratio":    rr_ratio,
             "price_drift_pct": round(price_drift_pct, 6),
+            "portfolio_decision": _pe_decision.to_dict() if _pe_decision else None,
             "raw": result,
         }), (200 if ok else 400)
 

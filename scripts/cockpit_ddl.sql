@@ -190,3 +190,30 @@ CREATE INDEX IF NOT EXISTS idx_adaptive_log_ts
 
 -- Auto-cleanup: keep only last 90 days (run via pg_cron or manual)
 -- DELETE FROM bot_adaptive_log WHERE ts < now() - interval '90 days';
+
+-- v10: Portfolio Engine — decision logging
+CREATE TABLE IF NOT EXISTS bot_portfolio_decisions (
+    id                      BIGSERIAL PRIMARY KEY,
+    created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    action                  TEXT NOT NULL,          -- OPEN, PYRAMID, REVERSE, PARTIAL_CLOSE_AND_OPEN, SKIP
+    reason                  TEXT,
+    confidence              FLOAT,
+    risk_score              FLOAT,
+    portfolio_exposure_btc  FLOAT,
+    unrealized_pnl_pct      FLOAT,
+    position_direction      TEXT,                   -- long, short, flat
+    signal_direction        TEXT,                   -- UP, DOWN
+    size_decided            FLOAT,
+    is_fallback             BOOLEAN DEFAULT FALSE   -- true if PE was disabled/errored and legacy logic was used
+);
+
+-- Index: newest first for dashboard
+CREATE INDEX IF NOT EXISTS idx_portfolio_decisions_ts
+    ON bot_portfolio_decisions (created_at DESC);
+
+-- Index: filter by action type
+CREATE INDEX IF NOT EXISTS idx_portfolio_decisions_action
+    ON bot_portfolio_decisions (action, created_at DESC);
+
+-- Auto-cleanup: keep only last 30 days (run via pg_cron or manual)
+-- DELETE FROM bot_portfolio_decisions WHERE created_at < now() - interval '30 days';
