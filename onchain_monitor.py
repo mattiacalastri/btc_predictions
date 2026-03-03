@@ -58,31 +58,6 @@ def log(msg: str):
     print(f"[{ts}] {msg}", flush=True)
 
 
-# ── Task 2.2 — Generic retry with exponential backoff ─────────────────────────
-
-def _with_retry(fn, *args, retries: int = 3, delays: tuple = (2, 4, 8)):
-    """
-    Esegue fn(*args) con retry esponenziale.
-    Usato per RPC Polygon (contract.functions.*.call(), send_raw_transaction())
-    e per chiamate HTTP che non rientrano nei casi di _retry_call.
-
-    In caso di eccezione aspetta delays[i] secondi e riprova.
-    Se tutti i tentativi falliscono: loga ERROR [ONCHAIN_RETRY] e rilancia.
-    """
-    last_err = None
-    for attempt in range(retries):
-        try:
-            return fn(*args)
-        except Exception as e:
-            last_err = e
-            if attempt < retries - 1:
-                wait = delays[attempt] if attempt < len(delays) else delays[-1]
-                log(f"  [ONCHAIN_RETRY] {type(e).__name__}: {str(e)[:80]} — "
-                    f"tentativo {attempt + 1}/{retries}, attendo {wait}s")
-                time.sleep(wait)
-    log(f"  [ONCHAIN_RETRY] ERROR — tutti i {retries} tentativi falliti: {last_err}")
-    raise last_err  # type: ignore[misc]
-
 
 def _retry_call(fn, label: str = "call"):
     """

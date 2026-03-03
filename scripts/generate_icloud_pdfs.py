@@ -9,8 +9,8 @@ import os
 import math
 from datetime import datetime
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.units import mm, cm
-from reportlab.lib.colors import HexColor, white, Color
+from reportlab.lib.units import cm
+from reportlab.lib.colors import HexColor, white
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_JUSTIFY
 from reportlab.platypus import (
@@ -18,7 +18,7 @@ from reportlab.platypus import (
     PageBreak, KeepTogether, HRFlowable, Frame, PageTemplate,
     BaseDocTemplate
 )
-from reportlab.graphics.shapes import Drawing, Rect, String, Line
+from reportlab.graphics.shapes import Drawing, Rect, String
 
 # ──────────────────────────────────────────────
 # CONSTANTS
@@ -29,7 +29,6 @@ HEADER_TEXT = "BTC Predictor Bot | btcpredictor.io"
 
 # Colors
 DARK_BG = HexColor("#1a1a2e")
-DARKER_BG = HexColor("#0f0f23")
 ACCENT = HexColor("#00d4aa")
 ACCENT_DIM = HexColor("#008f73")
 LIGHT_TEXT = HexColor("#e0e0e0")
@@ -38,8 +37,6 @@ MUTED = HexColor("#888899")
 TABLE_ROW_ALT = HexColor("#f4f8fb")
 TABLE_HEADER_BG = HexColor("#1a1a2e")
 TABLE_BORDER = HexColor("#cccccc")
-SECTION_BG = HexColor("#f0f4f8")
-DARK_SECTION_BG = HexColor("#e8edf2")
 RED_ACCENT = HexColor("#ff4444")
 YELLOW_ACCENT = HexColor("#ffaa00")
 GREEN_ACCENT = HexColor("#00d4aa")
