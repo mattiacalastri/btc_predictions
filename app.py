@@ -203,39 +203,27 @@ _REGIME_LABELS = {0: "RANGING", 1: "TRENDING", 2: "VOLATILE"}
 
 def _compute_regime_4h_live() -> dict:
     """
-    Calcola il regime di mercato BTC corrente da Binance 4h klines.
+    Calcola il regime di mercato BTC corrente da klines 4h.
+    Primary: Kraken Spot OHLC (no georestriction).
+    Fallback: Binance (may return 451 from Railway).
 
     Returns dict con keys:
         regime_label (int): 0=RANGING, 1=TRENDING, 2=VOLATILE
         regime_name  (str): "RANGING" | "TRENDING" | "VOLATILE"
         atr_4h_pct   (float): ATR(14) normalizzato sul prezzo (%)
         trend_strength (float): |EMA5-EMA20|/EMA20 × 100 (%)
+        trend_direction (str): "UP" | "DOWN"
+        source (str): "kraken" | "binance"
     """
-    try:
-        import urllib.request as _ureq
-        import urllib.parse as _uparse
-        import ssl as _ssl
-        _ctx = _ssl.create_default_context()
-        params = _uparse.urlencode({
-            "symbol": "BTCUSDT",
-            "interval": "4h",
-            "limit": 22,
-        })
-        url = f"https://api.binance.com/api/v3/klines?{params}"
-        req = _ureq.Request(url, headers={"User-Agent": "btcbot/1.0"})
-        with _ureq.urlopen(req, context=_ctx, timeout=8) as resp:
-            import json as _json
-            klines = _json.loads(resp.read().decode())
+    _ERR_RESULT = {"regime_label": 0, "regime_name": "RANGING", "atr_4h_pct": 0.0, "trend_strength": 0.0, "trend_direction": "UP"}
 
-        if len(klines) < 16:
-            return {"regime_label": 0, "regime_name": "RANGING", "atr_4h_pct": 0.0, "trend_strength": 0.0, "error": "insufficient_data"}
-
-        closes = [float(k[4]) for k in klines]
-        highs  = [float(k[2]) for k in klines]
-        lows   = [float(k[3]) for k in klines]
+    def _parse_ohlc(closes, highs, lows, source):
+        """Common ATR/EMA calculation from OHLC arrays."""
+        if len(closes) < 16:
+            return {**_ERR_RESULT, "error": "insufficient_data", "source": source}
 
         trs = []
-        for i in range(1, len(klines)):
+        for i in range(1, len(closes)):
             tr = max(
                 highs[i] - lows[i],
                 abs(highs[i] - closes[i - 1]),
@@ -269,11 +257,63 @@ def _compute_regime_4h_live() -> dict:
             "atr_4h_pct":     atr_4h_pct,
             "trend_strength": trend_strength,
             "trend_direction": "UP" if ema5 > ema20 else "DOWN",
+            "source":         source,
         }
 
+    import urllib.request as _ureq
+    import urllib.parse as _uparse
+    import ssl as _ssl
+    _ctx = _ssl.create_default_context()
+
+    # ── Primary: Kraken Spot OHLC (no georestriction from Railway) ────────
+    try:
+        params = _uparse.urlencode({"pair": "XBTUSD", "interval": 240})
+        url = f"https://api.kraken.com/0/public/OHLC?{params}"
+        req = _ureq.Request(url, headers={"User-Agent": "btcbot/1.0"})
+        with _ureq.urlopen(req, context=_ctx, timeout=8) as resp:
+            import json as _json
+            data = _json.loads(resp.read().decode())
+
+        errors = data.get("error", [])
+        if errors:
+            raise ValueError(f"Kraken OHLC errors: {errors}")
+
+        result = data.get("result", {})
+        # Kraken returns {pair_name: [[time, open, high, low, close, vwap, volume, count], ...], "last": ...}
+        pair_key = next((k for k in result if k != "last"), None)
+        if not pair_key:
+            raise ValueError("No pair data in Kraken OHLC response")
+
+        candles = result[pair_key]
+        # Take last 22 candles (Kraken returns up to 720)
+        candles = candles[-22:]
+        closes = [float(c[4]) for c in candles]
+        highs  = [float(c[2]) for c in candles]
+        lows   = [float(c[3]) for c in candles]
+
+        regime = _parse_ohlc(closes, highs, lows, "kraken")
+        if "error" not in regime:
+            return regime
     except Exception as e:
-        app.logger.warning("_compute_regime_4h_live error: %s", e)
-        return {"regime_label": 0, "regime_name": "RANGING", "atr_4h_pct": 0.0, "trend_strength": 0.0, "trend_direction": "UP", "error": str(e)}
+        app.logger.warning("_compute_regime_4h_live Kraken failed: %s", e)
+
+    # ── Fallback: Binance (may 451 from Railway geo) ──────────────────────
+    try:
+        params = _uparse.urlencode({"symbol": "BTCUSDT", "interval": "4h", "limit": 22})
+        url = f"https://api.binance.com/api/v3/klines?{params}"
+        req = _ureq.Request(url, headers={"User-Agent": "btcbot/1.0"})
+        with _ureq.urlopen(req, context=_ctx, timeout=8) as resp:
+            klines = _json.loads(resp.read().decode())
+
+        closes = [float(k[4]) for k in klines]
+        highs  = [float(k[2]) for k in klines]
+        lows   = [float(k[3]) for k in klines]
+
+        return _parse_ohlc(closes, highs, lows, "binance")
+    except Exception as e2:
+        app.logger.warning("_compute_regime_4h_live Binance fallback also failed: %s", e2)
+
+    return {**_ERR_RESULT, "error": "all_sources_failed"}
 
 
 # ── XGBoost correctness model (caricato una volta all'avvio) ─────────────────
@@ -3412,12 +3452,19 @@ def rescue_orphaned():
                         size=pos["size"],
                         reduceOnly=True,
                     )
-                # Prezzo attuale da Binance
-                pr = requests.get(
-                    "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT",
-                    timeout=4,
-                )
-                exit_price = float(pr.json()["price"]) if pr.ok else float(bet.get("entry_fill_price") or 0)
+                # Prezzo attuale: Kraken mark (primary) → Binance (fallback)
+                exit_price = _get_mark_price(DEFAULT_SYMBOL) or 0.0
+                if not exit_price:
+                    try:
+                        pr = requests.get(
+                            "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT",
+                            timeout=4,
+                        )
+                        exit_price = float(pr.json()["price"]) if pr.ok else 0.0
+                    except Exception:
+                        pass
+                if not exit_price:
+                    exit_price = float(bet.get("entry_fill_price") or 0)
                 entry = float(bet.get("entry_fill_price") or 0)
                 direction = bet.get("direction", "UP")
                 gross_delta = exit_price - entry
@@ -3635,7 +3682,22 @@ def _fetch_ghost_exit_price(created_at_str):
         app.logger.warning(f"[ghost] parse error: {e}")
         return None
 
-    # Try Binance first
+    # Try Kraken Spot OHLC first (no georestriction)
+    try:
+        _kr = requests.get(
+            f"https://api.kraken.com/0/public/OHLC?pair=XBTUSD&interval=1&since={target_unix}",
+            timeout=8,
+        )
+        if _kr.ok:
+            _kd = _kr.json()
+            if not _kd.get("error"):
+                _pair_key = next((k for k in _kd.get("result", {}) if k != "last"), None)
+                if _pair_key and _kd["result"][_pair_key]:
+                    return float(_kd["result"][_pair_key][0][4])  # close price
+    except Exception as e:
+        app.logger.warning(f"[ghost] Kraken OHLC exception: {e}")
+
+    # Fallback: Binance (may 451 from Railway)
     try:
         r = requests.get(
             f"https://api.binance.com/api/v3/klines"
