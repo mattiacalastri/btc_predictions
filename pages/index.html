@@ -890,12 +890,11 @@
             <button class="btc-tf-btn" data-tf="1h">1h</button>
             <button class="btc-tf-btn" data-tf="4h">4h</button>
           </div>
+          <button class="btc-tf-btn" id="ghostToggle" onclick="toggleGhostMarkers()" title="Toggle ghost signals">👻 <span id="ghostWrBadge" style="font-size:9px;">—</span></button>
           <div style="display:flex;gap:8px;font-size:9px;flex-wrap:wrap;">
             <span style="color:#00ff88;">▲ WIN</span>
             <span style="color:#ff4466;">▼ LOSS</span>
             <span style="color:#ffaa00;">◆ OPEN</span>
-            <span style="color:rgba(0,255,136,0.4);">○ ghost ✓</span>
-            <span style="color:rgba(255,68,102,0.4);">○ ghost ✗</span>
           </div>
         </div>
       </div>
@@ -3902,7 +3901,7 @@ function renderPnlBarsLarge(chronoBets) {
 
 // ── BTC CANDLESTICK CHART (TradingView Lightweight Charts) ───────────────────
 
-const BTC_CHART = { chart: null, candleSeries: null, currentTf: '5m', candles: [], refreshTimer: null, isInitialized: false };
+const BTC_CHART = { chart: null, candleSeries: null, currentTf: '5m', candles: [], refreshTimer: null, isInitialized: false, showGhosts: false, ghostPriceLines: [] };
 const _BTC_TF_REFRESH = { '1m': 15000, '5m': 30000, '15m': 60000, '1h': 120000, '4h': 300000 };
 const _BTC_TF_BINANCE = { '1m': '1m', '5m': '5m', '15m': '15m', '1h': '1h', '4h': '4h' };
 
@@ -3971,32 +3970,58 @@ async function loadBtcCandles(tf) {
   }
 }
 
+function toggleGhostMarkers() {
+  BTC_CHART.showGhosts = !BTC_CHART.showGhosts;
+  document.getElementById('ghostToggle').classList.toggle('active', BTC_CHART.showGhosts);
+  renderBtcPredictionMarkers();
+}
+
+function updateGhostBadge() {
+  if (!window.allData) return;
+  var evaluated = allData.filter(function(d) { return d.ghost_correct !== null && d.classification !== 'BET'; });
+  var correct = evaluated.filter(function(d) { return d.ghost_correct === true; }).length;
+  var wr = evaluated.length ? Math.round(correct / evaluated.length * 100) : 0;
+  var badge = document.getElementById('ghostWrBadge');
+  if (badge) {
+    badge.textContent = evaluated.length ? wr + '%' : '—';
+    badge.style.color = evaluated.length ? (wr >= 50 ? '#00ff88' : '#ff4466') : '';
+  }
+}
+
 function renderBtcPredictionMarkers() {
   if (!BTC_CHART.candleSeries || !BTC_CHART.candles.length) return;
-  if (!window.allData || !allData.length) { BTC_CHART.candleSeries.setMarkers([]); return; }
+  // Clear previous ghost price lines
+  if (BTC_CHART.ghostPriceLines.length) {
+    BTC_CHART.ghostPriceLines.forEach(function(pl) {
+      try { BTC_CHART.candleSeries.removePriceLine(pl); } catch(e) {}
+    });
+    BTC_CHART.ghostPriceLines = [];
+  }
+  if (!window.allData || !allData.length) { BTC_CHART.candleSeries.setMarkers([]); updateGhostBadge(); return; }
   var signals = allData.filter(function(d) { return d.btc_price_entry && parseFloat(d.btc_price_entry) > 0 && d.direction; });
-  if (!signals.length) { BTC_CHART.candleSeries.setMarkers([]); return; }
-  // Build candle open-time index for snapping
+  if (!signals.length) { BTC_CHART.candleSeries.setMarkers([]); updateGhostBadge(); return; }
+  // Build candle open-time index for snapping (binary search)
   var candleTimes = BTC_CHART.candles.map(function(c) { return c.time; });
   function snapToCandle(ts) {
-    var best = candleTimes[0], bestDiff = Math.abs(ts - candleTimes[0]);
-    for (var i = 1; i < candleTimes.length; i++) {
-      var diff = Math.abs(ts - candleTimes[i]);
-      if (diff < bestDiff) { best = candleTimes[i]; bestDiff = diff; }
-      else break;
+    var lo = 0, hi = candleTimes.length - 1;
+    while (lo < hi) {
+      var mid = (lo + hi) >> 1;
+      if (candleTimes[mid] < ts) lo = mid + 1; else hi = mid;
     }
-    return best;
+    if (lo > 0 && Math.abs(candleTimes[lo - 1] - ts) < Math.abs(candleTimes[lo] - ts)) lo--;
+    return candleTimes[lo];
   }
   var markers = [];
+  var ghostsForPriceLines = [];
   signals.forEach(function(d) {
     var ts = Math.floor(new Date(d.created_at).getTime() / 1000);
     var best = snapToCandle(ts);
     var isBet = d.classification === 'BET';
     var isUp  = d.direction === 'UP';
     var conf  = d.confidence ? (parseFloat(d.confidence) * 100).toFixed(0) + '%' : '';
-    var wf    = d.source_workflow ? '[' + d.source_workflow + '] ' : '';
     if (isBet) {
-      // ── BET marker: prominent arrow ──
+      // ── Phase A: BET markers (always visible) ──
+      var wf    = d.source_workflow ? '[' + d.source_workflow + '] ' : '';
       var isOpen = d.correct === null;
       var isWin  = d.correct === true;
       var color  = isOpen ? '#ffaa00' : (isWin ? '#00ff88' : '#ff4466');
@@ -4009,25 +4034,43 @@ function renderBtcPredictionMarkers() {
         shape: isUp ? 'arrowUp' : 'arrowDown',
         text: label,
       });
-    } else {
-      // ── GHOST marker: subtle circle ──
-      var gc = d.ghost_correct;
-      var ghostColor = gc === true ? 'rgba(0,255,136,0.4)' : gc === false ? 'rgba(255,68,102,0.4)' : 'rgba(74,96,112,0.35)';
-      var outcome = gc === true ? '✓' : gc === false ? '✗' : '?';
-      var tag = (d.classification || 'GHOST').charAt(0);
-      var ghostLabel = wf + tag + ' ' + d.direction + (conf ? ' ' + conf : '') + ' ' + outcome;
+    } else if (BTC_CHART.showGhosts && d.ghost_correct !== null) {
+      // ── Phase B: Ghost markers (only if toggle ON + evaluated only) ──
+      var gc = d.ghost_correct === true;
+      var ghostColor = gc ? '#00ff88' : '#ff4466';
+      var ghostLabel = d.direction + (conf ? ' ' + conf : '') + (gc ? ' \u2713' : ' \u2717');
       markers.push({
         time: best,
-        position: isUp ? 'belowBar' : 'aboveBar',
+        position: isUp ? 'aboveBar' : 'belowBar',
         color: ghostColor,
-        shape: 'circle',
+        shape: 'square',
         text: ghostLabel,
       });
+      // Collect for price lines
+      if (d.btc_price_entry) {
+        ghostsForPriceLines.push({ price: parseFloat(d.btc_price_entry), correct: gc });
+      }
     }
   });
   // Sort by time (required by LWC)
   markers.sort(function(a, b) { return a.time - b.time; });
   BTC_CHART.candleSeries.setMarkers(markers);
+  // ── Ghost price lines (last 8 evaluated) ──
+  if (BTC_CHART.showGhosts && ghostsForPriceLines.length) {
+    var recent = ghostsForPriceLines.slice(-8);
+    var LWC = window.LightweightCharts;
+    recent.forEach(function(g) {
+      var pl = BTC_CHART.candleSeries.createPriceLine({
+        price: g.price,
+        color: g.correct ? 'rgba(0,255,136,0.15)' : 'rgba(255,68,102,0.15)',
+        lineWidth: 1,
+        lineStyle: LWC.LineStyle.Dotted,
+        axisLabelVisible: false,
+      });
+      BTC_CHART.ghostPriceLines.push(pl);
+    });
+  }
+  updateGhostBadge();
 }
 
 function startBtcRefreshLoop(tf) {
@@ -4057,7 +4100,7 @@ function startBtcRefreshLoop(tf) {
 
 function switchBtcTf(tf) {
   BTC_CHART.currentTf = tf;
-  document.querySelectorAll('.btc-tf-btn').forEach(function(b) {
+  document.querySelectorAll('#btcTfSelector .btc-tf-btn').forEach(function(b) {
     b.classList.toggle('active', b.dataset.tf === tf);
   });
   loadBtcCandles(tf);
