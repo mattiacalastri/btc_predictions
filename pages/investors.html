@@ -94,7 +94,7 @@
     /* ─── UNIFIED GNAV ─── */
     .gnav{position:fixed;top:0;left:0;right:0;z-index:9000;height:48px;background:rgba(10,10,15,0.8);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;}
     .gnav-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:#fff;font-size:14px;font-weight:600;letter-spacing:-0.01em;}
-    .gnav-mark{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;background:#00ff88;color:#000;font-size:11px;font-weight:800;border-radius:6px;flex-shrink:0;}
+    .gnav-mark{width:24px;height:24px;border-radius:50%;object-fit:cover;flex-shrink:0;}
     .gnav-name{white-space:nowrap;}
     .gnav-links{display:flex;align-items:center;gap:4px;}
     .gnav-link{text-decoration:none;color:rgba(255,255,255,0.5);font-size:13px;font-weight:400;padding:6px 12px;border-radius:6px;transition:color 0.2s,background 0.2s;white-space:nowrap;}
@@ -996,7 +996,7 @@
   <!-- GLOBAL NAV -->
   <nav class="gnav">
     <a href="/" class="gnav-brand">
-      <span class="gnav-mark">B</span>
+      <img src="/static/marketing_assets/logo-channel.png" alt="BTC Predictor" class="gnav-mark">
       <span class="gnav-name">BTC Predictor</span>
     </a>
     <div class="gnav-links" id="gnavLinks">

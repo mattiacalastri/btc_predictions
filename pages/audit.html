@@ -63,11 +63,9 @@
       font-size: 14px; font-weight: 600; letter-spacing: -0.01em;
     }
     .gnav-mark {
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 20px; height: 20px;
-      background: #00ff88; color: #000;
-      font-size: 11px; font-weight: 800;
-      border-radius: 6px; flex-shrink: 0;
+      width: 24px; height: 24px;
+      border-radius: 50%; object-fit: cover;
+      flex-shrink: 0;
     }
     .gnav-name { white-space: nowrap; }
     .gnav-links { display: flex; align-items: center; gap: 4px; }
@@ -306,7 +304,7 @@
   <!-- GNAV -->
   <nav class="gnav">
     <a href="/" class="gnav-brand">
-      <span class="gnav-mark">B</span>
+      <img src="/static/marketing_assets/logo-channel.png" alt="BTC Predictor" class="gnav-mark">
       <span class="gnav-name">BTC Predictor</span>
     </a>
     <div class="gnav-links" id="gnavLinks">
