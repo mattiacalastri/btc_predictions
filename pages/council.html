@@ -64,7 +64,7 @@ if(localStorage.getItem('btcp_ga_consent')==='granted'){
 
 :root {
   --void:    #050508;
-  --deep:    #08080f;
+  /* --deep removed: unused */
   --surface: #0c0c16;
   --card:    #10101c;
   --border:  rgba(255,255,255,0.05);
@@ -456,15 +456,7 @@ body {
 .cm-arb    { background: radial-gradient(circle, rgba(170,102,255,0.2), transparent 70%); border: 1px solid rgba(170,102,255,0.3); }
 .cm-arb::before { border-color: var(--purple); }
 
-/* lines from members to center */
-.council-line {
-  position: absolute;
-  top: 50%; left: 50%;
-  height: 1px;
-  transform-origin: 0 0;
-  z-index: 1;
-  opacity: 0.15;
-}
+/* council-line removed — lines rendered via SVG */
 
 .member-tooltip {
   position: absolute;
@@ -658,6 +650,7 @@ body {
   border-radius: 2px;
   transition: width 1.5s cubic-bezier(.22,.61,.36,1);
   width: 0;
+  will-change: width;
 }
 .vote-conf {
   color: var(--muted);
@@ -716,6 +709,7 @@ body {
   transition: height 1.5s cubic-bezier(.22,.61,.36,1);
   height: 0;
   min-height: 4px;
+  will-change: height;
 }
 .evo-label {
   font-family: var(--mono);
@@ -796,10 +790,7 @@ body {
   from { opacity: 0; transform: translateY(24px); }
   to { opacity: 1; transform: translateY(0); }
 }
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
+/* fadeIn removed — unused */
 
 /* ── GRAIN ── */
 body::before {
@@ -807,8 +798,24 @@ body::before {
   position: fixed; inset: 0;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
   pointer-events: none;
-  z-index: 9998;
+  z-index: 7000;
   opacity: 0.5;
+}
+
+/* ── REDUCED MOTION ── */
+@media(prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .reveal { opacity: 1; transform: none; }
+  #neural-canvas { display: none; }
+}
+
+/* ── TABLET BREAKPOINT ── */
+@media(max-width:900px) and (min-width:769px) {
+  .member-cards { grid-template-columns: repeat(2, 1fr); }
 }
 </style>
 </head>
@@ -1250,11 +1257,15 @@ body::before {
 
 <!-- ═══════════════ SCRIPTS ═══════════════ -->
 <script>
-/* ── Neural Network Canvas ── */
+/* ── Neural Network Canvas (optimized) ── */
 (function(){
   const c = document.getElementById('neural-canvas');
+  if(!c) return;
   const ctx = c.getContext('2d');
-  let W, H, nodes = [], edges = [];
+  let W, H, nodes = [];
+  let animId, paused = false;
+  const EDGE_DIST = 150;
+  const EDGE_DIST_SQ = EDGE_DIST * EDGE_DIST; // avoid sqrt
 
   function resize(){
     W = c.width = c.parentElement.offsetWidth;
@@ -1264,35 +1275,40 @@ body::before {
 
   function init(){
     nodes = [];
-    const count = Math.min(Math.floor((W * H) / 18000), 80);
+    // Cap at 50 on mobile for perf
+    const isMobile = W < 768;
+    const count = Math.min(Math.floor((W * H) / (isMobile ? 25000 : 18000)), isMobile ? 40 : 70);
     for(let i = 0; i < count; i++){
       nodes.push({
         x: Math.random() * W,
         y: Math.random() * H,
         vx: (Math.random() - 0.5) * 0.3,
         vy: (Math.random() - 0.5) * 0.3,
-        r: Math.random() * 2 + 1,
+        r: Math.random() * 1.5 + 0.8,
         pulse: Math.random() * Math.PI * 2
       });
     }
   }
 
   function draw(){
+    if(paused){ animId = requestAnimationFrame(draw); return; }
     ctx.clearRect(0, 0, W, H);
 
-    // edges
+    // edges — use squared distance to avoid sqrt
     ctx.lineWidth = 0.5;
-    for(let i = 0; i < nodes.length; i++){
-      for(let j = i + 1; j < nodes.length; j++){
-        const dx = nodes[i].x - nodes[j].x;
-        const dy = nodes[i].y - nodes[j].y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        if(dist < 150){
-          const alpha = (1 - dist / 150) * 0.15;
-          ctx.strokeStyle = `rgba(0,212,255,${alpha})`;
+    for(let i = 0, len = nodes.length; i < len; i++){
+      const ni = nodes[i];
+      for(let j = i + 1; j < len; j++){
+        const nj = nodes[j];
+        const dx = ni.x - nj.x;
+        const dy = ni.y - nj.y;
+        const distSq = dx*dx + dy*dy;
+        if(distSq < EDGE_DIST_SQ){
+          const alpha = (1 - Math.sqrt(distSq) / EDGE_DIST) * 0.15;
+          ctx.strokeStyle = 'rgba(0,212,255,' + alpha + ')';
           ctx.beginPath();
-          ctx.moveTo(nodes[i].x, nodes[i].y);
-          ctx.lineTo(nodes[j].x, nodes[j].y);
+          ctx.moveTo(ni.x, ni.y);
+          ctx.lineTo(nj.x, nj.y);
           ctx.stroke();
         }
       }
@@ -1300,34 +1316,50 @@ body::before {
 
     // nodes
     const t = Date.now() * 0.001;
-    for(const n of nodes){
+    for(let i = 0, len = nodes.length; i < len; i++){
+      const n = nodes[i];
       n.x += n.vx;
       n.y += n.vy;
       if(n.x < 0 || n.x > W) n.vx *= -1;
       if(n.y < 0 || n.y > H) n.vy *= -1;
       const glow = 0.4 + 0.3 * Math.sin(t + n.pulse);
-      ctx.fillStyle = `rgba(0,212,255,${glow})`;
+      ctx.fillStyle = 'rgba(0,212,255,' + glow + ')';
       ctx.beginPath();
-      ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+      ctx.arc(n.x, n.y, n.r, 0, 6.2832);
       ctx.fill();
     }
-    requestAnimationFrame(draw);
+    animId = requestAnimationFrame(draw);
   }
+
+  // Pause canvas when hero not visible (save GPU)
+  var heroObs = new IntersectionObserver(function(entries){
+    paused = !entries[0].isIntersecting;
+  }, { threshold: 0 });
+  heroObs.observe(c.parentElement);
 
   window.addEventListener('resize', resize);
   resize();
   draw();
 })();
 
-/* ── Scroll Progress ── */
-window.addEventListener('scroll', function(){
-  const h = document.documentElement.scrollHeight - window.innerHeight;
-  const pct = h > 0 ? (window.scrollY / h) * 100 : 0;
-  document.getElementById('progress').style.height = pct + '%';
-});
+/* ── Scroll Progress (throttled via rAF) ── */
+(function(){
+  var ticking = false;
+  var bar = document.getElementById('progress');
+  window.addEventListener('scroll', function(){
+    if(!ticking){
+      ticking = true;
+      requestAnimationFrame(function(){
+        var h = document.documentElement.scrollHeight - window.innerHeight;
+        bar.style.height = (h > 0 ? (window.scrollY / h) * 100 : 0) + '%';
+        ticking = false;
+      });
+    }
+  }, {passive: true});
+})();
 
-/* ── Reveal on Scroll ── */
-const revealObs = new IntersectionObserver(function(entries){
+/* ── Reveal on Scroll (one-shot: unobserve after trigger) ── */
+var revealObs = new IntersectionObserver(function(entries, observer){
   entries.forEach(function(e){
     if(e.isIntersecting){
       e.target.classList.add('visible');
@@ -1343,6 +1375,7 @@ const revealObs = new IntersectionObserver(function(entries){
           bar.style.height = bar.dataset.height + '%';
         });
       }
+      observer.unobserve(e.target); // one-shot: stop watching after reveal
     }
   });
 }, { threshold: 0.15 });
