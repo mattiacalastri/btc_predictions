@@ -528,6 +528,8 @@ try:
     refresh_calibration()
     refresh_dead_hours()
     _refresh_bot_paused()   # sync _BOT_PAUSED da Supabase → evita "Bot Paused" falso al boot
+    _push_cockpit_log("app", "success", "Bot STARTED",
+                       f"v{VERSION} boot complete — paused={_BOT_PAUSED}")
 except Exception:
     pass
 
@@ -732,16 +734,19 @@ def _close_prev_bet_on_reverse(old_side: str, exit_price: float, closed_size: fl
 
         fee = bet_size * (entry_price + exit_price) * TAKER_FEE  # entry + exit taker fee
         pnl_net = round(pnl_gross - fee + funding_fee, 6)
-        correct = pnl_net > 0  # net-based: break-even con fee = LOSS
+        correct = pnl_gross > 0  # gross directional: aligned with rescue_orphaned()
 
         # &correct=is.null → atomicità ottimistica: nessuna doppia risoluzione (S-17)
         patch_url = f"{supabase_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{bet_id}&correct=is.null"
         patch_headers = {**headers, "Content-Type": "application/json", "Prefer": "return=minimal"}
+        pnl_pct = round(((exit_price - entry_price) / entry_price * 100) if old_direction == "UP"
+                        else ((entry_price - exit_price) / entry_price * 100), 4) if entry_price > 0 else 0.0
         patch_data = {
             "btc_price_exit":     exit_price,
             "exit_fill_price":    exit_price,
             "correct":            correct,
             "pnl_usd":            pnl_net,
+            "pnl_pct":            pnl_pct,
             "close_reason":       "closed_by_reverse_bet",
             "has_real_exit_fill": False,
             "source_updated_by":  "place_bet_reverse",
@@ -1561,7 +1566,15 @@ def close_position():
                 }
                 if _funding_cost != 0.0:
                     _patch["funding_fee"] = round(-_funding_cost, 6)
-                _supabase_update(_obid, _patch)
+                # Optimistic locking: only update if not already resolved
+                _orp_sb_url, _orp_sb_key = _sb_config()
+                requests.patch(
+                    f"{_orp_sb_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{_obid}&correct=is.null",
+                    json=_patch,
+                    headers={"apikey": _orp_sb_key, "Authorization": f"Bearer {_orp_sb_key}",
+                             "Content-Type": "application/json", "Prefer": "return=minimal"},
+                    timeout=10,
+                )
                 app.logger.info(
                     f"[FIX1] Orphan bet {_obid} resolved via {_fill_source}: "
                     f"exit={_real_exit_price}, pnl={_pnl}, correct={_correct}"
@@ -1674,14 +1687,17 @@ def close_position():
 
                     fee = bet_size * (entry_price + exit_fill_price) * TAKER_FEE
                     pnl_net = round(pnl_gross - fee + funding_fee, 6)
-                    correct = pnl_net > 0  # net-based: break-even con fee = LOSS
+                    correct = pnl_gross > 0  # gross directional: aligned with rescue_orphaned()
 
+                    pnl_pct = round(((exit_fill_price - entry_price) / entry_price * 100) if direction == "UP"
+                                    else ((entry_price - exit_fill_price) / entry_price * 100), 4) if entry_price > 0 else 0.0
                     patch_data = {
                         "exit_fill_price":    exit_fill_price,
                         "btc_price_exit":     exit_fill_price,
                         "correct":            correct,
                         "actual_direction":   actual_direction,
                         "pnl_usd":            pnl_net,
+                        "pnl_pct":            pnl_pct,
                         "fees_total":         round(fee, 6),
                         "has_real_exit_fill": True,
                         "close_reason":       "manual_close",
@@ -1689,7 +1705,15 @@ def close_position():
                     }
                     if funding_fee != 0.0:
                         patch_data["funding_fee"] = round(funding_fee, 6)
-                    _supabase_update(bet_id, patch_data)
+                    # Optimistic locking: only update if not already resolved
+                    _cp_sb_url, _cp_sb_key = _sb_config()
+                    requests.patch(
+                        f"{_cp_sb_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{bet_id}&correct=is.null",
+                        json=patch_data,
+                        headers={"apikey": _cp_sb_key, "Authorization": f"Bearer {_cp_sb_key}",
+                                 "Content-Type": "application/json", "Prefer": "return=minimal"},
+                        timeout=10,
+                    )
                     supabase_updated = True
                     app.logger.info(f"[close-position] Supabase updated: bet {bet_id}, pnl={pnl_net}, correct={correct}")
             except Exception as e:
@@ -1728,6 +1752,7 @@ def pause_bot():
     _BOT_PAUSED = True
     _BOT_PAUSED_REFRESHED_AT = time.time()
     _save_bot_paused(True)
+    _push_cockpit_log("app", "warning", "Bot PAUSED", "Manual pause via /pause API")
     return jsonify({"paused": True, "message": "Bot in pausa — nessun nuovo trade"}), 200
 
 
@@ -1741,6 +1766,7 @@ def resume_bot():
     _BOT_PAUSED_REFRESHED_AT = time.time()
     _RESUMED_AT = _dt.datetime.now(_dt.timezone.utc).isoformat()
     _save_bot_paused(False)
+    _push_cockpit_log("app", "success", "Bot RESUMED", f"Manual resume via /resume API — resumed_at={_RESUMED_AT}")
     return jsonify({"paused": False, "message": "Bot riattivato — trading ripreso", "resumed_at": _RESUMED_AT}), 200
 
 
@@ -2243,6 +2269,7 @@ def place_bet():
 
         # Build portfolio state and evaluate signal
         _pe_decision = None
+        _pe_state = None
         if not _portfolio_engine.disabled:
             try:
                 _pe_state = _portfolio_engine.build_state(
@@ -2323,8 +2350,8 @@ def place_bet():
                         "action": _pe_decision.action,
                         "reason": _pe_decision.reason[:200],
                         "confidence": round(confidence, 4),
-                        "risk_score": round(_pe_state.risk_score, 1) if _pe_decision and not _pe_decision.is_fallback else None,
-                        "portfolio_exposure_btc": round(_pe_state.total_exposure_btc, 6) if _pe_decision and not _pe_decision.is_fallback else None,
+                        "risk_score": round(_pe_state.risk_score, 1) if _pe_state and _pe_decision and not _pe_decision.is_fallback else None,
+                        "portfolio_exposure_btc": round(_pe_state.total_exposure_btc, 6) if _pe_state and _pe_decision and not _pe_decision.is_fallback else None,
                         "unrealized_pnl_pct": round(current_pnl_pct, 6),
                         "position_direction": pos["side"] if pos else "flat",
                         "signal_direction": direction,
@@ -2420,11 +2447,19 @@ def place_bet():
             )
             close_side = "sell" if pos["side"] == "long" else "buy"
             _funding_on_reverse = _get_funding_fee()
-            trade.create_order(
-                orderType="mkt", symbol=symbol, side=close_side,
-                size=pos["size"], reduceOnly=True,
-            )
-            wait_for_position(symbol, want_open=False, retries=15, sleep_s=0.35)
+            try:
+                trade.create_order(
+                    orderType="mkt", symbol=symbol, side=close_side,
+                    size=pos["size"], reduceOnly=True,
+                )
+            except Exception as _rev_err:
+                app.logger.error(f"[PE/reverse] Close order FAILED: {_rev_err}")
+                return jsonify({"status": "failed", "reason": "reverse_close_failed",
+                                "error": str(_rev_err)}), 400
+            _rev_pos = wait_for_position(symbol, want_open=False, retries=15, sleep_s=0.35)
+            if _rev_pos is not None:
+                app.logger.error("[PE/reverse] Position still open after close attempt")
+                return jsonify({"status": "failed", "reason": "reverse_close_not_confirmed"}), 400
             exit_price_at_close = _get_mark_price(symbol) or _pe_btc_price
             _close_prev_bet_on_reverse(pos["side"], exit_price_at_close, pos["size"], _funding_on_reverse)
             time.sleep(2)
@@ -2438,10 +2473,15 @@ def place_bet():
             )
             close_side = "sell" if pos["side"] == "long" else "buy"
             _funding_on_partial = _get_funding_fee()
-            trade.create_order(
-                orderType="mkt", symbol=symbol, side=close_side,
-                size=_pe_decision.close_size, reduceOnly=True,
-            )
+            try:
+                trade.create_order(
+                    orderType="mkt", symbol=symbol, side=close_side,
+                    size=_pe_decision.close_size, reduceOnly=True,
+                )
+            except Exception as _part_err:
+                app.logger.error(f"[PE/partial] Close order FAILED: {_part_err}")
+                return jsonify({"status": "failed", "reason": "partial_close_failed",
+                                "error": str(_part_err)}), 400
             time.sleep(1)  # wait for partial fill
             size = _pe_decision.size  # reduced size for new opposite position
 
@@ -3413,7 +3453,7 @@ def rescue_orphaned():
             if started:
                 try:
                     age_min = (_dt.datetime.now(_dt.timezone.utc) -
-                               _dt.datetime.fromisoformat(started.replace("Z",""))).total_seconds() / 60
+                               _dt.datetime.fromisoformat(started.replace("Z","+00:00"))).total_seconds() / 60
                     if age_min < 40:
                         active_ids.add(ex.get("id"))  # execution id, non bet id
                 except Exception:
@@ -3436,7 +3476,7 @@ def rescue_orphaned():
         bet_created = bet.get("created_at", "")
         try:
             created_dt = _dt.datetime.fromisoformat(
-                bet_created.replace("Z", "").split("+")[0]
+                bet_created.replace("Z", "+00:00")
             )
             age_hours = (_dt.datetime.now(_dt.timezone.utc) - created_dt).total_seconds() / 3600
         except Exception:
@@ -3618,11 +3658,11 @@ def ghost_evaluate():
             continue
 
         ghost_correct = (exit_price > sp) if direction == "UP" else (exit_price < sp)
-        pnl_pct = ((exit_price - sp) / sp) if direction == "UP" else ((sp - exit_price) / sp)
+        pnl_pct = ((exit_price - sp) / sp * 100) if direction == "UP" else ((sp - exit_price) / sp * 100)
 
         try:
             upd = requests.patch(
-                f"{supabase_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{row_id}",
+                f"{supabase_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{row_id}&ghost_evaluated_at=is.null",
                 headers={
                     "apikey": supabase_key,
                     "Authorization": f"Bearer {supabase_key}",
@@ -4423,7 +4463,7 @@ def orphaned_bets():
     for row in rows:
         minutes_open = 0
         try:
-            created = _dt.datetime.fromisoformat(row["created_at"].replace("Z", ""))
+            created = _dt.datetime.fromisoformat(row["created_at"].replace("Z", "+00:00"))
             minutes_open = int((now - created).total_seconds() / 60)
         except Exception:
             pass
@@ -4512,7 +4552,7 @@ def backfill_bet(bet_id):
     }
     try:
         pr = requests.patch(
-            f"{sb_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{bet_id}",
+            f"{sb_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{bet_id}&correct=is.null",
             headers={**sb_headers, "Content-Type": "application/json", "Prefer": "return=minimal"},
             json=patch_data,
             timeout=6,
@@ -5007,7 +5047,7 @@ def training_status():
     last_retrain_iso = None
     if os.path.exists(report_path):
         try:
-            txt_ts = open(report_path).read()
+            txt_ts = open(report_path, encoding="utf-8").read()
             m_ts = _re.search(
                 r"Generated:\s*(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2})",
                 txt_ts,
@@ -5015,12 +5055,12 @@ def training_status():
             if m_ts:
                 last_retrain_ts = _dt.datetime.strptime(
                     m_ts.group(1).replace("T", " "), "%Y-%m-%d %H:%M:%S"
-                )
+                ).replace(tzinfo=_dt.timezone.utc)
         except Exception:
             pass
     if last_retrain_ts is None and os.path.exists(model_path):
         mtime = os.path.getmtime(model_path)
-        last_retrain_ts = _dt.datetime.utcfromtimestamp(mtime)
+        last_retrain_ts = _dt.datetime.fromtimestamp(mtime, tz=_dt.timezone.utc)
     if last_retrain_ts is not None:
         last_retrain_iso = last_retrain_ts.strftime("%Y-%m-%d %H:%M UTC")
 
@@ -5029,7 +5069,7 @@ def training_status():
     train_n = None
     if os.path.exists(report_path):
         try:
-            txt = open(report_path).read()
+            txt = open(report_path, encoding="utf-8").read()
             m = _re.search(r"Direction model accuracy\s+([\d.]+)%", txt)
             if m:
                 direction_acc = float(m.group(1))
@@ -5085,7 +5125,7 @@ def training_status():
     last_cal_iso = None
     cal_remaining_secs = None
     if _force_retrain_last > 0:
-        last_cal_iso = _dt.datetime.utcfromtimestamp(_force_retrain_last).strftime("%Y-%m-%d %H:%M UTC")
+        last_cal_iso = _dt.datetime.fromtimestamp(_force_retrain_last, tz=_dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
         elapsed = _dt.datetime.now(_dt.timezone.utc).timestamp() - _force_retrain_last
         cal_remaining_secs = max(0, int(3600 - elapsed))
 
@@ -6553,7 +6593,7 @@ def marketing_stats():
     model_path  = os.path.join(base, "models", "xgb_direction.pkl")
     if os.path.exists(report_path):
         try:
-            txt = open(report_path).read()
+            txt = open(report_path, encoding="utf-8").read()
             m = _re.search(r"Generated:\s*(\d{4}-\d{2}-\d{2})", txt)
             if m:
                 last_retrain = m.group(1)
@@ -6562,7 +6602,7 @@ def marketing_stats():
     if not last_retrain and os.path.exists(model_path):
         try:
             mtime = os.path.getmtime(model_path)
-            last_retrain = _dt.datetime.utcfromtimestamp(mtime).strftime("%Y-%m-%d")
+            last_retrain = _dt.datetime.fromtimestamp(mtime, tz=_dt.timezone.utc).strftime("%Y-%m-%d")
         except Exception:
             pass
     result["last_retrain"] = last_retrain
