@@ -1753,12 +1753,12 @@ function renderNews(filter) {
     return '<div class="news-item">' +
       '<div><div class="news-source-dot ' + dotClass + '"></div></div>' +
       '<div>' +
-        '<div class="news-title"><a href="' + item.link + '" target="_blank" rel="noopener">' + item.title + ' ↗</a></div>' +
+        '<div class="news-title"><a href="' + encodeURI(item.link || '#') + '" target="_blank" rel="noopener">' + escHtml(item.title || '') + ' ↗</a></div>' +
         '<div class="news-meta">' +
-          '<span class="news-source-badge">' + item.source + '</span>' +
-          '<span class="news-date">' + dateStr + '</span>' +
+          '<span class="news-source-badge">' + escHtml(item.source || '') + '</span>' +
+          '<span class="news-date">' + escHtml(dateStr) + '</span>' +
         '</div>' +
-        (item.summary ? '<div class="news-summary">' + item.summary + '</div>' : '') +
+        (item.summary ? '<div class="news-summary">' + escHtml(item.summary) + '</div>' : '') +
       '</div>' +
       '</div>';
   }).join('');

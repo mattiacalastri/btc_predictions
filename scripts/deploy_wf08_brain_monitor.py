@@ -14,8 +14,12 @@ if not N8N_HOST or not N8N_API_KEY:
     print("ERROR: N8N_HOST and N8N_API_KEY must be set")
     sys.exit(1)
 
-BOT_API_KEY = "93a7a5c5fe15fb5d6e58dc407ff3d98911f225ceff85f83ae948bf4494225422"
-BASE_URL = "https://web-production-e27d0.up.railway.app"
+BOT_API_KEY = os.environ.get("BOT_API_KEY", "")
+BASE_URL = os.environ.get("RAILWAY_URL", "https://web-production-e27d0.up.railway.app")
+
+if not BOT_API_KEY:
+    print("ERROR: BOT_API_KEY must be set")
+    sys.exit(1)
 
 # ── Brain Narrator JS Code ───────────────────────────────────────────────────
 NARRATOR_CODE = r"""
@@ -225,8 +229,8 @@ nodes = [
         "position": [1300, 200],
         "credentials": {
             "telegramApi": {
-                "id": "NRPGXzK8s6jsWl9f",
-                "name": "Telegram account (BTC Predictor)",
+                "id": "DUBgkzRL1ONUstm5",
+                "name": "Telegram account (BTC Commander)",
             }
         },
     },

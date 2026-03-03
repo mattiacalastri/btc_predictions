@@ -167,10 +167,13 @@ class AdaptiveEngine:
         """Recalculate if enough new signals or enough time has passed."""
         if self.disabled:
             return False
-        self._signals_since_calc += 1
+        with self._lock:
+            self._signals_since_calc += 1
+            count = self._signals_since_calc
+            last_ts = self._last_calc_ts
         now = time.time()
-        enough_signals = self._signals_since_calc >= _RECALC_MIN_NEW_SIGNALS
-        enough_time = (now - self._last_calc_ts) >= _RECALC_INTERVAL_SEC
+        enough_signals = count >= _RECALC_MIN_NEW_SIGNALS
+        enough_time = (now - last_ts) >= _RECALC_INTERVAL_SEC
         if enough_signals or enough_time:
             return self.recalculate(trigger=trigger)
         return False
@@ -329,8 +332,10 @@ class AdaptiveEngine:
             return 0.0, None, None
 
         up_count = sum(1 for r in recent if r.get("direction") == "UP")
-        down_count = len(recent) - up_count
-        total = len(recent)
+        down_count = sum(1 for r in recent if r.get("direction") == "DOWN")
+        total = up_count + down_count
+        if total < 10:
+            return 0.0, None, None
 
         up_pct = up_count / total
         down_pct = down_count / total

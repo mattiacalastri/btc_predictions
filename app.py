@@ -17,6 +17,8 @@ from kraken.futures import Trade, User
 from constants import TAKER_FEE, _BIAS_MAP
 from portfolio_engine import PortfolioEngine, PortfolioDecision
 
+VERSION = "2.6.0"
+
 sentry_sdk.init(
     dsn=os.environ.get("SENTRY_DSN", ""),
     traces_sample_rate=0.0,   # solo error monitoring, no performance tracing
@@ -523,15 +525,18 @@ def _refresh_bot_paused():
         pass
 
 
-# Refresh calibration all'avvio — DOPO la definizione di SUPABASE_TABLE e _refresh_bot_paused
-try:
-    refresh_calibration()
-    refresh_dead_hours()
-    _refresh_bot_paused()   # sync _BOT_PAUSED da Supabase → evita "Bot Paused" falso al boot
-    _push_cockpit_log("app", "success", "Bot STARTED",
-                       f"v{VERSION} boot complete — paused={_BOT_PAUSED}")
-except Exception:
-    pass
+# Refresh calibration all'avvio — each step independent so one failure doesn't skip the rest
+for _boot_fn in [
+    lambda: refresh_calibration(),
+    lambda: refresh_dead_hours(),
+    lambda: _refresh_bot_paused(),
+    lambda: _push_cockpit_log("app", "success", "Bot STARTED",
+                               f"v{VERSION} boot complete — paused={_BOT_PAUSED}"),
+]:
+    try:
+        _boot_fn()
+    except Exception as _boot_err:
+        app.logger.warning(f"[BOOT] step failed: {_boot_err}")
 
 
 def _save_bot_paused(paused: bool):
@@ -540,7 +545,7 @@ def _save_bot_paused(paused: bool):
         sb_url, sb_key = _sb_config()
         if not sb_url or not sb_key:
             return
-        requests.patch(
+        r = requests.patch(
             f"{sb_url}/rest/v1/bot_state?key=eq.paused",
             json={"value": str(paused).lower()},
             headers={
@@ -551,8 +556,10 @@ def _save_bot_paused(paused: bool):
             },
             timeout=3,
         )
-    except Exception:
-        pass
+        if not r.ok:
+            app.logger.error(f"[SAVE_PAUSED] Supabase returned {r.status_code}: {r.text[:200]}")
+    except Exception as e:
+        app.logger.error(f"[SAVE_PAUSED] failed: {e}")
 
 
 def _check_api_key():
@@ -820,7 +827,7 @@ def health():
         "serverTime": get_kraken_servertime(),
         "symbol": DEFAULT_SYMBOL,
         "api_key_set": bool(API_KEY),
-        "version": "2.6.0",
+        "version": VERSION,
         "dry_run": DRY_RUN,
         "supabase_table": SUPABASE_TABLE,
         "paused": _BOT_PAUSED,
@@ -873,7 +880,7 @@ def brain_state():
     now = _dt.datetime.now(_dt.timezone.utc)
     state = {
         "ts": now.isoformat(),
-        "version": "2.6.0",
+        "version": VERSION,
         "paused": bool(_BOT_PAUSED),
         "dry_run": DRY_RUN,
         "conf_threshold": float(os.environ.get("CONF_THRESHOLD", "0.56")),
@@ -1510,7 +1517,7 @@ def close_position():
                     "close_reason":      "position_gone",
                     "source_updated_by": "close_orphan_no_fill",
                 }
-                _supabase_update(_obid, _patch)
+                _supabase_update(_obid, _patch, only_if_unresolved=True)
                 app.logger.warning(
                     f"[FIX1] Orphan bet {_obid}: no Kraken fill found. "
                     f"Marked position_gone with pnl=NULL (not fabricated)."
@@ -1597,7 +1604,7 @@ def close_position():
                 "close_reason":      "position_gone",
                 "source_updated_by": "close_orphan_no_entry",
             }
-            _supabase_update(_obid, _patch)
+            _supabase_update(_obid, _patch, only_if_unresolved=True)
             app.logger.warning(
                 f"[FIX1] Orphan bet {_obid}: fill found but entry price missing. "
                 f"Marked position_gone."
@@ -2679,6 +2686,9 @@ def get_btc_price():
 
 @app.route("/execution-fees", methods=["GET"])
 def get_execution_fees():
+    err = _check_read_key()
+    if err:
+        return err
     order_id = request.args.get("order_id")
     if not order_id:
         return jsonify({"error": "order_id required"}), 400
@@ -3045,6 +3055,9 @@ def get_signals():
 
 @app.route("/performance-stats", methods=["GET"])
 def performance_stats():
+    err = _check_read_key()
+    if err:
+        return err
     """
     Calcola statistiche storiche live da Supabase e restituisce un testo
     compatto da iniettare nel prompt di Claude come contesto di calibrazione.
@@ -3256,6 +3269,9 @@ def btc_regime():
 
 @app.route("/bet-sizing", methods=["GET"])
 def bet_sizing():
+    err = _check_read_key()
+    if err:
+        return err
     base_size  = _safe_float(request.args.get("base_size", 0.002),  default=0.002,  min_v=0.0001, max_v=0.1)
     confidence = _safe_float(request.args.get("confidence", 0.75), default=0.75,  min_v=0.0,    max_v=1.0)
 
@@ -3948,6 +3964,9 @@ def auto_retrain():
 
 @app.route("/costs", methods=["GET"])
 def costs():
+    err = _check_read_key()
+    if err:
+        return err
     """
     Breakdown costi reali + stimati delle piattaforme usate dal bot.
     Cache 10 minuti sulla parte n8n executions.
@@ -5838,10 +5857,13 @@ def commit_stops():
         return jsonify({"ok": False, "error": "internal_error"}), 500
 
 
-def _supabase_update(bet_id: int, fields: dict):
-    """Helper: aggiorna una riga Supabase per bet_id."""
+def _supabase_update(bet_id: int, fields: dict, *, only_if_unresolved: bool = False):
+    """Helper: aggiorna una riga Supabase per bet_id.
+    only_if_unresolved: adds &correct=is.null guard (optimistic locking)."""
     sb_url, sb_key = _sb_config()
     url = f"{sb_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{bet_id}"
+    if only_if_unresolved:
+        url += "&correct=is.null"
     headers = {
         "apikey": sb_key,
         "Authorization": f"Bearer {sb_key}",
@@ -6954,7 +6976,7 @@ def cockpit_overview():
         "current_phase": "-",
         "phase_detail": "",
         "uptime": "-",
-        "version": "2.6.0",
+        "version": VERSION,
         # v2 fields
         "total_pnl": 0.0,
         "today_pnl": 0.0,
@@ -6990,8 +7012,9 @@ def cockpit_overview():
             try:
                 _wallets = _ku.get_wallets()
                 if isinstance(_wallets, dict):
-                    flex = _wallets.get("flex", _wallets.get("multiCollateral", {}))
-                    overview["wallet_equity"] = float(flex.get("pv", flex.get("portfolioValue", 0)))
+                    flex = _wallets.get("accounts", {}).get("flex", _wallets.get("multiCollateral", {}))
+                    me = flex.get("marginEquity") or flex.get("pv") or flex.get("portfolioValue") or 0
+                    overview["wallet_equity"] = float(me)
             except Exception:
                 pass
         except Exception:
@@ -7000,7 +7023,7 @@ def cockpit_overview():
         # Today's predictions (expanded select for pnl + ghost + latest)
         today_str = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%d")
         resp = requests.get(
-            f"{sb_url}/rest/v1/btc_predictions?select=id,correct,confidence,direction,pnl_usd,bet_taken,created_at,tx_hash"
+            f"{sb_url}/rest/v1/{SUPABASE_TABLE}?select=id,correct,confidence,direction,pnl_usd,bet_taken,created_at,tx_hash"
             f"&created_at=gte.{today_str}T00:00:00Z&order=created_at.desc",
             headers=headers, timeout=5
         )
@@ -7034,7 +7057,7 @@ def cockpit_overview():
 
         # Overall win rate (last 50 evaluated bets) + total P&L + profit factor
         resp2 = requests.get(
-            f"{sb_url}/rest/v1/btc_predictions?select=correct,pnl_usd"
+            f"{sb_url}/rest/v1/{SUPABASE_TABLE}?select=correct,pnl_usd"
             f"&correct=not.is.null&bet_taken=eq.true&order=created_at.desc&limit=50",
             headers=headers, timeout=5
         )
@@ -7287,7 +7310,7 @@ def _check_anomalies():
 
         # Check 1: Stuck confidence — last 5 predictions have identical confidence
         resp = requests.get(
-            f"{sb_url}/rest/v1/btc_predictions?select=confidence,created_at"
+            f"{sb_url}/rest/v1/{SUPABASE_TABLE}?select=confidence,created_at"
             "&order=created_at.desc&limit=5",
             headers=headers, timeout=5,
         )
@@ -7308,7 +7331,7 @@ def _check_anomalies():
         # Check 2: No predictions in last 2 hours (during expected active period)
         two_hours_ago = (_dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(hours=2)).isoformat()
         resp2 = requests.get(
-            f"{sb_url}/rest/v1/btc_predictions?select=id&created_at=gte.{two_hours_ago}&limit=1",
+            f"{sb_url}/rest/v1/{SUPABASE_TABLE}?select=id&created_at=gte.{two_hours_ago}&limit=1",
             headers=headers, timeout=5,
         )
         if resp2.ok and len(resp2.json()) == 0:
@@ -7337,7 +7360,7 @@ def cockpit_ghosts():
         if sb_url and sb_key:
             headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
             resp = requests.get(
-                f"{sb_url}/rest/v1/btc_predictions"
+                f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
                 f"?select=id,direction,confidence,reason,created_at,ghost_correct,signal_price"
                 f"&bet_taken=eq.false&order=created_at.desc&limit=10",
                 headers=headers, timeout=5,
