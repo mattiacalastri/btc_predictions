@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BTC Predictor — Product Overview</title>
+<meta name="description" content="Complete feature breakdown of BTC Predictor Bot: AI-powered algorithmic trading system with on-chain audit trail.">
+<style>
+:root {
+  --bg: #0a0e17; --bg2: #0f1420; --card: #111827; --card-border: #1e293b; --card-hover: #151d2e;
+  --text: #e2e8f0; --text2: #94a3b8; --text3: #64748b; --text4: #475569;
+  --teal: #00d4aa; --teal-dim: #00d4aa20; --blue: #3b82f6; --blue-dim: #3b82f620;
+  --purple: #8b5cf6; --purple-dim: #8b5cf620; --green: #22c55e; --green-dim: #22c55e20;
+  --orange: #f97316; --orange-dim: #f9731620; --red: #ef4444; --red-dim: #ef444420;
+  --yellow: #eab308; --yellow-dim: #eab30820; --pink: #ec4899; --pink-dim: #ec489920;
+  --mono: 'SF Mono', 'JetBrains Mono', 'Fira Code', monospace;
+  --sans: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', sans-serif;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 15px; line-height: 1.65; min-height: 100vh; }
+
+.nav { position: sticky; top: 0; z-index: 100; background: #0a0e17e8; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid var(--card-border); padding: 12px 20px; }
+.nav-inner { max-width: 720px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
+.nav-brand { font-size: 14px; font-weight: 700; letter-spacing: -0.3px; }
+.nav-brand span { color: var(--teal); }
+.nav-links { display: flex; gap: 4px; }
+.nav-links a { color: var(--text3); font-size: 11px; text-decoration: none; padding: 4px 10px; border-radius: 6px; transition: all 0.2s; font-weight: 500; letter-spacing: 0.3px; text-transform: uppercase; }
+.nav-links a:hover { color: var(--teal); background: var(--teal-dim); }
+
+.container { max-width: 720px; margin: 0 auto; padding: 24px 16px 80px; }
+
+.hero { text-align: center; padding: 48px 0 40px; }
+.hero h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.8px; line-height: 1.2; margin-bottom: 8px; }
+.hero h1 span { background: linear-gradient(135deg, var(--teal), var(--blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.hero p { color: var(--text2); font-size: 14px; max-width: 520px; margin: 0 auto; }
+.hero-sub { color: var(--text4); font-size: 12px; font-family: var(--mono); margin-top: 12px; }
+
+.stats-banner { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 32px; }
+.stat-mini { background: var(--card); border: 1px solid var(--card-border); border-radius: 10px; padding: 14px 8px; text-align: center; }
+.stat-mini .num { font-size: 22px; font-weight: 700; font-family: var(--mono); letter-spacing: -1px; }
+.stat-mini .lbl { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+
+.section { margin-bottom: 36px; }
+.section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--card-border); }
+.section-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+.section-title { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
+.section-badge { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 20px; font-family: var(--mono); margin-left: auto; }
+
+.feature-grid { display: grid; gap: 10px; }
+.feature { background: var(--card); border: 1px solid var(--card-border); border-radius: 10px; padding: 16px; transition: border-color 0.2s; }
+.feature:hover { border-color: #2d3a4e; }
+.feature-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.feature-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.feature-name { font-size: 14px; font-weight: 600; letter-spacing: -0.2px; }
+.feature-tag { font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; margin-left: auto; }
+.feature-desc { color: var(--text2); font-size: 13px; line-height: 1.5; }
+.feature-items { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px; }
+.feature-item { font-size: 11px; padding: 3px 8px; border-radius: 4px; background: var(--bg); border: 1px solid var(--card-border); color: var(--text2); font-family: var(--mono); }
+
+.wf-card { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--card); border: 1px solid var(--card-border); border-radius: 8px; margin-bottom: 6px; }
+.wf-id { font-family: var(--mono); font-size: 12px; font-weight: 700; min-width: 36px; }
+.wf-name { font-size: 13px; font-weight: 500; flex: 1; }
+.wf-trigger { font-size: 10px; color: var(--text3); font-family: var(--mono); }
+
+.stack-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.stack-item { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--card); border: 1px solid var(--card-border); border-radius: 8px; }
+.stack-icon { font-size: 18px; width: 28px; text-align: center; }
+.stack-name { font-size: 13px; font-weight: 500; }
+.stack-role { font-size: 10px; color: var(--text3); }
+
+.divider { height: 1px; background: var(--card-border); margin: 36px 0; }
+
+.endpoint-group { margin-bottom: 12px; }
+.endpoint-group-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text4); margin-bottom: 6px; padding-left: 4px; }
+.endpoint { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 6px; font-size: 12px; border-bottom: 1px solid #1e293b15; }
+.endpoint:hover { background: var(--bg2); }
+.method { font-family: var(--mono); font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; min-width: 40px; text-align: center; }
+.method-get { background: var(--green-dim); color: var(--green); }
+.method-post { background: var(--blue-dim); color: var(--blue); }
+.endpoint-path { font-family: var(--mono); color: var(--text); font-size: 12px; }
+.endpoint-desc { color: var(--text3); font-size: 11px; margin-left: auto; text-align: right; }
+
+.footer { text-align: center; padding: 32px 0; color: var(--text4); font-size: 11px; border-top: 1px solid var(--card-border); margin-top: 40px; }
+.footer a { color: var(--teal); text-decoration: none; }
+
+@media (max-width: 480px) {
+  .stats-banner { grid-template-columns: repeat(2, 1fr); }
+  .stack-grid { grid-template-columns: 1fr; }
+  .nav-links a { font-size: 10px; padding: 4px 6px; }
+  .hero h1 { font-size: 22px; }
+  .endpoint-desc { display: none; }
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <div class="nav-brand"><span>&#9632;</span> BTC Predictor</div>
+    <div class="nav-links">
+      <a href="#trading">Trading</a>
+      <a href="#ml">ML/AI</a>
+      <a href="#risk">Risk</a>
+      <a href="#chain">On-Chain</a>
+      <a href="#api">API</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+
+<div class="hero">
+  <h1>BTC Predictor <span>Product Overview</span></h1>
+  <p>AI-powered algorithmic trading system for Bitcoin futures. Claude AI signal generation, XGBoost dual-gate validation, immutable on-chain audit trail on Polygon PoS.</p>
+  <div class="hero-sub">Production since March 1, 2026 &middot; v2.5.2 &middot; btcpredictor.io</div>
+</div>
+
+<div class="stats-banner">
+  <div class="stat-mini"><div class="num" style="color:var(--teal)">87</div><div class="lbl">API Endpoints</div></div>
+  <div class="stat-mini"><div class="num" style="color:var(--blue)">20</div><div class="lbl">n8n Workflows</div></div>
+  <div class="stat-mini"><div class="num" style="color:var(--purple)">11</div><div class="lbl">ML Features</div></div>
+  <div class="stat-mini"><div class="num" style="color:var(--green)">24/7</div><div class="lbl">Autonomous</div></div>
+</div>
+
+<!-- Trading Engine -->
+<div id="trading" class="section">
+  <div class="section-header">
+    <div class="section-icon" style="background:var(--green-dim)">&#9889;</div>
+    <div class="section-title">Trading Engine</div>
+    <span class="section-badge" style="background:var(--green-dim);color:var(--green)">LIVE</span>
+  </div>
+  <div class="feature-grid">
+    <div class="feature">
+      <div class="feature-head">
+        <div class="feature-dot" style="background:var(--green)"></div>
+        <div class="feature-name">Signal-to-Execution Pipeline</div>
+        <span class="feature-tag" style="background:var(--green-dim);color:var(--green)">Core</span>
+      </div>
+      <div class="feature-desc">Complete autonomous pipeline: direction validation &rarr; dead hours filter &rarr; ACE dynamic threshold &rarr; XGBoost dual-gate &rarr; DOWN kill switch &rarr; pre-flight checks &rarr; price drift detection &rarr; anti-stacking (max 2 positions) &rarr; slippage guard &rarr; on-chain Polygon commitment &rarr; Kraken Futures execution.</div>
+      <div class="feature-items">
+        <span class="feature-item">POST /place-bet</span>
+        <span class="feature-item">POST /close-position</span>
+        <span class="feature-item">GET /position</span>
+      </div>
+    </div>
+    <div class="feature">
+      <div class="feature-head">
+        <div class="feature-dot" style="background:var(--green)"></div>
+        <div class="feature-name">Dynamic Position Sizing</div>
+      </div>
+      <div class="feature-desc">Adaptive sizing based on Kelly criterion (conservative 2% of capital). Streak multipliers (loss 0.5x, win 1.2&ndash;1.5x), drawdown protection, confidence scaling, XGBoost correctness penalty, asymmetry penalty for skewed win/loss ratios.</div>
+      <div class="feature-items">
+        <span class="feature-item">GET /bet-sizing</span>
+        <span class="feature-item">Kelly fraction</span>
+      </div>
+    </div>
+    <div class="feature">
+      <div class="feature-head">
+        <div class="feature-dot" style="background:var(--green)"></div>
+        <div class="feature-name">Account Management</div>
+      </div>
+      <div class="feature-desc">Parallel fetch of 5 exchange endpoints: wallet balance, tickers, positions, orders, fills. Margin equity, collateral, unrealized P&amp;L, liquidation price, latest fills with fee breakdown.</div>
+      <div class="feature-items">
+        <span class="feature-item">GET /account-summary</span>
+        <span class="feature-item">GET /balance</span>
+        <span class="feature-item">GET /execution-fees</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ML/AI -->
+<div id="ml" class="section">
+  <div class="section-header">
+    <div class="section-icon" style="background:var(--purple-dim)">&#129504;</div>
+    <div class="section-title">Machine Learning &amp; AI</div>
+    <span class="section-badge" style="background:var(--purple-dim);color:var(--purple)">DUAL GATE</span>
+  </div>
+  <div class="feature-grid">
+    <div class="feature">
+      <div class="feature-head">
+        <div class="feature-dot" style="background:var(--purple)"></div>
+        <div class="feature-name">XGBoost Direction Model</div>
+      </div>
+      <div class="feature-desc">11 input features: confidence, fear &amp; greed index, RSI-14, technical score, cyclic hour/day encoding, session label, regime label. LLM direction must agree with XGBoost prediction (dual-gate). Fail-open if model unavailable.</div>
+      <div class="feature-items">
+        <span class="feature-item">GET /predict-xgb</span>
+        <span class="feature-item">GET /btc-regime</span>
+        <span class="feature-item">GET /xgb-report</span>
+      </div>
+    </div>
+    <div class="feature">
+      <div class="feature-head">
+        <div class="feature-dot" style="background:var(--purple)"></div>
+        <div class="feature-name">ACE &mdash; Adaptive Calibration Engine</div>
+        <span class="feature-tag" style="background:var(--teal-dim);color:var(--teal)">NEW</span>
+      </div>
+      <div class="feature-desc">Dynamic confidence threshold that adjusts based on recent performance window. Recalculates on every ghost signal batch. Prevents over-trading during drawdown phases. Separate thresholds per direction (UP/DOWN).</div>
+      <div class="feature-items">
+        <span class="feature-item">GET /adaptive-estimate</span>
+        <span class="feature-item">38 unit tests</span>
+      </div>
+    </div>
+    <div class="feature">
+      <div class="feature-head">
+        <div class="feature-dot" style="background:var(--purple)"></div>
+        <div class="feature-name">Ghost Signal Verification</div>
+      </div>
+      <div class="feature-desc">Autonomous evaluation of skipped signals at T+30min using Binance 1-minute klines. Generates training data without risking capital. Calculates ghost_correct for each SKIP/ALERT signal, enabling model improvement from paper trades.</div>
+      <div class="feature-items">
+        <span class="feature-item">POST /ghost-evaluate</span>
+        <span class="feature-item">T+30min exit</span>
+      </div>
+    </div>
+    <div class="feature">
+      <div class="feature-head">
+        <div class="feature-dot" style="background:var(--purple)"></div>
+        <div class="feature-name">Auto-Retrain Pipeline</div>
+      </div>
+      <div class="feature-desc">Nightly at 03:00 UTC: build dataset (including ghost signals) &rarr; train XGBoost + correctness model &rarr; hot-reload in memory &rarr; refresh calibration tables + dead hours + ACE thresholds. On-demand retrain available (rate-limited 1/6h).</div>
+      <div class="feature-items">
+        <span class="feature-item">POST /auto-retrain</span>
+        <span class="feature-item">POST /force-retrain</span>
+        <span class="feature-item">POST /reload-calibration</span>
+      </div>
+    </div>
+    <div class="feature">
+      <div class="feature-head">
+        <div class="feature-dot" style="background:var(--purple)"></div>
+        <div class="feature-name">Market Regime Detection</div>
+      </div>
+      <div class="feature-desc">Real-time regime classification using 4-hour Binance OHLCV data. ATR%, trend strength &rarr; labels: RANGING (0), TRENDING (1), VOLATILE (2). Used as XGBoost feature and for dead hours recalibration per regime.</div>
+      <div class="feature-items">
+        <span class="feature-item">GET /btc-regime</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Risk Management -->
+<div id="risk" class="section">
+  <div class="section-header">
+    <div class="section-icon" style="background:var(--red-dim)">&#128737;</div>
+    <div class="section-title">Risk Management</div>
+    <span class="section-badge" style="background:var(--red-dim);color:var(--red)">6 GUARDS</span>
+  </div>
+  <div class="feature-grid">
+    <div class="feature">
+      <div class="feature-head">
+        <div class="feature-dot" style="background:var(--red)"></div>
+        <div class="feature-name">Circuit Breaker</div>
+      </div>
+      <div class="feature-desc">5 consecutive losses triggers automatic bot pause. Manual or automatic resume with _RESUMED_AT tracking. Prevents cascade losses during adverse market conditions.</div>
+    </div>
+    <div class="feature">
+      <div class="feature-head">
+        <div class="feature-dot" style="background:var(--orange)"></div>
+        <div class="feature-name">Dead Hours Filter</div>
+      </div>
+      <div class="feature-desc">Skips trading during UTC hours with historically low win rate (&lt;45%). Recalculated automatically by the nightly retrain pipeline based on latest performance data.</div>
+    </div>
+    <div class="feature">
+      <div class="feature-head">
+        <div class="feature-dot" style="background:var(--orange)"></div>
+        <div class="feature-name">Macro Event Guard</div>
+      </div>
+      <div class="feature-desc">Blocks trading 2 hours before USD high-impact economic events (NFP, FOMC, CPI). Live macro calendar polling. Prevents entering positions during unpredictable volatility spikes.</div>
+      <div class="feature-items"><span class="feature-item">GET /macro-guard</span></div>
+    </div>
+    <div class="feature">
+      <div class="feature-head">
+        <div class="feature-dot" style="background:var(--yellow)"></div>
+        <div class="feature-name">Anti-Stacking</div>
+      </div>
+      <div class="feature-desc">Maximum 2 concurrent open positions. Pyramid only allowed if existing position P&amp;L &gt; 0% or position age &lt; 10 minutes. Pyramid size = 0.5&times; base size.</div>
+    </div>
+    <div class="feature">
+      <div class="feature-head">
+        <div class="feature-dot" style="background:var(--yellow)"></div>
+        <div class="feature-name">Price Drift Detection</div>
+      </div>
+      <div class="feature-desc">Rejects trade if current market price has drifted significantly from the signal price. Prevents stale signal execution in fast-moving markets.</div>
+    </div>
+    <div class="feature">
+      <div class="feature-head">
+        <div class="feature-dot" style="background:var(--yellow)"></div>
+        <div class="feature-name">Rate Limiting</div>
+      </div>
+      <div class="feature-desc">Thread-safe sliding window (no Redis dependency). Global: 100/min, bet endpoint: 50/min, Telegram: 10/min. Per-IP rate limiting on authentication endpoints.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Monitoring -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-icon" style="background:var(--blue-dim)">&#128202;</div>
+    <div class="section-title">Monitoring &amp; Analytics</div>
+  </div>
+  <div class="feature-grid">
+    <div class="feature">
+      <div class="feature-head">
+        <div class="feature-dot" style="background:var(--blue)"></div>
+        <div class="feature-name">Cockpit Dashboard</div>
+        <span class="feature-tag" style="background:var(--blue-dim);color:var(--blue)">SPA</span>
+      </div>
+      <div class="feature-desc">Real-time single-page dashboard: bot mode (LIVE/PAUSED/DRY_RUN), open positions, daily P&amp;L, wallet equity, win rate, profit factor, AI agent states, centralized log with source/level filters. Token-based authentication.</div>
+      <div class="feature-items">
+        <span class="feature-item">GET /cockpit</span>
+        <span class="feature-item">/cockpit/api/overview</span>
+        <span class="feature-item">/cockpit/api/agents</span>
+        <span class="feature-item">/cockpit/api/log</span>
+        <span class="feature-item">/cockpit/api/ghosts</span>
+      </div>
+    </div>
+    <div class="feature">
+      <div class="feature-head">
+        <div class="feature-dot" style="background:var(--blue)"></div>
+        <div class="feature-name">Brain Monitor</div>
+      </div>
+      <div class="feature-desc">Automated health check every 3 minutes. Aggregates equity, positions, 6-hour signal window, ghost backlog, current streak. Telegram alerts on circuit breaker, equity degradation &gt;10%, ghost backlog overflow.</div>
+      <div class="feature-items"><span class="feature-item">GET /brain-state</span></div>
+    </div>
+    <div class="feature">
+      <div class="feature-head">
+        <div class="feature-dot" style="background:var(--blue)"></div>
+        <div class="feature-name">Performance Analytics</div>
+      </div>
+      <div class="feature-desc">Win rate, profit factor, max drawdown, Sharpe ratio, equity curve, operating cost breakdown (exchange fees, orchestration, blockchain gas, AI tokens, hosting), error pattern analysis, confidence distribution.</div>
+      <div class="feature-items">
+        <span class="feature-item">GET /performance-stats</span>
+        <span class="feature-item">GET /risk-metrics</span>
+        <span class="feature-item">GET /equity-history</span>
+        <span class="feature-item">GET /costs</span>
+        <span class="feature-item">GET /error-patterns</span>
+      </div>
+    </div>
+    <div class="feature">
+      <div class="feature-head">
+        <div class="feature-dot" style="background:var(--blue)"></div>
+        <div class="feature-name">Error Intelligence Hub</div>
+      </div>
+      <div class="feature-desc">Centralized error handling across all 20 workflows. P0-P3 severity classification, fingerprint-based deduplication, automatic recovery attempts, resolution tracking. Dedicated Supabase table with 30-day retention.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Blockchain -->
+<div id="chain" class="section">
+  <div class="section-header">
+    <div class="section-icon" style="background:var(--teal-dim)">&#9939;</div>
+    <div class="section-title">On-Chain Audit Trail</div>
+    <span class="section-badge" style="background:var(--teal-dim);color:var(--teal)">POLYGON PoS</span>
+  </div>
+  <div class="feature-grid">
+    <div class="feature">
+      <div class="feature-head">
+        <div class="feature-dot" style="background:var(--teal)"></div>
+        <div class="feature-name">Immutable Prediction Commitment</div>
+      </div>
+      <div class="feature-desc">Every signal is registered on Polygon PoS <strong>before</strong> trade execution. Smart contract <code>BTCBotAudit.sol</code> stores keccak256 hash, direction, and confidence via <code>commitPrediction()</code>. After close, outcome is resolved via <code>resolvePrediction()</code>. Anyone can verify on Polygonscan that commitment timestamp precedes execution.</div>
+      <div class="feature-items">
+        <span class="feature-item">POST /commit-prediction</span>
+        <span class="feature-item">POST /resolve-prediction</span>
+        <span class="feature-item">GET /on-chain-audit</span>
+        <span class="feature-item">Polygonscan verified</span>
+      </div>
+    </div>
+    <div class="feature">
+      <div class="feature-head">
+        <div class="feature-dot" style="background:var(--teal)"></div>
+        <div class="feature-name">News Fact-Check Registration</div>
+      </div>
+      <div class="feature-desc">SHA-256 hash of news headlines registered on Polygon before publication. Provides immutable timestamp proof that a news item existed before any trading decision. Prevents retroactive claim of information advantage.</div>
+      <div class="feature-items"><span class="feature-item">POST /news-fact-check</span></div>
+    </div>
+    <div class="feature">
+      <div class="feature-head">
+        <div class="feature-dot" style="background:var(--teal)"></div>
+        <div class="feature-name">Verifiability Guarantees</div>
+      </div>
+      <div class="feature-desc">Any observer can independently verify: (1) commitPrediction was called BEFORE Kraken fill, (2) resolvePrediction matches Supabase outcome, (3) wallet signatures are authentic. Contract is append-only &mdash; no modifications possible after commitment.</div>
+    </div>
+  </div>
+</div>
+
+<!-- n8n Orchestration -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-icon" style="background:var(--orange-dim)">&#128260;</div>
+    <div class="section-title">Workflow Orchestration</div>
+    <span class="section-badge" style="background:var(--orange-dim);color:var(--orange)">20 ACTIVE</span>
+  </div>
+  <div class="wf-card"><div class="wf-id" style="color:var(--green)">01A</div><div class="wf-name">Signal Generation (Claude AI)</div><div class="wf-trigger">every 5 min</div></div>
+  <div class="wf-card"><div class="wf-id" style="color:var(--green)">01B</div><div class="wf-name">Bet Execution + On-Chain Commit</div><div class="wf-trigger">webhook</div></div>
+  <div class="wf-card"><div class="wf-id" style="color:var(--blue)">02</div><div class="wf-name">Position Close + P&amp;L Resolution</div><div class="wf-trigger">webhook</div></div>
+  <div class="wf-card"><div class="wf-id" style="color:var(--purple)">05</div><div class="wf-name">Macro Calendar Polling</div><div class="wf-trigger">every 1h</div></div>
+  <div class="wf-card"><div class="wf-id" style="color:var(--teal)">08</div><div class="wf-name">Brain Monitor + Ghost Evaluation</div><div class="wf-trigger">every 3 min</div></div>
+  <div class="wf-card"><div class="wf-id" style="color:var(--orange)">10</div><div class="wf-name">Daily Retrain Pipeline</div><div class="wf-trigger">03:00 UTC</div></div>
+  <div class="wf-card"><div class="wf-id" style="color:var(--red)">00</div><div class="wf-name">Error Intelligence Hub (P0&ndash;P3)</div><div class="wf-trigger">errorWorkflow</div></div>
+  <div class="wf-card"><div class="wf-id" style="color:var(--text3)">+13</div><div class="wf-name">Additional active workflows</div><div class="wf-trigger">various</div></div>
+
+  <div style="margin-top:16px">
+    <div class="feature">
+      <div class="feature-head">
+        <div class="feature-dot" style="background:var(--orange)"></div>
+        <div class="feature-name">wf01B Execution Pipeline</div>
+      </div>
+      <div class="feature-desc">Signal received &rarr; confidence filter (&ge;0.50) &rarr; dynamic bet sizing &rarr; Anti-Noise Filter (Rule 9+) &rarr; Macro Guard check &rarr; execute trade &rarr; confirm position &rarr; commit to Polygon &rarr; publish Telegram &rarr; save execution metadata with traceability v7.</div>
+    </div>
+  </div>
+</div>
+
+<!-- API Reference -->
+<div id="api" class="section">
+  <div class="section-header">
+    <div class="section-icon" style="background:var(--card)">&#128279;</div>
+    <div class="section-title">API Reference</div>
+    <span class="section-badge" style="background:var(--teal-dim);color:var(--teal)">87 ENDPOINTS</span>
+  </div>
+
+  <div class="endpoint-group">
+    <div class="endpoint-group-title">Trading</div>
+    <div class="endpoint"><span class="method method-post">POST</span><span class="endpoint-path">/place-bet</span><span class="endpoint-desc">Execute trade</span></div>
+    <div class="endpoint"><span class="method method-post">POST</span><span class="endpoint-path">/close-position</span><span class="endpoint-desc">Close position</span></div>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="endpoint-path">/position</span><span class="endpoint-desc">Current position</span></div>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="endpoint-path">/account-summary</span><span class="endpoint-desc">Full account snapshot</span></div>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="endpoint-path">/btc-price</span><span class="endpoint-desc">Current mark price</span></div>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="endpoint-path">/bet-sizing</span><span class="endpoint-desc">Dynamic position size</span></div>
+  </div>
+
+  <div class="endpoint-group">
+    <div class="endpoint-group-title">ML / AI</div>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="endpoint-path">/predict-xgb</span><span class="endpoint-desc">XGBoost prediction</span></div>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="endpoint-path">/btc-regime</span><span class="endpoint-desc">Market regime</span></div>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="endpoint-path">/adaptive-estimate</span><span class="endpoint-desc">ACE state</span></div>
+    <div class="endpoint"><span class="method method-post">POST</span><span class="endpoint-path">/reload-calibration</span><span class="endpoint-desc">Hot-reload thresholds</span></div>
+    <div class="endpoint"><span class="method method-post">POST</span><span class="endpoint-path">/force-retrain</span><span class="endpoint-desc">On-demand retrain</span></div>
+    <div class="endpoint"><span class="method method-post">POST</span><span class="endpoint-path">/auto-retrain</span><span class="endpoint-desc">Scheduled retrain</span></div>
+    <div class="endpoint"><span class="method method-post">POST</span><span class="endpoint-path">/ghost-evaluate</span><span class="endpoint-desc">Ghost signal eval</span></div>
+  </div>
+
+  <div class="endpoint-group">
+    <div class="endpoint-group-title">Monitoring</div>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="endpoint-path">/health</span><span class="endpoint-desc">System health</span></div>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="endpoint-path">/brain-state</span><span class="endpoint-desc">Aggregated state</span></div>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="endpoint-path">/performance-stats</span><span class="endpoint-desc">Trading metrics</span></div>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="endpoint-path">/risk-metrics</span><span class="endpoint-desc">Risk analytics</span></div>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="endpoint-path">/equity-history</span><span class="endpoint-desc">Equity curve</span></div>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="endpoint-path">/costs</span><span class="endpoint-desc">Operating costs</span></div>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="endpoint-path">/signals</span><span class="endpoint-desc">Prediction history</span></div>
+  </div>
+
+  <div class="endpoint-group">
+    <div class="endpoint-group-title">On-Chain</div>
+    <div class="endpoint"><span class="method method-post">POST</span><span class="endpoint-path">/commit-prediction</span><span class="endpoint-desc">Polygon commit</span></div>
+    <div class="endpoint"><span class="method method-post">POST</span><span class="endpoint-path">/resolve-prediction</span><span class="endpoint-desc">Resolve outcome</span></div>
+    <div class="endpoint"><span class="method method-post">POST</span><span class="endpoint-path">/news-fact-check</span><span class="endpoint-desc">News hash</span></div>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="endpoint-path">/on-chain-audit</span><span class="endpoint-desc">Audit report</span></div>
+  </div>
+
+  <div class="endpoint-group">
+    <div class="endpoint-group-title">Cockpit</div>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="endpoint-path">/cockpit</span><span class="endpoint-desc">Dashboard SPA</span></div>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="endpoint-path">/cockpit/api/overview</span><span class="endpoint-desc">System snapshot</span></div>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="endpoint-path">/cockpit/api/agents</span><span class="endpoint-desc">Agent states</span></div>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="endpoint-path">/cockpit/api/log</span><span class="endpoint-desc">Event log</span></div>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="endpoint-path">/cockpit/api/ghosts</span><span class="endpoint-desc">Ghost summary</span></div>
+  </div>
+
+  <div class="endpoint-group">
+    <div class="endpoint-group-title">Public Pages</div>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="endpoint-path">/dashboard</span><span class="endpoint-desc">Live dashboard</span></div>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="endpoint-path">/manifesto</span><span class="endpoint-desc">Philosophy</span></div>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="endpoint-path">/audit</span><span class="endpoint-desc">Public audit</span></div>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="endpoint-path">/news-feed</span><span class="endpoint-desc">Crypto news</span></div>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="endpoint-path">/xgboost-spiegato</span><span class="endpoint-desc">XGBoost explainer</span></div>
+    <div class="endpoint"><span class="method method-get">GET</span><span class="endpoint-path">/investors</span><span class="endpoint-desc">Investor info</span></div>
+  </div>
+
+  <div style="text-align:center;color:var(--text4);font-size:12px;margin-top:12px">+ 50 additional endpoints (admin, backtest, contributions, marketing, SEO)</div>
+</div>
+
+<!-- Tech Stack -->
+<div class="divider"></div>
+<div class="section">
+  <div class="section-header">
+    <div class="section-icon" style="background:var(--card)">&#129521;</div>
+    <div class="section-title">Tech Stack</div>
+  </div>
+  <div class="stack-grid">
+    <div class="stack-item"><div class="stack-icon">&#129302;</div><div><div class="stack-name">Claude AI</div><div class="stack-role">Signal Generation (LLM)</div></div></div>
+    <div class="stack-item"><div class="stack-icon">&#128202;</div><div><div class="stack-name">XGBoost</div><div class="stack-role">Direction Model</div></div></div>
+    <div class="stack-item"><div class="stack-icon">&#128013;</div><div><div class="stack-name">Flask + Gunicorn</div><div class="stack-role">Backend (Python)</div></div></div>
+    <div class="stack-item"><div class="stack-icon">&#128642;</div><div><div class="stack-name">Railway</div><div class="stack-role">Cloud Hosting</div></div></div>
+    <div class="stack-item"><div class="stack-icon">&#128451;</div><div><div class="stack-name">Supabase</div><div class="stack-role">PostgreSQL Database</div></div></div>
+    <div class="stack-item"><div class="stack-icon">&#128279;</div><div><div class="stack-name">n8n Cloud</div><div class="stack-role">Workflow Orchestration</div></div></div>
+    <div class="stack-item"><div class="stack-icon">&#129425;</div><div><div class="stack-name">Kraken Futures</div><div class="stack-role">Exchange (PF_XBTUSD)</div></div></div>
+    <div class="stack-item"><div class="stack-icon">&#9939;</div><div><div class="stack-name">Polygon PoS</div><div class="stack-role">On-Chain Audit</div></div></div>
+    <div class="stack-item"><div class="stack-icon">&#9992;</div><div><div class="stack-name">Telegram Bot</div><div class="stack-role">Notifications</div></div></div>
+    <div class="stack-item"><div class="stack-icon">&#128170;</div><div><div class="stack-name">Sentry</div><div class="stack-role">Error Tracking</div></div></div>
+  </div>
+</div>
+
+<div class="footer">
+  BTC Predictor Bot &middot; Production since March 1, 2026<br>
+  <a href="https://btcpredictor.io">btcpredictor.io</a> &middot; <a href="https://btcpredictor.io/dashboard">Live Dashboard</a> &middot; <a href="https://btcpredictor.io/audit">On-Chain Audit</a>
+</div>
+
+</div>
+</body>
+</html>
