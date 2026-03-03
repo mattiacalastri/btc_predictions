@@ -417,6 +417,7 @@ class AdaptiveEngine:
         url = (
             f"{self._sb_url}/rest/v1/{self._table}"
             "?select=id,direction,confidence,correct,pnl_pct,pnl_usd,created_at"
+            "&bet_taken=eq.true"
             "&correct=not.is.null"
             "&order=id.desc&limit=200"
         )
