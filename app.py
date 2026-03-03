@@ -263,6 +263,7 @@ def _compute_regime_4h_live() -> dict:
     import urllib.request as _ureq
     import urllib.parse as _uparse
     import ssl as _ssl
+    import json as _json
     _ctx = _ssl.create_default_context()
 
     # ── Primary: Kraken Spot OHLC (no georestriction from Railway) ────────
@@ -271,7 +272,6 @@ def _compute_regime_4h_live() -> dict:
         url = f"https://api.kraken.com/0/public/OHLC?{params}"
         req = _ureq.Request(url, headers={"User-Agent": "btcbot/1.0"})
         with _ureq.urlopen(req, context=_ctx, timeout=8) as resp:
-            import json as _json
             data = _json.loads(resp.read().decode())
 
         errors = data.get("error", [])
@@ -1682,7 +1682,7 @@ def close_position():
                         "correct":            correct,
                         "actual_direction":   actual_direction,
                         "pnl_usd":            pnl_net,
-                        "fees_total":         round(fee - funding_fee, 6),
+                        "fees_total":         round(fee, 6),
                         "has_real_exit_fill": True,
                         "close_reason":       "manual_close",
                         "source_updated_by":  "wf02_close",
@@ -1798,7 +1798,7 @@ def _run_xgb_gate(direction: str, confidence: float, data: dict, current_hour_ut
 
     try:
         _h = current_hour_utc
-        _dow_xgb = _dt.datetime.utcnow().weekday()
+        _dow_xgb = _dt.datetime.now(_dt.timezone.utc).weekday()
         _session_xgb = 0 if _h < 8 else (1 if _h < 14 else 2)
         feat_row = [[
             confidence,
@@ -1844,7 +1844,7 @@ def _check_pre_flight(direction: str, confidence: float) -> object:
             "confidence": confidence,
         }), 200
 
-    # Circuit breaker: 3 consecutive losses → auto-pause
+    # Circuit breaker: 5 consecutive losses → auto-pause
     # Skip check if no bets have been placed since last /resume (prevents re-pause loop)
     try:
         sb_url, sb_key = _sb_config()
@@ -1862,8 +1862,10 @@ def _check_pre_flight(direction: str, confidence: float) -> object:
                 timeout=5,
             )
             if r_cb.status_code == 200:
-                last3 = r_cb.json()
-                if len(last3) == 5 and all(row.get("correct") is False for row in last3):
+                last5 = r_cb.json()
+                if len(last5) == 5 and all(row.get("correct") is False for row in last5):
+                    _BOT_PAUSED = True
+                    _BOT_PAUSED_REFRESHED_AT = time.time()
                     try:
                         _save_bot_paused(True)
                     except Exception as _cb_save_err:
@@ -2218,8 +2220,9 @@ def place_bet():
             except Exception:
                 pass  # fail-open: defaults will be used
 
-            # Calculate PnL%
-            mark_price = _get_mark_price(symbol) or existing_entry_price
+            # Calculate PnL% (single mark price fetch, reused below)
+            _pe_btc_price = _get_mark_price(symbol) or 0.0
+            mark_price = _pe_btc_price or existing_entry_price
             if existing_entry_price > 0:
                 _sign = 1 if pos["side"] == "long" else -1
                 current_pnl_pct = (mark_price - existing_entry_price) / existing_entry_price * _sign
@@ -2235,7 +2238,8 @@ def place_bet():
         except Exception:
             pass
 
-        _pe_btc_price = _get_mark_price(symbol) or 0.0
+        if not pos:
+            _pe_btc_price = _get_mark_price(symbol) or 0.0
 
         # Build portfolio state and evaluate signal
         _pe_decision = None
@@ -2783,8 +2787,8 @@ def account_summary():
                 )
                 if ticker and pos["price"] > 0:
                     mark = float(ticker.get("markPrice") or 0)
-                    direction = 1 if pos["side"] == "long" else -1
-                    position_pnl = round((mark - pos["price"]) * direction * pos["size"], 6)
+                    pos_sign = 1 if pos["side"] == "long" else -1
+                    position_pnl = round((mark - pos["price"]) * pos_sign * pos["size"], 6)
                     position_pnl_pct = round((position_pnl / (pos["price"] * pos["size"])) * 100, 4)
             except Exception:
                 pass
@@ -3145,7 +3149,7 @@ def predict_xgb():
         tech_bias    = request.args.get("technical_bias", "").lower()
 
         _h2 = _safe_int(request.args.get("hour_utc", 12), default=12, min_v=0, max_v=23)
-        _dow2 = _dt.datetime.utcnow().weekday()  # 0=Mon..6=Sun
+        _dow2 = _dt.datetime.now(_dt.timezone.utc).weekday()  # 0=Mon..6=Sun
         _session2 = 0 if _h2 < 8 else (1 if _h2 < 14 else 2)  # 0=Asia 1=London 2=NY
         _fg2 = _safe_float(request.args.get("fear_greed_value", 50), default=50.0, min_v=0.0, max_v=100.0)
 
@@ -3297,7 +3301,7 @@ def bet_sizing():
         corr_multiplier = 1.0
         if _xgb_correctness is not None:
             try:
-                _dow3 = _dt.datetime.utcnow().weekday()  # 0=Mon..6=Sun
+                _dow3 = _dt.datetime.now(_dt.timezone.utc).weekday()  # 0=Mon..6=Sun
                 _session3 = 0 if hour_utc < 8 else (1 if hour_utc < 14 else 2)
                 feat_row = [[
                     confidence, fear_greed,
@@ -3408,7 +3412,7 @@ def rescue_orphaned():
             started = ex.get("startedAt", "")
             if started:
                 try:
-                    age_min = (_dt.datetime.utcnow() -
+                    age_min = (_dt.datetime.now(_dt.timezone.utc) -
                                _dt.datetime.fromisoformat(started.replace("Z",""))).total_seconds() / 60
                     if age_min < 40:
                         active_ids.add(ex.get("id"))  # execution id, non bet id
@@ -3434,7 +3438,7 @@ def rescue_orphaned():
             created_dt = _dt.datetime.fromisoformat(
                 bet_created.replace("Z", "").split("+")[0]
             )
-            age_hours = (_dt.datetime.utcnow() - created_dt).total_seconds() / 3600
+            age_hours = (_dt.datetime.now(_dt.timezone.utc) - created_dt).total_seconds() / 3600
         except Exception:
             age_hours = 0
 
@@ -4414,7 +4418,7 @@ def orphaned_bets():
     except Exception as e:
         return jsonify({"error": f"Supabase: {e}"}), 500
 
-    now = _dt.datetime.utcnow()
+    now = _dt.datetime.now(_dt.timezone.utc)
     result = []
     for row in rows:
         minutes_open = 0
@@ -5059,7 +5063,7 @@ def training_status():
             pass
 
     # Next scheduled retrain: daily at 03:00 UTC via n8n → /auto-retrain
-    now_utc = _dt.datetime.utcnow()
+    now_utc = _dt.datetime.now(_dt.timezone.utc)
     next_retrain_dt = now_utc.replace(hour=3, minute=0, second=0, microsecond=0)
     if now_utc.hour >= 3:
         next_retrain_dt += _dt.timedelta(days=1)
@@ -5082,7 +5086,7 @@ def training_status():
     cal_remaining_secs = None
     if _force_retrain_last > 0:
         last_cal_iso = _dt.datetime.utcfromtimestamp(_force_retrain_last).strftime("%Y-%m-%d %H:%M UTC")
-        elapsed = _dt.datetime.utcnow().timestamp() - _force_retrain_last
+        elapsed = _dt.datetime.now(_dt.timezone.utc).timestamp() - _force_retrain_last
         cal_remaining_secs = max(0, int(3600 - elapsed))
 
     return jsonify({
@@ -5845,9 +5849,9 @@ def news_fact_check():
             ts_nfc = int(_dt_nfc.datetime.fromisoformat(
                 news_published_at.replace("Z", "+00:00")).timestamp())
         else:
-            ts_nfc = int(_dt.datetime.utcnow().timestamp())
+            ts_nfc = int(_dt.datetime.now(_dt.timezone.utc).timestamp())
     except Exception:
-        ts_nfc = int(_dt.datetime.utcnow().timestamp())
+        ts_nfc = int(_dt.datetime.now(_dt.timezone.utc).timestamp())
 
     # Hash SHA-256 della news (deterministico: stessa news = stesso hash)
     raw_nfc = f"{url}|{headline}|{ts_nfc}".encode("utf-8")
