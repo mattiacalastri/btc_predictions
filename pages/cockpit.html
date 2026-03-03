@@ -1008,7 +1008,7 @@ const REFRESH_INTERVAL = 5000;
 
 // ── Centralized state ──
 const STATE = {
-  authToken: '',
+  authenticated: false,
   autoRefresh: true,
   ghostMode: false,
   davideMode: false,
@@ -1061,11 +1061,11 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
     const resp = await fetch(`${API_BASE}/cockpit/api/auth`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
       body: JSON.stringify({ token })
     });
     if (resp.ok) {
-      STATE.authToken = token;
-      localStorage.setItem('cockpit_token', token);
+      STATE.authenticated = true;
       document.getElementById('login-overlay').classList.add('hidden');
       document.getElementById('app').style.display = 'block';
       startPolling();
@@ -1078,15 +1078,17 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
   }
 });
 
-// Auto-login from localStorage
-(function() {
-  const saved = localStorage.getItem('cockpit_token');
-  if (saved) {
-    STATE.authToken = saved;
-    document.getElementById('login-overlay').classList.add('hidden');
-    document.getElementById('app').style.display = 'block';
-    startPolling();
-  }
+// Auto-login from httpOnly cookie (test with a lightweight API call)
+(async function() {
+  try {
+    const resp = await fetch(`${API_BASE}/cockpit/api/agents`, { credentials: 'same-origin' });
+    if (resp.ok) {
+      STATE.authenticated = true;
+      document.getElementById('login-overlay').classList.add('hidden');
+      document.getElementById('app').style.display = 'block';
+      startPolling();
+    }
+  } catch (_) { /* no cookie — show login */ }
   // Restore settings
   STATE.ghostMode = localStorage.getItem('cockpit_ghost') === '1';
   STATE.davideMode = localStorage.getItem('cockpit_davide') === '1';
@@ -1099,8 +1101,9 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
 })();
 
 function logout() {
-  localStorage.removeItem('cockpit_token');
-  STATE.authToken = '';
+  // Clear httpOnly cookie by expiring it (server-side) — also clear client state
+  fetch(`${API_BASE}/cockpit/api/logout`, { method: 'POST', credentials: 'same-origin' }).catch(() => {});
+  STATE.authenticated = false;
   if (STATE.refreshTimer) clearInterval(STATE.refreshTimer);
   document.getElementById('login-overlay').classList.remove('hidden');
   document.getElementById('app').style.display = 'none';
@@ -1109,7 +1112,7 @@ function logout() {
 // ── API HELPERS ──
 async function apiFetch(path) {
   const resp = await fetch(`${API_BASE}${path}`, {
-    headers: { 'X-Cockpit-Token': STATE.authToken }
+    credentials: 'same-origin'
   });
   if (resp.status === 403) {
     logout();
@@ -1681,7 +1684,8 @@ document.addEventListener('keydown', (e) => {
 async function apiPost(path, body) {
   const resp = await fetch(`${API_BASE}${path}`, {
     method: 'POST',
-    headers: { 'X-Cockpit-Token': STATE.authToken, 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
     body: JSON.stringify(body || {})
   });
   if (resp.status === 403) { logout(); throw new Error('Unauthorized'); }

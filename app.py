@@ -571,7 +571,7 @@ def _check_api_key():
     """
     bot_key = os.environ.get("BOT_API_KEY", "")
     if not bot_key:
-        return None
+        return jsonify({"error": "Server misconfigured: API key not set"}), 503
     req_key = request.headers.get("X-API-Key", "")
     if not _hmac.compare_digest(req_key.encode(), bot_key.encode()):
         return jsonify({"error": "Unauthorized"}), 401
@@ -851,7 +851,10 @@ def health():
 
 @app.route("/config", methods=["GET"])
 def get_config():
-    """Exposes runtime configuration for n8n and monitoring. No auth (read-only)."""
+    """Exposes runtime configuration for n8n and monitoring."""
+    auth_err = _check_read_key()
+    if auth_err:
+        return auth_err
     return jsonify({
         "prediction_horizon_minutes": PREDICTION_HORIZON_MINUTES,
         "trade_cooldown_minutes": TRADE_COOLDOWN_MINUTES,
@@ -870,7 +873,10 @@ def get_config():
 
 @app.route("/adaptive-estimate", methods=["GET"])
 def adaptive_estimate():
-    """Current adaptive engine state. No auth (read-only monitoring)."""
+    """Current adaptive engine state."""
+    auth_err = _check_read_key()
+    if auth_err:
+        return auth_err
     return jsonify(_adaptive_engine.get_estimate())
 
 
@@ -878,8 +884,10 @@ def adaptive_estimate():
 
 @app.route("/brain-state", methods=["GET"])
 def brain_state():
-    """Aggregated bot state for wf08 Brain Monitor. Single call = full picture.
-    No auth required (read-only monitoring data)."""
+    """Aggregated bot state for wf08 Brain Monitor. Single call = full picture."""
+    auth_err = _check_read_key()
+    if auth_err:
+        return auth_err
     now = _dt.datetime.now(_dt.timezone.utc)
     state = {
         "ts": now.isoformat(),
@@ -6548,8 +6556,8 @@ def marketing():
             '<script>var t=prompt("Token di accesso:");if(t)window.location=window.location.pathname+"?token="+t;</script><body'
         ), 200, {"Content-Type": "text/html"}
     html = _read_page("marketing.html")
-    # Use READ_API_KEY for dashboard (less privileged than BOT_API_KEY)
-    read_key = os.environ.get("READ_API_KEY", os.environ.get("BOT_API_KEY", ""))
+    # Use READ_API_KEY for dashboard — NEVER expose BOT_API_KEY to browser
+    read_key = os.environ.get("READ_API_KEY", "")
     html = html.replace("</head>", f'<script>window.__MKT_API_KEY__={json.dumps(read_key)};</script>\n</head>', 1)
     resp = make_response(html, 200, {"Content-Type": "text/html"})
     resp.set_cookie("mkt_token", cockpit_token, httponly=True, secure=True, samesite="Strict", max_age=86400)
@@ -6827,10 +6835,10 @@ _cockpit_rl = {}  # rate limiting for cockpit auth
 
 
 def _check_cockpit_auth():
-    """Verify cockpit token from header. Returns None if ok, error response if not."""
+    """Verify cockpit token from header or httpOnly cookie. Returns None if ok, error response if not."""
     if not _COCKPIT_TOKEN:
         return jsonify({"error": "cockpit_disabled", "msg": "COCKPIT_TOKEN not configured"}), 503
-    token = request.headers.get("X-Cockpit-Token", "")
+    token = request.headers.get("X-Cockpit-Token", "") or request.cookies.get("cockpit_session", "")
     if not token or not _hmac.compare_digest(token, _COCKPIT_TOKEN):
         return jsonify({"error": "forbidden"}), 403
     return None
@@ -6868,10 +6876,25 @@ def cockpit_auth():
         return jsonify({"error": "cockpit_disabled"}), 503
     if _hmac.compare_digest(token, _COCKPIT_TOKEN):
         app.logger.info("[COCKPIT] Auth success from %s", ip)
-        return jsonify({"status": "ok"}), 200
+        from flask import make_response as _mk
+        resp = _mk(jsonify({"status": "ok"}), 200)
+        resp.set_cookie(
+            "cockpit_session", _COCKPIT_TOKEN,
+            httponly=True, secure=True, samesite="Strict", max_age=86400,
+        )
+        return resp
     else:
         app.logger.warning("[COCKPIT] Auth failed from %s", ip)
         return jsonify({"error": "forbidden"}), 403
+
+
+@app.route("/cockpit/api/logout", methods=["POST"])
+def cockpit_logout():
+    """Clear cockpit session cookie."""
+    from flask import make_response as _mk
+    resp = _mk(jsonify({"status": "ok"}), 200)
+    resp.delete_cookie("cockpit_session", httponly=True, secure=True, samesite="Strict")
+    return resp
 
 
 @app.route("/cockpit/api/agents", methods=["GET"])
