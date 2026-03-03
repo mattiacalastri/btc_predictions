@@ -113,7 +113,7 @@ if (data.position) {
 lines.push('');
 
 if (bias.total > 0) {
-  const b = Math.round((bias.up/bias.total)*10);
+  const b = Math.min(10, Math.max(0, Math.round((bias.up/bias.total)*10)));
   lines.push(`📊 UP ${'█'.repeat(b)}${'░'.repeat(10-b)} DOWN (${bias.up}/${bias.down})`);
 }
 if (data.avg_confidence) {

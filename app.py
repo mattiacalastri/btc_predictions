@@ -3163,8 +3163,7 @@ def performance_stats():
         try:
             ep_path = os.path.join(os.path.dirname(__file__), "datasets", "error_patterns.json")
             if os.path.exists(ep_path):
-                import time as _time
-                age_days = (_time.time() - os.path.getmtime(ep_path)) / 86400
+                age_days = (time.time() - os.path.getmtime(ep_path)) / 86400
                 if age_days < 8:  # ignora se più vecchio di 8 giorni
                     with open(ep_path, "r") as _f:
                         ep = json.load(_f)
@@ -4016,8 +4015,8 @@ def costs():
     # ── 2. Supabase row count (reale) ─────────────────────────────────────────
     row_count = 0
     try:
-        url = f"{sb_url}/rest/v1/{SUPABASE_TABLE}?select=id"
-        res = requests.get(url, headers={**sb_headers, "Prefer": "count=exact"}, timeout=5)
+        url = f"{sb_url}/rest/v1/{SUPABASE_TABLE}?select=id&limit=0"
+        res = requests.get(url, headers={**sb_headers, "Prefer": "count=exact", "Range": "0-0"}, timeout=5)
         cr = res.headers.get("Content-Range", "")
         if "/" in cr:
             row_count = int(cr.split("/")[1])
@@ -4059,7 +4058,6 @@ def costs():
     n8n_cost = 0.0  # self-hosted su VPS Hostinger
 
     # ── 4. Claude API (reale: conta predizioni questo mese da Supabase) ─────────
-    import datetime as _dt
     claude_model = os.environ.get("CLAUDE_MODEL", "claude-haiku-4-5-20251001")
     _MODEL_PRICING = {
         "claude-haiku-4-5":           {"input": 0.80,  "output": 4.00},
@@ -4076,8 +4074,8 @@ def costs():
     month_start = _dt.date.today().replace(day=1).isoformat()
     try:
         url = (f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
-               f"?select=id&created_at=gte.{month_start}T00:00:00")
-        res = requests.get(url, headers={**sb_headers, "Prefer": "count=exact"}, timeout=5)
+               f"?select=id&created_at=gte.{month_start}T00:00:00&limit=0")
+        res = requests.get(url, headers={**sb_headers, "Prefer": "count=exact", "Range": "0-0"}, timeout=5)
         cr = res.headers.get("Content-Range", "")
         if "/" in cr:
             monthly_calls = int(cr.split("/")[1])
@@ -5060,7 +5058,6 @@ def training_status():
     Returns auto-training system status: last retrain date, model accuracy,
     bets since retrain, next scheduled retrain (Sunday 3AM).
     """
-    import datetime as _dt
     import re as _re
 
     base = os.path.dirname(__file__)
@@ -6432,7 +6429,6 @@ def on_chain_audit():
     Proof Chain integrity — NO auth required.
     Usa select=* per compatibilità con RLS (stesso pattern di /signals).
     """
-    import datetime as _dt
 
     sb_url, sb_key = _sb_config()
     if not sb_url or not sb_key:
@@ -6552,8 +6548,9 @@ def marketing():
             '<script>var t=prompt("Token di accesso:");if(t)window.location=window.location.pathname+"?token="+t;</script><body'
         ), 200, {"Content-Type": "text/html"}
     html = _read_page("marketing.html")
-    bot_key = os.environ.get("BOT_API_KEY", "")
-    html = html.replace("</head>", f'<script>window.__MKT_API_KEY__={json.dumps(bot_key)};</script>\n</head>', 1)
+    # Use READ_API_KEY for dashboard (less privileged than BOT_API_KEY)
+    read_key = os.environ.get("READ_API_KEY", os.environ.get("BOT_API_KEY", ""))
+    html = html.replace("</head>", f'<script>window.__MKT_API_KEY__={json.dumps(read_key)};</script>\n</head>', 1)
     resp = make_response(html, 200, {"Content-Type": "text/html"})
     resp.set_cookie("mkt_token", cockpit_token, httponly=True, secure=True, samesite="Strict", max_age=86400)
     return resp
@@ -6562,7 +6559,6 @@ def marketing():
 @app.route("/marketing-stats", methods=["GET"])
 def marketing_stats():
     """Dati pubblici/marketing — NO auth required."""
-    import datetime as _dt
     import re as _re
 
     result = {}
