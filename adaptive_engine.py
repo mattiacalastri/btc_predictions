@@ -30,11 +30,11 @@ logger = logging.getLogger("adaptive_engine")
 # ── Defaults & bounds ─────────────────────────────────────────────────────────
 _DEFAULT_THRESHOLD = 0.56
 _THRESHOLD_BOUNDS = (0.50, 0.70)
-_MOMENTUM_BOUNDS = (0.85, 1.10)
+_MOMENTUM_BOUNDS = (0.95, 1.05)
 _DIRECTION_ADJ_BOUNDS = (-0.05, 0.08)
 _REGIME_ADJ_BOUNDS = (-0.05, 0.08)
-_MIN_SIGNALS_FOR_CALC = 30
-_MIN_SIGNALS_PER_BAND = 5
+_MIN_SIGNALS_FOR_CALC = 100
+_MIN_SIGNALS_PER_BAND = 15
 _RECALC_INTERVAL_SEC = 3600       # 1 hour
 _RECALC_MIN_NEW_SIGNALS = 50
 _DIRECTION_WINDOW = 30            # last N signals for bias detection
@@ -250,7 +250,7 @@ class AdaptiveEngine:
         # 6. Calibration WR factor: scale confidence by how well the bot performs
         # If WR_50 > 50%: factor > 1 (boost). If < 50%: factor < 1 (reduce).
         if wr_50 is not None:
-            calibration_wr_factor = _clamp(wr_50 / 0.50, 0.90, 1.10)
+            calibration_wr_factor = _clamp(wr_50 / 0.50, 0.95, 1.05)
         else:
             calibration_wr_factor = 1.0
 
