@@ -1018,6 +1018,221 @@ def publish_telegram():
         return jsonify({"error": str(e)}), 502
 
 
+# ── PUBLISH X / TWITTER ─────────────────────────────────────────────────────
+
+def _twitter_oauth_header(method, url):
+    """Build OAuth 1.0a Authorization header for Twitter API v2 (stdlib only)."""
+    import urllib.parse as _up
+    import uuid as _uuid
+    import base64 as _b64
+
+    consumer_key = os.environ.get("TWITTER_API_KEY", "")
+    consumer_secret = os.environ.get("TWITTER_API_SECRET", "")
+    token = os.environ.get("TWITTER_ACCESS_TOKEN", "")
+    token_secret = os.environ.get("TWITTER_ACCESS_TOKEN_SECRET", "")
+
+    oauth_params = {
+        "oauth_consumer_key": consumer_key,
+        "oauth_nonce": _uuid.uuid4().hex,
+        "oauth_signature_method": "HMAC-SHA1",
+        "oauth_timestamp": str(int(time.time())),
+        "oauth_token": token,
+        "oauth_version": "1.0",
+    }
+    param_str = "&".join(
+        f"{_up.quote(k, safe='')}={_up.quote(v, safe='')}"
+        for k, v in sorted(oauth_params.items())
+    )
+    base_str = f"{method.upper()}&{_up.quote(url, safe='')}&{_up.quote(param_str, safe='')}"
+    signing_key = f"{_up.quote(consumer_secret, safe='')}&{_up.quote(token_secret, safe='')}"
+    signature = _b64.b64encode(
+        _hmac.new(signing_key.encode(), base_str.encode(), hashlib.sha1).digest()
+    ).decode()
+    oauth_params["oauth_signature"] = signature
+    return "OAuth " + ", ".join(
+        f'{_up.quote(k, safe="")}="{_up.quote(v, safe="")}"'
+        for k, v in sorted(oauth_params.items())
+    )
+
+
+@app.route("/publish-x", methods=["POST"])
+def publish_x():
+    """Pubblica un tweet via Twitter API v2 con OAuth 1.0a.
+    Protected by BOT_API_KEY. Rate-limited a 5/min.
+    Body JSON: {text: str}
+    """
+    err = _check_api_key()
+    if err:
+        return err
+    _rl_key = f"pubx:{request.headers.get('X-Api-Key', request.remote_addr)}"
+    if not _check_rate_limit(_rl_key, max_calls=5):
+        return jsonify({"error": "rate_limited"}), 429
+    data = request.get_json(force=True) or {}
+    text = str(data.get("text", "")).strip()
+    if not text:
+        return jsonify({"error": "text required"}), 400
+    if len(text) > 280:
+        return jsonify({"error": "text too long (max 280 chars for tweets)"}), 400
+    required = ["TWITTER_API_KEY", "TWITTER_API_SECRET",
+                 "TWITTER_ACCESS_TOKEN", "TWITTER_ACCESS_TOKEN_SECRET"]
+    missing = [k for k in required if not os.environ.get(k)]
+    if missing:
+        return jsonify({"error": f"Twitter not configured (missing: {', '.join(missing)})"}), 503
+    try:
+        url = "https://api.twitter.com/2/tweets"
+        resp = requests.post(
+            url, json={"text": text},
+            headers={"Authorization": _twitter_oauth_header("POST", url),
+                     "Content-Type": "application/json"},
+            timeout=15,
+        )
+        result = resp.json()
+        if resp.status_code not in (200, 201):
+            error_msg = result.get("detail") or result.get("title") or str(result)
+            return jsonify({"error": f"Twitter API error: {error_msg}"}), 502
+        tweet_data = result.get("data", {})
+        return jsonify({"ok": True, "tweet_id": tweet_data.get("id")})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 502
+
+
+# ── PUBLISH LINKEDIN ────────────────────────────────────────────────────────
+
+@app.route("/publish-linkedin", methods=["POST"])
+def publish_linkedin():
+    """Pubblica un post su LinkedIn via API v2.
+    Protected by BOT_API_KEY. Rate-limited a 5/min.
+    Body JSON: {text: str}
+    """
+    err = _check_api_key()
+    if err:
+        return err
+    _rl_key = f"publi:{request.headers.get('X-Api-Key', request.remote_addr)}"
+    if not _check_rate_limit(_rl_key, max_calls=5):
+        return jsonify({"error": "rate_limited"}), 429
+    data = request.get_json(force=True) or {}
+    text = str(data.get("text", "")).strip()
+    if not text:
+        return jsonify({"error": "text required"}), 400
+    if len(text) > 3000:
+        return jsonify({"error": "text too long (max 3000 chars for LinkedIn)"}), 400
+    access_token = os.environ.get("LINKEDIN_ACCESS_TOKEN", "")
+    person_urn = os.environ.get("LINKEDIN_PERSON_URN", "")
+    if not access_token or not person_urn:
+        return jsonify({"error": "LinkedIn not configured (set LINKEDIN_ACCESS_TOKEN + LINKEDIN_PERSON_URN on Railway)"}), 503
+    try:
+        resp = requests.post(
+            "https://api.linkedin.com/v2/ugcPosts",
+            json={
+                "author": person_urn,
+                "lifecycleState": "PUBLISHED",
+                "specificContent": {
+                    "com.linkedin.ugc.ShareContent": {
+                        "shareCommentary": {"text": text},
+                        "shareMediaCategory": "NONE",
+                    }
+                },
+                "visibility": {"com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"},
+            },
+            headers={
+                "Authorization": f"Bearer {access_token}",
+                "Content-Type": "application/json",
+                "X-Restli-Protocol-Version": "2.0.0",
+            },
+            timeout=15,
+        )
+        if resp.status_code in (200, 201):
+            return jsonify({"ok": True, "post_id": resp.json().get("id", "")})
+        return jsonify({"error": f"LinkedIn error ({resp.status_code}): {resp.text[:300]}"}), 502
+    except Exception as e:
+        return jsonify({"error": str(e)}), 502
+
+
+# ── PUBLISH REDDIT ──────────────────────────────────────────────────────────
+
+@app.route("/publish-reddit", methods=["POST"])
+def publish_reddit():
+    """Pubblica un post su Reddit via API.
+    Protected by BOT_API_KEY. Rate-limited a 3/min.
+    Body JSON: {text: str, title: str, subreddit?: str}
+    """
+    err = _check_api_key()
+    if err:
+        return err
+    _rl_key = f"pubrd:{request.headers.get('X-Api-Key', request.remote_addr)}"
+    if not _check_rate_limit(_rl_key, max_calls=3):
+        return jsonify({"error": "rate_limited"}), 429
+    data = request.get_json(force=True) or {}
+    text = str(data.get("text", "")).strip()
+    title = str(data.get("title", "")).strip()
+    if not text:
+        return jsonify({"error": "text required"}), 400
+    if not title:
+        return jsonify({"error": "title required (Reddit posts need a title)"}), 400
+    client_id = os.environ.get("REDDIT_CLIENT_ID", "")
+    client_secret = os.environ.get("REDDIT_CLIENT_SECRET", "")
+    username = os.environ.get("REDDIT_USERNAME", "")
+    password = os.environ.get("REDDIT_PASSWORD", "")
+    subreddit = data.get("subreddit") or os.environ.get("REDDIT_SUBREDDIT", "algotrading")
+    if not all([client_id, client_secret, username, password]):
+        return jsonify({"error": "Reddit not configured (set REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET, REDDIT_USERNAME, REDDIT_PASSWORD on Railway)"}), 503
+    try:
+        # Step 1: OAuth2 token
+        auth_resp = requests.post(
+            "https://www.reddit.com/api/v1/access_token",
+            auth=(client_id, client_secret),
+            data={"grant_type": "password", "username": username, "password": password},
+            headers={"User-Agent": "btcpredictor-bot/1.0"},
+            timeout=10,
+        )
+        if auth_resp.status_code != 200:
+            return jsonify({"error": f"Reddit auth failed ({auth_resp.status_code})"}), 502
+        token = auth_resp.json().get("access_token")
+        if not token:
+            return jsonify({"error": "Reddit auth: no access_token"}), 502
+        # Step 2: Submit post
+        resp = requests.post(
+            "https://oauth.reddit.com/api/submit",
+            data={"kind": "self", "sr": subreddit, "title": title,
+                  "text": text, "api_type": "json"},
+            headers={"Authorization": f"Bearer {token}",
+                     "User-Agent": "btcpredictor-bot/1.0"},
+            timeout=15,
+        )
+        result = resp.json()
+        json_data = result.get("json", {})
+        errors = json_data.get("errors", [])
+        if errors:
+            return jsonify({"error": f"Reddit errors: {errors}"}), 502
+        post_data = json_data.get("data", {})
+        return jsonify({"ok": True, "post_url": post_data.get("url", ""),
+                        "subreddit": subreddit})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 502
+
+
+# ── PUBLISH STATUS ──────────────────────────────────────────────────────────
+
+@app.route("/publish-status", methods=["GET"])
+def publish_status():
+    """Quali canali hanno credenziali configurate. Protected by BOT_API_KEY."""
+    err = _check_api_key()
+    if err:
+        return err
+    return jsonify({
+        "telegram": bool(os.environ.get("TELEGRAM_BOT_TOKEN")),
+        "x": all(os.environ.get(k) for k in [
+            "TWITTER_API_KEY", "TWITTER_API_SECRET",
+            "TWITTER_ACCESS_TOKEN", "TWITTER_ACCESS_TOKEN_SECRET"]),
+        "linkedin": all(os.environ.get(k) for k in [
+            "LINKEDIN_ACCESS_TOKEN", "LINKEDIN_PERSON_URN"]),
+        "reddit": all(os.environ.get(k) for k in [
+            "REDDIT_CLIENT_ID", "REDDIT_CLIENT_SECRET",
+            "REDDIT_USERNAME", "REDDIT_PASSWORD"]),
+        "reddit_subreddit": os.environ.get("REDDIT_SUBREDDIT", "algotrading"),
+    })
+
+
 # ── BALANCE ──────────────────────────────────────────────────────────────────
 
 @app.route("/balance", methods=["GET"])
@@ -5853,7 +6068,10 @@ def marketing():
             '<body',
             '<script>var t=prompt("Token di accesso:");if(t)window.location=window.location.pathname+"?token="+t;</script><body'
         ), 200, {"Content-Type": "text/html"}
-    resp = make_response(_read_page("marketing.html"), 200, {"Content-Type": "text/html"})
+    html = _read_page("marketing.html")
+    bot_key = os.environ.get("BOT_API_KEY", "")
+    html = html.replace("</head>", f'<script>window.__MKT_API_KEY__={json.dumps(bot_key)};</script>\n</head>', 1)
+    resp = make_response(html, 200, {"Content-Type": "text/html"})
     resp.set_cookie("mkt_token", cockpit_token, httponly=True, secure=True, samesite="Strict", max_age=86400)
     return resp
 

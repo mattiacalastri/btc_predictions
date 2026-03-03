@@ -483,10 +483,16 @@
   .btn-pub-tg:hover { background:rgba(0,212,255,.18); }
   .btn-pub-x     { background:rgba(232,224,208,.04); color:rgba(232,224,208,.3); border-color:rgba(232,224,208,.08); cursor:pointer; }
   .btn-pub-x:hover { color:rgba(232,224,208,.5); border-color:rgba(232,224,208,.2); }
+  .btn-pub-x.active { background:rgba(232,224,208,.08); color:var(--text); border-color:rgba(232,224,208,.25); }
+  .btn-pub-x.active:hover { background:rgba(232,224,208,.14); }
   .btn-pub-li    { background:rgba(0,119,181,.05); color:rgba(74,168,209,.3); border-color:rgba(0,119,181,.1); cursor:pointer; }
   .btn-pub-li:hover { color:rgba(74,168,209,.5); border-color:rgba(0,119,181,.25); }
+  .btn-pub-li.active { background:rgba(0,119,181,.1); color:#4aa8d1; border-color:rgba(0,119,181,.3); }
+  .btn-pub-li.active:hover { background:rgba(0,119,181,.18); }
   .btn-pub-rd    { background:rgba(255,69,0,.05); color:rgba(255,107,53,.3); border-color:rgba(255,69,0,.1); cursor:pointer; }
   .btn-pub-rd:hover { color:rgba(255,107,53,.5); border-color:rgba(255,69,0,.25); }
+  .btn-pub-rd.active { background:rgba(255,69,0,.1); color:#ff6b35; border-color:rgba(255,69,0,.3); }
+  .btn-pub-rd.active:hover { background:rgba(255,69,0,.18); }
   .btn-pub-del   { background:rgba(255,68,102,.06); color:rgba(255,68,102,.4); border-color:rgba(255,68,102,.15); cursor:pointer; }
   .btn-pub-del:hover { color:var(--red); border-color:rgba(255,68,102,.35); }
   .post-photo-thumb { display:flex; align-items:center; gap:10px; margin-bottom:10px; padding:8px 10px; background:rgba(0,255,136,.04); border:1px solid rgba(0,255,136,.1); border-radius:6px; }
@@ -813,7 +819,7 @@
         <span class="chan-stat-label">Followers</span>
         <span class="chan-stat-val" style="color:var(--muted);">—</span>
       </div>
-      <div><span class="chan-soon">Integration coming soon</span></div>
+      <div id="xChanStatus"><span class="chan-soon">Checking…</span></div>
       <div style="color:var(--muted);font-size:11px;">Thread tecnici + performance update settimanale via wf09A.</div>
     </div>
 
@@ -830,7 +836,7 @@
         <span class="chan-stat-label">Connections</span>
         <span class="chan-stat-val" style="color:var(--muted);">—</span>
       </div>
-      <div><span class="chan-soon">Integration coming soon</span></div>
+      <div id="liChanStatus"><span class="chan-soon">Checking…</span></div>
       <div style="color:var(--muted);font-size:11px;">Angolo investor + professional audience. Target: fintech, crypto.</div>
     </div>
 
@@ -847,7 +853,7 @@
         <span class="chan-stat-label">Post karma</span>
         <span class="chan-stat-val" style="color:var(--muted);">—</span>
       </div>
-      <div><span class="chan-soon">Integration coming soon</span></div>
+      <div id="rdChanStatus"><span class="chan-soon">Checking…</span></div>
       <div style="color:var(--muted);font-size:11px;">r/algotrading, r/BitcoinMarkets — community engagement.</div>
     </div>
 
@@ -1785,20 +1791,44 @@ var _PED_DEFAULTS = [
     text: '📊 Fine settimana 1 — Day 0 era.\n\nBet reali: [dinamico]\nGhost WR osservato: 63.2%\nOn-chain commit: 100% coverage\nCircuit breaker: non attivato ✅\n\nIl modello funziona. Lentamente, come deve.\nNon stiamo correndo — stiamo costruendo il dataset certificato.\n\nGrazie a chi segue il canale e verifica on-chain. 🐙\n\nbtcpredictor.io · 🎩🐙🪄' },
 ];
 
+var _channelStatus = { telegram: false, x: false, linkedin: false, reddit: false, reddit_subreddit: 'algotrading' };
+
 function pedInit() {
-  // Init API key bar visibility
+  // Auto-inject API key from server (replaces manual entry)
+  if(window.__MKT_API_KEY__) {
+    localStorage.setItem(_PED_APIKEY, window.__MKT_API_KEY__);
+  }
   var saved = localStorage.getItem(_PED_APIKEY);
   var bar = document.getElementById('pedApikeyBar');
   if(bar) bar.style.display = saved ? 'none' : 'flex';
-  if(saved) {
-    var status = document.getElementById('pedApikeyStatus');
-    if(status) status.textContent = '✅ chiave salvata';
-  }
   // Seed default posts if empty
   if(!localStorage.getItem(_PED_KEY)) {
     localStorage.setItem(_PED_KEY, JSON.stringify(_PED_DEFAULTS));
   }
   pedRenderPosts();
+  pedCheckChannelStatus();
+}
+
+function pedCheckChannelStatus() {
+  var apiKey = localStorage.getItem(_PED_APIKEY);
+  if(!apiKey) return;
+  fetch('/publish-status', { headers: { 'X-Api-Key': apiKey } })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      _channelStatus = d;
+      pedUpdateChannelCards(d);
+      pedRenderPosts();
+    }).catch(function(){});
+}
+
+function pedUpdateChannelCards(s) {
+  var el;
+  el = document.getElementById('xChanStatus');
+  if(el) el.innerHTML = s.x ? '<span class="chan-live">● configured</span>' : '<span class="chan-soon">Set TWITTER_* env vars on Railway</span>';
+  el = document.getElementById('liChanStatus');
+  if(el) el.innerHTML = s.linkedin ? '<span class="chan-live">● configured</span>' : '<span class="chan-soon">Set LINKEDIN_* env vars on Railway</span>';
+  el = document.getElementById('rdChanStatus');
+  if(el) el.innerHTML = s.reddit ? '<span class="chan-live">● configured</span>' : '<span class="chan-soon">Set REDDIT_* env vars on Railway</span>';
 }
 
 function pedGetPosts() {
@@ -1842,9 +1872,17 @@ function pedRenderPosts() {
       '<div class="post-actions">' +
         '<button class="btn-pub btn-pub-copy" onclick="pedCopyPost(\'' + safeId + '\')">📋 Copia</button>' +
         (canTG ? '<button class="btn-pub btn-pub-tg" onclick="pedPublishTG(\'' + safeId + '\')">' + tgLabel + '</button>' : '') +
-        '<button class="btn-pub btn-pub-x" onclick="pedComingSoon(\'X\')">𝕏 X</button>' +
-        '<button class="btn-pub btn-pub-li" onclick="pedComingSoon(\'LinkedIn\')">💼 LinkedIn</button>' +
-        '<button class="btn-pub btn-pub-rd" onclick="pedComingSoon(\'Reddit\')">🤖 Reddit</button>' +
+        (function(){
+          var canX = (p.channel === 'x' || p.channel === 'all');
+          var canLI = (p.channel === 'li' || p.channel === 'all');
+          var canRD = (p.channel === 'rd' || p.channel === 'all');
+          var xCls = _channelStatus.x ? ' active' : '';
+          var liCls = _channelStatus.linkedin ? ' active' : '';
+          var rdCls = _channelStatus.reddit ? ' active' : '';
+          return (canX ? '<button class="btn-pub btn-pub-x' + xCls + '" onclick="pedPublishX(\'' + safeId + '\')">' + (p.sent_x ? '✅ X' : '𝕏 Post') + '</button>' : '<button class="btn-pub btn-pub-x" onclick="pedChannelNA(\'X\')">𝕏 X</button>') +
+            (canLI ? '<button class="btn-pub btn-pub-li' + liCls + '" onclick="pedPublishLI(\'' + safeId + '\')">' + (p.sent_li ? '✅ LI' : '💼 LinkedIn') + '</button>' : '<button class="btn-pub btn-pub-li" onclick="pedChannelNA(\'LinkedIn\')">💼 LinkedIn</button>') +
+            (canRD ? '<button class="btn-pub btn-pub-rd' + rdCls + '" onclick="pedPublishRD(\'' + safeId + '\')">' + (p.sent_rd ? '✅ RD' : '🤖 Reddit') + '</button>' : '<button class="btn-pub btn-pub-rd" onclick="pedChannelNA(\'Reddit\')">🤖 Reddit</button>');
+        })() +
         '<button class="btn-pub btn-pub-del" onclick="pedDeletePost(\'' + safeId + '\')" style="margin-left:auto;">🗑</button>' +
       '</div>' +
     '</div>';
@@ -1956,8 +1994,104 @@ function pedSaveNewPost() {
   pedShowToast('✅ Post salvato in bozza', false);
 }
 
-function pedComingSoon(channel) {
-  pedShowToast('⏳ ' + channel + ' — integrazione in arrivo', true);
+function pedChannelNA(ch) {
+  if(!_channelStatus[ch.toLowerCase()]) {
+    pedShowToast('⚙️ ' + ch + ' non configurato — aggiungi le env vars su Railway', true);
+  } else {
+    pedShowToast('ℹ️ Seleziona "' + ch + '" o "Tutti" come canale del post per pubblicare', false);
+  }
+}
+
+function pedPublishX(id) {
+  var apiKey = localStorage.getItem(_PED_APIKEY);
+  if(!apiKey) { pedShowToast('⚠ API Key mancante', true); return; }
+  if(!_channelStatus.x) { pedShowToast('⚙️ X non configurato — set TWITTER_* env vars on Railway', true); return; }
+  var posts = pedGetPosts();
+  var p = posts.find(function(x){ return String(x.id).replace(/[^a-zA-Z0-9_\-]/g,'_') === id; });
+  if(!p) return;
+  var text = (p.text || '').substring(0, 280);
+  if((p.text || '').length > 280 && !confirm('Tweet troncato a 280 caratteri. Pubblicare?')) return;
+  var btnEl = document.querySelector('#pcard_' + id + ' .btn-pub-x');
+  if(btnEl) { btnEl.textContent = '⏳ X…'; btnEl.disabled = true; }
+  fetch('/publish-x', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
+    body: JSON.stringify({ text: text })
+  }).then(function(r){ return r.json(); })
+    .then(function(d){
+      if(d.ok) {
+        pedShowToast('✅ Pubblicato su X! tweet_id ' + d.tweet_id, false);
+        if(btnEl) btnEl.textContent = '✅ X';
+        p.sent_x = true; pedSavePosts(posts);
+      } else {
+        pedShowToast('❌ Errore X: ' + (d.error || 'unknown'), true);
+        if(btnEl) { btnEl.textContent = '𝕏 Post'; btnEl.disabled = false; }
+      }
+    }).catch(function(err){
+      pedShowToast('❌ Errore rete: ' + err.message, true);
+      if(btnEl) { btnEl.textContent = '𝕏 Post'; btnEl.disabled = false; }
+    });
+}
+
+function pedPublishLI(id) {
+  var apiKey = localStorage.getItem(_PED_APIKEY);
+  if(!apiKey) { pedShowToast('⚠ API Key mancante', true); return; }
+  if(!_channelStatus.linkedin) { pedShowToast('⚙️ LinkedIn non configurato — set LINKEDIN_* env vars on Railway', true); return; }
+  var posts = pedGetPosts();
+  var p = posts.find(function(x){ return String(x.id).replace(/[^a-zA-Z0-9_\-]/g,'_') === id; });
+  if(!p) return;
+  var text = (p.text || '').substring(0, 3000);
+  var btnEl = document.querySelector('#pcard_' + id + ' .btn-pub-li');
+  if(btnEl) { btnEl.textContent = '⏳ LI…'; btnEl.disabled = true; }
+  fetch('/publish-linkedin', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
+    body: JSON.stringify({ text: text })
+  }).then(function(r){ return r.json(); })
+    .then(function(d){
+      if(d.ok) {
+        pedShowToast('✅ Pubblicato su LinkedIn!', false);
+        if(btnEl) btnEl.textContent = '✅ LI';
+        p.sent_li = true; pedSavePosts(posts);
+      } else {
+        pedShowToast('❌ Errore LinkedIn: ' + (d.error || 'unknown'), true);
+        if(btnEl) { btnEl.textContent = '💼 LinkedIn'; btnEl.disabled = false; }
+      }
+    }).catch(function(err){
+      pedShowToast('❌ Errore rete: ' + err.message, true);
+      if(btnEl) { btnEl.textContent = '💼 LinkedIn'; btnEl.disabled = false; }
+    });
+}
+
+function pedPublishRD(id) {
+  var apiKey = localStorage.getItem(_PED_APIKEY);
+  if(!apiKey) { pedShowToast('⚠ API Key mancante', true); return; }
+  if(!_channelStatus.reddit) { pedShowToast('⚙️ Reddit non configurato — set REDDIT_* env vars on Railway', true); return; }
+  var posts = pedGetPosts();
+  var p = posts.find(function(x){ return String(x.id).replace(/[^a-zA-Z0-9_\-]/g,'_') === id; });
+  if(!p) return;
+  var title = p.title || '';
+  if(!title) { title = prompt('Titolo del post Reddit:'); if(!title) return; }
+  var btnEl = document.querySelector('#pcard_' + id + ' .btn-pub-rd');
+  if(btnEl) { btnEl.textContent = '⏳ RD…'; btnEl.disabled = true; }
+  fetch('/publish-reddit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
+    body: JSON.stringify({ text: p.text, title: title, subreddit: _channelStatus.reddit_subreddit || 'algotrading' })
+  }).then(function(r){ return r.json(); })
+    .then(function(d){
+      if(d.ok) {
+        pedShowToast('✅ Pubblicato su r/' + (d.subreddit || 'algotrading') + '!', false);
+        if(btnEl) btnEl.textContent = '✅ RD';
+        p.sent_rd = true; pedSavePosts(posts);
+      } else {
+        pedShowToast('❌ Errore Reddit: ' + (d.error || 'unknown'), true);
+        if(btnEl) { btnEl.textContent = '🤖 Reddit'; btnEl.disabled = false; }
+      }
+    }).catch(function(err){
+      pedShowToast('❌ Errore rete: ' + err.message, true);
+      if(btnEl) { btnEl.textContent = '🤖 Reddit'; btnEl.disabled = false; }
+    });
 }
 
 function pedShowToast(msg, isErr) {
