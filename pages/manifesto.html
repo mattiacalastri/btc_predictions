@@ -73,8 +73,8 @@
 .gnav-burger{display:none;align-items:center;justify-content:center;background:none;border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);padding:6px 8px;border-radius:6px;cursor:pointer;transition:border-color 0.2s,color 0.2s;}
 .gnav-burger:hover{border-color:rgba(255,255,255,0.25);color:rgba(255,255,255,0.9);}
 @media(max-width:768px){
-.gnav-links{display:none;position:fixed;top:48px;right:0;bottom:0;width:260px;background:rgba(10,10,15,0.96);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-left:1px solid rgba(255,255,255,0.06);flex-direction:column;align-items:stretch;padding:12px 0;gap:0;overflow-y:auto;transform:translateX(100%);transition:transform 0.25s cubic-bezier(0.4,0,0.2,1);}
-.gnav-links.gnav-open{display:flex;transform:translateX(0);}
+.gnav-links{display:flex;position:fixed;top:48px;right:0;bottom:0;width:260px;background:rgba(10,10,15,0.96);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-left:1px solid rgba(255,255,255,0.06);flex-direction:column;align-items:stretch;padding:12px 0;gap:0;overflow-y:auto;transform:translateX(100%);visibility:hidden;pointer-events:none;transition:transform 0.25s cubic-bezier(0.4,0,0.2,1),visibility 0s 0.25s;}
+.gnav-links.gnav-open{transform:translateX(0);visibility:visible;pointer-events:auto;transition:transform 0.25s cubic-bezier(0.4,0,0.2,1),visibility 0s 0s;}
 .gnav-link{font-size:14px;padding:12px 20px;border-radius:0;}
 .gnav-link.active::after{display:none;}
 .gnav-link.active{background:rgba(0,255,136,0.06);}
@@ -1058,9 +1058,7 @@ function trackEvent(n,p){if(typeof gtag!=='undefined'&&localStorage.getItem('btc
 
 <script>
 (function(){
-  var b=document.getElementById('gnavBurger'),l=document.getElementById('gnavLinks');
-  if(b&&l){b.addEventListener('click',function(){l.classList.toggle('gnav-open');});
-  document.addEventListener('click',function(e){if(!l.contains(e.target)&&!b.contains(e.target))l.classList.remove('gnav-open');});}
+  (function(){var b=document.getElementById('gnavBurger'),l=document.getElementById('gnavLinks');if(!b||!l)return;var BG='<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h12M3 12h12"/></svg>',CL='<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4l10 10M14 4L4 14"/></svg>';function o(){l.classList.add('gnav-open');b.innerHTML=CL;}function c(){l.classList.remove('gnav-open');b.innerHTML=BG;}b.addEventListener('click',function(e){e.stopPropagation();l.classList.contains('gnav-open')?c():o();});l.querySelectorAll('.gnav-link').forEach(function(a){a.addEventListener('click',c);});document.addEventListener('click',function(e){if(!l.contains(e.target)&&!b.contains(e.target))c();});})();
 })();
 </script>
 

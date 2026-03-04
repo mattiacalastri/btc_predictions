@@ -100,7 +100,7 @@
   .gnav-burger:hover { border-color: rgba(255,255,255,0.25); color: rgba(255,255,255,0.9); }
   @media (max-width: 768px) {
     .gnav-links {
-      display: none;
+      display: flex;
       position: fixed; top: 48px; right: 0; bottom: 0;
       width: 260px;
       background: rgba(10,10,15,0.96);
@@ -110,11 +110,15 @@
       padding: 12px 0; gap: 0;
       overflow-y: auto;
       transform: translateX(100%);
-      transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
+      visibility: hidden;
+      pointer-events: none;
+      transition: transform 0.25s cubic-bezier(0.4,0,0.2,1), visibility 0s 0.25s;
     }
     .gnav-links.gnav-open {
-      display: flex;
       transform: translateX(0);
+      visibility: visible;
+      pointer-events: auto;
+      transition: transform 0.25s cubic-bezier(0.4,0,0.2,1), visibility 0s 0s;
     }
     .gnav-link {
       font-size: 14px; padding: 12px 20px; border-radius: 0;
