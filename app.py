@@ -2931,7 +2931,7 @@ def account_summary():
                     (t for t in all_tickers if (t.get("symbol") or "").upper() == symbol.upper()),
                     None
                 )
-                if ticker and pos["price"] > 0:
+                if ticker and pos["price"] > 0 and pos.get("size", 0) > 0:
                     mark = float(ticker.get("markPrice") or 0)
                     pos_sign = 1 if pos["side"] == "long" else -1
                     position_pnl = round((mark - pos["price"]) * pos_sign * pos["size"], 6)
@@ -3769,7 +3769,7 @@ def ghost_evaluate():
             continue
 
         ghost_correct = (exit_price > sp) if direction == "UP" else (exit_price < sp)
-        pnl_pct = ((exit_price - sp) / sp * 100) if direction == "UP" else ((sp - exit_price) / sp * 100)
+        pnl_pct = (((exit_price - sp) / sp * 100) if direction == "UP" else ((sp - exit_price) / sp * 100)) if sp > 0 else 0.0
 
         try:
             upd = requests.patch(
