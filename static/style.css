@@ -2651,7 +2651,7 @@
 }
 .tut-btn-skip:hover { color: var(--text); border-color: rgba(74,96,112,0.5); }
 #tutSkipFixed {
-  position: fixed; top: 16px; right: 16px;
+  position: fixed; bottom: 32px; right: 16px;
   width: 44px; height: 44px;
   font-size: 24px; font-weight: 300; line-height: 1;
   background: rgba(255,255,255,0.12);
@@ -2665,7 +2665,7 @@
   align-items: center; justify-content: center;
 }
 @media (max-width: 640px) {
-  #tutSkipFixed { top: 14px; right: 14px; width: 40px; height: 40px; font-size: 22px; }
+  #tutSkipFixed { bottom: 28px; right: 14px; width: 40px; height: 40px; font-size: 22px; }
 }
 #tutSkipFixed:hover { background: rgba(255,68,102,0.30); border-color: rgba(255,68,102,0.75); color: #ff6070; transform: scale(1.08); }
 
