@@ -50,3 +50,7 @@ reports/*.pdf
 
 # Memory files live in Claude project memory, not repo
 memory/
+vault/
+reports/*.pdf
+pages/reports/*.pdf
+scripts/results/*.pdf
