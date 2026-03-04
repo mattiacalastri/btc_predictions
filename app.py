@@ -6146,6 +6146,7 @@ def sitemap_xml():
         ("https://btcpredictor.io/xgboost-spiegato",       "monthly", "0.8", "2026-02-27"),
         ("https://btcpredictor.io/aureo",                  "monthly", "0.7", "2026-03-01"),
         ("https://btcpredictor.io/legal",                  "monthly", "0.3", "2026-03-01"),
+        ("https://btcpredictor.io/support",                "weekly",  "0.8", today),
     ]
     urls = ""
     for loc, freq, prio, lastmod in pages:
@@ -6302,6 +6303,11 @@ def contributors():
 @app.route("/council", methods=["GET"])
 def council():
     return _read_page("council.html"), 200, {"Content-Type": "text/html"}
+
+
+@app.route("/support", methods=["GET"])
+def support():
+    return _read_page("support.html"), 200, {"Content-Type": "text/html"}
 
 
 _EMAIL_RE = re.compile(r'^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$')

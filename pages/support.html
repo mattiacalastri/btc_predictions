@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='15' fill='%230d0d0d'/%3E%3Ctext x='50' y='72' font-size='70' text-anchor='middle' fill='%2300ff88' font-family='Arial'%3E%E2%82%BF%3C/text%3E%3C/svg%3E">
+<!-- Google Analytics 4 — consent mode GDPR -->
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('consent','default',{'analytics_storage':'denied'});
+if(localStorage.getItem('btcp_ga_consent')==='granted'){
+  var s=document.createElement('script');
+  s.async=true;
+  s.src='https://www.googletagmanager.com/gtag/js?id=G-K2E2B4FVQ5';
+  document.head.appendChild(s);
+  gtag('js',new Date());
+  gtag('config','G-K2E2B4FVQ5');
+}
+</script>
+<title>Support the Edge — BTC Predictor</title>
+<meta name="description" content="Support BTC Predictor's open-source AI trading research. Every contribution is permanently recorded on Polygon. No charity. A vote for transparent, verifiable AI trading.">
+<meta name="robots" content="index, follow">
+<meta name="author" content="Mattia Calastri">
+<link rel="canonical" href="https://btcpredictor.io/support">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Support the Edge — BTC Predictor">
+<meta property="og:description" content="Not charity. A permanent on-chain vote for open, verifiable AI trading research on Bitcoin.">
+<meta property="og:url" content="https://btcpredictor.io/support">
+<meta property="og:site_name" content="BTC Predictor">
+<meta property="og:image" content="https://btcpredictor.io/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@btcpredictor_io">
+<meta name="twitter:title" content="Support the Edge — BTC Predictor">
+<meta name="twitter:description" content="Not charity. A permanent on-chain vote for open, verifiable AI trading research on Bitcoin.">
+<meta name="twitter:image" content="https://btcpredictor.io/og-image.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+/* ── RESET & VARS ── */
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --void:    #07070c;
+  --deep:    #0a0a12;
+  --surface: #0e0e1a;
+  --surface2:#141422;
+  --border:  rgba(255,255,255,0.05);
+  --border2: rgba(255,255,255,0.09);
+  --orange:  #f7931a;
+  --cyan:    #00d4ff;
+  --green:   #00ff9d;
+  --red:     #ff3b5c;
+  --gold:    #f5c842;
+  --text:    #e8e8ec;
+  --muted:   #616172;
+  --dim:     #2e2e3e;
+  --serif:   'EB Garamond', Georgia, serif;
+  --mono:    'IBM Plex Mono', 'Courier New', monospace;
+  --sans:    'Inter', -apple-system, sans-serif;
+}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--void);
+  color:var(--text);
+  font-family:var(--serif);
+  font-size:18px;
+  line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+}
+::selection{background:rgba(247,147,26,0.2);}
+
+/* ── NAV ── */
+.gnav{position:fixed;top:0;left:0;right:0;z-index:9000;height:48px;background:rgba(10,10,15,0.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-family:var(--sans);}
+.gnav-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:#fff;font-size:14px;font-weight:600;letter-spacing:-0.01em;}
+.gnav-mark{width:24px;height:24px;border-radius:50%;object-fit:cover;flex-shrink:0;}
+.gnav-name{white-space:nowrap;}
+.gnav-links{display:flex;align-items:center;gap:4px;}
+.gnav-link{text-decoration:none;color:rgba(255,255,255,0.5);font-size:13px;font-weight:400;padding:6px 12px;border-radius:6px;transition:color 0.2s,background 0.2s;white-space:nowrap;}
+.gnav-link:hover{color:rgba(255,255,255,0.9);background:rgba(255,255,255,0.04);}
+.gnav-link.active{color:#fff;}
+.gnav-link.active::after{content:'';display:block;height:1px;background:#00ff88;margin-top:2px;border-radius:1px;}
+.gnav-private{position:relative;padding-left:22px;}
+.gnav-private::before{content:'';position:absolute;left:10px;top:50%;transform:translateY(-50%);width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,0.2);}
+.gnav-burger{display:none;align-items:center;justify-content:center;background:none;border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);padding:6px 8px;border-radius:6px;cursor:pointer;transition:border-color 0.2s,color 0.2s;}
+.gnav-burger:hover{border-color:rgba(255,255,255,0.25);color:rgba(255,255,255,0.9);}
+@media(max-width:768px){
+  .gnav-links{display:none;position:fixed;top:48px;right:0;bottom:0;width:260px;background:rgba(10,10,15,0.96);backdrop-filter:blur(16px);border-left:1px solid rgba(255,255,255,0.06);flex-direction:column;align-items:stretch;padding:12px 0;gap:0;overflow-y:auto;transform:translateX(100%);transition:transform 0.25s cubic-bezier(0.4,0,0.2,1);}
+  .gnav-links.gnav-open{display:flex;transform:translateX(0);}
+  .gnav-link{font-size:14px;padding:12px 20px;border-radius:0;}
+  .gnav-link.active::after{display:none;}
+  .gnav-link.active{background:rgba(0,255,136,0.06);}
+  .gnav-burger{display:flex;}
+}
+
+/* ── LAYOUT ── */
+.wrap{max-width:760px;margin:0 auto;padding:0 24px;}
+section{padding:80px 0;}
+@media(max-width:600px){section{padding:56px 0;}}
+
+/* ── HERO ── */
+#hero{padding-top:140px;padding-bottom:80px;text-align:center;position:relative;overflow:hidden;}
+#hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(247,147,26,0.07) 0%,transparent 65%);pointer-events:none;}
+.hero-label{font-family:var(--mono);font-size:12px;color:var(--orange);letter-spacing:0.2em;text-transform:uppercase;margin-bottom:20px;}
+.hero-title{font-family:var(--serif);font-size:clamp(36px,7vw,72px);font-weight:500;line-height:1.05;color:#fff;margin-bottom:16px;}
+.hero-title em{font-style:italic;color:var(--orange);}
+.hero-sub{font-size:clamp(16px,2.5vw,20px);color:var(--muted);max-width:540px;margin:0 auto 36px;line-height:1.6;}
+.hero-proof{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.03);border:1px solid var(--border2);border-radius:40px;padding:6px 16px;font-family:var(--mono);font-size:12px;color:var(--muted);}
+.hero-proof-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.5;transform:scale(0.8);}}
+
+/* ── LIVE STATS ── */
+#stats{padding:0 0 80px;}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border2);border-radius:12px;overflow:hidden;}
+.stat-box{background:var(--surface);padding:20px 16px;text-align:center;}
+.stat-val{font-family:var(--mono);font-size:22px;font-weight:500;color:#fff;margin-bottom:4px;}
+.stat-val.green{color:var(--green);}
+.stat-val.orange{color:var(--orange);}
+.stat-val.red{color:var(--red);}
+.stat-lbl{font-family:var(--sans);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;}
+@media(max-width:600px){.stats-grid{grid-template-columns:repeat(2,1fr);}}
+
+/* ── PROSE SECTIONS ── */
+.section-label{font-family:var(--mono);font-size:11px;color:var(--orange);letter-spacing:0.2em;text-transform:uppercase;margin-bottom:12px;}
+h2{font-family:var(--serif);font-size:clamp(28px,4vw,42px);font-weight:500;line-height:1.15;color:#fff;margin-bottom:20px;}
+h2 em{font-style:italic;color:var(--orange);}
+.prose p{color:rgba(232,232,236,0.85);margin-bottom:18px;font-size:17px;line-height:1.75;}
+.prose p strong{color:#fff;font-weight:500;}
+.prose p em{color:var(--orange);font-style:italic;}
+.inline-link{color:var(--cyan);text-decoration:none;border-bottom:1px solid rgba(0,212,255,0.3);}
+.inline-link:hover{border-bottom-color:var(--cyan);}
+
+/* ── DIVIDER ── */
+.divider{border:none;border-top:1px solid var(--border);margin:0;}
+
+/* ── REGISTRY ── */
+#registry{background:linear-gradient(180deg,var(--void),var(--surface) 30%,var(--surface) 70%,var(--void));}
+.registry-header{text-align:center;margin-bottom:48px;}
+.registry-counter{display:flex;justify-content:center;margin-bottom:48px;}
+.counter-ring{width:160px;height:160px;position:relative;}
+.counter-ring svg{width:100%;height:100%;transform:rotate(-90deg);}
+.counter-ring .track{fill:none;stroke:var(--dim);stroke-width:6;}
+.counter-ring .fill{fill:none;stroke:var(--orange);stroke-width:6;stroke-linecap:round;stroke-dasharray:408;stroke-dashoffset:408;transition:stroke-dashoffset 1.5s ease;}
+.counter-inner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.counter-num{font-family:var(--mono);font-size:36px;color:#fff;line-height:1;}
+.counter-of{font-family:var(--sans);font-size:11px;color:var(--muted);margin-top:4px;}
+.registry-tiers{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:32px;}
+.tier{background:var(--void);border:1px solid var(--border);border-radius:10px;padding:20px 16px;text-align:center;transition:border-color 0.2s,background 0.2s;cursor:pointer;}
+.tier:hover,.tier.selected{border-color:var(--orange);background:rgba(247,147,26,0.04);}
+.tier-icon{font-size:24px;margin-bottom:8px;}
+.tier-name{font-family:var(--sans);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px;}
+.tier-amount{font-family:var(--mono);font-size:20px;color:#fff;margin-bottom:4px;}
+.tier-amount span{font-size:13px;color:var(--muted);}
+.tier-desc{font-size:13px;color:var(--muted);line-height:1.4;}
+.tier.selected .tier-amount{color:var(--orange);}
+@media(max-width:600px){.registry-tiers{grid-template-columns:1fr;}}
+
+/* ── WALLET SECTION ── */
+#wallet{padding:80px 0;}
+.wallet-inner{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:36px;max-width:600px;margin:0 auto;}
+.wallet-network{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;color:var(--muted);margin-bottom:24px;}
+.network-dot{width:8px;height:8px;border-radius:50%;background:#7b3fe4;flex-shrink:0;}
+.wallet-address-block{margin-bottom:24px;}
+.wallet-addr-label{font-family:var(--sans);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;}
+.wallet-addr{font-family:var(--mono);font-size:13px;color:var(--cyan);background:var(--void);border:1px solid var(--border);border-radius:8px;padding:12px 16px;word-break:break-all;cursor:pointer;transition:border-color 0.2s;user-select:all;}
+.wallet-addr:hover{border-color:rgba(0,212,255,0.4);}
+.copy-hint{font-family:var(--sans);font-size:11px;color:var(--muted);margin-top:6px;}
+.wallet-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px;}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 20px;border-radius:8px;font-family:var(--sans);font-size:14px;font-weight:500;text-decoration:none;cursor:pointer;border:none;transition:all 0.2s;white-space:nowrap;}
+.btn-primary{background:var(--orange);color:#000;}
+.btn-primary:hover{background:#e8841a;transform:translateY(-1px);}
+.btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--text);}
+.btn-ghost:hover{border-color:rgba(255,255,255,0.25);background:rgba(255,255,255,0.03);}
+@media(max-width:480px){.wallet-actions{grid-template-columns:1fr;}}
+.qr-section{display:flex;align-items:center;gap:24px;padding-top:20px;border-top:1px solid var(--border);}
+#qrcode{flex-shrink:0;background:#fff;border-radius:8px;padding:10px;width:100px;height:100px;display:flex;align-items:center;justify-content:center;}
+#qrcode img{width:80px!important;height:80px!important;}
+#qrcode canvas{width:80px!important;height:80px!important;}
+.qr-info p{font-size:14px;color:var(--muted);margin-bottom:4px;font-family:var(--sans);}
+.qr-info strong{color:var(--text);}
+.selected-amount-display{font-family:var(--mono);font-size:20px;color:var(--orange);margin-bottom:8px;}
+
+/* ── ON-CHAIN VERIFICATION ── */
+.verify-block{background:var(--void);border:1px solid var(--border);border-radius:10px;padding:20px 24px;margin-top:32px;}
+.verify-title{font-family:var(--mono);font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:12px;}
+.verify-row{display:flex;gap:12px;align-items:baseline;margin-bottom:8px;}
+.verify-key{font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap;min-width:80px;}
+.verify-val{font-family:var(--mono);font-size:12px;color:var(--cyan);word-break:break-all;}
+.verify-val a{color:inherit;text-decoration:none;border-bottom:1px solid rgba(0,212,255,0.2);}
+.verify-val a:hover{border-bottom-color:var(--cyan);}
+
+/* ── ROADMAP ── */
+#roadmap{padding:80px 0;}
+.roadmap-items{margin-top:32px;}
+.roadmap-item{display:flex;gap:20px;margin-bottom:32px;position:relative;}
+.roadmap-item::before{content:'';position:absolute;left:19px;top:44px;bottom:-12px;width:1px;background:var(--border);}
+.roadmap-item:last-child::before{display:none;}
+.roadmap-dot{width:40px;height:40px;border-radius:50%;background:var(--surface);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;position:relative;z-index:1;}
+.roadmap-dot.active{border-color:var(--orange);background:rgba(247,147,26,0.08);}
+.roadmap-content{padding-top:8px;}
+.roadmap-tag{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px;}
+.roadmap-tag.now{color:var(--orange);}
+.roadmap-tag.next{color:var(--cyan);}
+.roadmap-tag.later{color:var(--muted);}
+.roadmap-title{font-size:16px;font-weight:600;font-family:var(--sans);color:#fff;margin-bottom:4px;}
+.roadmap-desc{font-size:14px;color:var(--muted);font-family:var(--sans);line-height:1.5;}
+
+/* ── FAQ ── */
+#faq{padding:80px 0;}
+.faq-item{border-bottom:1px solid var(--border);padding:20px 0;}
+.faq-item:first-of-type{border-top:1px solid var(--border);}
+.faq-q{font-family:var(--sans);font-size:15px;font-weight:500;color:#fff;margin-bottom:10px;}
+.faq-a{font-family:var(--sans);font-size:14px;color:var(--muted);line-height:1.65;}
+.faq-a strong{color:var(--text);}
+
+/* ── FOOTER ── */
+footer{border-top:1px solid var(--border);padding:40px 0;font-family:var(--sans);}
+.footer-floor{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+.footer-stamp{font-family:var(--mono);font-size:11px;color:var(--muted);}
+.footer-small{font-size:11px;color:var(--muted);margin-top:4px;}
+.footer-cta{font-size:13px;color:rgba(255,255,255,0.5);text-decoration:none;transition:color 0.2s;}
+.footer-cta:hover{color:#fff;}
+
+/* ── UTILS ── */
+.text-center{text-align:center;}
+.mt-8{margin-top:8px;}
+.mt-16{margin-top:16px;}
+.mt-32{margin-top:32px;}
+.accent{color:var(--orange);}
+.mono{font-family:var(--mono);}
+.copied-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--green);color:#000;font-family:var(--sans);font-size:13px;font-weight:600;padding:8px 20px;border-radius:20px;opacity:0;transition:opacity 0.3s;pointer-events:none;z-index:9999;}
+.copied-toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="gnav">
+  <a href="/" class="gnav-brand">
+    <img src="/static/marketing_assets/logo-channel.png" alt="BTC Predictor" class="gnav-mark">
+    <span class="gnav-name">BTC Predictor</span>
+  </a>
+  <div class="gnav-links" id="gnavLinks">
+    <a href="/xgboost-spiegato" class="gnav-link">How It Works</a>
+    <a href="/manifesto" class="gnav-link">Manifesto</a>
+    <a href="/council" class="gnav-link">Council</a>
+    <a href="/investors" class="gnav-link">Investors</a>
+    <a href="/audit" class="gnav-link">Audit Ledger</a>
+    <a href="/support" class="gnav-link active">Support</a>
+    <a href="/dashboard" class="gnav-link gnav-private">Dashboard</a>
+  </div>
+  <button class="gnav-burger" id="gnavBurger" aria-label="Menu">
+    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h12M3 12h12"/></svg>
+  </button>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="wrap">
+    <div class="hero-label">btcpredictor.io / support</div>
+    <h1 class="hero-title">Not Charity.<br><em>A Vote.</em></h1>
+    <p class="hero-sub">
+      Every POL you send is recorded permanently on Polygon.<br>
+      A public declaration of what you believe is worth building.
+    </p>
+    <div class="hero-proof">
+      <span class="hero-proof-dot"></span>
+      <span id="hero-live-text">Loading live stats...</span>
+    </div>
+  </div>
+</section>
+
+<!-- LIVE STATS -->
+<section id="stats">
+  <div class="wrap">
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-val orange" id="stat-equity">—</div>
+        <div class="stat-lbl">Wallet Equity</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="stat-wr">—</div>
+        <div class="stat-lbl">Win Rate</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="stat-bets">—</div>
+        <div class="stat-lbl">Total Bets</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="stat-version">—</div>
+        <div class="stat-lbl">Bot Version</div>
+      </div>
+    </div>
+    <p style="font-family:var(--mono);font-size:11px;color:var(--muted);text-align:center;margin-top:10px;">
+      Live · <span id="stat-ts">updating...</span> · <a href="/audit" class="inline-link">Verify on-chain →</a>
+    </p>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- THE STORY -->
+<section id="story">
+  <div class="wrap">
+    <div class="section-label">The Edge · Origin</div>
+    <h2>Built in the open.<br><em>Losing out loud.</em></h2>
+    <div class="prose">
+      <p>
+        You've seen too many crypto projects promise the moon, hide their results,
+        and disappear when the curve goes down. This isn't that.
+      </p>
+      <p>
+        BTC Predictor was built with one constraint: <strong>every signal, every bet, every loss
+        is committed on Polygon before execution.</strong> Not after. Not selectively.
+        Before. The blockchain timestamp doesn't lie.
+      </p>
+      <p>
+        The current win rate is <strong id="story-wr">loading...</strong>.
+        That's visible to anyone. Every losing bet is a data point that trains the next version.
+        We don't hide the red months — <em>we publish them as evidence</em> that the system is real.
+      </p>
+      <p>
+        The bet is simple: markets are inefficient in predictable ways.
+        With enough data, enough architecture, and enough honesty about what works and what doesn't —
+        the edge emerges. We are in the data-collection phase. <strong>What you support is the research, not a guarantee.</strong>
+      </p>
+      <p style="font-size:15px;">
+        <a href="https://polygonscan.com/address/0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55"
+           class="inline-link" target="_blank" rel="noopener noreferrer">
+          Verify every prediction on PolygonScan →
+        </a>
+      </p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- REGISTRY -->
+<section id="registry">
+  <div class="wrap">
+    <div class="registry-header">
+      <div class="section-label">Early Supporter Registry</div>
+      <h2>The first <em>100</em> are permanent.</h2>
+      <p style="color:var(--muted);max-width:500px;margin:0 auto;font-size:16px;font-family:var(--sans);">
+        The on-chain record of who supported this project first is immutable and public.
+        You can't buy your way in later and pretend you were early.
+        The blockchain doesn't allow it.
+      </p>
+    </div>
+
+    <!-- Counter Ring -->
+    <div class="registry-counter">
+      <div class="counter-ring">
+        <svg viewBox="0 0 140 140">
+          <circle class="track" cx="70" cy="70" r="65"/>
+          <circle class="fill" id="counterArc" cx="70" cy="70" r="65"/>
+        </svg>
+        <div class="counter-inner">
+          <span class="counter-num" id="registry-count">0</span>
+          <span class="counter-of">/ 100 founding</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tiers -->
+    <div class="registry-tiers" id="tiers">
+      <div class="tier" data-pol="1" data-wei="1e18" data-label="Signal" onclick="selectTier(this)">
+        <div class="tier-icon">⚡</div>
+        <div class="tier-name">Signal</div>
+        <div class="tier-amount">1 <span>POL</span></div>
+        <div class="tier-desc">Leaves a permanent mark on-chain. The smallest signal is still a signal.</div>
+      </div>
+      <div class="tier selected" data-pol="5" data-wei="5e18" data-label="Builder" onclick="selectTier(this)">
+        <div class="tier-icon">🔧</div>
+        <div class="tier-name">Builder</div>
+        <div class="tier-amount">5 <span>POL</span></div>
+        <div class="tier-desc">Registered in the Founding Builder registry. Your wallet, visible on-chain, forever.</div>
+      </div>
+      <div class="tier" data-pol="10" data-wei="1e19" data-label="Founding" onclick="selectTier(this)">
+        <div class="tier-icon">🏛️</div>
+        <div class="tier-name">Founding</div>
+        <div class="tier-amount">10 <span>POL</span></div>
+        <div class="tier-desc">First 20 receive direct access to raw model outputs and early feature previews.</div>
+      </div>
+    </div>
+    <p style="font-family:var(--sans);font-size:12px;color:var(--muted);text-align:center;">
+      POL ≈ $0.40 at time of writing. Amounts are symbolic — it's the on-chain record that matters.
+    </p>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- WALLET -->
+<section id="wallet">
+  <div class="wrap">
+    <div class="section-label text-center">How to Support</div>
+    <h2 class="text-center">Send on <em>Polygon.</em><br>11 seconds. Zero fees.</h2>
+    <p style="text-align:center;color:var(--muted);font-family:var(--sans);font-size:15px;margin-bottom:40px;max-width:480px;margin-left:auto;margin-right:auto;">
+      Polygon transactions take ~11 seconds and cost fractions of a cent.
+      Any EVM wallet works: MetaMask, Rainbow, Trust Wallet.
+    </p>
+
+    <div class="wallet-inner">
+      <div class="wallet-network">
+        <span class="network-dot"></span>
+        Polygon PoS · Chain ID 137 · Native token: POL (MATIC)
+      </div>
+
+      <div class="wallet-address-block">
+        <div class="wallet-addr-label">Recipient Address</div>
+        <div class="wallet-addr" id="walletAddr" onclick="copyAddress()" title="Click to copy">
+          0x7Ac896F18ce52a0520dA49C3129520f7B70d51f0
+        </div>
+        <div class="copy-hint">↑ Click to copy · Always verify the address before sending</div>
+      </div>
+
+      <div class="wallet-actions">
+        <a href="#" id="metamaskLink" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          Open in MetaMask
+        </a>
+        <a href="#" id="eip681Link" class="btn btn-ghost" target="_blank" rel="noopener noreferrer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+          EIP-681 Universal
+        </a>
+      </div>
+
+      <div class="qr-section">
+        <div id="qrcode"></div>
+        <div class="qr-info">
+          <div class="selected-amount-display" id="selectedAmountDisplay">5 POL selected</div>
+          <p><strong>Scan with MetaMask mobile</strong></p>
+          <p>Pre-fills address and amount automatically.</p>
+          <p>Switch to Polygon network if prompted.</p>
+        </div>
+      </div>
+
+      <div class="verify-block">
+        <div class="verify-title">On-Chain Verification</div>
+        <div class="verify-row">
+          <span class="verify-key">Wallet</span>
+          <span class="verify-val">
+            <a href="https://polygonscan.com/address/0x7Ac896F18ce52a0520dA49C3129520f7B70d51f0"
+               target="_blank" rel="noopener noreferrer">
+              0x7Ac896F18...d51f0 ↗
+            </a>
+          </span>
+        </div>
+        <div class="verify-row">
+          <span class="verify-key">Audit SC</span>
+          <span class="verify-val">
+            <a href="https://polygonscan.com/address/0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55"
+               target="_blank" rel="noopener noreferrer">
+              0xe4661F7...833a55 ↗
+            </a>
+          </span>
+        </div>
+        <div class="verify-row">
+          <span class="verify-key">Network</span>
+          <span class="verify-val">Polygon PoS (chain 137) · ~2s finality</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ROADMAP -->
+<section id="roadmap">
+  <div class="wrap">
+    <div class="section-label">What Gets Built Next</div>
+    <h2>The funds<br><em>fuel the edge.</em></h2>
+    <div class="roadmap-items">
+      <div class="roadmap-item">
+        <div class="roadmap-dot active">⚡</div>
+        <div class="roadmap-content">
+          <div class="roadmap-tag now">Now · v2.6.0 Live</div>
+          <div class="roadmap-title">XGBoost Dual-Gate + On-Chain Audit</div>
+          <div class="roadmap-desc">Claude Sonnet + XGBoost predictions, every signal committed on Polygon before execution. 13 data sources. Real money, real losses, real data.</div>
+        </div>
+      </div>
+      <div class="roadmap-item">
+        <div class="roadmap-dot">🧠</div>
+        <div class="roadmap-content">
+          <div class="roadmap-tag next">Next · v3.0</div>
+          <div class="roadmap-title">Regime Detection + Market Microstructure</div>
+          <div class="roadmap-desc">Real-time market regime classification (trend / ranging / volatile) as XGBoost feature. CVD divergence, order book imbalance, funding rate signals.</div>
+        </div>
+      </div>
+      <div class="roadmap-item">
+        <div class="roadmap-dot">📊</div>
+        <div class="roadmap-content">
+          <div class="roadmap-tag next">Next</div>
+          <div class="roadmap-title">Public API + Open Dataset</div>
+          <div class="roadmap-desc">Full historical signal dataset downloadable. Public read-only API for researchers. Every prediction verifiable against on-chain timestamps.</div>
+        </div>
+      </div>
+      <div class="roadmap-item">
+        <div class="roadmap-dot">🔗</div>
+        <div class="roadmap-content">
+          <div class="roadmap-tag later">Later</div>
+          <div class="roadmap-title">Weekly Merkle Root on Ethereum</div>
+          <div class="roadmap-desc">Aggregate weekly signal hashes into a Merkle root committed on Ethereum mainnet. Institutional-grade auditability. Zero trust required.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- FAQ -->
+<section id="faq">
+  <div class="wrap">
+    <div class="section-label">Common Questions</div>
+    <h2>You should be<br><em>skeptical.</em></h2>
+    <div style="margin-top:32px;">
+      <div class="faq-item">
+        <div class="faq-q">The win rate is low. Why would I support this?</div>
+        <div class="faq-a">
+          <strong>Because the win rate is published.</strong> That skepticism is exactly what this project was built for.
+          On-chain, you verify — you don't trust. A system that hides losing months is the red flag,
+          not the one that publishes them. We're in the data collection phase.
+          Statistical significance requires hundreds of bets, not dozens.
+        </div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">What do I get in return?</div>
+        <div class="faq-a">
+          A permanent on-chain record that you were here early. Founding tier contributors get
+          access to raw model outputs. But more concretely: <strong>the on-chain record of who supported
+          this first is immutable.</strong> You can't buy your way in retroactively.
+        </div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Is my contribution safe? Can I verify it?</div>
+        <div class="faq-a">
+          Yes. Your transaction goes directly to <code style="font-family:var(--mono);font-size:13px;color:var(--cyan);">0x7Ac896F18ce52a0520dA49C3129520f7B70d51f0</code> on Polygon.
+          Verifiable on PolygonScan within seconds. There are no smart contracts between you and the wallet —
+          it's a direct transfer. <strong>Always verify the address yourself before sending.</strong>
+        </div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">I don't have time to set this up right now.</div>
+        <div class="faq-a">
+          The transaction takes 11 seconds on Polygon. You've already spent longer reading this page.
+          If you have MetaMask installed, tap "Open in MetaMask" and it pre-fills everything.
+        </div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">1 POL is too small to matter, isn't it?</div>
+        <div class="faq-a">
+          <strong>The first block in any chain is exactly that size.</strong> What matters is that it exists —
+          recorded, timestamped, immutable. The on-chain record doesn't care about the amount.
+          It cares that you were there.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrap">
+    <div class="footer-floor">
+      <div>
+        <p class="footer-stamp">Support · btcpredictor.io · Polygon:0x7Ac896F...d51f0</p>
+        <p class="footer-small">Every contribution recorded on-chain · Verifiable · No screenshots</p>
+      </div>
+      <a href="https://btcpredictor.io" class="footer-cta">btcpredictor.io →</a>
+    </div>
+  </div>
+</footer>
+
+<!-- TOAST -->
+<div class="copied-toast" id="toast">Address copied ✓</div>
+
+<script>
+// ── WALLET CONFIG ──
+const WALLET   = '0x7Ac896F18ce52a0520dA49C3129520f7B70d51f0';
+const CHAIN_ID = '137';
+let   selectedWei = '5e18';
+let   selectedPol = 5;
+
+// ── TIER SELECTION ──
+function selectTier(el){
+  document.querySelectorAll('.tier').forEach(t=>t.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedWei = el.dataset.wei;
+  selectedPol = parseFloat(el.dataset.pol);
+  updateLinks();
+  document.getElementById('selectedAmountDisplay').textContent = selectedPol + ' POL selected';
+}
+
+function updateLinks(){
+  const eip = 'ethereum:' + WALLET + '@' + CHAIN_ID + '?value=' + selectedWei;
+  const mm  = 'https://link.metamask.io/send/' + WALLET + '@' + CHAIN_ID + '?value=' + selectedWei;
+  document.getElementById('metamaskLink').href = mm;
+  document.getElementById('eip681Link').href   = eip;
+  // regenerate QR
+  const qrEl = document.getElementById('qrcode');
+  qrEl.innerHTML = '';
+  new QRCode(qrEl, {
+    text:   eip,
+    width:  80,
+    height: 80,
+    colorDark:  '#000000',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.M
+  });
+}
+
+// ── COPY ADDRESS ──
+function copyAddress(){
+  navigator.clipboard.writeText(WALLET).then(()=>{
+    const t = document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'), 2200);
+  });
+}
+
+// ── LIVE STATS from /health ──
+async function loadStats(){
+  try {
+    const r = await fetch('/health');
+    const d = await r.json();
+    const eq = d.wallet_equity != null ? '$' + d.wallet_equity.toFixed(2) : '—';
+    document.getElementById('stat-equity').textContent = eq;
+    document.getElementById('stat-version').textContent = 'v' + (d.version || '—');
+    document.getElementById('stat-ts').textContent = new Date(d.serverTime).toLocaleTimeString();
+    document.getElementById('hero-live-text').textContent =
+      'Bot LIVE · equity ' + eq + ' · v' + (d.version || '—');
+
+    // fetch bets stats
+    const rb = await fetch('/signals?limit=200');
+    if(rb.ok){
+      const sigs = await rb.json();
+      const closed = sigs.filter(s=>s.bet_taken && s.close_reason);
+      const wins   = closed.filter(s=>s.correct);
+      const wr     = closed.length ? (wins.length/closed.length*100).toFixed(1)+'%' : '—';
+      document.getElementById('stat-wr').textContent = wr;
+      document.getElementById('stat-bets').textContent = closed.length;
+      document.getElementById('story-wr').textContent = wr;
+      const wrEl = document.getElementById('stat-wr');
+      const wrNum = parseFloat(wr);
+      if(!isNaN(wrNum)){
+        wrEl.className = 'stat-val ' + (wrNum >= 50 ? 'green' : wrNum >= 40 ? 'orange' : 'red');
+      }
+    }
+  } catch(e){
+    document.getElementById('hero-live-text').textContent = 'Bot LIVE on Polygon';
+  }
+}
+
+// ── REGISTRY COUNTER (simulated until real endpoint) ──
+function animateCounter(target){
+  const el  = document.getElementById('registry-count');
+  const arc = document.getElementById('counterArc');
+  const circumference = 2 * Math.PI * 65; // ~408
+  let current = 0;
+  const step = Math.ceil(target/40);
+  const interval = setInterval(()=>{
+    current = Math.min(current+step, target);
+    el.textContent = current;
+    const offset = circumference - (current/100)*circumference;
+    arc.style.strokeDashoffset = offset;
+    if(current >= target) clearInterval(interval);
+  }, 40);
+}
+// Load real count from public-contributions if available
+fetch('/public-contributions').then(r=>r.json()).then(d=>{
+  const count = Array.isArray(d) ? d.length : (d.count || 3);
+  animateCounter(Math.min(count, 100));
+}).catch(()=>animateCounter(3));
+
+// ── NAV BURGER ──
+document.getElementById('gnavBurger').addEventListener('click',function(){
+  document.getElementById('gnavLinks').classList.toggle('gnav-open');
+});
+
+// ── INIT ──
+updateLinks();
+loadStats();
+</script>
+</body>
+</html>
