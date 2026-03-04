@@ -217,3 +217,23 @@ CREATE INDEX IF NOT EXISTS idx_portfolio_decisions_action
 
 -- Auto-cleanup: keep only last 30 days (run via pg_cron or manual)
 -- DELETE FROM bot_portfolio_decisions WHERE created_at < now() - interval '30 days';
+
+-- v11: Council Votes — deliberation log for AI Council (Fase 2)
+-- Logged by council_engine.py after each round of deliberation
+CREATE TABLE IF NOT EXISTS council_votes (
+    id              BIGSERIAL PRIMARY KEY,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    prediction_id   BIGINT,                          -- FK a btc_predictions.id (nullable: pre-bet)
+    signal_hash     TEXT,                            -- hash del ciclo (per collegare i voti)
+    round           INT NOT NULL DEFAULT 1,          -- 1=indipendente, 2=contrarian, 3=oracle
+    member          TEXT NOT NULL,                   -- TECNICO | SENTIMENT | QUANT | CONTRARIAN | ORACLE
+    model_used      TEXT,                            -- claude-sonnet-4-6 | gemini-2.0-flash | xgboost-v1
+    direction       TEXT,                            -- UP | DOWN | ABSTAIN
+    confidence      FLOAT,
+    weight          FLOAT,
+    reasoning       TEXT,                            -- max 500 char (troncato prima dell'insert)
+    raw_response    JSONB                            -- risposta completa del modello (debugging)
+);
+CREATE INDEX IF NOT EXISTS idx_council_votes_prediction_id ON council_votes(prediction_id);
+CREATE INDEX IF NOT EXISTS idx_council_votes_created_at ON council_votes(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_council_votes_member ON council_votes(member, created_at DESC);

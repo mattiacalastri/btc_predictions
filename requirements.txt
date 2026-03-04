@@ -11,3 +11,5 @@ sentry-sdk[flask]
 certifi
 python-dotenv
 pandas
+anthropic
+google-generativeai

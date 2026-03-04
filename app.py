@@ -16,6 +16,7 @@ from flask_compress import Compress
 from kraken.futures import Trade, User
 from constants import TAKER_FEE, _BIAS_MAP
 from portfolio_engine import PortfolioEngine, PortfolioDecision
+import council_engine
 
 VERSION = "2.6.0"
 
@@ -491,6 +492,9 @@ MIN_ATR_PCT = _safe_float(os.environ.get("MIN_ATR_PCT", "0.15"), default=0.15, m
 # [FIX5] Trend alignment filter — block counter-trend trades in trending regimes
 TREND_ALIGN_FILTER = os.environ.get("TREND_ALIGN_FILTER", "true").lower() == "true"
 
+# AI Council mode (Fase 2) — TECNICO + SENTIMENT + QUANT vote before each trade
+COUNCIL_MODE = os.environ.get("COUNCIL_MODE", "false").lower() == "true"
+
 # [FIX2] Prediction horizon (env-driven, used by /config and ATR scaling)
 PREDICTION_HORIZON_MINUTES = _safe_float(os.environ.get("PREDICTION_HORIZON_MINUTES", "30"), default=30.0, min_v=1.0, max_v=1440.0)
 
@@ -844,6 +848,7 @@ def health():
         "xgb_min_bets": _XGB_GATE_MIN_BETS,
         "polygon_configured": _polygon_configured,
         "supabase_ok": supabase_ok,
+        "council_mode_active": COUNCIL_MODE,
     })
 
 
@@ -2010,6 +2015,42 @@ def place_bet():
             "confidence": confidence,
         }), 200
 
+    # ── AI Council deliberation (COUNCIL_MODE=true) ───────────────────────────
+    if COUNCIL_MODE:
+        # Pre-compute XGB probability for QUANT member (avoid circular import)
+        _c_xgb_prob_up, _ = _run_xgb_gate(direction, confidence, data, current_hour_utc)
+        _council_payload = {**data, "xgb_prob_up": _c_xgb_prob_up}
+        _council_votes = council_engine.run_round1(_council_payload)
+        _council_result = council_engine.compute_weighted_vote(_council_votes)
+
+        # Signal hash ties this cycle's votes together (5-min bucket)
+        _council_hash = hashlib.sha256(
+            f"{direction}{confidence}{int(time.time() // 300)}".encode()
+        ).hexdigest()[:16]
+        council_engine.log_votes_async(_council_votes, _council_hash)
+
+        _council_dir = _council_result["direction"]
+        _council_agr = _council_result["agreement_score"]
+
+        app.logger.info(
+            f"[COUNCIL] dir={_council_dir} conf={_council_result['council_confidence']:.2f} "
+            f"agreement={_council_agr:.2f} score={_council_result['score']:.2f} "
+            f"original={direction}/{confidence:.2f}"
+        )
+
+        if _council_dir == "SKIP" or _council_agr < 0.50:
+            return jsonify({
+                "status": "skipped",
+                "reason": "council_low_agreement",
+                "council_result": _council_result,
+                "original_direction": direction,
+                "original_confidence": confidence,
+            }), 200
+
+        # Override direction + confidence with council decision
+        direction = _council_dir
+        confidence = _council_result["council_confidence"]
+
     # [FIX4+5] Regime check (single Binance API call for volatility + trend filters)
     _regime_data = None
     try:
@@ -2658,6 +2699,51 @@ def place_bet():
         _push_cockpit_log("app", "error", "Place bet FAILED", str(e),
                           {"direction": direction, "confidence": confidence})
         return jsonify({"status": "error", "error": "internal_error"}), 500
+
+# ── COUNCIL DELIBERATE ───────────────────────────────────────────────────────
+
+@app.route("/council-deliberate", methods=["POST"])
+def council_deliberate():
+    """Run the AI Council deliberation round without executing a trade.
+
+    Accepts the same JSON payload as /place-bet plus all market data fields.
+    Returns: council decision, per-member votes, and agreement score.
+    Set execute=true in the payload to forward approved decisions to /place-bet.
+    Protected by BOT_API_KEY.
+    """
+    err = _check_api_key()
+    if err:
+        return err
+
+    data = request.get_json(force=True) or {}
+    direction = (data.get("direction") or "").upper()
+    confidence = _safe_float(data.get("confidence", 0), default=0.0, min_v=0.0, max_v=1.0)
+
+    if direction not in ("UP", "DOWN"):
+        return jsonify({"status": "failed", "error": "invalid_direction"}), 400
+
+    current_hour_utc = time.gmtime().tm_hour
+    xgb_prob_up, _ = _run_xgb_gate(direction, confidence, data, current_hour_utc)
+    council_payload = {**data, "xgb_prob_up": xgb_prob_up}
+
+    votes = council_engine.run_round1(council_payload)
+    result = council_engine.compute_weighted_vote(votes)
+
+    signal_hash = hashlib.sha256(
+        f"{direction}{confidence}{int(time.time() // 300)}".encode()
+    ).hexdigest()[:16]
+    council_engine.log_votes_async(votes, signal_hash)
+
+    return jsonify({
+        "status": "ok",
+        "signal_hash": signal_hash,
+        "original_direction": direction,
+        "original_confidence": confidence,
+        "council_decision": result,
+        "votes": votes,
+        "council_mode_active": COUNCIL_MODE,
+    })
+
 
 # ── BTC PRICE (Kraken Futures mark price) ────────────────────────────────────
 
