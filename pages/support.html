@@ -231,6 +231,10 @@ footer{border-top:1px solid var(--border);padding:40px 0;font-family:var(--sans)
 .mono{font-family:var(--mono);}
 .copied-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--green);color:#000;font-family:var(--sans);font-size:13px;font-weight:600;padding:8px 20px;border-radius:20px;opacity:0;transition:opacity 0.3s;pointer-events:none;z-index:9999;}
 .copied-toast.show{opacity:1;}
+/* CTA amount pills */
+.cta-amount{font-family:var(--mono);font-size:15px;font-weight:500;padding:10px 24px;border-radius:40px;border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer;transition:all 0.2s;}
+.cta-amount:hover{border-color:rgba(255,255,255,0.25);color:var(--text);}
+.cta-amount.selected{border-color:var(--orange);color:var(--orange);background:rgba(247,147,26,0.08);}
 </style>
 </head>
 <body>
@@ -419,13 +423,14 @@ footer{border-top:1px solid var(--border);padding:40px 0;font-family:var(--sans)
 
       <div class="wallet-actions">
         <a href="#" id="metamaskLink" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          <!-- MetaMask fox icon -->
+          <svg width="18" height="18" viewBox="0 0 318.6 318.6" xmlns="http://www.w3.org/2000/svg"><path fill="#E2761B" stroke="#E2761B" stroke-linecap="round" stroke-linejoin="round" d="M274.1 35.5l-99.5 73.9L193 65.8z"/><path fill="#E4761B" stroke="#E4761B" stroke-linecap="round" stroke-linejoin="round" d="M44.4 35.5l98.7 74.6-17.5-44.3zm193.9 171.3l-26.5 40.6 56.7 15.6 16.3-55.3zm-204.4.9L50.1 263l56.7-15.6-26.5-40.6z"/><path fill="#E4761B" stroke="#E4761B" stroke-linecap="round" stroke-linejoin="round" d="M103.6 138.2l-15.8 23.9 56.3 2.5-2-60.5zm111.3 0l-39-34.8-1.3 61.2 56.2-2.5zM106.8 247.4l33.8-16.5-29.2-22.8zm71.1-16.5l33.9 16.5-4.7-39.3z"/><path fill="#D7C1B3" stroke="#D7C1B3" stroke-linecap="round" stroke-linejoin="round" d="M211.8 247.4l-33.9-16.5 2.7 22.1-.3 9.3zm-105 0l31.5 14.9-.2-9.3 2.5-22.1z"/><path fill="#233447" stroke="#233447" stroke-linecap="round" stroke-linejoin="round" d="M138.8 193.5l-28.2-8.3 19.9-9.1zm40.9 0l8.3-17.4 20 9.1z"/><path fill="#CD6116" stroke="#CD6116" stroke-linecap="round" stroke-linejoin="round" d="M106.8 247.4l4.8-40.6-31.3.9zM207 206.8l4.8 40.6 26.5-39.7zm23.8-44.7l-56.2 2.5 5.2 28.9 8.3-17.4 20 9.1zm-120.2 23.1l20-9.1 8.2 17.4 5.3-28.9-56.3-2.5z"/><path fill="#E4751F" stroke="#E4751F" stroke-linecap="round" stroke-linejoin="round" d="M87.8 162.1l23.6 46-.8-22.9zm120.3 23.1l-1 22.9 23.7-46zm-64-20.6l-5.3 28.9 6.6 34.1 1.5-44.9zm30.5 0l-2.7 18 1.2 45 6.7-34.1z"/><path fill="#F6851B" stroke="#F6851B" stroke-linecap="round" stroke-linejoin="round" d="M179.8 193.5l-6.7 34.1 4.8 3.3 29.2-22.8 1-22.9zm-69.2-8.3l.8 22.9 29.2 22.8 4.8-3.3-6.6-34.1z"/><path fill="#C0AD9E" stroke="#C0AD9E" stroke-linecap="round" stroke-linejoin="round" d="M180.3 262.3l.3-9.3-2.5-2.2h-37.7l-2.3 2.2.2 9.3-31.5-14.9 11 9 22.3 15.5h38.3l22.4-15.5 11-9z"/><path fill="#161616" stroke="#161616" stroke-linecap="round" stroke-linejoin="round" d="M178.1 230.9l-4.8-3.3h-27.7l-4.8 3.3-2.5 22.1 2.3-2.2h37.7l2.5 2.2z"/><path fill="#763D16" stroke="#763D16" stroke-linecap="round" stroke-linejoin="round" d="M278.3 114.2l8.5-40.8-12.7-37.9-96.2 71.4 37 31.3 52.3 15.3 11.6-13.5-5-3.6 8-7.3-6.2-4.8 8-6.1zM31.8 73.4l8.5 40.8-5.4 4 8 6.1-6.1 4.8 8 7.3-5 3.6 11.5 13.5 52.3-15.3 37-31.3-96.2-71.4z"/><path fill="#F6851B" stroke="#F6851B" stroke-linecap="round" stroke-linejoin="round" d="M267.2 154.3l-52.3-15.3 15.9 23.9-23.7 46 31.2-.4h46.5zm-163.6-15.3l-52.3 15.3-17.4 54.2h46.4l31.1.4-23.6-46zm71 26.4l3.3-57.7 15.2-41.1h-67.5l15 41.1 3.5 57.7 1.2 18.2.1 44.8h27.7l.2-44.8z"/></svg>
           Open in MetaMask
         </a>
-        <a href="#" id="eip681Link" class="btn btn-ghost" target="_blank" rel="noopener noreferrer">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
-          EIP-681 Universal
-        </a>
+        <button class="btn btn-ghost" onclick="copyDeepLink()" id="copyLinkBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          Copy for Any Wallet
+        </button>
       </div>
 
       <div class="qr-section">
@@ -563,6 +568,43 @@ footer{border-top:1px solid var(--border);padding:40px 0;font-family:var(--sans)
   </div>
 </section>
 
+<!-- FINAL CTA -->
+<section id="final-cta" style="padding:80px 0;background:linear-gradient(180deg,var(--void),var(--surface2) 40%,var(--surface2) 60%,var(--void));">
+  <div class="wrap" style="text-align:center;">
+    <div class="section-label" style="justify-content:center;display:flex;">One action. Permanent.</div>
+    <h2 style="margin-bottom:12px;">The blockchain doesn't<br><em>forget who was early.</em></h2>
+    <p style="color:var(--muted);font-family:var(--sans);font-size:15px;max-width:440px;margin:0 auto 40px;">
+      You've read the stats. You've seen the losses. You know this is real.
+      <br>Now it's your turn to leave a mark on-chain.
+    </p>
+
+    <!-- Amount selector inline -->
+    <div style="display:flex;justify-content:center;gap:10px;margin-bottom:28px;flex-wrap:wrap;">
+      <button class="cta-amount" data-pol="1" data-wei="1e18" onclick="selectCtaAmount(this)">1 POL</button>
+      <button class="cta-amount selected" data-pol="5" data-wei="5e18" onclick="selectCtaAmount(this)">5 POL</button>
+      <button class="cta-amount" data-pol="10" data-wei="1e19" onclick="selectCtaAmount(this)">10 POL</button>
+    </div>
+
+    <!-- Primary CTA -->
+    <div style="display:flex;flex-direction:column;align-items:center;gap:12px;max-width:380px;margin:0 auto;">
+      <a href="#" id="ctaMetamaskLink" class="btn btn-primary" target="_blank" rel="noopener noreferrer"
+         style="width:100%;font-size:16px;padding:16px 28px;border-radius:12px;justify-content:center;">
+        <svg width="20" height="20" viewBox="0 0 318.6 318.6" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0"><path fill="#E2761B" stroke="#E2761B" stroke-linecap="round" stroke-linejoin="round" d="M274.1 35.5l-99.5 73.9L193 65.8z"/><path fill="#E4761B" stroke="#E4761B" stroke-linecap="round" stroke-linejoin="round" d="M44.4 35.5l98.7 74.6-17.5-44.3zm193.9 171.3l-26.5 40.6 56.7 15.6 16.3-55.3zm-204.4.9L50.1 263l56.7-15.6-26.5-40.6z"/><path fill="#E4761B" stroke="#E4761B" stroke-linecap="round" stroke-linejoin="round" d="M103.6 138.2l-15.8 23.9 56.3 2.5-2-60.5zm111.3 0l-39-34.8-1.3 61.2 56.2-2.5zM106.8 247.4l33.8-16.5-29.2-22.8zm71.1-16.5l33.9 16.5-4.7-39.3z"/><path fill="#F6851B" stroke="#F6851B" stroke-linecap="round" stroke-linejoin="round" d="M179.8 193.5l-6.7 34.1 4.8 3.3 29.2-22.8 1-22.9zm-69.2-8.3l.8 22.9 29.2 22.8 4.8-3.3-6.6-34.1z"/></svg>
+        Send <span id="ctaAmountLabel">5 POL</span> via MetaMask
+      </a>
+      <button onclick="copyDeepLink()" class="btn btn-ghost"
+              style="width:100%;font-size:14px;padding:12px 24px;border-radius:12px;justify-content:center;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        Copy link for any EVM wallet
+      </button>
+    </div>
+
+    <p style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:24px;">
+      Polygon PoS · chain 137 · ~11s · &lt; $0.01 gas
+    </p>
+  </div>
+</section>
+
 <!-- FOOTER -->
 <footer>
   <div class="wrap">
@@ -594,6 +636,13 @@ function selectTier(el){
   selectedPol = parseFloat(el.dataset.pol);
   updateLinks();
   document.getElementById('selectedAmountDisplay').textContent = selectedPol + ' POL selected';
+  // sync bottom CTA pills
+  document.querySelectorAll('.cta-amount').forEach(b=>{
+    b.classList.toggle('selected', parseFloat(b.dataset.pol) === selectedPol);
+  });
+  document.getElementById('ctaAmountLabel').textContent = selectedPol + ' POL';
+  const mm = 'https://link.metamask.io/send/' + WALLET + '@' + CHAIN_ID + '?value=' + selectedWei;
+  document.getElementById('ctaMetamaskLink').href = mm;
 }
 
 function updateLinks(){
@@ -616,11 +665,40 @@ function updateLinks(){
 
 // ── COPY ADDRESS ──
 function copyAddress(){
-  navigator.clipboard.writeText(WALLET).then(()=>{
-    const t = document.getElementById('toast');
-    t.classList.add('show');
-    setTimeout(()=>t.classList.remove('show'), 2200);
+  navigator.clipboard.writeText(WALLET).then(()=>showToast('Address copied ✓'));
+}
+
+// ── COPY DEEP LINK ──
+function copyDeepLink(){
+  const eip = 'ethereum:' + WALLET + '@' + CHAIN_ID + '?value=' + selectedWei;
+  navigator.clipboard.writeText(eip).then(()=>showToast('Link copied — paste in any EVM wallet ✓'));
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2400);
+}
+
+// ── CTA BOTTOM AMOUNT SELECT ──
+function selectCtaAmount(el){
+  document.querySelectorAll('.cta-amount').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+  const wei = el.dataset.wei;
+  const pol = parseFloat(el.dataset.pol);
+  selectedWei = wei;
+  selectedPol = pol;
+  // sync top tiers
+  document.querySelectorAll('.tier').forEach(t=>{
+    t.classList.toggle('selected', parseFloat(t.dataset.pol) === pol);
   });
+  document.getElementById('ctaAmountLabel').textContent = pol + ' POL';
+  document.getElementById('selectedAmountDisplay').textContent = pol + ' POL selected';
+  updateLinks();
+  // update cta metamask link
+  const mm = 'https://link.metamask.io/send/' + WALLET + '@' + CHAIN_ID + '?value=' + wei;
+  document.getElementById('ctaMetamaskLink').href = mm;
 }
 
 // ── LIVE STATS from /health ──
