@@ -126,6 +126,9 @@
     .gnav-link.active::after { display: none; }
     .gnav-link.active { background: rgba(0,255,136,0.06); }
     .gnav-burger { display: flex; }
+    /* ── Table mobile: reduce footprint, keep horizontal scroll usable ── */
+    table { font-size: 11px; }
+    tbody td, thead th { padding: 6px 8px; }
   }
 
   .container { position: relative; z-index: 1; max-width: 1600px; width: 100%; min-width: 0; margin: 0 auto; padding: 20px 24px; flex: 1; }
