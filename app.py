@@ -2490,7 +2490,6 @@ def place_bet():
                 f"(reason={_pe_decision.reason})"
             )
             close_side = "sell" if pos["side"] == "long" else "buy"
-            _funding_on_partial = _get_funding_fee()
             try:
                 trade.create_order(
                     orderType="mkt", symbol=symbol, side=close_side,
@@ -6491,7 +6490,7 @@ def on_chain_audit():
     elif closed_bets:
         integrity_score = 0.0
     else:
-        integrity_score = None
+        integrity_score = 0.0
 
     # Last commit timestamp
     last_commit_at = None
