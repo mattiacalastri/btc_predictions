@@ -28,7 +28,7 @@ except ImportError:
 logger = logging.getLogger("adaptive_engine")
 
 # ── Defaults & bounds ─────────────────────────────────────────────────────────
-_DEFAULT_THRESHOLD = 0.56
+_DEFAULT_THRESHOLD = 0.54
 _THRESHOLD_BOUNDS = (0.50, 0.70)
 _MOMENTUM_BOUNDS = (0.95, 1.05)
 _DIRECTION_ADJ_BOUNDS = (-0.05, 0.08)
