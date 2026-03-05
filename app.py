@@ -2700,6 +2700,33 @@ def place_bet():
                           {"direction": direction, "confidence": confidence})
         return jsonify({"status": "error", "error": "internal_error"}), 500
 
+# ── DEBUG GEMINI ─────────────────────────────────────────────────────────────
+
+@app.route("/debug-gemini", methods=["GET"])
+def debug_gemini():
+    """Diagnostic: list available Gemini models for the configured API key."""
+    err = _check_read_key()
+    if err:
+        return err
+    import requests as _r
+    key = os.environ.get("GEMINI_API_KEY", "")
+    if not key:
+        return jsonify({"error": "GEMINI_API_KEY not set"}), 400
+    results = {}
+    for api_ver in ["v1", "v1beta"]:
+        try:
+            resp = _r.get(
+                f"https://generativelanguage.googleapis.com/{api_ver}/models?key={key}",
+                timeout=10, verify=certifi.where(),
+            )
+            data = resp.json()
+            models = [m["name"] for m in data.get("models", []) if "generateContent" in m.get("supportedGenerationMethods", [])]
+            results[api_ver] = {"status": resp.status_code, "models": models[:20]}
+        except Exception as e:
+            results[api_ver] = {"error": str(e)}
+    return jsonify(results)
+
+
 # ── COUNCIL DELIBERATE ───────────────────────────────────────────────────────
 
 @app.route("/council-deliberate", methods=["POST"])
