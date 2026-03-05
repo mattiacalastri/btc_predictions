@@ -18,7 +18,7 @@ import requests
 
 COUNCIL_MEMBERS = {
     "TECNICO":   {"model": "claude-sonnet-4-6",   "weight": 0.30},
-    "SENTIMENT": {"model": "gemini-2.5-flash",        "weight": 0.15},
+    "SENTIMENT": {"model": "gemini-flash-latest",     "weight": 0.15},
     "QUANT":     {"model": "xgboost-local",        "weight": 0.25},
 }
 
@@ -168,12 +168,12 @@ def call_sentiment(payload: dict) -> dict:
     try:
         import requests as _requests
         gemini_key = os.environ.get("GEMINI_API_KEY", "")
-        _gemini_model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+        _gemini_model = os.environ.get("GEMINI_MODEL", "gemini-flash-latest")
         _api_ver = os.environ.get("GEMINI_API_VERSION", "v1beta")
         _url = f"https://generativelanguage.googleapis.com/{_api_ver}/models/{_gemini_model}:generateContent?key={gemini_key}"
         _body = {
             "contents": [{"role": "user", "parts": [{"text": _SENTIMENT_SYSTEM + "\n\n" + _build_sentiment_message(payload)}]}],
-            "generationConfig": {"maxOutputTokens": 512, "temperature": 0.3},
+            "generationConfig": {"maxOutputTokens": 1024, "temperature": 0.3},
         }
         _resp = _requests.post(_url, json=_body, timeout=30, verify=certifi.where())
         if not _resp.ok:
