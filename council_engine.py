@@ -18,7 +18,7 @@ import requests
 
 COUNCIL_MEMBERS = {
     "TECNICO":   {"model": "claude-sonnet-4-6",   "weight": 0.30},
-    "SENTIMENT": {"model": "gemini-1.5-flash",       "weight": 0.15},
+    "SENTIMENT": {"model": "gemini-2.0-flash",        "weight": 0.15},
     "QUANT":     {"model": "xgboost-local",        "weight": 0.25},
 }
 
@@ -168,7 +168,7 @@ def call_sentiment(payload: dict) -> dict:
     try:
         import requests as _requests
         gemini_key = os.environ.get("GEMINI_API_KEY", "")
-        _url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={gemini_key}"
+        _url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_key}"
         _body = {
             "system_instruction": {"parts": [{"text": _SENTIMENT_SYSTEM}]},
             "contents": [{"parts": [{"text": _build_sentiment_message(payload)}]}],
