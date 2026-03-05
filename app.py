@@ -2709,15 +2709,16 @@ def debug_gemini():
     if err:
         return err
     import requests as _r
+    import certifi as _certifi
     key = os.environ.get("GEMINI_API_KEY", "")
     if not key:
-        return jsonify({"error": "GEMINI_API_KEY not set"}), 400
-    results = {}
+        return jsonify({"error": "GEMINI_API_KEY not set", "key_prefix": ""}), 400
+    results = {"key_prefix": key[:8] + "..."}
     for api_ver in ["v1", "v1beta"]:
         try:
             resp = _r.get(
                 f"https://generativelanguage.googleapis.com/{api_ver}/models?key={key}",
-                timeout=10, verify=certifi.where(),
+                timeout=10, verify=_certifi.where(),
             )
             data = resp.json()
             models = [m["name"] for m in data.get("models", []) if "generateContent" in m.get("supportedGenerationMethods", [])]
