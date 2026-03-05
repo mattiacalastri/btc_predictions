@@ -18,7 +18,7 @@ import requests
 
 COUNCIL_MEMBERS = {
     "TECNICO":   {"model": "claude-sonnet-4-6",   "weight": 0.30},
-    "SENTIMENT": {"model": "gemini-2.0-flash",       "weight": 0.15},
+    "SENTIMENT": {"model": "gemini-1.5-flash",       "weight": 0.15},
     "QUANT":     {"model": "xgboost-local",        "weight": 0.25},
 }
 
@@ -169,7 +169,7 @@ def call_sentiment(payload: dict) -> dict:
         from google import genai as google_genai
         client = google_genai.Client(api_key=os.environ.get("GEMINI_API_KEY", ""))
         response = client.models.generate_content(
-            model="gemini-2.0-flash",
+            model="gemini-1.5-flash",
             contents=_SENTIMENT_SYSTEM + "\n\n" + _build_sentiment_message(payload),
             config=google_genai.types.GenerateContentConfig(
                 max_output_tokens=256,
