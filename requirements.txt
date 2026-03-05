@@ -12,5 +12,4 @@ certifi
 python-dotenv
 pandas
 anthropic
-google-generativeai
 google-genai
