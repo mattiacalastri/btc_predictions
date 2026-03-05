@@ -177,7 +177,8 @@ def call_sentiment(payload: dict) -> dict:
             "generationConfig": {"maxOutputTokens": 256, "temperature": 0.3},
         }
         _resp = _requests.post(_url, json=_body, timeout=30, verify=certifi.where())
-        _resp.raise_for_status()
+        if not _resp.ok:
+            raise Exception(f"Gemini {_resp.status_code}: {_resp.text[:300]}")
         raw_text = _resp.json()["candidates"][0]["content"]["parts"][0]["text"]
         parsed = _parse_llm_json(raw_text)
         direction = str(parsed.get("direction", "")).upper()
