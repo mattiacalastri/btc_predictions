@@ -166,20 +166,17 @@ def call_sentiment(payload: dict) -> dict:
     model = COUNCIL_MEMBERS[member]["model"]
     weight = COUNCIL_MEMBERS[member]["weight"]
     try:
-        from google import genai as google_genai
-        client = google_genai.Client(
-            api_key=os.environ.get("GEMINI_API_KEY", ""),
-            http_options={"api_version": "v1"},
-        )
-        response = client.models.generate_content(
-            model="gemini-1.5-flash",
-            contents=_SENTIMENT_SYSTEM + "\n\n" + _build_sentiment_message(payload),
-            config=google_genai.types.GenerateContentConfig(
-                max_output_tokens=256,
-                temperature=0.3,
-            ),
-        )
-        raw_text = response.text if hasattr(response, "text") else ""
+        import requests as _requests
+        gemini_key = os.environ.get("GEMINI_API_KEY", "")
+        _url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={gemini_key}"
+        _body = {
+            "system_instruction": {"parts": [{"text": _SENTIMENT_SYSTEM}]},
+            "contents": [{"parts": [{"text": _build_sentiment_message(payload)}]}],
+            "generationConfig": {"maxOutputTokens": 256, "temperature": 0.3},
+        }
+        _resp = _requests.post(_url, json=_body, timeout=30, verify=certifi.where())
+        _resp.raise_for_status()
+        raw_text = _resp.json()["candidates"][0]["content"]["parts"][0]["text"]
         parsed = _parse_llm_json(raw_text)
         direction = str(parsed.get("direction", "")).upper()
         if direction not in ("UP", "DOWN"):
