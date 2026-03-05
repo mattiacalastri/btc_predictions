@@ -169,8 +169,7 @@ def call_sentiment(payload: dict) -> dict:
         import requests as _requests
         gemini_key = os.environ.get("GEMINI_API_KEY", "")
         _gemini_model = os.environ.get("GEMINI_MODEL", "gemini-flash-latest")
-        _api_ver = os.environ.get("GEMINI_API_VERSION", "v1beta")
-        _url = f"https://generativelanguage.googleapis.com/{_api_ver}/models/{_gemini_model}:generateContent?key={gemini_key}"
+        _url = f"https://generativelanguage.googleapis.com/v1beta/models/{_gemini_model}:generateContent?key={gemini_key}"
         _body = {
             "contents": [{"role": "user", "parts": [{"text": _SENTIMENT_SYSTEM + "\n\n" + _build_sentiment_message(payload)}]}],
             "generationConfig": {"maxOutputTokens": 1024, "temperature": 0.3},
