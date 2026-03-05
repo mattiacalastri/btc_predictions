@@ -167,7 +167,10 @@ def call_sentiment(payload: dict) -> dict:
     weight = COUNCIL_MEMBERS[member]["weight"]
     try:
         from google import genai as google_genai
-        client = google_genai.Client(api_key=os.environ.get("GEMINI_API_KEY", ""))
+        client = google_genai.Client(
+            api_key=os.environ.get("GEMINI_API_KEY", ""),
+            http_options={"api_version": "v1"},
+        )
         response = client.models.generate_content(
             model="gemini-1.5-flash",
             contents=_SENTIMENT_SYSTEM + "\n\n" + _build_sentiment_message(payload),
