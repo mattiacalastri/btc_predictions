@@ -4053,6 +4053,203 @@ def force_retrain():
     })
 
 
+_AI_PREDICT_SYSTEM = (
+    "You are a profitable Bitcoin short-term Automatic Prediction Trading Agent on 5-minute horizons. "
+    "Each cycle evaluates multi-factor BTC/USD market data to predict UP or DOWN for a Kraken Futures perpetual trade on PF_XBTUSD. "
+    "Be data-driven, avoid speculation, prioritize signal alignment and internal consistency.\n\n"
+    "Think through all steps before producing the final JSON output.\n\n"
+    "## STEP 0 — FORCE_NO_BET CHECK\n"
+    "If force_no_bet = true: determine natural direction anyway, force confidence = 0.50, begin reasoning with 'STRUCTURAL OVERRIDE: [reason]'.\n\n"
+    "## STEP 1 — TECHNICAL SCORE CEILING\n"
+    "Read Technical Score from data. Let S = |score|.\n"
+    "S <= 1.0 -> ceiling 0.62 | S 1.0-2.5 -> 0.65 | S 2.5-3.5 -> 0.65 | S 3.5-4.5 -> 0.72 | S > 4.5 -> 0.78\n"
+    "Absolute max: 0.80.\n\n"
+    "## STEP 2 — BASE SIGNAL WEIGHTS\n"
+    "Technical Score (±7) — 40% | RSI14 — 10% | MACD — 10% | Derivatives (LS + Funding) — 13% | "
+    "OI + Futures Volume — 12% | Taker Buy/Sell — 5% | MTF Consensus — 5% | News/Macro — 5%\n\n"
+    "## DIRECTIONAL SYMMETRY RULES\n"
+    "- EMA BULL -> UP unless contradicted | EMA BEAR -> DOWN unless contradicted | EMA NEUTRAL -> use MTF + taker\n"
+    "- EMA opposes direction -> CAP 0.62\n"
+    "- Derivatives are BIDIRECTIONAL: funding positive = bearish pressure, negative = bullish pressure\n"
+    "- Only crypto-specific news has weight (10%). Generic macro = 0%.\n\n"
+    "## CONFIDENCE CALIBRATION\n"
+    "0.50-0.54 = conflicting | 0.55-0.62 = mild | 0.63-0.72 = clear (3+ agree) | 0.73-0.80 = strong convergence\n"
+    "Use FULL range. Never default to 0.55.\n\n"
+    "## KEY RULES\n"
+    "- Doji pattern: -0.10 penalty\n"
+    "- Thin volume: -0.15 penalty, CAP 0.61\n"
+    "- Bollinger squeeze (<0.3%): -0.05\n"
+    "- |score| >= 5 AND EMA opposes: -0.20\n"
+    "- Capitulation Risk + crowd_long_contrarian: -0.20, CAP 0.55-0.59\n"
+    "- Short Squeeze + crowd_short_contrarian: -0.20, CAP 0.55-0.59\n"
+    "- < 3 categories align: -0.05\n"
+    "- Final clamp: [0.50, 0.80]\n\n"
+    "## ANTI-BIAS CHECK\n"
+    "Before answering: Is direction data-driven or 'safe feeling'? Would flipping EMA flip your call?\n\n"
+    "## OUTPUT\n"
+    "Return SINGLE valid JSON. No markdown, no backticks.\n"
+    '{"direction":"UP|DOWN","confidence":0.50-0.80,"reasoning":"min 30 chars",'
+    '"signals":{"technical":"...","sentiment":"...","fear_greed":"...","volume":"...",'
+    '"technical_bias_bullish":bool,"signal_fg_fear":bool},'
+    '"telegram_message":"min 10 chars"}'
+)
+
+
+@app.route("/ai-predict", methods=["POST"])
+def ai_predict():
+    """Run the AI prediction using Anthropic Claude (replaces n8n OpenRouter agent).
+
+    Accepts the full market data JSON from n8n 01A/01B.
+    Returns structured prediction: direction, confidence, reasoning, signals, telegram_message.
+    """
+    err = _check_api_key()
+    if err:
+        return err
+
+    data = request.get_json(force=True) or {}
+
+    # Build the user message from market data (same fields n8n passes)
+    lines = []
+    lines.append(f"Current timestamp: {_dt.datetime.utcnow().strftime('%d/%m/%Y %H:%M')} UTC")
+    lines.append(f"\nBITCOIN LIVE PRICE: {data.get('mark_price', 'n/a')} USD")
+
+    # Fear & Greed
+    fg_data = data.get('data', [{}])
+    if isinstance(fg_data, list) and fg_data:
+        lines.append(f"Fear & Greed: {fg_data[0].get('value', 'n/a')} — {fg_data[0].get('value_classification', 'n/a')}")
+    elif data.get('fear_greed_value'):
+        lines.append(f"Fear & Greed: {data.get('fear_greed_value', 'n/a')}")
+
+    # Derivatives
+    lines.append(f"\nDERIVATIVES: Funding={data.get('funding_rate', 'n/a')} ({data.get('funding_signal', 'n/a')})")
+    lines.append(f"L/S Ratio: {data.get('ls_ratio', 'n/a')} ({data.get('ls_bias', 'n/a')})")
+    lines.append(f"Derivatives Summary: {data.get('derivatives_summary', 'n/a')}")
+
+    # Candles
+    for i in range(1, 4):
+        o = data.get(f'candle_{i}_open', 'n/a')
+        c = data.get(f'candle_{i}_close', 'n/a')
+        v = data.get(f'candle_{i}_volume', 'n/a')
+        lines.append(f"Candle {i}: open={o} close={c} vol={v}")
+    lines.append(f"Momentum: {data.get('candle_momentum', 'n/a')}")
+    lines.append(f"Candle Summary: {data.get('candle_summary', 'n/a')}")
+
+    # Technical indicators
+    ind = data.get('indicators', {})
+    lines.append(f"\nTECHNICAL INDICATORS:")
+    lines.append(f"RSI14: {ind.get('rsi14', data.get('rsi14', 'n/a'))} ({ind.get('rsi_signal', 'n/a')})")
+    lines.append(f"EMA9/21/50: {ind.get('ema9', 'n/a')}/{ind.get('ema21', 'n/a')}/{ind.get('ema50', 'n/a')}")
+    lines.append(f"EMA Trend: {ind.get('ema_trend', 'n/a')}")
+    macd = ind.get('macd', {})
+    if isinstance(macd, dict):
+        lines.append(f"MACD: {macd.get('macd', 'n/a')} Signal: {macd.get('signal', 'n/a')} Hist: {macd.get('histogram', 'n/a')} Bias: {macd.get('bias', 'n/a')}")
+    bb = ind.get('bollinger', {})
+    if isinstance(bb, dict):
+        lines.append(f"Bollinger: upper={bb.get('upper', 'n/a')} mid={bb.get('middle', 'n/a')} lower={bb.get('lower', 'n/a')} width={bb.get('width_pct', 'n/a')}%")
+    lines.append(f"VWAP: {ind.get('vwap', 'n/a')} ({ind.get('vwap_position', 'n/a')})")
+    lines.append(f"Volume: spike={ind.get('volume_spike', 'n/a')} ratio={ind.get('volume_ratio', 'n/a')}x state={ind.get('volume_state', 'n/a')}")
+    lines.append(f"Candle Pattern: {ind.get('candle_pattern', 'n/a')}")
+    lines.append(f"Support/Resistance: {ind.get('support', 'n/a')}/{ind.get('resistance', 'n/a')}")
+    lines.append(f"ATR14: {data.get('atr14', 'n/a')} | ADX14: {data.get('adx14', 'n/a')} ({data.get('adx_signal', 'n/a')})")
+
+    # Technical score
+    ts = data.get('technical_score', {})
+    if isinstance(ts, dict):
+        lines.append(f"\nTechnical Score: {ts.get('value', 'n/a')} (max ±7) | {ts.get('bullish_votes', 'n/a')} bull / {ts.get('bearish_votes', 'n/a')} bear")
+        lines.append(f"Technical Bias: {ts.get('bias', 'n/a')}")
+        lines.append(f"Force LOW-CONFIDENCE: {ts.get('force_no_bet', False)} {ts.get('force_no_bet_reason', '')}")
+
+    # Anchor values
+    lines.append(f"\nANCHOR VALUES:")
+    lines.append(f"Technical Score Anchor: {ts.get('value', 'n/a') if isinstance(ts, dict) else 'n/a'}")
+    lines.append(f"OI Price Signal Anchor: {data.get('oi_price_signal', 'n/a')}")
+    lines.append(f"LS Bias Anchor: {data.get('ls_bias', 'n/a')}")
+
+    # Market regime
+    lines.append(f"\nMarket Regime: {data.get('market_regime', 'n/a')} — {data.get('regime_note', 'n/a')}")
+
+    # Order book
+    lines.append(f"\nOrder Book: {data.get('order_book_summary', 'n/a')}")
+
+    # Taker
+    lines.append(f"\nTaker Buy: {data.get('taker_buy_pct', 'n/a')}% | Sell: {data.get('taker_sell_pct', 'n/a')}% | Signal: {data.get('taker_signal', 'n/a')}")
+
+    # OI
+    lines.append(f"\nOI Signal: {data.get('oi_signal', 'n/a')} | OI+Price: {data.get('oi_price_signal', 'n/a')}")
+
+    # MTF
+    mtf = data.get('mtf', {})
+    if isinstance(mtf, dict):
+        for tf_key, tf_label in [('tf15m', '15m'), ('tf4h', '4h')]:
+            tf = mtf.get(tf_key, {})
+            if isinstance(tf, dict):
+                lines.append(f"{tf_label}: {tf.get('trend', 'UNKNOWN')} EMA9={tf.get('ema9', 'n/a')} EMA21={tf.get('ema21', 'n/a')} RSI={tf.get('rsi14', 'n/a')}")
+        lines.append(f"MTF Consensus: {mtf.get('consensus', 'UNKNOWN')}")
+
+    # News (truncated)
+    for news_key in ['cnbc_news', 'coindesk_news', 'news_cryptocompare', 'sole24ore_news']:
+        news_items = data.get(news_key, [])
+        if isinstance(news_items, list) and news_items:
+            label = news_key.upper().replace('_', ' ')
+            lines.append(f"\n{label}:")
+            for item in news_items[:10]:
+                if isinstance(item, dict):
+                    lines.append(f"  [{item.get('source', 'n/a')}] {item.get('title', 'n/a')} ({item.get('date', 'n/a')})")
+
+    # Performance memory
+    lines.append(f"\nPerformance Memory: {data.get('pattern_memory', 'n/a')}")
+    lines.append(f"Live Calibration: {data.get('perf_stats_text', 'n/a')}")
+
+    user_message = "\n".join(lines)
+
+    try:
+        import anthropic
+        import httpx
+        client = anthropic.Anthropic(
+            api_key=os.environ.get("ANTHROPIC_API_KEY", ""),
+            http_client=httpx.Client(verify=certifi.where()),
+        )
+        msg = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=1500,
+            temperature=0.3,
+            system=_AI_PREDICT_SYSTEM,
+            messages=[{"role": "user", "content": user_message}],
+            timeout=45.0,
+        )
+        raw_text = msg.content[0].text if msg.content else ""
+
+        # Parse JSON from response
+        import re as _re
+        parsed = {}
+        raw_text_stripped = raw_text.strip()
+        try:
+            parsed = json.loads(raw_text_stripped)
+        except (json.JSONDecodeError, ValueError):
+            m = _re.search(r'\{[\s\S]+\}', raw_text_stripped)
+            if m:
+                try:
+                    parsed = json.loads(m.group(0))
+                except (json.JSONDecodeError, ValueError):
+                    pass
+
+        if not parsed or "direction" not in parsed:
+            return jsonify({"status": "error", "error": "invalid_ai_response", "raw": raw_text[:500]}), 500
+
+        return jsonify({
+            "status": "ok",
+            "direction": parsed.get("direction", "").upper(),
+            "confidence": max(0.50, min(0.80, float(parsed.get("confidence", 0.55)))),
+            "reasoning": parsed.get("reasoning", ""),
+            "signals": parsed.get("signals", {}),
+            "telegram_message": parsed.get("telegram_message", ""),
+        })
+
+    except Exception as e:
+        app.logger.error(f"[AI_PREDICT] error: {e}")
+        return jsonify({"status": "error", "error": str(e)[:200]}), 500
+
+
 _auto_retrain_last: float = 0.0
 _AUTO_RETRAIN_COOLDOWN = 6 * 3600  # 6 hours
 
