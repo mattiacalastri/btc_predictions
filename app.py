@@ -4128,7 +4128,15 @@ def ai_predict():
     if err:
         return err
 
-    data = request.get_json(force=True) or {}
+    # Log incoming request for debugging
+    _raw_body = request.get_data(as_text=True)
+    try:
+        data = request.get_json(force=True) or {}
+    except Exception as _parse_err:
+        app.logger.error(f"[AI_PREDICT] JSON parse error: {_parse_err}, raw={_raw_body[:200]}")
+        return jsonify({"status": "error", "error": f"json_parse: {_parse_err}", "raw_preview": _raw_body[:200]}), 400
+
+    app.logger.info(f"[AI_PREDICT] body_len={len(_raw_body)} keys={list(data.keys())[:10] if isinstance(data, dict) else type(data).__name__} mark_price={data.get('mark_price','missing') if isinstance(data, dict) else 'N/A'}")
 
     # Build the user message from market data (same fields n8n passes)
     lines = []
