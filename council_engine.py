@@ -390,7 +390,8 @@ def log_votes_async(votes: list, signal_hash: str, prediction_id=None):
                 timeout=8,
                 verify=certifi.where(),
             )
-        except Exception:
-            pass  # fire-and-forget: never raise
+        except Exception as _log_err:
+            import logging
+            logging.getLogger("council_engine").warning(f"log_votes_async failed: {_log_err}")
 
     threading.Thread(target=_do_log, daemon=True).start()

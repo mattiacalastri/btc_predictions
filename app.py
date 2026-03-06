@@ -2201,8 +2201,8 @@ def place_bet():
                     _sp_row = r_sp.json()[0]
                     _sp_bet_id = _sp_row.get("id")
                     signal_price = float(_sp_row.get("signal_price") or _sp_row.get("btc_price_entry") or 0)
-        except Exception:
-            pass  # fail open
+        except Exception as _sp_err:
+            app.logger.warning(f"[place-bet] signal_price fetch failed (fail-open): {_sp_err}")
 
     price_drift_pct, drift_exit = _check_price_drift(signal_price, symbol, direction, confidence)
     if drift_exit:
@@ -2471,8 +2471,8 @@ def place_bet():
                              "Content-Type": "application/json", "Prefer": "return=minimal"},
                     timeout=3,
                 )
-        except Exception:
-            pass  # non-blocking
+        except Exception as _pd_err:
+            app.logger.warning(f"[PE] Portfolio decision log failed (non-blocking): {_pd_err}")
 
         # ── Execute decision ──────────────────────────────────────────────────
 
