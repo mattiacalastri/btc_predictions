@@ -101,8 +101,8 @@
   @media (max-width: 768px) {
     .gnav-links {
       display: flex;
-      position: fixed; top: 48px; right: 0; bottom: 0;
-      width: 260px;
+      position: fixed; top: 48px; right: 0;
+      width: 260px; height: calc(100vh - 48px);
       z-index: 9001;
       background: rgba(10,10,15,0.98);
       backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
