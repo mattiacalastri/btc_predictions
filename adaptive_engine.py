@@ -38,7 +38,7 @@ _MIN_SIGNALS_PER_BAND = 5
 _RECALC_INTERVAL_SEC = 3600       # 1 hour
 _RECALC_MIN_NEW_SIGNALS = 50
 _DIRECTION_WINDOW = 30            # last N signals for bias detection
-_DIRECTION_BIAS_THRESHOLD = 0.70  # 70% = biased
+_DIRECTION_BIAS_THRESHOLD = 0.85  # 85% = biased (relaxed: trending markets legitimately cluster)
 
 # Confidence bands: (lower, upper)
 _CONF_BANDS = [
@@ -341,11 +341,11 @@ class AdaptiveEngine:
         down_pct = down_count / total
 
         if up_pct >= _DIRECTION_BIAS_THRESHOLD:
-            # Biased UP: make UP harder (+0.05), DOWN easier (-0.02)
-            adj = _clamp(0.05, *_DIRECTION_ADJ_BOUNDS)
+            # Biased UP: make UP harder (+0.03), DOWN easier
+            adj = _clamp(0.03, *_DIRECTION_ADJ_BOUNDS)
             return adj, "UP", round(up_pct, 3)
         elif down_pct >= _DIRECTION_BIAS_THRESHOLD:
-            adj = _clamp(0.05, *_DIRECTION_ADJ_BOUNDS)
+            adj = _clamp(0.03, *_DIRECTION_ADJ_BOUNDS)
             return adj, "DOWN", round(down_pct, 3)
 
         return 0.0, None, None
