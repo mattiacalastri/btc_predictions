@@ -104,9 +104,10 @@
       position: fixed; top: 48px; right: 0; bottom: 0;
       width: 260px;
       z-index: 9001;
-      background: rgba(10,10,15,0.96);
+      background: rgba(10,10,15,0.98);
       backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-      border-left: 1px solid rgba(255,255,255,0.06);
+      border-left: 1px solid rgba(0,255,136,0.15);
+      box-shadow: -4px 0 20px rgba(0,0,0,0.5);
       flex-direction: column; align-items: stretch;
       padding: 12px 0; gap: 0;
       overflow-y: auto;
@@ -123,9 +124,10 @@
     }
     .gnav-link {
       font-size: 14px; padding: 12px 20px; border-radius: 0;
+      color: rgba(255,255,255,0.75);
     }
     .gnav-link.active::after { display: none; }
-    .gnav-link.active { background: rgba(0,255,136,0.06); }
+    .gnav-link.active { background: rgba(0,255,136,0.08); color: #fff; }
     .gnav-burger { display: flex; }
     /* ── Table mobile: reduce footprint, keep horizontal scroll usable ── */
     table { font-size: 11px; }
