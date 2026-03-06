@@ -4095,6 +4095,28 @@ _AI_PREDICT_SYSTEM = (
 )
 
 
+@app.route("/ai-predict-debug", methods=["POST"])
+def ai_predict_debug():
+    """Debug endpoint: returns received payload info without calling Claude."""
+    err = _check_api_key()
+    if err:
+        return err
+    raw = request.get_data(as_text=True)
+    ct = request.content_type
+    try:
+        data = request.get_json(force=True) or {}
+        keys = list(data.keys()) if isinstance(data, dict) else type(data).__name__
+    except Exception as e:
+        keys = f"parse_error: {e}"
+    return jsonify({
+        "content_type": ct,
+        "raw_length": len(raw),
+        "raw_preview": raw[:200],
+        "parsed_type": type(data).__name__ if 'data' in dir() else "N/A",
+        "keys": keys,
+    })
+
+
 @app.route("/ai-predict", methods=["POST"])
 def ai_predict():
     """Run the AI prediction using Anthropic Claude (replaces n8n OpenRouter agent).
