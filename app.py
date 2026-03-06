@@ -2098,8 +2098,11 @@ def place_bet():
             }), 200
 
         # Override direction + confidence with council decision
+        _original_direction = direction  # preserve for counter-trend fallback
         direction = _council_dir
         confidence = _council_result["council_confidence"]
+    else:
+        _original_direction = direction
 
     # [FIX4+5] Regime check (single Binance API call for volatility + trend filters)
     _regime_data = None
@@ -2126,6 +2129,7 @@ def place_bet():
             }), 200
 
         # [FIX5C] Counter-trend filter — block trades against strong trend
+        # If council flipped direction and it's counter-trend, fall back to original
         if TREND_ALIGN_FILTER:
             _regime_name = _regime_data.get("regime_name", "")
             _trend_dir = _regime_data.get("trend_direction", "")
@@ -2134,19 +2138,29 @@ def place_bet():
                     and _trend_str > 0.3
                     and _trend_dir
                     and direction != _trend_dir):
-                app.logger.info(
-                    f"[FIX5] Counter-trend skip: signal={direction} vs trend={_trend_dir} "
-                    f"(strength={_trend_str:.4f}%, regime={_regime_name})"
-                )
-                return jsonify({
-                    "status": "skipped",
-                    "reason": "counter_trend",
-                    "signal_direction": direction,
-                    "trend_direction": _trend_dir,
-                    "trend_strength": _trend_str,
-                    "regime": _regime_name,
-                    "confidence": confidence,
-                }), 200
+                # Council flipped direction? Fall back to original if it aligns with trend
+                if direction != _original_direction and _original_direction == _trend_dir:
+                    app.logger.info(
+                        f"[FIX5] Council flip rejected: council={direction} vs trend={_trend_dir}. "
+                        f"Falling back to original={_original_direction}"
+                    )
+                    direction = _original_direction
+                    # Keep council confidence but reduce by 10% as penalty for disagreement
+                    confidence = round(confidence * 0.90, 4)
+                else:
+                    app.logger.info(
+                        f"[FIX5] Counter-trend skip: signal={direction} vs trend={_trend_dir} "
+                        f"(strength={_trend_str:.4f}%, regime={_regime_name})"
+                    )
+                    return jsonify({
+                        "status": "skipped",
+                        "reason": "counter_trend",
+                        "signal_direction": direction,
+                        "trend_direction": _trend_dir,
+                        "trend_strength": _trend_str,
+                        "regime": _regime_name,
+                        "confidence": confidence,
+                    }), 200
 
     # ACE — Adaptive Calibration Engine gate
     ace_result = _adaptive_engine.evaluate(confidence, direction)
