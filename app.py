@@ -4205,9 +4205,10 @@ def ai_predict():
     try:
         import anthropic
         import httpx
+        import certifi as _certifi_ai
         client = anthropic.Anthropic(
             api_key=os.environ.get("ANTHROPIC_API_KEY", ""),
-            http_client=httpx.Client(verify=certifi.where()),
+            http_client=httpx.Client(verify=_certifi_ai.where()),
         )
         msg = client.messages.create(
             model="claude-sonnet-4-6",
