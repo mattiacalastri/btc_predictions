@@ -889,7 +889,7 @@ def health():
         "capital": capital,
         "wallet_equity": wallet_equity,
         "base_size": base_size,
-        "confidence_threshold": float(os.environ.get("CONF_THRESHOLD", "0.54")),
+        "confidence_threshold": float(os.environ.get("CONF_THRESHOLD", "0.62")),
         "xgb_gate_active": _clean_bets >= _XGB_GATE_MIN_BETS,
         "xgb_clean_bets": _clean_bets,
         "xgb_min_bets": _XGB_GATE_MIN_BETS,
@@ -917,7 +917,7 @@ def get_config():
         "dead_hours_utc": sorted(list(DEAD_HOURS_UTC)),
         "dry_run": DRY_RUN,
         "paused": bool(_BOT_PAUSED),
-        "conf_threshold": float(os.environ.get("CONF_THRESHOLD", "0.54")),
+        "conf_threshold": float(os.environ.get("CONF_THRESHOLD", "0.62")),
     })
 
 
@@ -946,7 +946,7 @@ def brain_state():
         "version": VERSION,
         "paused": bool(_BOT_PAUSED),
         "dry_run": DRY_RUN,
-        "conf_threshold": float(os.environ.get("CONF_THRESHOLD", "0.54")),
+        "conf_threshold": float(os.environ.get("CONF_THRESHOLD", "0.62")),
         "capital": float(os.environ.get("CAPITAL_USD") or os.environ.get("CAPITAL", 100)),
     }
 
@@ -5340,7 +5340,7 @@ def training_status():
         "calibration_cooldown_remaining_secs": cal_remaining_secs,
         # Bot configuration & model status (for Training Tab in dashboard)
         "dead_hours": sorted(list(DEAD_HOURS_UTC)),
-        "confidence_threshold": float(os.environ.get("CONF_THRESHOLD", "0.54")),
+        "confidence_threshold": float(os.environ.get("CONF_THRESHOLD", "0.62")),
         "base_size_btc": float(os.environ.get("BASE_SIZE", "0.002")),
         "xgb_loaded": _XGB_MODEL is not None,
         "correctness_loaded": _xgb_correctness is not None,
@@ -5401,7 +5401,7 @@ def confidence_stats():
             else: buckets["0.75-0.80"] += 1
 
         # Threshold corrente
-        threshold = float(os.environ.get("CONF_THRESHOLD", "0.54"))
+        threshold = float(os.environ.get("CONF_THRESHOLD", "0.62"))
         below_threshold = sum(1 for c in confs if c < threshold)
 
         # Trend: ultimi 10 vs precedenti
