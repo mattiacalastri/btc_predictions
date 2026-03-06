@@ -103,6 +103,7 @@
       display: flex;
       position: fixed; top: 48px; right: 0; bottom: 0;
       width: 260px;
+      z-index: 9001;
       background: rgba(10,10,15,0.96);
       backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
       border-left: 1px solid rgba(255,255,255,0.06);
@@ -2345,7 +2346,7 @@
     background: rgba(20,20,28,0.82);
     border: 1px solid rgba(255,255,255,0.18);
     border-radius: 6px; cursor: pointer;
-    position: fixed; top: 5px; right: 20px; z-index: 5001;
+    position: fixed; top: 5px; right: 20px; z-index: 9002;
     transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
     box-shadow: 0 2px 14px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06);
     backdrop-filter: blur(6px);
@@ -2360,7 +2361,7 @@
   #tronMenuBackdrop {
     position: fixed; inset: 0;
     background: rgba(0,0,0,0.75);
-    z-index: 4999;
+    z-index: 9003;
     opacity: 0; pointer-events: none;
     transition: opacity 0.3s;
     backdrop-filter: blur(3px);
@@ -2371,7 +2372,7 @@
   #tronMenuDrawer {
     position: fixed; top: 0; right: -310px;
     width: 288px; height: 100vh;
-    z-index: 5000;
+    z-index: 9004;
     background: #04060d;
     border-right: 1px solid rgba(0,170,255,0.18);
     box-shadow: 4px 0 40px rgba(0,0,0,0.8), 0 0 60px rgba(0,170,255,0.06);

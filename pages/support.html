@@ -86,7 +86,7 @@ body{
 .gnav-burger{display:none;align-items:center;justify-content:center;background:none;border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);padding:6px 8px;border-radius:6px;cursor:pointer;transition:border-color 0.2s,color 0.2s;}
 .gnav-burger:hover{border-color:rgba(255,255,255,0.25);color:rgba(255,255,255,0.9);}
 @media(max-width:768px){
-  .gnav-links{display:flex;position:fixed;top:48px;right:0;bottom:0;width:260px;background:rgba(10,10,15,0.96);backdrop-filter:blur(16px);border-left:1px solid rgba(255,255,255,0.06);flex-direction:column;align-items:stretch;padding:12px 0;gap:0;overflow-y:auto;transform:translateX(100%);visibility:hidden;pointer-events:none;transition:transform 0.25s cubic-bezier(0.4,0,0.2,1),visibility 0s 0.25s;}
+  .gnav-links{display:flex;position:fixed;top:48px;right:0;bottom:0;width:260px;z-index:9001;background:rgba(10,10,15,0.96);backdrop-filter:blur(16px);border-left:1px solid rgba(255,255,255,0.06);flex-direction:column;align-items:stretch;padding:12px 0;gap:0;overflow-y:auto;transform:translateX(100%);visibility:hidden;pointer-events:none;transition:transform 0.25s cubic-bezier(0.4,0,0.2,1),visibility 0s 0.25s;}
   .gnav-links.gnav-open{transform:translateX(0);visibility:visible;pointer-events:auto;transition:transform 0.25s cubic-bezier(0.4,0,0.2,1),visibility 0s 0s;}
   .gnav-link{font-size:14px;padding:12px 20px;border-radius:0;}
   .gnav-link.active::after{display:none;}

@@ -54,3 +54,7 @@ vault/
 reports/*.pdf
 pages/reports/*.pdf
 scripts/results/*.pdf
+node_modules/
+package-lock.json
+package.json
+screenshots/
