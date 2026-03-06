@@ -4236,13 +4236,15 @@ def ai_predict():
         if not parsed or "direction" not in parsed:
             return jsonify({"status": "error", "error": "invalid_ai_response", "raw": raw_text[:500]}), 500
 
+        # Wrap in "output" key to match n8n $json.output.* references
         return jsonify({
-            "status": "ok",
-            "direction": parsed.get("direction", "").upper(),
-            "confidence": max(0.50, min(0.80, float(parsed.get("confidence", 0.55)))),
-            "reasoning": parsed.get("reasoning", ""),
-            "signals": parsed.get("signals", {}),
-            "telegram_message": parsed.get("telegram_message", ""),
+            "output": {
+                "direction": parsed.get("direction", "").upper(),
+                "confidence": max(0.50, min(0.80, float(parsed.get("confidence", 0.55)))),
+                "reasoning": parsed.get("reasoning", ""),
+                "signals": parsed.get("signals", {}),
+                "telegram_message": parsed.get("telegram_message", ""),
+            }
         })
 
     except Exception as e:
