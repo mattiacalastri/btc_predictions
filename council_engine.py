@@ -168,6 +168,13 @@ def call_sentiment(payload: dict) -> dict:
     try:
         import requests as _requests
         gemini_key = os.environ.get("GEMINI_API_KEY", "")
+        if not gemini_key:
+            return {
+                "member": member, "model_used": model, "direction": "ABSTAIN",
+                "confidence": 0.5, "weight": weight,
+                "reasoning": "GEMINI_API_KEY not configured",
+                "raw_response": {"error": "missing_api_key"}, "error": "missing_api_key",
+            }
         _gemini_model = os.environ.get("GEMINI_MODEL", "gemini-flash-latest")
         _url = f"https://generativelanguage.googleapis.com/v1beta/models/{_gemini_model}:generateContent?key={gemini_key}"
         _body = {

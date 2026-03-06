@@ -477,12 +477,14 @@ SUPABASE_TABLE = os.environ.get("SUPABASE_TABLE", "btc_predictions")
 _ALLOWED_TABLES = {"btc_predictions", "sandbox_btc_predictions"}
 if SUPABASE_TABLE not in _ALLOWED_TABLES:
     raise ValueError(f"SUPABASE_TABLE '{SUPABASE_TABLE}' not in whitelist {_ALLOWED_TABLES}")
+_PAUSE_LOCK = threading.Lock()
 _BOT_PAUSED = True               # fail-safe default: paused until Supabase confirms otherwise
 _BOT_PAUSED_REFRESHED_AT = 0.0  # timestamp of last Supabase read (0.0 → forces refresh on first call)
 _RESUMED_AT = ""                 # ISO timestamp of last /resume — circuit breaker ignores bets before this
 _costs_cache = {"data": None, "ts": 0.0}
 
 # [FIX3] Trade cooldown — prevent over-trading (31 trades in 3h = fee drag)
+_TRADE_LOCK = threading.Lock()
 _LAST_TRADE_PLACED_AT = 0.0
 TRADE_COOLDOWN_MINUTES = _safe_float(os.environ.get("TRADE_COOLDOWN_MINUTES", "30"), default=30.0, min_v=0.0, max_v=1440.0)
 
@@ -519,26 +521,30 @@ def _refresh_bot_paused():
         )
         if r.ok:
             data = r.json()
-            if data:
-                _BOT_PAUSED = data[0].get("value", "false").lower() in ("true", "1")
-            else:
-                # Row doesn't exist → new install or row deleted → treat as not paused
-                _BOT_PAUSED = False
-            _BOT_PAUSED_REFRESHED_AT = time.time()
-        # If r not ok: leave _BOT_PAUSED unchanged, don't update timestamp → retry next call
+            with _PAUSE_LOCK:
+                if data:
+                    _BOT_PAUSED = data[0].get("value", "false").lower() in ("true", "1")
+                else:
+                    _BOT_PAUSED = False
+                _BOT_PAUSED_REFRESHED_AT = time.time()
     except Exception:
-        # Network error / timeout: leave _BOT_PAUSED unchanged (fail-safe True at boot)
-        # Don't update _BOT_PAUSED_REFRESHED_AT → will retry on next place_bet() call
         pass
 
 
 # Refresh calibration all'avvio — each step independent so one failure doesn't skip the rest
+def _boot_load_resumed_at():
+    global _RESUMED_AT
+    _RESUMED_AT = _load_resumed_at()
+    if _RESUMED_AT:
+        app.logger.info(f"[BOOT] Restored _RESUMED_AT={_RESUMED_AT}")
+
 for _boot_fn in [
     lambda: refresh_calibration(),
     lambda: refresh_dead_hours(),
     lambda: _refresh_bot_paused(),
+    lambda: _boot_load_resumed_at(),
     lambda: _push_cockpit_log("app", "success", "Bot STARTED",
-                               f"v{VERSION} boot complete — paused={_BOT_PAUSED}"),
+                               f"v{VERSION} boot complete — paused={_BOT_PAUSED}, resumed_at={_RESUMED_AT}"),
 ]:
     try:
         _boot_fn()
@@ -567,6 +573,47 @@ def _save_bot_paused(paused: bool):
             app.logger.error(f"[SAVE_PAUSED] Supabase returned {r.status_code}: {r.text[:200]}")
     except Exception as e:
         app.logger.error(f"[SAVE_PAUSED] failed: {e}")
+
+
+def _save_resumed_at(iso_ts: str):
+    """Persist resumed_at timestamp to Supabase bot_state (upsert)."""
+    try:
+        sb_url, sb_key = _sb_config()
+        if not sb_url or not sb_key:
+            return
+        requests.post(
+            f"{sb_url}/rest/v1/bot_state",
+            json={"key": "resumed_at", "value": iso_ts},
+            headers={
+                "apikey": sb_key,
+                "Authorization": f"Bearer {sb_key}",
+                "Content-Type": "application/json",
+                "Prefer": "return=minimal,resolution=merge-duplicates",
+            },
+            timeout=3,
+        )
+    except Exception as e:
+        app.logger.error(f"[SAVE_RESUMED_AT] failed: {e}")
+
+
+def _load_resumed_at() -> str:
+    """Load resumed_at from Supabase bot_state. Returns empty string if not found."""
+    try:
+        sb_url, sb_key = _sb_config()
+        if not sb_url or not sb_key:
+            return ""
+        r = requests.get(
+            f"{sb_url}/rest/v1/bot_state?key=eq.resumed_at&select=value",
+            headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
+            timeout=3,
+        )
+        if r.ok:
+            data = r.json()
+            if data:
+                return data[0].get("value", "")
+    except Exception:
+        pass
+    return ""
 
 
 def _check_api_key():
@@ -1789,6 +1836,7 @@ def resume_bot():
     _BOT_PAUSED_REFRESHED_AT = time.time()
     _RESUMED_AT = _dt.datetime.now(_dt.timezone.utc).isoformat()
     _save_bot_paused(False)
+    _save_resumed_at(_RESUMED_AT)
     _push_cockpit_log("app", "success", "Bot RESUMED", f"Manual resume via /resume API — resumed_at={_RESUMED_AT}")
     return jsonify({"paused": False, "message": "Bot riattivato — trading ripreso", "resumed_at": _RESUMED_AT}), 200
 
@@ -1913,8 +1961,9 @@ def _check_pre_flight(direction: str, confidence: float) -> object:
             if r_cb.status_code == 200:
                 last5 = r_cb.json()
                 if len(last5) == 5 and all(row.get("correct") is False for row in last5):
-                    _BOT_PAUSED = True
-                    _BOT_PAUSED_REFRESHED_AT = time.time()
+                    with _PAUSE_LOCK:
+                        _BOT_PAUSED = True
+                        _BOT_PAUSED_REFRESHED_AT = time.time()
                     try:
                         _save_bot_paused(True)
                     except Exception as _cb_save_err:
@@ -2001,7 +2050,8 @@ def place_bet():
 
     # [FIX3B] Cooldown — prevent over-trading (was 31 trades in 3h)
     global _LAST_TRADE_PLACED_AT
-    _cooldown_elapsed = time.time() - _LAST_TRADE_PLACED_AT
+    with _TRADE_LOCK:
+        _cooldown_elapsed = time.time() - _LAST_TRADE_PLACED_AT
     _cooldown_required = TRADE_COOLDOWN_MINUTES * 60
     if _cooldown_elapsed < _cooldown_required:
         _remaining = round((_cooldown_required - _cooldown_elapsed) / 60, 1)
@@ -2652,7 +2702,8 @@ def place_bet():
 
         if ok:
             # [FIX3C] Update cooldown timestamp after successful trade
-            _LAST_TRADE_PLACED_AT = time.time()
+            with _TRADE_LOCK:
+                _LAST_TRADE_PLACED_AT = time.time()
 
             _push_cockpit_log("app", "success", f"Bet placed: {direction} {symbol}",
                               f"Size={size}, fill={fill_price}, conf={confidence}",
