@@ -4216,7 +4216,7 @@ def ai_predict():
             temperature=0.3,
             system=_AI_PREDICT_SYSTEM,
             messages=[{"role": "user", "content": user_message}],
-            timeout=45.0,
+            timeout=30.0,
         )
         raw_text = msg.content[0].text if msg.content else ""
 
@@ -4249,8 +4249,9 @@ def ai_predict():
         })
 
     except Exception as e:
-        app.logger.error(f"[AI_PREDICT] error: {e}")
-        return jsonify({"status": "error", "error": str(e)[:200]}), 500
+        import traceback
+        app.logger.error(f"[AI_PREDICT] error: {e}\n{traceback.format_exc()}")
+        return jsonify({"status": "error", "error": str(e)[:200], "trace": traceback.format_exc()[-300:]}), 500
 
 
 _auto_retrain_last: float = 0.0
