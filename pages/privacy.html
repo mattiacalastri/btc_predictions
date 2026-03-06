@@ -231,7 +231,7 @@
 </div>
 <script>
 (function(){
-  (function(){var b=document.getElementById('gnavBurger'),l=document.getElementById('gnavLinks');if(!b||!l)return;var BG='<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h12M3 12h12"/></svg>',CL='<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4l10 10M14 4L4 14"/></svg>';function o(){l.classList.add('gnav-open');b.innerHTML=CL;}function c(){l.classList.remove('gnav-open');b.innerHTML=BG;}b.addEventListener('click',function(e){e.stopPropagation();l.classList.contains('gnav-open')?c():o();});l.querySelectorAll('.gnav-link').forEach(function(a){a.addEventListener('click',c);});document.addEventListener('click',function(e){if(!l.contains(e.target)&&!b.contains(e.target))c();});})();
+  (function(){var b=document.getElementById('gnavBurger'),l=document.getElementById('gnavLinks');if(!b||!l)return;var BG='<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h12M3 12h12"/></svg>',CL='<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4l10 10M14 4L4 14"/></svg>';function o(){l.style.height=(window.innerHeight-48)+'px';l.classList.add('gnav-open');b.innerHTML=CL;}function c(){l.style.height='';l.classList.remove('gnav-open');b.innerHTML=BG;}b.addEventListener('click',function(e){e.stopPropagation();l.classList.contains('gnav-open')?c():o();});l.querySelectorAll('.gnav-link').forEach(function(a){a.addEventListener('click',c);});document.addEventListener('click',function(e){if(!l.contains(e.target)&&!b.contains(e.target))c();});})();
 })();
 </script>
 </body>
