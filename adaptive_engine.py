@@ -408,9 +408,9 @@ class AdaptiveEngine:
             return 1.0
         diff = wr_recent - wr_baseline  # positive = hot streak
         if diff >= 0.10:
-            return _clamp(1.05, *_MOMENTUM_BOUNDS)
+            return 1.05  # hot streak bonus (within bounds by definition)
         elif diff <= -0.10:
-            return _clamp(0.90, *_MOMENTUM_BOUNDS)
+            return 0.90  # cold streak penalty (intentionally below _MOMENTUM_BOUNDS floor)
         return 1.0
 
     # ── Data access ───────────────────────────────────────────────────────────

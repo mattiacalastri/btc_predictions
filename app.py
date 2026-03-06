@@ -2028,7 +2028,7 @@ def place_bet():
     symbol = data.get("symbol", DEFAULT_SYMBOL)
 
     raw_size = data.get("size", data.get("stake_usdc", 0.0001))
-    size = _safe_float(raw_size, default=0.0001, min_v=0.0)
+    size = _safe_float(raw_size, default=0.0001, min_v=0.0, max_v=0.5)
     if size <= 0:
         size = 0.0001
 
@@ -6361,9 +6361,9 @@ def news_fact_check():
             json=row,
             timeout=8,
         )
-        if resp.ok:
+        if resp.ok and resp.json():
             news_id = resp.json()[0]["id"]
-        else:
+        elif not resp.ok:
             app.logger.warning(f"[NEWS-FC] Supabase insert failed: {resp.status_code}")
     except Exception as e:
         app.logger.warning(f"[NEWS-FC] Supabase insert error: {e}")

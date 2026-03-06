@@ -272,22 +272,25 @@ def run_round1(payload: dict, timeout: float = 30.0) -> list:
     with ThreadPoolExecutor(max_workers=3, thread_name_prefix="council") as executor:
         for member, fn in tasks.items():
             futures_map[executor.submit(fn, payload)] = member
-        for future in as_completed(futures_map, timeout=timeout + 5):
-            member = futures_map[future]
-            try:
-                vote = future.result(timeout=timeout)
-                votes.append(vote)
-            except Exception as e:
-                votes.append({
-                    "member": member,
-                    "model_used": COUNCIL_MEMBERS[member]["model"],
-                    "direction": "ABSTAIN",
-                    "confidence": 0.5,
-                    "weight": COUNCIL_MEMBERS[member]["weight"],
-                    "reasoning": f"timeout/error: {str(e)[:100]}",
-                    "raw_response": {"error": str(e)},
-                    "error": str(e),
-                })
+        try:
+            for future in as_completed(futures_map, timeout=timeout + 5):
+                member = futures_map[future]
+                try:
+                    vote = future.result(timeout=timeout)
+                    votes.append(vote)
+                except Exception as e:
+                    votes.append({
+                        "member": member,
+                        "model_used": COUNCIL_MEMBERS[member]["model"],
+                        "direction": "ABSTAIN",
+                        "confidence": 0.5,
+                        "weight": COUNCIL_MEMBERS[member]["weight"],
+                        "reasoning": f"timeout/error: {str(e)[:100]}",
+                        "raw_response": {"error": str(e)},
+                        "error": str(e),
+                    })
+        except Exception as e:
+            logger.warning(f"[COUNCIL] as_completed timeout: {e} — returning {len(votes)} partial votes")
     return votes
 
 

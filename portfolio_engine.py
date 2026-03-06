@@ -146,7 +146,12 @@ class PortfolioEngine:
             "pyramid_count": pyramid_count,
         }]
         state.total_exposure_btc = pos_size
-        state.net_direction = "LONG" if pos_side == "long" else "SHORT"
+        if pos_side == "long":
+            state.net_direction = "LONG"
+        elif pos_side == "short":
+            state.net_direction = "SHORT"
+        else:
+            state.net_direction = "FLAT"
 
         # Unrealized P&L
         if pos_price > 0 and btc_price > 0:
@@ -266,6 +271,12 @@ class PortfolioEngine:
         if confidence <= PYRAMID_MIN_CONF:
             decision.action = "SKIP"
             decision.reason = f"confidence_too_low ({confidence:.2f} <= {PYRAMID_MIN_CONF})"
+            return decision
+
+        # Hard block: never pyramid into a losing position
+        if current_pnl_pct < 0:
+            decision.action = "SKIP"
+            decision.reason = f"loss_position_no_pyramid ({current_pnl_pct*100:.2f}%)"
             return decision
 
         # PnL gate — but strong XGB signal can bypass
