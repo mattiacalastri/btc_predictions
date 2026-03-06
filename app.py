@@ -454,9 +454,9 @@ def refresh_dead_hours():
         for h, vals in sorted(hour_data.items()):
             wr = sum(vals) / len(vals) if vals else 0.5
             hour_stats[h] = {"wr": round(wr, 3), "n": len(vals)}
-            if len(vals) >= 30 and wr < 0.45:
+            if len(vals) >= 5 and wr < 0.35:
                 dead.add(h)
-        # fallback: se non ci sono ore con n>=8 e WR<45%, usa prior da calibrazione storica
+        # fallback: se non ci sono ore con n>=5 e WR<35%, usa prior da calibrazione storica
         DEAD_HOURS_UTC = dead if dead else {5, 7, 10, 11, 17, 19}
         print(f"[CAL] Dead hours updated: {sorted(DEAD_HOURS_UTC)}")
         return {"ok": True, "dead_hours": sorted(DEAD_HOURS_UTC), "hour_stats": hour_stats}
