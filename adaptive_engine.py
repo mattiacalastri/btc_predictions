@@ -144,10 +144,18 @@ class AdaptiveEngine:
             # Env floor: if env CONF_THRESHOLD > adaptive, env wins
             eff_threshold = max(eff_threshold, env_floor)
 
-            should_trade = adj_conf >= eff_threshold
+            # Starvation protection: if WR/momentum penalties reduce adj_conf below
+            # env_floor but raw_confidence passes env_floor, use raw_confidence.
+            # Prevents deadlock where low WR makes ALL signals untradeable.
+            effective_conf = adj_conf
+            if adj_conf < env_floor and raw_confidence >= env_floor:
+                effective_conf = raw_confidence  # bypass WR/momentum penalty at floor
+
+            should_trade = effective_conf >= eff_threshold
             return {
                 "should_trade": should_trade,
                 "adjusted_conf": round(adj_conf, 4),
+                "effective_conf": round(effective_conf, 4),
                 "raw_conf": raw_confidence,
                 "effective_threshold": round(eff_threshold, 4),
                 "optimal_threshold": round(st.optimal_threshold, 4),
