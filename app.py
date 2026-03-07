@@ -2242,25 +2242,33 @@ def place_bet():
     except Exception as _micro_err:
         app.logger.warning(f"[FIX6] Micro-regime check failed (fail-open): {_micro_err}")
 
-    # Persist micro-regime to prediction row (best-effort, non-blocking)
-    # bet_id passed by wf01B from "Create a row" node; used to backfill training feature
+    # Persist signal-time features to prediction row (best-effort, non-blocking)
+    # bet_id passed by wf01B from "Create a row" node; used to backfill training features
     _bet_id_for_micro = data.get("bet_id")
-    if _bet_id_for_micro and _micro.get("error") is None:
-        try:
-            _sb_u, _sb_k = _sb_config()
-            if _sb_u and _sb_k:
-                requests.patch(
-                    f"{_sb_u}/rest/v1/{SUPABASE_TABLE}?id=eq.{_bet_id_for_micro}",
-                    json={
-                        "micro_regime_1h": _micro.get("micro_dir"),
-                        "micro_strength_1h": round(_micro.get("micro_strength", 0), 4),
-                    },
-                    headers={"apikey": _sb_k, "Authorization": f"Bearer {_sb_k}",
-                             "Content-Type": "application/json", "Prefer": "return=minimal"},
-                    timeout=2,
-                )
-        except Exception:
-            pass  # fail-open — never block a trade for data logging
+    if _bet_id_for_micro:
+        _signal_patch: dict = {}
+        if _micro.get("error") is None:
+            _signal_patch["micro_regime_1h"] = _micro.get("micro_dir")
+            _signal_patch["micro_strength_1h"] = round(_micro.get("micro_strength", 0), 4)
+        _fr = data.get("funding_rate")
+        if _fr is not None:
+            try:
+                _signal_patch["funding_rate"] = round(float(_fr), 8)
+            except (TypeError, ValueError):
+                pass
+        if _signal_patch:
+            try:
+                _sb_u, _sb_k = _sb_config()
+                if _sb_u and _sb_k:
+                    requests.patch(
+                        f"{_sb_u}/rest/v1/{SUPABASE_TABLE}?id=eq.{_bet_id_for_micro}",
+                        json=_signal_patch,
+                        headers={"apikey": _sb_k, "Authorization": f"Bearer {_sb_k}",
+                                 "Content-Type": "application/json", "Prefer": "return=minimal"},
+                        timeout=2,
+                    )
+            except Exception:
+                pass  # fail-open — never block a trade for data logging
 
     # ACE — Adaptive Calibration Engine gate
     ace_result = _adaptive_engine.evaluate(confidence, direction)
