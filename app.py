@@ -2225,6 +2225,7 @@ def place_bet():
 
     # [FIX6] Micro-regime 1H filter — penalize signals against 1H micro-trend
     # Catches "bouncing in 4H downtrend" scenario: model predicts DOWN but 1H EMA is UP
+    _micro = {"micro_dir": "UNKNOWN", "micro_strength": 0.0, "error": "not_computed"}
     try:
         _micro = _compute_micro_regime_1h()
         if (_micro.get("error") is None
@@ -2240,6 +2241,26 @@ def place_bet():
             )
     except Exception as _micro_err:
         app.logger.warning(f"[FIX6] Micro-regime check failed (fail-open): {_micro_err}")
+
+    # Persist micro-regime to prediction row (best-effort, non-blocking)
+    # bet_id passed by wf01B from "Create a row" node; used to backfill training feature
+    _bet_id_for_micro = data.get("bet_id")
+    if _bet_id_for_micro and _micro.get("error") is None:
+        try:
+            _sb_u, _sb_k = _sb_config()
+            if _sb_u and _sb_k:
+                requests.patch(
+                    f"{_sb_u}/rest/v1/{SUPABASE_TABLE}?id=eq.{_bet_id_for_micro}",
+                    json={
+                        "micro_regime_1h": _micro.get("micro_dir"),
+                        "micro_strength_1h": round(_micro.get("micro_strength", 0), 4),
+                    },
+                    headers={"apikey": _sb_k, "Authorization": f"Bearer {_sb_k}",
+                             "Content-Type": "application/json", "Prefer": "return=minimal"},
+                    timeout=2,
+                )
+        except Exception:
+            pass  # fail-open — never block a trade for data logging
 
     # ACE — Adaptive Calibration Engine gate
     ace_result = _adaptive_engine.evaluate(confidence, direction)
@@ -3869,10 +3890,13 @@ def ghost_evaluate():
     Per ogni segnale non ancora valutato (ghost_evaluated_at IS NULL), creato almeno
     30 minuti fa: fetch il prezzo Binance a T+30min e valuta se direction era corretta.
     Funziona autonomamente — non dipende da posizioni aperte.
+    Auth: accetta BOT_API_KEY (X-API-Key) oppure COCKPIT_TOKEN (X-Cockpit-Token).
     """
-    err = _check_api_key()
-    if err:
-        return err
+    # Accept either BOT_API_KEY or COCKPIT_TOKEN — ghost eval is safe/read-write own data
+    api_err = _check_api_key()
+    cockpit_err = _check_cockpit_auth()
+    if api_err is not None and cockpit_err is not None:
+        return jsonify({"error": "Unauthorized"}), 401
 
     supabase_url, supabase_key = _sb_config()
     if not supabase_url or not supabase_key:
