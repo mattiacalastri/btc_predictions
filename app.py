@@ -5362,6 +5362,94 @@ def public_contributions():
         return jsonify([])
 
 
+@app.route("/pine-script", methods=["GET"])
+def pine_script_ghost_bets():
+    """Generate a ready-to-paste Pine Script v5 indicator with all ghost bets as overlay.
+    Query params: limit (default 500), min_conf (default 0).
+    Returns plain text Pine Script code.
+    """
+    limit    = min(int(request.args.get("limit", 500)), 1000)
+    min_conf = float(request.args.get("min_conf", 0))
+
+    supabase_url, supabase_key = _sb_config()
+    if not supabase_url or not supabase_key:
+        return "// Error: Supabase not configured\n", 500
+
+    try:
+        r = requests.get(
+            f"{supabase_url}/rest/v1/btc_predictions"
+            f"?bet_taken=eq.false&ghost_exit_price=not.is.null"
+            f"&order=created_at.asc&limit={limit}"
+            f"&select=created_at,direction,confidence,ghost_correct",
+            headers={"apikey": supabase_key, "Authorization": f"Bearer {supabase_key}"},
+            timeout=10,
+        )
+        ghosts = [g for g in r.json() if float(g.get("confidence") or 0) >= min_conf]
+    except Exception as e:
+        return f"// Error fetching data: {e}\n", 500
+
+    def to_ms(iso):
+        dt = _dt.fromisoformat(iso.replace("Z", "+00:00"))
+        return int(dt.timestamp() * 1000)
+
+    ts_arr   = ", ".join(str(to_ms(g["created_at"])) for g in ghosts)
+    dir_arr  = ", ".join("1" if g["direction"] == "UP" else "-1" for g in ghosts)
+    conf_arr = ", ".join(str(int(float(g.get("confidence", 0)) * 100)) for g in ghosts)
+    ok_arr   = ", ".join("1" if g.get("ghost_correct") else "0" for g in ghosts)
+
+    import datetime as _dt2
+    generated_at = _dt2.datetime.now(_dt2.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+
+    code = f"""//@version=5
+// ─────────────────────────────────────────────────────────────────────────────
+// BTC Predictor — Ghost Bets Overlay  |  {len(ghosts)} segnali  |  {generated_at}
+// Segnali valutati ma NON eseguiti dal bot (ACE skip, XGB skip, dead hour, ecc.)
+// Teal  = direzione corretta  |  Rosso = direzione sbagliata
+// ▲ = UP signal  |  ▼ = DOWN signal
+// Aggiorna: https://web-production-e27d0.up.railway.app/pine-script
+// ─────────────────────────────────────────────────────────────────────────────
+indicator("Ghost Bets — BTC Predictor", overlay=true, max_labels_count=500)
+
+var int[]  _ts   = array.from({ts_arr})
+var int[]  _dir  = array.from({dir_arr})
+var int[]  _conf = array.from({conf_arr})
+var int[]  _ok   = array.from({ok_arr})
+
+show_wins   = input.bool(true,  "Mostra WIN",         group="Filtri")
+show_losses = input.bool(true,  "Mostra LOSS",        group="Filtri")
+show_up     = input.bool(true,  "Mostra UP",          group="Filtri")
+show_down   = input.bool(true,  "Mostra DOWN",        group="Filtri")
+min_conf    = input.int(50,     "Confidenza min %",   minval=0, maxval=100, group="Filtri")
+
+tf_ms = timeframe.in_seconds() * 1000
+
+for i = 0 to array.size(_ts) - 1
+    ts   = array.get(_ts,   i)
+    dir  = array.get(_dir,  i)
+    conf = array.get(_conf, i)
+    win  = array.get(_ok,   i)
+
+    if ts >= time and ts < time + tf_ms and conf >= min_conf
+        is_up  = dir == 1
+        is_win = win == 1
+
+        if (is_win and not show_wins) or (not is_win and not show_losses)
+            continue
+        if (is_up and not show_up) or (not is_up and not show_down)
+            continue
+
+        col  = is_win ? color.new(color.teal, 15) : color.new(color.red, 15)
+        txt  = (is_up ? "▲" : "▼") + " " + str.tostring(conf) + "%"
+        stl  = is_up ? label.style_label_down : label.style_label_up
+        ypos = is_up ? high * 1.0006 : low * 0.9994
+
+        label.new(bar_index, ypos, txt,
+                  color=col, textcolor=color.white,
+                  style=stl, size=size.small)
+"""
+    return code, 200, {"Content-Type": "text/plain; charset=utf-8"}
+
+
 @app.route("/approve-contribution/<int:contrib_id>", methods=["GET"])
 def approve_contribution(contrib_id):
     """Owner-only: approve a contribution. Called via link in Telegram."""
