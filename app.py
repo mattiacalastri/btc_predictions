@@ -322,6 +322,50 @@ def _compute_regime_4h_live() -> dict:
     return {**_ERR_RESULT, "error": "all_sources_failed"}
 
 
+def _compute_micro_regime_1h() -> dict:
+    """
+    Calcola la direzione della microtrend su timeframe 1H.
+    Usato per penalizzare segnali contro-microtrend (rimbalzi in downtrend 4H).
+    Returns: { "micro_dir": "UP"|"DOWN", "micro_strength": float, "error": str|None }
+    """
+    _ERR = {"micro_dir": "UNKNOWN", "micro_strength": 0.0, "error": "fetch_failed"}
+    try:
+        # Kraken 1H klines
+        params = _uparse.urlencode({"pair": "XBTUSD", "interval": 60, "since": 0})
+        url = f"https://api.kraken.com/0/public/OHLC?{params}"
+        req = _ureq.Request(url, headers={"User-Agent": "btcbot/1.0"})
+        with _ureq.urlopen(req, context=_ctx, timeout=8) as resp:
+            data = _json.loads(resp.read().decode())
+        candles = (data.get("result", {}).get("XXBTZUSD")
+                   or data.get("result", {}).get("XBTUSD") or [])
+        if len(candles) < 20:
+            raise ValueError("not enough 1H candles")
+        closes = [float(c[4]) for c in candles[-22:]]
+    except Exception:
+        try:
+            params = _uparse.urlencode({"symbol": "BTCUSDT", "interval": "1h", "limit": 22})
+            url = f"https://api.binance.com/api/v3/klines?{params}"
+            req = _ureq.Request(url, headers={"User-Agent": "btcbot/1.0"})
+            with _ureq.urlopen(req, context=_ctx, timeout=8) as resp:
+                klines = _json.loads(resp.read().decode())
+            closes = [float(k[4]) for k in klines]
+        except Exception:
+            return _ERR
+
+    def _ema(vals, p):
+        k = 2 / (p + 1)
+        e = vals[0]
+        for v in vals[1:]:
+            e = v * k + e * (1 - k)
+        return e
+
+    ema5  = _ema(closes[-5:],  5)  if len(closes) >= 5  else closes[-1]
+    ema20 = _ema(closes[-20:], 20) if len(closes) >= 20 else closes[-1]
+    strength = abs(ema5 - ema20) / ema20 * 100.0 if ema20 > 0 else 0.0
+    direction = "UP" if ema5 > ema20 else "DOWN"
+    return {"micro_dir": direction, "micro_strength": round(strength, 4), "error": None}
+
+
 # ── XGBoost correctness model (caricato una volta all'avvio) ─────────────────
 _xgb_correctness = None
 try:
@@ -481,6 +525,8 @@ _PAUSE_LOCK = threading.Lock()
 _BOT_PAUSED = True               # fail-safe default: paused until Supabase confirms otherwise
 _BOT_PAUSED_REFRESHED_AT = 0.0  # timestamp of last Supabase read (0.0 → forces refresh on first call)
 _RESUMED_AT = ""                 # ISO timestamp of last /resume — circuit breaker ignores bets before this
+_CB_TRIPPED_AT = 0.0             # timestamp of last circuit-breaker auto-pause (0.0 = never)
+_CB_COOLDOWN_SEC = 1800          # 30 min minimum wait before manual resume after circuit breaker trip
 _costs_cache = {"data": None, "ts": 0.0}
 
 # [FIX3] Trade cooldown — prevent over-trading (31 trades in 3h = fee drag)
@@ -1831,6 +1877,19 @@ def resume_bot():
     err = _check_api_key()
     if err:
         return err
+    # Cooldown guard: block resume if circuit breaker fired < 30 min ago
+    elapsed = time.time() - _CB_TRIPPED_AT
+    if _CB_TRIPPED_AT > 0 and elapsed < _CB_COOLDOWN_SEC:
+        remaining = int((_CB_COOLDOWN_SEC - elapsed) / 60)
+        app.logger.warning(f"[RESUME] Blocked — CB cooldown active, {remaining}m remaining")
+        _push_cockpit_log("app", "warning", "Resume blocked",
+                          f"Circuit-breaker cooldown: {remaining}m remaining (30m required)")
+        return jsonify({
+            "paused": True,
+            "error": "cooldown_active",
+            "message": f"Circuit breaker cooldown attivo — riprova tra {remaining} minuti",
+            "cooldown_remaining_min": remaining,
+        }), 429
     global _BOT_PAUSED, _BOT_PAUSED_REFRESHED_AT, _RESUMED_AT
     _BOT_PAUSED = False
     _BOT_PAUSED_REFRESHED_AT = time.time()
@@ -1964,6 +2023,8 @@ def _check_pre_flight(direction: str, confidence: float) -> object:
                     with _PAUSE_LOCK:
                         _BOT_PAUSED = True
                         _BOT_PAUSED_REFRESHED_AT = time.time()
+                    global _CB_TRIPPED_AT
+                    _CB_TRIPPED_AT = time.time()
                     try:
                         _save_bot_paused(True)
                     except Exception as _cb_save_err:
@@ -2161,6 +2222,24 @@ def place_bet():
                         "regime": _regime_name,
                         "confidence": confidence,
                     }), 200
+
+    # [FIX6] Micro-regime 1H filter — penalize signals against 1H micro-trend
+    # Catches "bouncing in 4H downtrend" scenario: model predicts DOWN but 1H EMA is UP
+    try:
+        _micro = _compute_micro_regime_1h()
+        if (_micro.get("error") is None
+                and _micro.get("micro_strength", 0) > 0.15
+                and _micro.get("micro_dir") != direction):
+            _penalty = 0.08  # 8% confidence penalty for counter-micro-trend signal
+            _prev_conf = confidence
+            confidence = round(confidence * (1.0 - _penalty), 4)
+            app.logger.info(
+                f"[FIX6] Micro-regime penalty: 1H={_micro['micro_dir']} "
+                f"signal={direction} strength={_micro['micro_strength']:.4f}% "
+                f"conf {_prev_conf:.3f} → {confidence:.3f}"
+            )
+    except Exception as _micro_err:
+        app.logger.warning(f"[FIX6] Micro-regime check failed (fail-open): {_micro_err}")
 
     # ACE — Adaptive Calibration Engine gate
     ace_result = _adaptive_engine.evaluate(confidence, direction)
@@ -7843,8 +7922,22 @@ def cockpit_bot_toggle():
     err = _check_cockpit_auth()
     if err:
         return err
-    global _BOT_PAUSED, _BOT_PAUSED_REFRESHED_AT
     _refresh_bot_paused()
+    # If currently paused and trying to resume, enforce CB cooldown
+    if _BOT_PAUSED:
+        elapsed = time.time() - _CB_TRIPPED_AT
+        if _CB_TRIPPED_AT > 0 and elapsed < _CB_COOLDOWN_SEC:
+            remaining = int((_CB_COOLDOWN_SEC - elapsed) / 60)
+            app.logger.warning(f"[COCKPIT] Resume blocked — CB cooldown {remaining}m remaining")
+            _push_cockpit_log("app", "warning", "Resume blocked (cockpit)",
+                              f"Circuit-breaker cooldown: {remaining}m remaining (30m required)")
+            return jsonify({
+                "paused": True,
+                "error": "cooldown_active",
+                "message": f"Cooldown attivo — riprova tra {remaining} minuti",
+                "cooldown_remaining_min": remaining,
+            }), 429
+    global _BOT_PAUSED, _BOT_PAUSED_REFRESHED_AT
     _BOT_PAUSED = not _BOT_PAUSED
     _BOT_PAUSED_REFRESHED_AT = time.time()
     _save_bot_paused(_BOT_PAUSED)
