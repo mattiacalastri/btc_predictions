@@ -7951,6 +7951,7 @@ def cockpit_overview():
 @app.route("/cockpit/api/bot-toggle", methods=["POST"])
 def cockpit_bot_toggle():
     """Toggle bot paused state. No body needed — it's a toggle."""
+    global _BOT_PAUSED, _BOT_PAUSED_REFRESHED_AT
     err = _check_cockpit_auth()
     if err:
         return err
@@ -7969,7 +7970,6 @@ def cockpit_bot_toggle():
                 "message": f"Cooldown attivo — riprova tra {remaining} minuti",
                 "cooldown_remaining_min": remaining,
             }), 429
-    global _BOT_PAUSED, _BOT_PAUSED_REFRESHED_AT
     _BOT_PAUSED = not _BOT_PAUSED
     _BOT_PAUSED_REFRESHED_AT = time.time()
     _save_bot_paused(_BOT_PAUSED)
