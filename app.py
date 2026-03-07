@@ -432,7 +432,8 @@ def refresh_calibration():
     try:
         r = requests.get(
             f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
-            "?select=confidence,correct&bet_taken=eq.true&correct=not.is.null",
+            "?select=confidence,correct&bet_taken=eq.true&correct=not.is.null"
+            "&close_reason=neq.data_gap",
             headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
             timeout=8,
         )
@@ -475,7 +476,8 @@ def refresh_dead_hours():
     try:
         r = requests.get(
             f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
-            "?select=created_at,correct&bet_taken=eq.true&correct=not.is.null",
+            "?select=created_at,correct&bet_taken=eq.true&correct=not.is.null"
+            "&close_reason=neq.data_gap",
             headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
             timeout=8,
         )
@@ -1591,8 +1593,12 @@ def close_position():
             _dir   = _row.get("direction", "UP")
 
             # Step 1: Try to find real SL fill from Kraken
+            # [FIX8] Prefer fill matching the stored sl_order_id over "most recent fill".
+            # Previous logic used most recent fill for the symbol, causing all concurrent
+            # orphan bets to be assigned the same exit price (67978 bug on 4 Mar).
             _real_exit_price = None
             _fill_source = None
+            _sl_oid = _row.get("sl_order_id")
             try:
                 _trade_k = get_trade_client()
                 _fills_resp = _trade_k.request(
@@ -1601,23 +1607,28 @@ def close_position():
                     auth=True,
                 )
                 _all_fills = _fills_resp.get("fills", []) or []
-                # Look for recent fills on our symbol that are reduceOnly (SL fills)
-                # Sort by fill_time desc, take the most recent one matching our size
                 _symbol_fills = [
                     f for f in _all_fills
                     if (f.get("symbol") or "").upper() == symbol.upper()
                 ]
                 if _symbol_fills:
+                    # Prefer fill that matches the stored SL order ID
+                    if _sl_oid:
+                        _matched = [f for f in _symbol_fills if f.get("order_id") == _sl_oid]
+                        if _matched:
+                            _symbol_fills = _matched
+                            _fill_source = "kraken_sl_order"
+                    if not _fill_source:
+                        _fill_source = "kraken_fill_recent"
                     # Most recent fill first
                     _symbol_fills.sort(key=lambda f: f.get("fillTime", ""), reverse=True)
                     _real_exit_price = float(_symbol_fills[0].get("price", 0))
-                    _fill_source = "kraken_fill"
                     app.logger.info(
-                        f"[FIX1] Orphan {_obid}: found Kraken fill price={_real_exit_price} "
-                        f"(order={_symbol_fills[0].get('order_id')})"
+                        f"[FIX8] Orphan {_obid}: found Kraken fill price={_real_exit_price} "
+                        f"source={_fill_source} (order={_symbol_fills[0].get('order_id')})"
                     )
             except Exception as _fill_err:
-                app.logger.warning(f"[FIX1] Kraken fills lookup failed for orphan {_obid}: {_fill_err}")
+                app.logger.warning(f"[FIX8] Kraken fills lookup failed for orphan {_obid}: {_fill_err}")
 
             # Step 2: If no fill found, mark as position_gone with NULL pnl
             if not _real_exit_price or _real_exit_price <= 0:
@@ -2191,12 +2202,14 @@ def place_bet():
 
         # [FIX5C] Counter-trend filter — block trades against strong trend
         # If council flipped direction and it's counter-trend, fall back to original
+        # [FIX7] Removed _regime_name == "TRENDING" constraint: filter now fires in ALL
+        # regimes (TRENDING, RANGING, VOLATILE) when trend is strong enough.
+        # Threshold lowered 0.3→0.2 to catch intra-session downtrends classified as RANGING.
         if TREND_ALIGN_FILTER:
             _regime_name = _regime_data.get("regime_name", "")
             _trend_dir = _regime_data.get("trend_direction", "")
             _trend_str = _regime_data.get("trend_strength", 0.0)
-            if (_regime_name == "TRENDING"
-                    and _trend_str > 0.3
+            if (_trend_str > 0.2
                     and _trend_dir
                     and direction != _trend_dir):
                 # Council flipped direction? Fall back to original if it aligns with trend
@@ -2210,7 +2223,7 @@ def place_bet():
                     confidence = round(confidence * 0.90, 4)
                 else:
                     app.logger.info(
-                        f"[FIX5] Counter-trend skip: signal={direction} vs trend={_trend_dir} "
+                        f"[FIX7] Counter-trend skip: signal={direction} vs trend={_trend_dir} "
                         f"(strength={_trend_str:.4f}%, regime={_regime_name})"
                     )
                     return jsonify({
@@ -2361,6 +2374,39 @@ def place_bet():
         }), 200
 
     try:
+        # [FIX9] Pre-flight open-bet cap — checked BEFORE Kraken position lookup.
+        # Previous bug: hard cap lived inside `if pos:`, so it was bypassed when
+        # two opposing bets netted to a flat Kraken position (net long + short = 0).
+        # Now we block any new bet if Supabase already has 1+ unresolved real bets.
+        try:
+            _sb_url_pf, _sb_key_pf = _sb_config()
+            if _sb_url_pf and _sb_key_pf:
+                _pf_r = requests.get(
+                    f"{_sb_url_pf}/rest/v1/{SUPABASE_TABLE}"
+                    "?select=id&bet_taken=eq.true&correct=is.null",
+                    headers={"apikey": _sb_key_pf, "Authorization": f"Bearer {_sb_key_pf}",
+                             "Prefer": "count=exact"},
+                    timeout=5,
+                )
+                _pf_count = 0
+                if _pf_r.status_code == 200:
+                    _cr = _pf_r.headers.get("content-range", "")
+                    try:
+                        _pf_count = int(_cr.split("/")[1]) if "/" in _cr else len(_pf_r.json())
+                    except Exception:
+                        _pf_count = len(_pf_r.json())
+                if _pf_count >= 1:
+                    app.logger.warning(
+                        f"[FIX9] Pre-flight cap: {_pf_count} unresolved bet(s) in Supabase — blocking"
+                    )
+                    return jsonify({
+                        "status": "skipped",
+                        "reason": f"MAX_OPEN_BETS reached ({_pf_count} unresolved bets)",
+                        "symbol": symbol, "direction": direction, "no_stack": True,
+                    }), 200
+        except Exception as _pf_err:
+            app.logger.warning(f"[FIX9] Pre-flight cap check failed (fail-open): {_pf_err}")
+
         pos = get_open_position(symbol)
         trade = get_trade_client()
         base_size = size  # preserve original size from payload
@@ -3369,6 +3415,7 @@ def performance_stats():
             f"{supabase_url}/rest/v1/{SUPABASE_TABLE}"
             "?select=direction,confidence,correct,pnl_usd,created_at"
             "&bet_taken=eq.true&correct=not.is.null"
+            "&close_reason=neq.data_gap"
             "&order=id.desc&limit=50"
         )
         res = requests.get(url, headers={
