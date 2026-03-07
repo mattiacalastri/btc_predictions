@@ -4246,12 +4246,17 @@ def ai_predict():
 
     user_message = "\n".join(lines)
 
+    _anthropic_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not _anthropic_key:
+        app.logger.error("[AI_PREDICT] ANTHROPIC_API_KEY not set")
+        return jsonify({"status": "error", "error": "anthropic_key_missing"}), 503
+
     try:
         import anthropic
         import httpx
         import certifi as _certifi_ai
         client = anthropic.Anthropic(
-            api_key=os.environ.get("ANTHROPIC_API_KEY", ""),
+            api_key=_anthropic_key,
             http_client=httpx.Client(verify=_certifi_ai.where()),
         )
         msg = client.messages.create(
@@ -4292,6 +4297,9 @@ def ai_predict():
             }
         })
 
+    except SystemExit as e:
+        app.logger.error(f"[AI_PREDICT] SystemExit caught (gunicorn shutdown mid-request): code={e.code}")
+        return jsonify({"status": "error", "error": "worker_shutdown", "code": str(e.code)}), 503
     except Exception as e:
         import traceback
         app.logger.error(f"[AI_PREDICT] error: {e}\n{traceback.format_exc()}")
