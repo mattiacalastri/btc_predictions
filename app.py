@@ -5458,6 +5458,166 @@ for i = 0 to array.size(_ts) - 1
     return code, 200, {"Content-Type": "text/plain; charset=utf-8"}
 
 
+@app.route("/pine-script/sync", methods=["POST"])
+def pine_script_sync():
+    """Update GitHub Gist with fresh ghost bets Pine Script. Called by n8n every 6h."""
+    err = _check_api_key()
+    if err:
+        return err
+
+    gh_token = os.environ.get("GITHUB_TOKEN", "")
+    gist_id  = os.environ.get("GIST_ID", "")
+    if not gh_token or not gist_id:
+        return jsonify({"error": "GITHUB_TOKEN or GIST_ID not configured"}), 500
+
+    supabase_url, supabase_key = _sb_config()
+    try:
+        r = requests.get(
+            f"{supabase_url}/rest/v1/btc_predictions"
+            "?bet_taken=eq.false&ghost_exit_price=not.is.null"
+            "&order=created_at.asc&limit=1000"
+            "&select=created_at,direction,confidence,ghost_correct",
+            headers={"apikey": supabase_key, "Authorization": f"Bearer {supabase_key}"},
+            timeout=10,
+        )
+        ghosts = r.json()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    def _to_ms(iso):
+        dt = _dt.fromisoformat(iso.replace("Z", "+00:00"))
+        return int(dt.timestamp() * 1000)
+
+    ts_arr   = ", ".join(str(_to_ms(g["created_at"])) for g in ghosts)
+    dir_arr  = ", ".join("1" if g["direction"] == "UP" else "-1" for g in ghosts)
+    conf_arr = ", ".join(str(int(float(g.get("confidence", 0)) * 100)) for g in ghosts)
+    ok_arr   = ", ".join("1" if g.get("ghost_correct") else "0" for g in ghosts)
+    wins     = sum(1 for g in ghosts if g.get("ghost_correct"))
+    wr       = round(wins / len(ghosts) * 100, 1) if ghosts else 0
+    now_str  = _dt.now(_dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+
+    pine = f"""//@version=5
+// BTC Predictor — Ghost Bets Overlay | {len(ghosts)} segnali | Ghost WR: {wr}% | {now_str}
+// Teal=corretto Rosso=sbagliato | Aggiornato ogni 6h via n8n
+indicator("Ghost Bets — BTC Predictor", overlay=true, max_labels_count=500)
+var int[]  _ts   = array.from({ts_arr})
+var int[]  _dir  = array.from({dir_arr})
+var int[]  _conf = array.from({conf_arr})
+var int[]  _ok   = array.from({ok_arr})
+show_wins=input.bool(true,"WIN",group="Filtri"),show_losses=input.bool(true,"LOSS",group="Filtri")
+show_up=input.bool(true,"UP",group="Filtri"),show_down=input.bool(true,"DOWN",group="Filtri")
+min_conf=input.int(50,"Conf min %",minval=0,maxval=100,group="Filtri")
+tf_ms=timeframe.in_seconds()*1000
+for i=0 to array.size(_ts)-1
+    ts=array.get(_ts,i),dir=array.get(_dir,i),conf=array.get(_conf,i),win=array.get(_ok,i)
+    if ts>=time and ts<time+tf_ms and conf>=min_conf
+        is_up=dir==1,is_win=win==1
+        if (is_win and not show_wins) or (not is_win and not show_losses) or (is_up and not show_up) or (not is_up and not show_down)
+            continue
+        label.new(bar_index,is_up?high*1.0006:low*0.9994,(is_up?"▲":"▼")+" "+str.tostring(conf)+"%",color=is_win?color.new(color.teal,15):color.new(color.red,15),textcolor=color.white,style=is_up?label.style_label_down:label.style_label_up,size=size.small)"""
+
+    try:
+        gh_r = requests.patch(
+            f"https://api.github.com/gists/{gist_id}",
+            json={"files": {"ghost_bets_overlay.pine": {"content": pine}}},
+            headers={"Authorization": f"Bearer {gh_token}", "Accept": "application/vnd.github+json"},
+            timeout=10,
+        )
+        gh_r.raise_for_status()
+        gist_data = gh_r.json()
+        raw_url  = gist_data["files"]["ghost_bets_overlay.pine"]["raw_url"]
+        gist_url = gist_data["html_url"]
+    except Exception as e:
+        return jsonify({"error": f"GitHub update failed: {e}"}), 500
+
+    _push_cockpit_log("pine_script", "success", "Ghost bets Pine Script aggiornato",
+                      f"{len(ghosts)} ghost bets | WR {wr}%")
+    return jsonify({"updated_at": now_str, "count": len(ghosts), "ghost_wr": wr,
+                    "gist_url": gist_url, "raw_url": raw_url})
+
+
+@app.route("/pine-script/page")
+def pine_script_page():
+    """Webpage with always-fresh Pine Script + one-click copy."""
+    supabase_url, supabase_key = _sb_config()
+    try:
+        r = requests.get(
+            f"{supabase_url}/rest/v1/btc_predictions"
+            "?bet_taken=eq.false&ghost_exit_price=not.is.null"
+            "&order=created_at.asc&limit=1000"
+            "&select=created_at,direction,confidence,ghost_correct",
+            headers={"apikey": supabase_key, "Authorization": f"Bearer {supabase_key}"},
+            timeout=10,
+        )
+        ghosts = r.json()
+    except Exception:
+        ghosts = []
+
+    def _to_ms(iso):
+        dt = _dt.fromisoformat(iso.replace("Z", "+00:00"))
+        return int(dt.timestamp() * 1000)
+
+    ts_arr   = ", ".join(str(_to_ms(g["created_at"])) for g in ghosts)
+    dir_arr  = ", ".join("1" if g["direction"] == "UP" else "-1" for g in ghosts)
+    conf_arr = ", ".join(str(int(float(g.get("confidence", 0)) * 100)) for g in ghosts)
+    ok_arr   = ", ".join("1" if g.get("ghost_correct") else "0" for g in ghosts)
+    wins     = sum(1 for g in ghosts if g.get("ghost_correct"))
+    wr       = round(wins / len(ghosts) * 100, 1) if ghosts else 0
+    now_str  = _dt.now(_dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    gist_id  = os.environ.get("GIST_ID", "")
+    gist_url = f"https://gist.github.com/mattiacalastri/{gist_id}" if gist_id else "#"
+    wr_color = "#3fb950" if wr >= 50 else "#f85149"
+
+    pine = f"""//@version=5
+// BTC Predictor — Ghost Bets Overlay | {len(ghosts)} segnali | Ghost WR: {wr}% | {now_str}
+// Teal=corretto  Rosso=sbagliato  |  ▲=UP  ▼=DOWN
+indicator("Ghost Bets — BTC Predictor", overlay=true, max_labels_count=500)
+var int[]  _ts   = array.from({ts_arr})
+var int[]  _dir  = array.from({dir_arr})
+var int[]  _conf = array.from({conf_arr})
+var int[]  _ok   = array.from({ok_arr})
+show_wins=input.bool(true,"WIN",group="Filtri"),show_losses=input.bool(true,"LOSS",group="Filtri")
+show_up=input.bool(true,"UP",group="Filtri"),show_down=input.bool(true,"DOWN",group="Filtri")
+min_conf=input.int(50,"Conf min %",minval=0,maxval=100,group="Filtri")
+tf_ms=timeframe.in_seconds()*1000
+for i=0 to array.size(_ts)-1
+    ts=array.get(_ts,i),dir=array.get(_dir,i),conf=array.get(_conf,i),win=array.get(_ok,i)
+    if ts>=time and ts<time+tf_ms and conf>=min_conf
+        is_up=dir==1,is_win=win==1
+        if (is_win and not show_wins) or (not is_win and not show_losses) or (is_up and not show_up) or (not is_up and not show_down)
+            continue
+        label.new(bar_index,is_up?high*1.0006:low*0.9994,(is_up?"▲":"▼")+" "+str.tostring(conf)+"%",color=is_win?color.new(color.teal,15):color.new(color.red,15),textcolor=color.white,style=is_up?label.style_label_down:label.style_label_up,size=size.small)"""
+
+    from flask import Response as _Resp
+    html = f"""<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8">
+<title>Ghost Bets Pine Script</title>
+<style>*{{box-sizing:border-box;margin:0;padding:0}}body{{background:#0d1117;color:#e6edf3;font-family:'SF Mono',monospace;padding:24px}}
+h1{{font-size:18px;color:#58a6ff;margin-bottom:10px}}.stats{{display:flex;gap:24px;margin-bottom:14px;font-size:13px;color:#8b949e}}
+.stats span{{color:#e6edf3;font-weight:600}}textarea{{width:100%;height:calc(100vh - 170px);background:#161b22;color:#c9d1d9;
+border:1px solid #30363d;border-radius:6px;padding:14px;font-size:11.5px;line-height:1.5;resize:none;outline:none}}
+.row{{display:flex;gap:12px;margin-top:10px;align-items:center}}button{{padding:9px 18px;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600}}
+.cp{{background:#238636;color:#fff}}.cp:hover{{background:#2ea043}}.cp.ok{{background:#1f6feb}}
+.gh{{background:#21262d;color:#58a6ff;border:1px solid #30363d}}.gh:hover{{background:#30363d}}
+small{{color:#6e7681;font-size:11px}}</style></head><body>
+<h1>Ghost Bets Overlay — Pine Script v5</h1>
+<div class="stats">
+  <div>Segnali: <span>{len(ghosts)}</span></div>
+  <div>Ghost WR: <span style="color:{wr_color}">{wr}%</span></div>
+  <div>Generato: <span>{now_str}</span></div>
+</div>
+<textarea id="p" readonly>{pine}</textarea>
+<div class="row">
+  <button class="cp" onclick="cp()">Copia codice</button>
+  <a href="{gist_url}" target="_blank"><button class="gh">Gist GitHub</button></a>
+  <small>Pine Script Editor → New → Cmd+A → Cmd+V → Add to chart</small>
+</div>
+<script>function cp(){{const t=document.getElementById('p');t.select();
+navigator.clipboard.writeText(t.value).then(()=>{{const b=document.querySelector('.cp');
+b.textContent='Copiato ✓';b.classList.add('ok');setTimeout(()=>{{b.textContent='Copia codice';b.classList.remove('ok')}},2000)}});}}</script>
+</body></html>"""
+    return _Resp(html, mimetype="text/html")
+
+
 @app.route("/approve-contribution/<int:contrib_id>", methods=["GET"])
 def approve_contribution(contrib_id):
     """Owner-only: approve a contribution. Called via link in Telegram."""
