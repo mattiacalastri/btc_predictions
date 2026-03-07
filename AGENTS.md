@@ -145,3 +145,5 @@ Italy ranks 3rd-to-last in Europe for financial literacy (OCSE 2023). AUREO is c
 ---
 
 *Last updated: 2026-02-27*
+
+<!-- bot resume trigger: 2026-03-07T07:51:57.043092+00:00 -->
