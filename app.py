@@ -5397,7 +5397,7 @@ def pine_script_ghost_bets():
         return f"// Error fetching data: {e}\n", 500
 
     def to_ms(iso):
-        dt = _dt.fromisoformat(iso.replace("Z", "+00:00"))
+        dt = _dt.datetime.fromisoformat(iso.replace("Z", "+00:00"))
         return int(dt.timestamp() * 1000)
 
     ts_arr   = ", ".join(str(to_ms(g["created_at"])) for g in ghosts)
@@ -5485,7 +5485,7 @@ def pine_script_sync():
         return jsonify({"error": str(e)}), 500
 
     def _to_ms(iso):
-        dt = _dt.fromisoformat(iso.replace("Z", "+00:00"))
+        dt = _dt.datetime.fromisoformat(iso.replace("Z", "+00:00"))
         return int(dt.timestamp() * 1000)
 
     ts_arr   = ", ".join(str(_to_ms(g["created_at"])) for g in ghosts)
@@ -5554,7 +5554,7 @@ def pine_script_page():
         ghosts = []
 
     def _to_ms(iso):
-        dt = _dt.fromisoformat(iso.replace("Z", "+00:00"))
+        dt = _dt.datetime.fromisoformat(iso.replace("Z", "+00:00"))
         return int(dt.timestamp() * 1000)
 
     ts_arr   = ", ".join(str(_to_ms(g["created_at"])) for g in ghosts)
