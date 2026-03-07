@@ -18,7 +18,7 @@ from constants import TAKER_FEE, _BIAS_MAP
 from portfolio_engine import PortfolioEngine, PortfolioDecision
 import council_engine
 
-VERSION = "2.6.0"
+VERSION = "2.6.1"
 
 sentry_sdk.init(
     dsn=os.environ.get("SENTRY_DSN", ""),
