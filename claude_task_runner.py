@@ -16,9 +16,9 @@ SUPABASE_URL  = os.environ.get("SUPABASE_URL", "https://oimlamjilivrcnhztwvj.sup
 SUPABASE_KEY  = os.environ.get("SUPABASE_ANON_KEY", "")
 BOT_TOKEN     = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 CLAUDE_BIN    = os.environ.get("CLAUDE_BIN", "/Users/mattiacalastri/.local/bin/claude")
-WORK_DIR      = "/Users/mattiacalastri/btc_predictions"
-CLAUDE_TIMEOUT = 180  # seconds
-OWNER_CHAT_ID  = "368092324"   # sicurezza: solo Mattia può avere task eseguiti
+DEFAULT_WORK_DIR = "/Users/mattiacalastri/btc_predictions"
+CLAUDE_TIMEOUT   = 180  # seconds
+OWNER_CHAT_ID    = "368092324"   # sicurezza: solo Mattia può avere task eseguiti
 
 
 def _headers():
@@ -38,7 +38,7 @@ def fetch_pending():
     url = (
         f"{SUPABASE_URL}/rest/v1/claude_tasks"
         "?status=eq.pending&order=created_at.asc&limit=1"
-        "&select=id,command,telegram_chat_id"
+        "&select=id,command,telegram_chat_id,work_dir"
     )
     resp = requests.get(url, headers=_headers(), timeout=10)
     resp.raise_for_status()
@@ -120,13 +120,14 @@ def send_telegram(chat_id, text, command="", is_error=False):
             print(f"[{datetime.now().isoformat()}] send_telegram fallita (chunk {idx}): {e}")
 
 
-def run_claude(command):
+def run_claude(command, work_dir=None):
+    cwd = work_dir if (work_dir and os.path.isdir(work_dir)) else DEFAULT_WORK_DIR
     proc = subprocess.run(
         [CLAUDE_BIN, "-p", command, "--output-format", "text"],
         capture_output=True,
         text=True,
         timeout=CLAUDE_TIMEOUT,
-        cwd=WORK_DIR,
+        cwd=cwd,
         env={**os.environ, "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"},
     )
     output = proc.stdout.strip()
@@ -151,19 +152,20 @@ def main():
     task_id = task["id"]
     command = task["command"]
     chat_id = str(task.get("telegram_chat_id") or "")
+    work_dir = task.get("work_dir") or DEFAULT_WORK_DIR
 
     # Sicurezza: esegui solo task creati dal proprietario
     if chat_id != OWNER_CHAT_ID:
         mark_done(task_id, "Unauthorized", "error")
         return
 
-    print(f"[{datetime.now().isoformat()}] Task #{task_id}: {command[:80]}")
+    print(f"[{datetime.now().isoformat()}] Task #{task_id} [{work_dir}]: {command[:80]}")
     if not mark_inprogress(task_id):
         print(f"[{datetime.now().isoformat()}] Task #{task_id} già claimato da altra istanza — uscita")
         return  # C-01: altra istanza launchd ci ha preceduti
 
     try:
-        result = run_claude(command)
+        result = run_claude(command, work_dir=work_dir)
         mark_done(task_id, result, "completed")
         send_telegram(chat_id, result, command=command)
     except subprocess.TimeoutExpired:
