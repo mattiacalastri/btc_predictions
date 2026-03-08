@@ -1,5 +1,5 @@
 # CLAUDE.md — BTC Predictor Bot
-> Aggiornato: 2026-03-07 | Leggi PRIMA di toccare qualsiasi file o n8n
+> Aggiornato: 2026-03-08 | Leggi PRIMA di toccare qualsiasi file o n8n
 
 ---
 
@@ -66,11 +66,21 @@ curl -X POST https://n8n.srv1432354.hstgr.cloud/webhook/rescue-wf02 -d '{"id": B
 2. **P1** — Dry-run 20+ ghost bets con nuovo threshold → validare prima di LIVE
 3. **P2** — SQL migration funding_rate + verificare fill micro_regime_1h da prossimo trade
 
+## DASHBOARD — accesso unico
+```
+URL:    /cockpit  (COCKPIT_TOKEN login — httpOnly cookie)
+Tab Ops: Piano Editoriale + Canali + Schedule (merge di marketing.html — commit 3c24d0e)
+/marketing → redirect 302 → /cockpit
+Gnav pubblico: link privati rimossi da tutte le 12 pagine
+```
+
 ## FILE CHIAVE
 ```
 app.py              Flask app + tutti gli endpoint Railway
 adaptive_engine.py  ACE engine (starvation fix: commit 4aa9907)
 bot/                docs operativi: ace_engine, bot_insights, council_prompts, n8n_debug
+pages/cockpit.html  Dashboard unificato (cockpit + ops) — 2259 righe
+pages/marketing.html DEPRECATED — tenuto come archivio, non più servito
 ```
 
 ---
