@@ -4,7 +4,7 @@
 ---
 
 ## STATO ATTUALE (aggiorna ad ogni sessione)
-- **BOT: PAUSED** — WR 8.1% (5/62 bets). NON riattivare senza dry-run WR >40% su 20+ bets
+- **BOT: LIVE** — v2.6.2 resumed 8 Mar 13:20 UTC. Ghost WR 50% last20. Regime label + counter_trend_block ATTIVI
 - **Root cause confermato**: BIAS UP in downtrend. Fix P0: regime_label + conf_threshold 0.60+
 - **Wallet**: $83.12 | **conf_threshold**: 0.62 (Railway default) | **n8n gate**: 0.60 | **XGB gate**: 62/100
 - **Council**: ATTIVO | **Dead hours**: {0, 22, 23} UTC | **ACE bias_threshold**: 0.85

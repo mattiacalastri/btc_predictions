@@ -672,6 +672,102 @@ body.heartbeat-offline { animation: hb-flat 4s linear infinite; }
 .gnav-link.active{background:rgba(0,255,136,0.08);color:#fff;}
 .gnav-burger{display:flex;}
 }
+
+/* ── OPS TAB ─────────────────────────────────────────────────── */
+.ops-stats-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;}
+.sw{display:flex;align-items:center;gap:10px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:10px 14px;flex:1;min-width:160px;transition:border-color .2s;}
+.sw:hover{border-color:rgba(0,212,255,.2);}
+.sw-icon{font-size:15px;flex-shrink:0;}
+.sw-label{color:var(--text-muted);font-size:10px;letter-spacing:.1em;text-transform:uppercase;display:block;}
+.sw-value{color:var(--text-primary);font-size:12px;font-weight:500;display:block;}
+.sw-body{display:flex;flex-direction:column;gap:2px;}
+.dot-ok{color:var(--green);}
+.dot-err{color:var(--red);}
+.dot-warn{color:#f59e0b;}
+.dot-load{color:var(--text-muted);}
+.ops-nav{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:12px;overflow-x:auto;}
+.ops-tab-btn{padding:10px 14px;cursor:pointer;border:none;background:none;color:var(--text-muted);font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.08em;border-bottom:2px solid transparent;transition:color .2s,border-color .2s;white-space:nowrap;}
+.ops-tab-btn:hover{color:var(--text-primary);}
+.ops-tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+.ops-pane{display:none;}
+.ops-pane.active{display:block;}
+.mkt-section-hdr{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.mkt-section-hdr h2{font-size:14px;font-weight:700;}
+.mkt-section-hdr span{color:var(--text-muted);font-size:11px;}
+/* Channels */
+.channels-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-bottom:12px;}
+.chan-card{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;transition:border-color .2s;}
+.chan-card:hover{border-color:rgba(0,212,255,.2);}
+.chan-header{display:flex;align-items:center;gap:8px;}
+.chan-icon{font-size:20px;}
+.chan-name{font-size:13px;font-weight:700;}
+.chan-handle{color:var(--text-muted);font-size:11px;}
+.chan-stat{display:flex;justify-content:space-between;align-items:center;}
+.chan-stat-label{color:var(--text-muted);font-size:11px;}
+.chan-stat-val{font-size:14px;font-weight:600;}
+.chan-soon{color:var(--text-muted);font-size:11px;font-style:italic;}
+.chan-live{color:var(--green);font-size:10px;text-transform:uppercase;letter-spacing:.1em;}
+.chan-link{color:var(--accent);font-size:11px;text-decoration:none;}
+.chan-link:hover{text-decoration:underline;}
+/* Schedule */
+.schedule-list{display:flex;flex-direction:column;gap:6px;}
+.sch-item{display:flex;align-items:center;gap:12px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:10px 14px;transition:border-color .2s;}
+.sch-item:hover{border-color:rgba(0,212,255,.15);}
+.sch-time{color:var(--accent);font-size:11px;font-weight:700;width:90px;flex-shrink:0;}
+.sch-chan{font-size:15px;flex-shrink:0;}
+.sch-desc{color:var(--text-primary);flex:1;font-size:12px;}
+.sch-type{font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:2px 7px;border-radius:3px;flex-shrink:0;}
+.sch-type.auto{background:rgba(0,255,136,.1);color:var(--green);border:1px solid rgba(0,255,136,.2);}
+.sch-type.content{background:rgba(0,212,255,.1);color:var(--accent);border:1px solid rgba(0,212,255,.2);}
+.sch-type.sys{background:rgba(148,163,184,.1);color:var(--text-muted);border:1px solid var(--border);}
+/* PED */
+.ped-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+.ped-header h2{font-size:13px;font-weight:700;}
+.ped-header span{color:var(--text-muted);font-size:11px;}
+.btn-new-post{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.1em;padding:5px 12px;border-radius:4px;cursor:pointer;background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.25);color:var(--accent);transition:all .2s;}
+.btn-new-post:hover{background:rgba(0,212,255,.15);}
+.ped-new-form{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px;}
+.ped-form-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+.ped-form-row input,.ped-form-row select{background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'JetBrains Mono',monospace;font-size:12px;padding:8px 10px;outline:none;transition:border .2s;}
+.ped-form-row input:focus,.ped-form-row select:focus{border-color:var(--accent);}
+.ped-form-textarea{width:100%;min-height:120px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'JetBrains Mono',monospace;font-size:12px;padding:10px;outline:none;transition:border .2s;resize:vertical;}
+.ped-form-textarea:focus{border-color:var(--accent);}
+.ped-form-actions{display:flex;gap:8px;margin-top:10px;}
+.btn-form-save{background:var(--accent);color:#000;font-weight:600;border:none;border-radius:6px;padding:8px 16px;cursor:pointer;font-size:12px;}
+.btn-form-cancel{background:none;border:1px solid var(--border);border-radius:6px;padding:8px 16px;cursor:pointer;color:var(--text-muted);font-size:12px;}
+.post-cards{display:flex;flex-direction:column;gap:8px;}
+.post-card{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px 14px;transition:border-color .2s;}
+.post-card:hover{border-color:rgba(0,212,255,.2);}
+.post-card-meta{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;}
+.post-date-badge{font-size:10px;color:var(--text-muted);background:var(--bg-input);padding:2px 8px;border-radius:4px;}
+.post-chan-badge{font-size:10px;padding:2px 8px;border-radius:4px;}
+.post-chan-tg{background:rgba(0,212,255,.1);color:var(--accent);}
+.post-chan-x{background:rgba(232,224,208,.06);color:var(--text-secondary);}
+.post-chan-li{background:rgba(37,99,235,.15);color:#93c5fd;}
+.post-chan-rd{background:rgba(239,68,68,.1);color:#fca5a5;}
+.post-title{font-size:12px;font-weight:600;margin-bottom:6px;}
+.post-text{font-size:11px;color:var(--text-secondary);white-space:pre-wrap;max-height:60px;overflow:hidden;transition:max-height .3s;}
+.post-text.expanded{max-height:400px;}
+.post-text-toggle{font-size:10px;color:var(--accent);cursor:pointer;display:inline-block;margin-top:4px;}
+.post-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
+.btn-pub{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.08em;padding:5px 10px;border-radius:4px;cursor:pointer;border:1px solid;transition:all .2s;}
+.btn-pub-copy{background:rgba(232,224,208,.05);color:var(--text-secondary);border-color:var(--border);}
+.btn-pub-copy:hover{border-color:rgba(232,224,208,.3);}
+.btn-pub-tg{background:rgba(0,212,255,.08);color:var(--accent);border-color:rgba(0,212,255,.25);}
+.btn-pub-tg:hover{background:rgba(0,212,255,.15);}
+.btn-pub-x{background:rgba(232,224,208,.05);color:var(--text-secondary);border-color:var(--border);}
+.btn-pub-x.active{background:rgba(232,224,208,.08);color:var(--text-primary);border-color:rgba(232,224,208,.2);}
+.btn-pub-li{background:rgba(37,99,235,.08);color:#93c5fd;border-color:rgba(37,99,235,.2);}
+.btn-pub-rd{background:rgba(239,68,68,.08);color:#fca5a5;border-color:rgba(239,68,68,.2);}
+.btn-pub-del{background:rgba(239,68,68,.06);color:var(--red);border-color:rgba(239,68,68,.15);}
+.btn-pub-del:hover{background:rgba(239,68,68,.12);}
+.post-photo-thumb{margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+.post-photo-thumb img{width:48px;height:48px;object-fit:cover;border-radius:4px;border:1px solid var(--border);}
+.post-photo-name{font-size:10px;color:var(--text-muted);}
+/* Toast */
+.pub-toast{position:fixed;bottom:calc(var(--tab-height) + var(--safe-bottom) + 12px);left:50%;transform:translateX(-50%) translateY(10px);background:var(--bg-card);border:1px solid rgba(0,212,255,.3);color:var(--text-primary);padding:10px 20px;border-radius:8px;font-size:12px;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;z-index:200;white-space:nowrap;}
+.pub-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.pub-toast.err{border-color:rgba(239,68,68,.35);color:var(--red);}
 </style>
 </head>
 <body>
@@ -749,6 +845,10 @@ body.heartbeat-offline { animation: hb-flat 4s linear infinite; }
     <button class="tab-btn" data-tab="log" onclick="switchTab('log')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
       <span>Log</span>
+    </button>
+    <button class="tab-btn" data-tab="ops" onclick="switchTab('ops')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 10.8a19.79 19.79 0 01-3.07-8.72A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92v2z"/></svg>
+      <span>Ops</span>
     </button>
     <button class="tab-btn" data-tab="settings" onclick="switchTab('settings')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
@@ -891,6 +991,135 @@ body.heartbeat-offline { animation: hb-flat 4s linear infinite; }
           Log vuoto. Gli eventi appariranno quando il sistema sar&agrave; attivo.
         </div>
       </div>
+    </div>
+
+    <!-- TAB: OPS -->
+    <div class="tab-panel" id="panel-ops">
+
+      <!-- Stats row -->
+      <div class="ops-stats-bar" id="opsStatsBar">
+        <div class="sw">
+          <div class="sw-icon">📡</div>
+          <div class="sw-body">
+            <span class="sw-label">Telegram Members</span>
+            <span class="sw-value dot-load" id="swTg">—</span>
+          </div>
+        </div>
+        <div class="sw">
+          <div class="sw-icon">🧠</div>
+          <div class="sw-body">
+            <span class="sw-label">Prossimo Retrain</span>
+            <span class="sw-value dot-load" id="swRetrain">—</span>
+          </div>
+        </div>
+        <div class="sw">
+          <div class="sw-icon">🔍</div>
+          <div class="sw-body">
+            <span class="sw-label">SEO-AI</span>
+            <span class="sw-value dot-load" id="swSeo">—</span>
+          </div>
+        </div>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+          <span style="color:var(--text-muted);font-size:11px;" id="opsLastUpdated">—</span>
+          <button class="action-btn" onclick="loadOpsStats()">↻</button>
+        </div>
+      </div>
+
+      <!-- Inner tabs -->
+      <nav class="ops-nav">
+        <button class="ops-tab-btn active" data-ops="ped" onclick="opsShowTab('ped')">📋 Piano Editoriale</button>
+        <button class="ops-tab-btn" data-ops="channels" onclick="opsShowTab('channels')">📡 Canali</button>
+        <button class="ops-tab-btn" data-ops="schedule" onclick="opsShowTab('schedule')">📅 Schedule</button>
+      </nav>
+
+      <!-- OPS PANE: PED -->
+      <div class="ops-pane active" id="ops-pane-ped">
+        <div class="ped-header">
+          <div>
+            <h2>📋 Piano Editoriale</h2>
+            <span>Bozze post — pubblica direttamente sui canali</span>
+          </div>
+          <button class="btn-new-post" onclick="pedToggleNewForm()">+ Nuovo Post</button>
+        </div>
+
+        <div class="ped-new-form" id="pedNewForm" style="display:none;">
+          <h3 style="font-size:14px;margin-bottom:12px;">✏️ Nuovo Post</h3>
+          <div class="ped-form-row">
+            <input type="text" id="pedFormTitle" placeholder="Titolo (interno)…" style="flex:1;">
+            <input type="datetime-local" id="pedFormDate">
+            <select id="pedFormChannel">
+              <option value="tg">✈️ Telegram</option>
+              <option value="all">📡 Tutti</option>
+              <option value="x">𝕏 X</option>
+              <option value="li">💼 LinkedIn</option>
+              <option value="rd">🤖 Reddit</option>
+            </select>
+          </div>
+          <textarea class="ped-form-textarea" id="pedFormText" placeholder="Testo del post… (max 4096 char per Telegram)"></textarea>
+          <div class="ped-form-actions">
+            <button class="btn-form-save" onclick="pedSaveNewPost()">💾 Salva Bozza</button>
+            <button class="btn-form-cancel" onclick="pedToggleNewForm()">Annulla</button>
+          </div>
+        </div>
+
+        <div class="post-cards" id="pedPostsList"></div>
+      </div>
+
+      <!-- OPS PANE: CHANNELS -->
+      <div class="ops-pane" id="ops-pane-channels">
+        <div class="mkt-section-hdr">
+          <h2>Canali di Distribuzione</h2>
+          <span>metriche live dove disponibili</span>
+        </div>
+        <div class="channels-grid">
+          <div class="chan-card" style="border-color:rgba(0,212,255,.25);">
+            <div class="chan-header"><div class="chan-icon">✈️</div><div><div class="chan-name">Telegram</div><div class="chan-handle">@BTCPredictorBot</div></div></div>
+            <div class="chan-stat"><span class="chan-stat-label">Members</span><span class="chan-stat-val dot-ok" id="tgMemberCount">—</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;"><span class="chan-live">● live</span><a href="https://t.me/BTCPredictorBot" target="_blank" class="chan-link">t.me/BTCPredictorBot ↗</a></div>
+          </div>
+          <div class="chan-card">
+            <div class="chan-header"><div class="chan-icon">𝕏</div><div><div class="chan-name">X / Twitter</div><div class="chan-handle">@btcpredictor_io</div></div></div>
+            <div class="chan-stat"><span class="chan-stat-label">Followers</span><span class="chan-stat-val" style="color:var(--text-muted);">—</span></div>
+            <div id="xChanStatus"><span class="chan-soon">Checking…</span></div>
+          </div>
+          <div class="chan-card">
+            <div class="chan-header"><div class="chan-icon">💼</div><div><div class="chan-name">LinkedIn</div><div class="chan-handle">Mattia Calastri</div></div></div>
+            <div class="chan-stat"><span class="chan-stat-label">Connections</span><span class="chan-stat-val" style="color:var(--text-muted);">—</span></div>
+            <div id="liChanStatus"><span class="chan-soon">Checking…</span></div>
+          </div>
+          <div class="chan-card">
+            <div class="chan-header"><div class="chan-icon">🤘</div><div><div class="chan-name">Reddit</div><div class="chan-handle">r/algotrading</div></div></div>
+            <div class="chan-stat"><span class="chan-stat-label">Post karma</span><span class="chan-stat-val" style="color:var(--text-muted);">—</span></div>
+            <div id="rdChanStatus"><span class="chan-soon">Checking…</span></div>
+          </div>
+          <div class="chan-card" style="border-color:rgba(247,147,26,.2);">
+            <div class="chan-header"><div class="chan-icon">🌐</div><div><div class="chan-name">btcpredictor.io</div><div class="chan-handle">sito principale</div></div></div>
+            <div class="chan-stat"><span class="chan-stat-label">SEO Status</span><span class="chan-stat-val" id="chanSeoVal">—</span></div>
+            <div><a href="https://btcpredictor.io" target="_blank" class="chan-link">btcpredictor.io ↗</a></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- OPS PANE: SCHEDULE -->
+      <div class="ops-pane" id="ops-pane-schedule">
+        <div class="mkt-section-hdr">
+          <h2>Schedule Ricorrente</h2>
+          <span>UTC — timezone base del bot</span>
+        </div>
+        <div class="schedule-list">
+          <div class="sch-item"><div class="sch-time">Ogni 5 min</div><div class="sch-chan">🤖</div><div class="sch-desc">Position Monitor — wf28<br><span style="color:var(--text-muted);font-size:11px;">Controlla posizioni aperte, rescue se necessario</span></div><span class="sch-type auto">auto</span></div>
+          <div class="sch-item"><div class="sch-time">Ogni ora</div><div class="sch-chan">🤖</div><div class="sch-desc">System Watchdog — wf06<br><span style="color:var(--text-muted);font-size:11px;">Health check infrastruttura, alert se wf critici offline</span></div><span class="sch-type sys">system</span></div>
+          <div class="sch-item"><div class="sch-time">00:00 / 08:00 / 16:00</div><div class="sch-chan">📊</div><div class="sch-desc">Funding rate settlement (Binance perp)<br><span style="color:var(--text-muted);font-size:11px;">Pattern: pressione buy post-settlement quando funding era positivo</span></div><span class="sch-type sys">market</span></div>
+          <div class="sch-item"><div class="sch-time">Daily 09:00 CET</div><div class="sch-chan">📬</div><div class="sch-desc">Ghost Report Telegram — wf Ghost Daily<br><span style="color:var(--text-muted);font-size:11px;">Report giornaliero ghost bets su @BTCPredictorBot</span></div><span class="sch-type content">content</span></div>
+          <div class="sch-item"><div class="sch-time">Lun/Mer/Ven 16:00 CET</div><div class="sch-chan">📣</div><div class="sch-desc">AutoConv Council — wf AutoConv<br><span style="color:var(--text-muted);font-size:11px;">Contenuti AI Council su canale Telegram</span></div><span class="sch-type content">content</span></div>
+          <div class="sch-item"><div class="sch-time">Dom 03:00</div><div class="sch-chan">🧠</div><div class="sch-desc">XGBoost retrain — /force-retrain automatico<br><span style="color:var(--text-muted);font-size:11px;">Retrain su dataset aggiornato → push model → reload</span></div><span class="sch-type sys">ML retrain</span></div>
+          <div class="sch-item"><div class="sch-time">1° mese 09:00</div><div class="sch-chan">💾</div><div class="sch-desc">Vault backup — launchd Mac<br><span style="color:var(--text-muted);font-size:11px;">Backup credenziali cifrate AES in ~/Documents/Vault/</span></div><span class="sch-type sys">system</span></div>
+        </div>
+      </div>
+
+      <!-- Toast -->
+      <div class="pub-toast" id="pubToast"></div>
+
     </div>
 
     <!-- TAB: SETTINGS -->
