@@ -3924,7 +3924,10 @@ def rescue_orphaned():
     # 3. Triggera wf02 via rescue webhook per bet orfane
     #    (wf02 ha ora un Webhook Rescue Trigger su /webhook/rescue-wf02)
     #    Per bet stale (>MAX_BET_DURATION_HOURS), risolve direttamente senza wf02.
-    max_concurrent = 5
+    # max_concurrent=1: previene batch-storm quando wf01A chiama rescue-orphaned
+    # per ogni item (8 items × old max_concurrent=5 = 40 wf02 simultanei).
+    # Il vecchio guard (status=waiting) era inutile: wf02 finisce in 4s.
+    max_concurrent = 1
     triggered_count = 0
     RESCUE_WEBHOOK_URL = f"{n8n_url}/webhook/rescue-wf02"
     MAX_BET_HOURS = float(os.environ.get("MAX_BET_DURATION_HOURS", "4"))
