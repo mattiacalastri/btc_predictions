@@ -7390,25 +7390,9 @@ def on_chain_audit():
 
 @app.route("/marketing", methods=["GET"])
 def marketing():
-    # Auth gate: reuse COCKPIT_TOKEN to protect marketing ops page
-    cockpit_token = os.environ.get("COCKPIT_TOKEN", "")
-    if not cockpit_token:
-        return "Marketing dashboard disabled (COCKPIT_TOKEN not set)", 503
-    # Allow access via query param ?token=... or cookie
-    from flask import make_response
-    token = request.args.get("token", "") or request.cookies.get("mkt_token", "")
-    if not token or not _hmac.compare_digest(token, cockpit_token):
-        return _read_page("marketing.html").replace(
-            '<body',
-            '<script>var t=prompt("Token di accesso:");if(t)window.location=window.location.pathname+"?token="+t;</script><body'
-        ), 200, {"Content-Type": "text/html"}
-    html = _read_page("marketing.html")
-    # Use READ_API_KEY for dashboard — NEVER expose BOT_API_KEY to browser
-    read_key = os.environ.get("READ_API_KEY", "")
-    html = html.replace("</head>", f'<script>window.__MKT_API_KEY__={json.dumps(read_key)};</script>\n</head>', 1)
-    resp = make_response(html, 200, {"Content-Type": "text/html"})
-    resp.set_cookie("mkt_token", cockpit_token, httponly=True, secure=True, samesite="Strict", max_age=86400)
-    return resp
+    # Marketing ops merged into /cockpit — redirect permanently
+    from flask import redirect
+    return redirect("/cockpit", code=302)
 
 
 @app.route("/marketing-stats", methods=["GET"])
@@ -7697,7 +7681,10 @@ def cockpit_page():
     if not _COCKPIT_TOKEN:
         return "Cockpit disabled (COCKPIT_TOKEN not set)", 503
     try:
-        return _read_page("cockpit.html"), 200, {"Content-Type": "text/html"}
+        html = _read_page("cockpit.html")
+        read_key = os.environ.get("READ_API_KEY", "")
+        html = html.replace("</head>", f'<script>window.__MKT_API_KEY__={json.dumps(read_key)};</script>\n</head>', 1)
+        return html, 200, {"Content-Type": "text/html"}
     except FileNotFoundError:
         return "cockpit.html not found", 404
 

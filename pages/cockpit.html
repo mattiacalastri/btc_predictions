@@ -1355,8 +1355,8 @@ function switchTab(tab) {
   STATE.currentTab = tab;
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
-  // Lazy load ghosts
   if (tab === 'overview' && STATE.ghostMode && !STATE.ghostsLoaded) loadGhosts();
+  if (tab === 'ops') opsInitOnce();
 }
 
 // ── CLOCK ──
@@ -2032,6 +2032,210 @@ function togglePriority(cloneId, current) {
 function toggleFullLog(btn) {
   const card = btn.closest('.agent-card');
   if (card) card.classList.toggle('full-log');
+}
+
+// ── OPS TAB ──
+var _opsInited = false;
+
+function opsInitOnce() {
+  if (_opsInited) return;
+  _opsInited = true;
+  pedInit();
+  loadOpsStats();
+}
+
+function opsShowTab(tab) {
+  document.querySelectorAll('.ops-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.ops === tab));
+  document.querySelectorAll('.ops-pane').forEach(p => p.classList.toggle('active', p.id === 'ops-pane-' + tab));
+}
+
+function loadOpsStats() {
+  document.getElementById('opsLastUpdated').textContent = 'aggiornamento…';
+  document.querySelectorAll('.sw-value').forEach(el => { el.textContent = '—'; el.className = 'sw-value dot-load'; });
+  fetch('/marketing-stats')
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById('opsLastUpdated').textContent = new Date().toLocaleTimeString('it-IT');
+      // TG Members
+      const tgEl = document.getElementById('swTg');
+      const tgCount = document.getElementById('tgMemberCount');
+      if (data.telegram_members != null) {
+        const val = data.telegram_members.toLocaleString('it-IT');
+        tgEl.textContent = '📡 ' + val + ' members'; tgEl.className = 'sw-value dot-ok';
+        if (tgCount) tgCount.textContent = val;
+      } else { tgEl.textContent = '— (token mancante)'; tgEl.className = 'sw-value dot-warn'; }
+      // SEO
+      const seo = data.seo || {};
+      const seoEl = document.getElementById('swSeo');
+      const seoKeys = ['og_image','meta_description','json_ld','canonical'];
+      const seoAll = seoKeys.every(k => seo[k]);
+      const chanSeo = document.getElementById('chanSeoVal');
+      if (seoAll) {
+        seoEl.textContent = '✅ 4/4 pass'; seoEl.className = 'sw-value dot-ok';
+        if (chanSeo) { chanSeo.textContent = '✅ 4/4'; chanSeo.className = 'chan-stat-val dot-ok'; }
+      } else {
+        const failed = seoKeys.filter(k => !seo[k]).map(k => ({'og_image':'og:img','meta_description':'meta-desc','json_ld':'JSON-LD','canonical':'canonical'}[k]));
+        seoEl.textContent = '⚠ fail: ' + failed.join(', '); seoEl.className = 'sw-value dot-warn';
+        if (chanSeo) { chanSeo.textContent = '⚠ ' + failed.length + ' issues'; chanSeo.className = 'chan-stat-val dot-warn'; }
+      }
+      // Channel status
+      const s = data;
+      const xEl = document.getElementById('xChanStatus');
+      const liEl = document.getElementById('liChanStatus');
+      const rdEl = document.getElementById('rdChanStatus');
+      if (xEl) xEl.innerHTML = s.x ? '<span class="chan-live">● configured</span>' : '<span class="chan-soon">Set TWITTER_* env vars</span>';
+      if (liEl) liEl.innerHTML = s.linkedin ? '<span class="chan-live">● configured</span>' : '<span class="chan-soon">Set LINKEDIN_* env vars</span>';
+      if (rdEl) rdEl.innerHTML = s.reddit ? '<span class="chan-live">● configured</span>' : '<span class="chan-soon">Set REDDIT_* env vars</span>';
+      // Retrain
+      const rtEl = document.getElementById('swRetrain');
+      const bs = data.bet_stats || {};
+      const cleanBets = bs.clean_bets || 0;
+      const wr = bs.win_rate_pct;
+      const milestone = Math.max(50, Math.ceil((cleanBets + 1) / 50) * 50);
+      const remaining = milestone - cleanBets;
+      const wrStr = wr != null ? ' · WR ' + wr + '%' : '';
+      if (cleanBets >= milestone) { rtEl.textContent = '🟢 FINESTRA APERTA — ' + cleanBets + ' bet' + wrStr; rtEl.className = 'sw-value dot-ok'; }
+      else if (cleanBets > 0) { rtEl.textContent = '🧠 ' + cleanBets + ' bet' + wrStr + ' · −' + remaining + ' → fin.' + milestone; rtEl.className = remaining <= 10 ? 'sw-value dot-ok' : 'sw-value dot-warn'; }
+      else { rtEl.textContent = 'Day 0 — 0 bet · −50 → prima finestra'; rtEl.className = 'sw-value dot-warn'; }
+    })
+    .catch(() => { document.getElementById('opsLastUpdated').textContent = '⚠ errore'; });
+}
+
+// PED
+var _PED_KEY = 'ped_posts';
+var _PED_APIKEY = 'ped_api_key';
+var _channelStatus = { telegram: false, x: false, linkedin: false, reddit: false };
+var _PED_DEFAULTS = [
+  { id: 'd1', title: 'Day 0 — Il Reset', date: '2026-03-01T09:00', channel: 'tg', photo: 'mvp-initial.png', text: '🐙 Day 0. Database azzerato. Tutto riparte da zero.\n\nNon perché il bot non funzionasse — ma perché vogliamo contare solo dati certificati, da oggi.\n\nLa rete di agenti è pronta: wf01A → wf01B → Kraken → Polygon.\nOgni segnale sarà commesso on-chain prima del fill.\n\nIl primo trade reale del sistema "new era" viene da qui.\n\nbtcpredictor.io · 🎩🐙🪄' },
+  { id: 'd2', title: 'Come Funziona il Dual-Gate', date: '2026-03-02T10:00', channel: 'tg', text: '🧠 Dual-gate: come il bot decide se tradare.\n\n1. LLM analizza 20+ feature: RSI, CVD, funding, orderbook, news\n2. XGBoost valida la direzione in modo indipendente\n3. Solo se entrambi concordano → BET\n\nSe uno dice UP e l\'altro dice DOWN → SKIP.\nNessuna esecuzione senza consensus.\n\nÈ un meccanismo di riduzione del rumore, non di ottimizzazione del WR.\n\nbtcpredictor.io · 🎩🐙🪄' },
+  { id: 'd3', title: 'On-Chain Audit — Perché', date: '2026-03-03T11:00', channel: 'tg', text: '⛓ Perché commit ogni segnale su Polygon?\n\nPerché il timestamp on-chain è immutabile.\n\nOgni prediction ha un hash sha-256 committato su BTCBotAudit.sol PRIMA del fill Kraken.\nDopodiché viene risolto con outcome + PnL reale.\n\nChiunque può verificare: il commit era PRIMA del trade?\nSe sì, non c\'è stato cherry-picking.\n\nCosto: ~$0.46/mese. Vale ogni centesimo.\n\nbtcpredictor.io · 🎩🐙🪄' },
+  { id: 'd4', title: 'Ghost Signals — Il Dataset Ombra', date: '2026-03-04T12:00', channel: 'tg', text: '👻 Ghost signals: le scommesse che non abbiamo fatto.\n\nOgni SKIP ha una direzione predetta — anche se non tradiamo.\nDopo chiudiamo il ghost: aveva ragione?\n\nDay 0: ghost WR = 63.2% su 19 osservazioni.\nQuando il bot NON tradava, vedeva la direzione giusta.\n\nQuesti dati diventano training set certificato per il prossimo retrain XGBoost.\n\nbtcpredictor.io · 🎩🐙🪄' },
+  { id: 'd5', title: 'WR vs Expectancy', date: '2026-03-05T10:00', channel: 'tg', text: '📐 WR al 55% non è il punto.\n\nL\'obiettivo è massimizzare l\'expectancy:\nE = (WR × avg_win) − ((1−WR) × avg_loss)\n\nUn sistema al 45% WR con RR 3:1 batte un sistema\nal 60% WR con RR 0.8:1. Sempre.\n\nIl bot attuale: RR medio ~1.5x, soglia confidence 0.62.\nL\'edge non è nel WR — è nella qualità del segnale.\n\nbtcpredictor.io · 🎩🐙🪄' },
+];
+
+function pedInit() {
+  if (window.__MKT_API_KEY__) localStorage.setItem(_PED_APIKEY, window.__MKT_API_KEY__);
+  if (!localStorage.getItem(_PED_KEY)) localStorage.setItem(_PED_KEY, JSON.stringify(_PED_DEFAULTS));
+  pedRenderPosts();
+}
+
+function pedGetPosts() { try { return JSON.parse(localStorage.getItem(_PED_KEY)) || []; } catch(e) { return []; } }
+function pedSavePosts(posts) { localStorage.setItem(_PED_KEY, JSON.stringify(posts)); }
+
+function pedRenderPosts() {
+  const el = document.getElementById('pedPostsList');
+  if (!el) return;
+  const posts = pedGetPosts();
+  if (!posts.length) { el.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:16px 0;">Nessun post in bozza.</div>'; return; }
+  el.innerHTML = posts.map(p => {
+    const safeId = String(p.id).replace(/[^a-zA-Z0-9_-]/g, '_');
+    const dt = p.date ? new Date(p.date).toLocaleString('it-IT', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
+    const chanMap = {tg:'post-chan-tg',x:'post-chan-x',li:'post-chan-li',rd:'post-chan-rd'};
+    const chanLabel = {tg:'✈️ TG',x:'𝕏 X',li:'💼 LI',rd:'🤖 RD',all:'📡 All'};
+    const chanBadge = `<span class="post-chan-badge ${chanMap[p.channel]||'post-chan-tg'}">${chanLabel[p.channel]||'✈️ TG'}</span>`;
+    const photoThumb = p.photo ? `<div class="post-photo-thumb"><img src="/static/marketing_assets/${escHtmlOps(p.photo)}" alt="" loading="lazy"><span class="post-photo-name">🖼 ${escHtmlOps(p.photo)}</span></div>` : '';
+    const canTG = p.channel === 'tg' || p.channel === 'all';
+    const tgLabel = p.photo ? '🖼 Invia con foto' : '✈️ Pubblica su TG';
+    return `<div class="post-card" id="pcard_${safeId}">
+      <div class="post-card-meta"><span class="post-date-badge">📅 ${dt}</span>${chanBadge}</div>
+      ${photoThumb}
+      <div class="post-title">${escHtmlOps(p.title||'')}</div>
+      <div class="post-text" id="ptext_${safeId}">${escHtmlOps(p.text||'')}</div>
+      <span class="post-text-toggle" onclick="pedToggleExpand('${safeId}')">▼ leggi tutto</span>
+      <div class="post-actions">
+        <button class="btn-pub btn-pub-copy" onclick="pedCopyPost('${safeId}')">📋 Copia</button>
+        ${canTG ? `<button class="btn-pub btn-pub-tg" onclick="pedPublishTG('${safeId}')">${p.sent_tg ? '✅ Inviato' : tgLabel}</button>` : ''}
+        <button class="btn-pub btn-pub-del" onclick="pedDeletePost('${safeId}')" style="margin-left:auto;">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function escHtmlOps(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function pedToggleExpand(id) {
+  const el = document.getElementById('ptext_' + id);
+  const tog = el && el.nextElementSibling;
+  if (!el) return;
+  const exp = el.classList.toggle('expanded');
+  if (tog) tog.textContent = exp ? '▲ chiudi' : '▼ leggi tutto';
+}
+
+function pedCopyPost(id) {
+  const p = pedGetPosts().find(x => String(x.id).replace(/[^a-zA-Z0-9_-]/g, '_') === id);
+  if (!p) return;
+  navigator.clipboard.writeText(p.text || '').then(() => pedShowToast('📋 Testo copiato!', false)).catch(() => pedShowToast('⚠ Errore clipboard', true));
+}
+
+function pedPublishTG(id) {
+  const apiKey = localStorage.getItem(_PED_APIKEY);
+  if (!apiKey) { pedShowToast('⚠ API Key mancante — settings Railway BOT_API_KEY', true); return; }
+  const posts = pedGetPosts();
+  const p = posts.find(x => String(x.id).replace(/[^a-zA-Z0-9_-]/g, '_') === id);
+  if (!p) return;
+  const btnEl = document.querySelector(`#pcard_${id} .btn-pub-tg`);
+  if (btnEl) { btnEl.textContent = '⏳ Invio…'; btnEl.disabled = true; }
+  fetch('/publish-telegram', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
+    body: JSON.stringify({ text: p.text, parse_mode: 'HTML', photo: p.photo || null })
+  }).then(r => r.json()).then(d => {
+    if (d.ok) {
+      pedShowToast('✅ Pubblicato! msg_id ' + d.message_id, false);
+      if (btnEl) btnEl.textContent = '✅ Inviato';
+      p.sent_tg = true; pedSavePosts(posts);
+    } else {
+      pedShowToast('❌ Errore TG: ' + (d.error || 'unknown'), true);
+      if (btnEl) { btnEl.textContent = '✈️ Pubblica su TG'; btnEl.disabled = false; }
+    }
+  }).catch(err => {
+    pedShowToast('❌ Rete: ' + err.message, true);
+    if (btnEl) { btnEl.textContent = '✈️ Pubblica su TG'; btnEl.disabled = false; }
+  });
+}
+
+function pedDeletePost(id) {
+  if (!confirm('Eliminare questo post?')) return;
+  pedSavePosts(pedGetPosts().filter(p => String(p.id).replace(/[^a-zA-Z0-9_-]/g, '_') !== id));
+  pedRenderPosts();
+}
+
+function pedToggleNewForm() {
+  const f = document.getElementById('pedNewForm');
+  if (!f) return;
+  const show = f.style.display === 'none';
+  f.style.display = show ? 'block' : 'none';
+  if (show) {
+    const d = new Date(); d.setHours(d.getHours() + 1); d.setMinutes(0); d.setSeconds(0);
+    const el = document.getElementById('pedFormDate');
+    if (el) el.value = d.toISOString().slice(0,16);
+  }
+}
+
+function pedSaveNewPost() {
+  const title = (document.getElementById('pedFormTitle').value || '').trim();
+  const text = (document.getElementById('pedFormText').value || '').trim();
+  const date = document.getElementById('pedFormDate').value;
+  const channel = document.getElementById('pedFormChannel').value;
+  if (!text) { pedShowToast('⚠ Testo obbligatorio', true); return; }
+  const posts = pedGetPosts();
+  posts.push({ id: 'p_' + Date.now(), title, text, date, channel });
+  pedSavePosts(posts);
+  pedRenderPosts();
+  pedToggleNewForm();
+  document.getElementById('pedFormTitle').value = '';
+  document.getElementById('pedFormText').value = '';
+  pedShowToast('✅ Bozza salvata', false);
+}
+
+function pedShowToast(msg, isErr) {
+  let t = document.getElementById('pubToast');
+  if (!t) return;
+  t.textContent = msg;
+  t.className = 'pub-toast' + (isErr ? ' err' : '');
+  if (t._hideTimer) clearTimeout(t._hideTimer);
+  setTimeout(() => t.classList.add('show'), 10);
+  t._hideTimer = setTimeout(() => t.classList.remove('show'), isErr ? 5000 : 3200);
 }
 
 // ── UTILS ──
