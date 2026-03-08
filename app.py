@@ -3082,7 +3082,7 @@ def public_stats():
             ghost_url = (
                 f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
                 "?select=correct,conf_score"
-                "&bet_taken=not.is.true&correct=not.is.null"
+                "&bet_taken=is.null&correct=not.is.null"
                 "&conf_score=gte.0.60"
                 "&order=created_at.desc&limit=20"
             )
