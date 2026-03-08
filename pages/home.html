@@ -173,10 +173,26 @@ if(localStorage.getItem('btcp_ga_consent')==='granted'){
     letter-spacing: 1.5px;
     text-transform: uppercase;
     color: var(--muted);
-    margin-bottom: 48px;
     padding: 8px 20px;
     border: 1px solid var(--border);
+    border-bottom: none;
     background: rgba(255,255,255,0.02);
+    flex-wrap: wrap;
+  }
+
+  .stats-strip {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: rgba(200,208,224,0.35);
+    margin-bottom: 48px;
+    padding: 7px 20px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.01);
+    flex-wrap: wrap;
   }
 
   .price-val {
@@ -186,6 +202,14 @@ if(localStorage.getItem('btcp_ga_consent')==='granted'){
     color: var(--accent);
     letter-spacing: -0.5px;
   }
+
+  .change-pos { color: #00ff88; }
+  .change-neg { color: #ff4466; }
+  .fg-fear    { color: #ff8844; }
+  .fg-greed   { color: #44ff88; }
+  .fg-neutral { color: var(--muted); }
+  .wr-good    { color: #00ff88; }
+  .wr-bad     { color: #ff4466; }
 
   .price-sep {
     width: 1px;
@@ -427,10 +451,22 @@ if(localStorage.getItem('btcp_ga_consent')==='granted'){
     <div class="live-dot"></div>
     <span>BTC/USD</span>
     <span class="price-val" id="btcPrice">—</span>
+    <span id="btcChange" style="font-size:9px;opacity:0.6"></span>
     <div class="price-sep"></div>
     <span id="fgVal">F&amp;G —</span>
     <div class="price-sep"></div>
     <span id="walletVal">equity —</span>
+  </div>
+
+  <!-- Secondary stats strip -->
+  <div class="stats-strip">
+    <span id="ghostWr">AI WR —</span>
+    <div class="price-sep"></div>
+    <span id="totalSignals">— signals</span>
+    <div class="price-sep"></div>
+    <span id="councilStatus">council —</span>
+    <div class="price-sep"></div>
+    <span id="xgbStatus">xgb —</span>
   </div>
 
   <!-- Nav cards -->
@@ -502,52 +538,91 @@ if(localStorage.getItem('btcp_ga_consent')==='granted'){
 
 <script>
 (async () => {
-  // Fetch health + quick stats in parallel
-  try {
-    const [health, signals] = await Promise.allSettled([
-      fetch('/health', { signal: AbortSignal.timeout(8000) }).then(r => r.json()),
-      fetch('/performance-stats', { signal: AbortSignal.timeout(8000) }).then(r => r.json()),
-    ]);
 
-    if (health.status === 'fulfilled') {
-      const h = health.value;
-      if (h.wallet_equity) {
-        document.getElementById('walletVal').textContent =
-          'equity $' + Number(h.wallet_equity).toFixed(2);
-      }
+  // ── 1. Health + public stats in parallel ────────────────────────────────
+  const [health, pub] = await Promise.allSettled([
+    fetch('/health',        { signal: AbortSignal.timeout(8000) }).then(r => r.json()),
+    fetch('/public-stats',  { signal: AbortSignal.timeout(8000) }).then(r => r.json()),
+  ]);
+
+  // Equity + Council + XGB dal /health
+  if (health.status === 'fulfilled') {
+    const h = health.value;
+    if (h.wallet_equity)
+      document.getElementById('walletVal').textContent =
+        'equity $' + Number(h.wallet_equity).toFixed(2);
+
+    // Council status
+    const cEl = document.getElementById('councilStatus');
+    if (h.council_mode_active !== undefined)
+      cEl.textContent = h.council_mode_active ? 'council on' : 'council off';
+
+    // XGB gate
+    const xEl = document.getElementById('xgbStatus');
+    if (h.xgb_clean_bets !== undefined && h.xgb_min_bets !== undefined)
+      xEl.textContent = `xgb ${h.xgb_clean_bets}/${h.xgb_min_bets}`;
+  }
+
+  // F&G + ghost WR + 24h change + total bets dal /public-stats
+  if (pub.status === 'fulfilled') {
+    const s = pub.value;
+
+    // Fear & Greed con colore
+    if (s.fear_greed_value !== undefined) {
+      const fg  = s.fear_greed_value;
+      const lbl = s.fear_greed_label || (
+        fg <= 25 ? 'Extreme Fear' : fg <= 45 ? 'Fear' :
+        fg <= 55 ? 'Neutral'      : fg <= 75 ? 'Greed' : 'Extreme Greed'
+      );
+      const cls = fg <= 45 ? 'fg-fear' : fg <= 55 ? 'fg-neutral' : 'fg-greed';
+      const el  = document.getElementById('fgVal');
+      el.innerHTML = `F&amp;G <span class="${cls}">${fg} · ${lbl}</span>`;
     }
 
-    if (signals.status === 'fulfilled') {
-      const s = signals.value;
-      if (s.total_bets) {
-        document.getElementById('metaBets').textContent = s.total_bets + ' bets';
-      }
-      if (s.fear_greed_value !== undefined) {
-        const fg = s.fear_greed_value;
-        const label = fg <= 25 ? 'extreme fear' : fg <= 45 ? 'fear' :
-                      fg <= 55 ? 'neutral' : fg <= 75 ? 'greed' : 'extreme greed';
-        document.getElementById('fgVal').textContent =
-          'F&G ' + fg + ' · ' + label;
-      }
+    // 24h change
+    if (s.btc_change_24h !== undefined) {
+      const c   = s.btc_change_24h;
+      const cls = c >= 0 ? 'change-pos' : 'change-neg';
+      const sign = c >= 0 ? '+' : '';
+      document.getElementById('btcChange').innerHTML =
+        `<span class="${cls}">${sign}${c.toFixed(2)}%</span>`;
     }
-  } catch (_) {}
 
-  // Live BTC price — poll every 15s
+    // Ghost WR
+    if (s.ghost_wr !== undefined) {
+      const wr  = s.ghost_wr;
+      const cls = wr >= 50 ? 'wr-good' : 'wr-bad';
+      const n   = s.ghost_n ? ` last${s.ghost_n}` : '';
+      document.getElementById('ghostWr').innerHTML =
+        `AI WR <span class="${cls}">${wr}%</span>${n}`;
+    }
+
+    // Total signals
+    if (s.total_bets !== undefined) {
+      document.getElementById('totalSignals').textContent =
+        s.total_bets + ' signals';
+      document.getElementById('metaBets').textContent =
+        s.total_bets + ' bets';
+    }
+  }
+
+  // ── 2. BTC price — poll ogni 15s ────────────────────────────────────────
   async function fetchPrice() {
     try {
-      const r = await fetch('/btc-price', { signal: AbortSignal.timeout(6000) });
-      const d = await r.json();
+      const d = await fetch('/btc-price', { signal: AbortSignal.timeout(6000) })
+        .then(r => r.json());
       const price = d.price || d.mark_price || d.last_price;
       if (price) {
-        const el = document.getElementById('btcPrice');
-        el.textContent = '$' + Number(price).toLocaleString('en-US', {
-          minimumFractionDigits: 0, maximumFractionDigits: 0
-        });
+        document.getElementById('btcPrice').textContent =
+          '$' + Number(price).toLocaleString('en-US', {
+            minimumFractionDigits: 0, maximumFractionDigits: 0
+          });
       }
     } catch (_) {}
   }
   fetchPrice();
   setInterval(fetchPrice, 15000);
+
 })();
 </script>
 

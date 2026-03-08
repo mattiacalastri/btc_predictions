@@ -3032,6 +3032,98 @@ def get_btc_price():
 
 
 
+# ── PUBLIC STATS (homepage — no auth, cached 5min) ───────────────────────────
+
+_public_stats_cache: dict = {}
+
+@app.route("/public-stats", methods=["GET"])
+def public_stats():
+    """
+    Dati pubblici per la homepage: F&G, ghost WR, 24h BTC change, total signals.
+    Cache 5min per non hammering alternative.me e Kraken ad ogni pageview.
+    """
+    global _public_stats_cache
+    now = time.time()
+    if _public_stats_cache.get("ts", 0) > now - 300:
+        return jsonify(_public_stats_cache["data"])
+
+    result = {}
+
+    # 1. Fear & Greed — alternative.me public API
+    try:
+        fg_resp = requests.get(
+            "https://api.alternative.me/fng/?limit=1",
+            timeout=4
+        )
+        fg_entry = fg_resp.json().get("data", [{}])[0]
+        result["fear_greed_value"] = int(fg_entry.get("value", 0))
+        result["fear_greed_label"] = fg_entry.get("value_classification", "")
+    except Exception:
+        pass
+
+    # 2. BTC 24h change — Kraken spot public ticker
+    try:
+        kr_resp = requests.get(
+            "https://api.kraken.com/0/public/Ticker?pair=XXBTZUSD",
+            timeout=4
+        )
+        kr_data = kr_resp.json().get("result", {}).get("XXBTZUSD", {})
+        last  = float(kr_data.get("c", [0])[0] or 0)
+        open_ = float(kr_data.get("o", 0) or 0)
+        if last and open_:
+            result["btc_change_24h"] = round((last - open_) / open_ * 100, 2)
+    except Exception:
+        pass
+
+    # 3. Ghost WR last 20 — Supabase (anon key, read-only)
+    try:
+        sb_url, sb_key = _sb_config()
+        if sb_url and sb_key:
+            ghost_url = (
+                f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
+                "?select=correct,conf_score"
+                "&bet_taken=not.is.true&correct=not.is.null"
+                "&conf_score=gte.0.60"
+                "&order=created_at.desc&limit=20"
+            )
+            gh = requests.get(
+                ghost_url,
+                headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
+                timeout=4
+            ).json()
+            if isinstance(gh, list) and gh:
+                wins = sum(1 for r in gh if r.get("correct") is True)
+                result["ghost_wr"] = round(wins / len(gh) * 100)
+                result["ghost_n"]  = len(gh)
+    except Exception:
+        pass
+
+    # 4. Total real bets — Supabase count header
+    try:
+        sb_url, sb_key = _sb_config()
+        if sb_url and sb_key:
+            count_resp = requests.get(
+                f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
+                "?select=id&bet_taken=eq.true&correct=not.is.null"
+                "&close_reason=neq.data_gap&limit=0",
+                headers={
+                    "apikey": sb_key,
+                    "Authorization": f"Bearer {sb_key}",
+                    "Prefer": "count=exact",
+                },
+                timeout=4
+            )
+            cr = count_resp.headers.get("content-range", "")
+            total = cr.split("/")[-1] if "/" in cr else None
+            if total and total.isdigit():
+                result["total_bets"] = int(total)
+    except Exception:
+        pass
+
+    _public_stats_cache = {"ts": now, "data": result}
+    return jsonify(result)
+
+
 # ── EXECUTION FEES ───────────────────────────────────────────────────────────
 
 @app.route("/execution-fees", methods=["GET"])
