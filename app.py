@@ -3076,14 +3076,15 @@ def public_stats():
         pass
 
     # 3. Ghost WR last 20 — Supabase (anon key, read-only)
+    # Colonne reali: confidence (non conf_score), ghost_correct (non correct)
     try:
         sb_url, sb_key = _sb_config()
         if sb_url and sb_key:
             ghost_url = (
                 f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
-                "?select=correct,conf_score"
-                "&bet_taken=is.null&correct=not.is.null"
-                "&conf_score=gte.0.60"
+                "?select=ghost_correct,confidence"
+                "&bet_taken=eq.false&ghost_correct=not.is.null"
+                "&confidence=gte.0.60"
                 "&order=created_at.desc&limit=20"
             )
             gh = requests.get(
@@ -3092,7 +3093,7 @@ def public_stats():
                 timeout=4
             ).json()
             if isinstance(gh, list) and gh:
-                wins = sum(1 for r in gh if r.get("correct") is True)
+                wins = sum(1 for r in gh if r.get("ghost_correct") is True)
                 result["ghost_wr"] = round(wins / len(gh) * 100)
                 result["ghost_n"]  = len(gh)
     except Exception:
