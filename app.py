@@ -586,6 +586,47 @@ def _refresh_bot_paused():
         pass
 
 
+def _save_resumed_at(iso_ts: str):
+    """Persist resumed_at timestamp to Supabase bot_state (upsert)."""
+    try:
+        sb_url, sb_key = _sb_config()
+        if not sb_url or not sb_key:
+            return
+        requests.post(
+            f"{sb_url}/rest/v1/bot_state",
+            json={"key": "resumed_at", "value": iso_ts},
+            headers={
+                "apikey": sb_key,
+                "Authorization": f"Bearer {sb_key}",
+                "Content-Type": "application/json",
+                "Prefer": "return=minimal,resolution=merge-duplicates",
+            },
+            timeout=3,
+        )
+    except Exception as e:
+        app.logger.error(f"[SAVE_RESUMED_AT] failed: {e}")
+
+
+def _load_resumed_at() -> str:
+    """Load resumed_at from Supabase bot_state. Returns empty string if not found."""
+    try:
+        sb_url, sb_key = _sb_config()
+        if not sb_url or not sb_key:
+            return ""
+        r = requests.get(
+            f"{sb_url}/rest/v1/bot_state?key=eq.resumed_at&select=value",
+            headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
+            timeout=3,
+        )
+        if r.ok:
+            data = r.json()
+            if data:
+                return data[0].get("value", "")
+    except Exception:
+        pass
+    return ""
+
+
 # Refresh calibration all'avvio — each step independent so one failure doesn't skip the rest
 def _boot_load_resumed_at():
     global _RESUMED_AT
@@ -628,47 +669,6 @@ def _save_bot_paused(paused: bool):
             app.logger.error(f"[SAVE_PAUSED] Supabase returned {r.status_code}: {r.text[:200]}")
     except Exception as e:
         app.logger.error(f"[SAVE_PAUSED] failed: {e}")
-
-
-def _save_resumed_at(iso_ts: str):
-    """Persist resumed_at timestamp to Supabase bot_state (upsert)."""
-    try:
-        sb_url, sb_key = _sb_config()
-        if not sb_url or not sb_key:
-            return
-        requests.post(
-            f"{sb_url}/rest/v1/bot_state",
-            json={"key": "resumed_at", "value": iso_ts},
-            headers={
-                "apikey": sb_key,
-                "Authorization": f"Bearer {sb_key}",
-                "Content-Type": "application/json",
-                "Prefer": "return=minimal,resolution=merge-duplicates",
-            },
-            timeout=3,
-        )
-    except Exception as e:
-        app.logger.error(f"[SAVE_RESUMED_AT] failed: {e}")
-
-
-def _load_resumed_at() -> str:
-    """Load resumed_at from Supabase bot_state. Returns empty string if not found."""
-    try:
-        sb_url, sb_key = _sb_config()
-        if not sb_url or not sb_key:
-            return ""
-        r = requests.get(
-            f"{sb_url}/rest/v1/bot_state?key=eq.resumed_at&select=value",
-            headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
-            timeout=3,
-        )
-        if r.ok:
-            data = r.json()
-            if data:
-                return data[0].get("value", "")
-    except Exception:
-        pass
-    return ""
 
 
 def _check_api_key():
