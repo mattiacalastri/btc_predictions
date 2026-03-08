@@ -5453,8 +5453,8 @@ def submit_contribution():
     reject_url   = f"{base_url}/reject-contribution/{contrib_id}?token={_make_contribution_token(contrib_id, 'reject')}"
     owner_email  = os.environ.get("OWNER_EMAIL", "")
 
-    # ── Telegram notification (best-effort) ──
-    telegram_token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    # ── Telegram notification (best-effort) — usa BTC Sentinel (private alerts) ──
+    telegram_token = os.environ.get("TELEGRAM_PRIVATE_TOKEN") or os.environ.get("TELEGRAM_BOT_TOKEN", "")
     telegram_owner = os.environ.get("TELEGRAM_OWNER_ID", "")
     if telegram_token and telegram_owner:
         try:
