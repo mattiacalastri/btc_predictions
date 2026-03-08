@@ -328,14 +328,21 @@ def _compute_micro_regime_1h() -> dict:
     Usato per penalizzare segnali contro-microtrend (rimbalzi in downtrend 4H).
     Returns: { "micro_dir": "UP"|"DOWN", "micro_strength": float, "error": str|None }
     """
+    import urllib.request as _m_ureq
+    import urllib.parse as _m_uparse
+    import ssl as _m_ssl
+    import json as _m_json
+    import certifi as _m_certifi
+    _m_ctx = _m_ssl.create_default_context(cafile=_m_certifi.where())
+
     _ERR = {"micro_dir": "UNKNOWN", "micro_strength": 0.0, "error": "fetch_failed"}
     try:
         # Kraken 1H klines
-        params = _uparse.urlencode({"pair": "XBTUSD", "interval": 60, "since": 0})
+        params = _m_uparse.urlencode({"pair": "XBTUSD", "interval": 60, "since": 0})
         url = f"https://api.kraken.com/0/public/OHLC?{params}"
-        req = _ureq.Request(url, headers={"User-Agent": "btcbot/1.0"})
-        with _ureq.urlopen(req, context=_ctx, timeout=8) as resp:
-            data = _json.loads(resp.read().decode())
+        req = _m_ureq.Request(url, headers={"User-Agent": "btcbot/1.0"})
+        with _m_ureq.urlopen(req, context=_m_ctx, timeout=8) as resp:
+            data = _m_json.loads(resp.read().decode())
         candles = (data.get("result", {}).get("XXBTZUSD")
                    or data.get("result", {}).get("XBTUSD") or [])
         if len(candles) < 20:
@@ -343,11 +350,11 @@ def _compute_micro_regime_1h() -> dict:
         closes = [float(c[4]) for c in candles[-22:]]
     except Exception:
         try:
-            params = _uparse.urlencode({"symbol": "BTCUSDT", "interval": "1h", "limit": 22})
+            params = _m_uparse.urlencode({"symbol": "BTCUSDT", "interval": "1h", "limit": 22})
             url = f"https://api.binance.com/api/v3/klines?{params}"
-            req = _ureq.Request(url, headers={"User-Agent": "btcbot/1.0"})
-            with _ureq.urlopen(req, context=_ctx, timeout=8) as resp:
-                klines = _json.loads(resp.read().decode())
+            req = _m_ureq.Request(url, headers={"User-Agent": "btcbot/1.0"})
+            with _m_ureq.urlopen(req, context=_m_ctx, timeout=8) as resp:
+                klines = _m_json.loads(resp.read().decode())
             closes = [float(k[4]) for k in klines]
         except Exception:
             return _ERR
