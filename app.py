@@ -3875,8 +3875,8 @@ def rescue_orphaned():
     try:
         r = requests.get(
             f"{supabase_url}/rest/v1/{SUPABASE_TABLE}"
-            "?select=id,direction,created_at,entry_fill_price"
-            "&bet_taken=eq.true&correct=is.null&entry_fill_price=not.is.null&order=created_at.asc",
+            "?select=id,direction,created_at,entry_fill_price,btc_price_entry,close_reason"
+            "&bet_taken=eq.true&correct=is.null&order=created_at.asc",
             headers={
                 "apikey": supabase_key,
                 "Authorization": f"Bearer {supabase_key}",
@@ -3966,8 +3966,8 @@ def rescue_orphaned():
                     except Exception:
                         pass
                 if not exit_price:
-                    exit_price = float(bet.get("entry_fill_price") or 0)
-                entry = float(bet.get("entry_fill_price") or 0)
+                    exit_price = float(bet.get("entry_fill_price") or bet.get("btc_price_entry") or 0)
+                entry = float(bet.get("entry_fill_price") or bet.get("btc_price_entry") or 0)
                 direction = bet.get("direction", "UP")
                 gross_delta = exit_price - entry
                 if direction == "DOWN":
