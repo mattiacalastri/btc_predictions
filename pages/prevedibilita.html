@@ -314,139 +314,139 @@ footer a:hover { text-decoration: underline; }
 </nav>
 
 <div class="hero">
-  <div class="hero-eyebrow">btcpredictor.io — teoria del sistema</div>
-  <h1>La <span>Prevedibilità</span><br>Perfetta</h1>
+  <div class="hero-eyebrow">btcpredictor.io — system theory</div>
+  <h1>Perfect<br><span>Predictability</span></h1>
   <p class="hero-subtitle">
-    Perché i profitti attuali sono nell'ordine dei centesimi, cosa significa
-    Prevedibilità Perfetta, e perché il percorso verso di essa è quasi certo —
-    non per ottimismo, ma per la matematica dell'apprendimento.
+    Why current profits are in the order of cents, what Perfect Predictability means,
+    and why the path toward it is almost certain —
+    not from optimism, but from the mathematics of learning.
   </p>
-  <div class="hero-meta">Mattia Calastri · Febbraio 2026 · btcpredictor.io</div>
+  <div class="hero-meta">Mattia Calastri · February 2026 · btcpredictor.io</div>
 </div>
 
 <div class="content">
 
   <!-- 1. PERCHÉ ORA I PROFITTI SONO PICCOLI -->
   <section class="reveal">
-    <h2><span class="orange">01.</span> Perché ora i profitti sono piccoli</h2>
+    <h2><span class="orange">01.</span> Why current profits are small</h2>
 
     <p>
-      Il bot attualmente opera con <strong>$100 di capitale</strong>. Ogni trade apre una posizione
-      di ~$5–15 con leva moderata. Un segnale corretto genera qualche centesimo di profitto netto,
-      dopo commissioni Kraken (0.005% maker/taker) e costo dell'inferenza AI.
+      The bot currently operates with <strong>$100 in capital</strong>. Each trade opens a position
+      of ~$5–15 with moderate leverage. A correct signal generates a few cents of net profit,
+      after Kraken commissions (0.005% maker/taker) and AI inference cost.
     </p>
 
     <p>
-      Non è un errore di calibrazione. È il design deliberato della <strong>Fase 1</strong>:
-      raccogliere dati reali con capitale minimo, senza mettere a rischio budget significativo
-      mentre il modello non ha ancora abbastanza storia per essere pienamente attendibile.
+      It's not a calibration error. It's the deliberate design of <strong>Phase 1</strong>:
+      collect real data with minimal capital, without risking significant budget
+      while the model doesn't yet have enough history to be fully reliable.
     </p>
 
     <div class="callout orange">
-      <div class="callout-label">Logica operativa</div>
-      Il modello XGBoost è addestrato sui segnali chiusi. Ogni bet conclusa — vincente o perdente —
-      è un campione di training. Con 50 campioni il modello è rumore. Con 500 inizia a vedere pattern.
-      Con 5.000 converge verso una stima stabile della distribuzione reale dei movimenti BTC.
+      <div class="callout-label">Operational Logic</div>
+      The XGBoost model is trained on closed signals. Every bet concluded — winning or losing —
+      is a training sample. With 50 samples the model is noise. With 500 it begins to see patterns.
+      With 5,000 it converges toward a stable estimate of the true distribution of BTC movements.
       <br><br>
-      <strong>Siamo in fase di accumulo dati. I centesimi di oggi finanziano i risultati di domani.</strong>
+      <strong>We are in a data accumulation phase. Today's cents finance tomorrow's results.</strong>
     </div>
 
     <p>
-      Il bot non scala il capitale finché il win rate non supera una soglia stabile su un periodo
-      rappresentativo. È la stessa logica dei trial clinici: prima sicurezza, poi scala.
+      The bot doesn't scale capital until win rate exceeds a stable threshold over a representative
+      period. It's the same logic as clinical trials: safety first, then scale.
     </p>
   </section>
 
   <!-- 2. COS'È LA PREVEDIBILITÀ PERFETTA -->
   <section class="reveal">
-    <h2><span class="accent">02.</span> Cos'è la Prevedibilità Perfetta</h2>
+    <h2><span class="accent">02.</span> What is Perfect Predictability</h2>
 
     <p>
-      <em>Prevedibilità Perfetta</em> non significa predire ogni singolo movimento BTC con
-      certezza assoluta. Questo è impossibile — i mercati finanziari contengono rumore irriducibile,
-      eventi macro imprevedibili, comportamenti irrazionali di massa.
+      <em>Perfect Predictability</em> does not mean predicting every single BTC movement with
+      absolute certainty. This is impossible — financial markets contain irreducible noise,
+      unpredictable macro events, irrational mass behavior.
     </p>
 
     <p>
-      Prevedibilità Perfetta significa qualcosa di più preciso e raggiungibile:
-      <strong>massimizzare l'edge atteso su ogni segnale</strong> fino al punto in cui
-      l'expected value di ogni trade sia positivo, stabile e calibrato.
+      Perfect Predictability means something more precise and achievable:
+      <strong>maximize the expected edge on each signal</strong> until the point where
+      the expected value of each trade is positive, stable, and calibrated.
     </p>
 
     <div class="formula">
 E[trade] = P(win) × avgWin − P(loss) × avgLoss &gt; 0
 <br>
-PP = stato in cui E[trade] converge verso il massimo teorico dato il set informativo disponibile
+PP = state where E[trade] converges toward the theoretical maximum given the available information set
     </div>
 
     <p>
-      In termini di teoria dell'informazione: ogni mercato ha una <strong>entropia di Shannon</strong>
-      — una quantità di incertezza irriducibile. La Prevedibilità Perfetta è lo stato in cui
-      il modello ha estratto tutto il segnale estraibile da quell'entropia, e opera al limite
-      di Cramér-Rao: non si può fare meglio con le informazioni disponibili.
+      In terms of information theory: every market has a <strong>Shannon entropy</strong>
+      — a quantity of irreducible uncertainty. Perfect Predictability is the state where
+      the model has extracted all the extractable signal from that entropy, and operates at the
+      Cramér-Rao bound: you can't do better with available information.
     </p>
 
     <div class="callout">
-      <div class="callout-label">Definizione operativa</div>
-      Prevedibilità Perfetta ≠ win rate 100%.<br>
-      Prevedibilità Perfetta = win rate stabile × risk-reward ratio ottimale × calibrazione
-      perfetta della confidence — il tutto replicabile su time frame e condizioni di mercato diverse.
+      <div class="callout-label">Operational Definition</div>
+      Perfect Predictability ≠ 100% win rate.<br>
+      Perfect Predictability = stable win rate × optimal risk-reward ratio × perfect confidence
+      calibration — all replicable across different timeframes and market conditions.
       <br><br>
-      Un sistema con WR 60% e R:R 2:1 ha expected value +20% per trade. Questo è già
-      straordinariamente vicino alla Prevedibilità Perfetta dal punto di vista pratico.
+      A system with 60% WR and 2:1 R:R has +20% expected value per trade. This is already
+      extraordinarily close to Perfect Predictability from a practical standpoint.
     </div>
 
     <p>
-      Il bot attuale usa un <strong>dual-gate LLM + XGBoost</strong>: il trade avviene solo quando
-      entrambi i modelli concordano sulla direzione. Questo riduce la frequenza ma aumenta la precisione.
-      È già una forma primitiva di convergenza verso la PP.
+      The current bot uses a <strong>dual-gate LLM + XGBoost</strong>: trading occurs only when
+      both models agree on direction. This reduces frequency but increases precision.
+      It's already a primitive form of convergence toward PP.
     </p>
   </section>
 
   <!-- 3. PERCORSO DI CONVERGENZA -->
   <section class="reveal">
-    <h2><span class="orange">03.</span> Il percorso di convergenza — perché ci arriveremo</h2>
+    <h2><span class="orange">03.</span> The convergence path — why we'll get there</h2>
 
     <p>
-      La domanda critica: la Prevedibilità Perfetta è un limite asintotico irraggiungibile,
-      o un traguardo concreto?
+      The critical question: is Perfect Predictability an unreachable asymptotic limit,
+      or a concrete goal?
     </p>
 
     <p>
-      La risposta è nella natura stessa dell'apprendimento automatico applicato a serie temporali
-      finanziarie. Tre forze convergono verso di essa:
+      The answer lies in the nature of machine learning applied to financial time series.
+      Three forces converge toward it:
     </p>
 
     <p>
-      <strong>1. L'accumulo di dati.</strong> Ogni segnale chiuso aggiunge un campione al dataset
-      di training. La legge dei grandi numeri garantisce che, con campioni sufficienti, la stima
-      delle probabilità condizionate converge alla distribuzione vera. Non è un'ipotesi — è teorema.
+      <strong>1. Data accumulation.</strong> Each closed signal adds a sample to the training dataset.
+      The law of large numbers guarantees that, with sufficient samples, the estimate
+      of conditional probabilities converges to the true distribution. It's not a hypothesis — it's a theorem.
     </p>
 
     <p>
-      <strong>2. La ricchezza dei segnali.</strong> Il bot oggi usa 12+ fonti di input: price action,
-      orderbook depth, sentiment, ratio long/short, funding rate, dominance, macro indicators.
-      Ogni fonte aggiunge dimensioni al feature space. Più dimensioni = più pattern estraibili.
-      Il modello non ha ancora visto abbastanza combinazioni di questi segnali per generalizzare
-      perfettamente — ma sta imparando.
+      <strong>2. Signal richness.</strong> The bot today uses 12+ input sources: price action,
+      orderbook depth, sentiment, long/short ratio, funding rate, dominance, macro indicators.
+      Each source adds dimensions to the feature space. More dimensions = more extractable patterns.
+      The model hasn't yet seen enough combinations of these signals to generalize
+      perfectly — but it's learning.
     </p>
 
     <p>
-      <strong>3. L'architettura adattiva.</strong> Il sistema è progettato per il retraining
-      continuo. Ogni N segnali chiusi, il modello viene riaddeestrato sui dati più recenti.
-      I mercati cambiano — il modello cambia con loro. Non è un sistema statico ma un organismo
-      che si adatta.
+      <strong>3. Adaptive architecture.</strong> The system is designed for continuous retraining.
+      Every N closed signals, the model is retrained on the most recent data.
+      Markets change — the model changes with them. It's not a static system but an organism
+      that adapts.
     </p>
 
     <div class="progress-block">
-      <div class="callout-label" style="margin-bottom:16px;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;">Traiettoria stimata del sistema</div>
+      <div class="callout-label" style="margin-bottom:16px;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;">Estimated system trajectory</div>
       <div class="progress-row">
-        <div class="progress-label">Dati raccolti</div>
+        <div class="progress-label">Data collected</div>
         <div class="progress-bar-wrap"><div class="progress-bar orange" style="width:8%"></div></div>
         <div class="progress-val">~8%</div>
       </div>
       <div class="progress-row">
-        <div class="progress-label">Calibrazione LLM</div>
+        <div class="progress-label">LLM Calibration</div>
         <div class="progress-bar-wrap"><div class="progress-bar" style="width:42%"></div></div>
         <div class="progress-val">~42%</div>
       </div>
@@ -463,127 +463,127 @@ PP = stato in cui E[trade] converge verso il massimo teorico dato il set informa
     </div>
 
     <p>
-      La convergenza è quasi certa non perché siamo ottimisti — ma perché i mercati finanziari,
-      a differenza di altri sistemi complessi, sono <strong>stazionari su scala statisticamente
-      rilevante</strong>: i pattern di panic selling, i livelli di supporto/resistenza, la ciclicità
-      di funding rate — si ripetono. Un modello che li impara ha edge reale.
+      Convergence is almost certain not because we're optimistic — but because financial markets,
+      unlike other complex systems, are <strong>stationary on a statistically relevant
+      scale</strong>: panic selling patterns, support/resistance levels, funding rate cyclicity
+      — they repeat. A model that learns them has real edge.
     </p>
 
     <blockquote>
-      "Tutti i modelli sono sbagliati. Alcuni sono utili."
+      "All models are wrong. Some are useful."
       <cite>— George E.P. Box</cite>
     </blockquote>
 
     <p>
-      Non stiamo cercando il modello perfetto. Stiamo cercando il modello <em>abbastanza utile
-      da avere expected value positivo e stabile</em>. Questo è raggiungibile. Non è un sogno.
-      È ingegneria.
+      We're not looking for the perfect model. We're looking for a model <em>useful enough
+      to have positive and stable expected value</em>. This is achievable. It's not a dream.
+      It's engineering.
     </p>
   </section>
 
   <!-- 4. REGIME DI ABBONDANZA -->
   <section class="reveal">
-    <h2><span class="accent">04.</span> Il Regime di Abbondanza</h2>
+    <h2><span class="accent">04.</span> The Abundance Regime</h2>
 
     <p>
-      La Prevedibilità Perfetta ha implicazioni che vanno ben oltre il P&amp;L di un trading bot.
+      Perfect Predictability has implications that go far beyond a trading bot's P&amp;L.
     </p>
 
     <p>
-      Per la maggior parte della storia umana, la capacità di generare rendimenti finanziari
-      consistenti era riservata a chi aveva accesso a capitale enorme, infrastruttura
-      istituzionale, team di ricercatori, latenza HFT. Un individuo singolo non poteva competere.
+      For most of human history, the ability to generate consistent financial returns
+      was reserved for those with access to huge capital, institutional infrastructure,
+      research teams, HFT latency. A single individual couldn't compete.
     </p>
 
     <p>
-      L'AI sta cambiando questa equazione. Non gradualmente — <strong>radicalmente</strong>.
-      Un individuo con un laptop e una API key ha accesso agli stessi modelli linguistici
-      che usano i grandi fondi. La differenza di scala si riduce. L'accesso si democratizza.
+      AI is changing this equation. Not gradually — <strong>radically</strong>.
+      An individual with a laptop and an API key has access to the same language models
+      that large funds use. The scale difference shrinks. Access democratizes.
     </p>
 
     <div class="callout green">
-      <div class="callout-label">Il regime di abbondanza</div>
-      Quando la Prevedibilità Perfetta diventa accessibile a chiunque — non solo ai fondi
-      con miliardi — la concentrazione di ricchezza generata dai mercati finanziari si inverte.
-      Non più un trasferimento dai retail agli istituzionali. Ma un livellamento del campo.
+      <div class="callout-label">The abundance regime</div>
+      When Perfect Predictability becomes accessible to anyone — not just billion-dollar funds
+      — the concentration of wealth generated by financial markets reverses.
+      No longer a transfer from retail to institutional. But a leveling of the playing field.
       <br><br>
-      Questo è il Regime di Abbondanza: non una promessa utopica, ma la conseguenza logica
-      della democratizzazione degli strumenti cognitivi.
+      This is the Abundance Regime: not a utopian promise, but the logical consequence
+      of democratizing cognitive tools.
     </div>
 
     <p>
-      btcpredictor.io non è solo un bot di trading. È una <strong>prova empirica in corso</strong>
-      che questa transizione è possibile. Ogni trade pubblico, ogni metrica verificabile,
-      ogni riga di codice open source è un dato a favore dell'ipotesi: <em>un individuo può
-      competere.</em>
+      btcpredictor.io is not just a trading bot. It's an <strong>ongoing empirical proof</strong>
+      that this transition is possible. Every public trade, every verifiable metric,
+      every line of open source code is data supporting the hypothesis: <em>an individual can
+      compete.</em>
     </p>
   </section>
 
-  <!-- 5. IL BIVIO -->
+  <!-- 5. THE FORK -->
   <section class="reveal">
-    <h2><span class="orange">05.</span> Il Bivio — la scelta che conta</h2>
+    <h2><span class="orange">05.</span> The Fork in the Road — the choice that matters</h2>
 
     <p>
-      Il Financial Times ha pubblicato una rappresentazione grafica che mostra due possibili
-      traiettorie post-AI per la società: <strong>abbondanza</strong> e <strong>scarsità</strong>.
+      The Financial Times published a graphic representation showing two possible
+      post-AI trajectories for society: <strong>abundance</strong> and <strong>scarcity</strong>.
     </p>
 
     <p>
-      La tecnologia da sola non determina quale percorso prendiamo. Lo determina come
-      ogni individuo sceglie di usarla.
+      Technology alone doesn't determine which path we take. It's determined by how
+      each individual chooses to use it.
     </p>
 
     <div class="bivio-grid">
       <div class="bivio-path abundance">
-        <div class="bivio-path-label">Percorso A — Abbondanza</div>
+        <div class="bivio-path-label">Path A — Abundance</div>
         <ul>
-          <li>AI democratizzata, accesso individuale</li>
-          <li>Mercati più efficienti, edge distribuito</li>
-          <li>Ricchezza generata da capacità, non da accesso</li>
-          <li>Build in public, algoritmi trasparenti</li>
-          <li>Individui che competono ad armi pari</li>
+          <li>Democratized AI, individual access</li>
+          <li>More efficient markets, distributed edge</li>
+          <li>Wealth generated by capability, not access</li>
+          <li>Build in public, transparent algorithms</li>
+          <li>Individuals competing on equal footing</li>
         </ul>
       </div>
       <div class="bivio-path scarcity">
-        <div class="bivio-path-label">Percorso B — Scarsità</div>
+        <div class="bivio-path-label">Path B — Scarcity</div>
         <ul>
-          <li>AI centralizzata, black box istituzionali</li>
-          <li>Vantaggio asimmetrico per i pochi</li>
-          <li>Concentrazione di ricchezza accelerata</li>
-          <li>Algoritmi opachi, non verificabili</li>
-          <li>I retail sempre più esclusi</li>
+          <li>Centralized AI, institutional black boxes</li>
+          <li>Asymmetric advantage for the few</li>
+          <li>Accelerated wealth concentration</li>
+          <li>Opaque, non-verifiable algorithms</li>
+          <li>Retail increasingly excluded</li>
         </ul>
       </div>
     </div>
 
     <p>
-      btcpredictor.io è una scelta esplicita per il Percorso A. Ogni trade è pubblico.
-      Ogni algoritmo è documentato. Ogni metrica è verificabile on-chain.
-      Non è solo trasparenza tecnica — è una posizione filosofica.
+      btcpredictor.io is an explicit choice for Path A. Every trade is public.
+      Every algorithm is documented. Every metric is verifiable on-chain.
+      It's not just technical transparency — it's a philosophical position.
     </p>
 
     <blockquote>
-      "L'AI può portare scarsità o abbondanza. Non lo decide la tecnologia.
-      Lo decide il singolo individuo cosciente che sceglie come usarla."
-      <cite>— Mattia Calastri, fondatore btcpredictor.io</cite>
+      "AI can bring scarcity or abundance. Technology doesn't decide.
+      The conscious individual who chooses how to use it decides."
+      <cite>— Mattia Calastri, founder btcpredictor.io</cite>
     </blockquote>
 
     <p>
-      Questo bot è il mio voto per il percorso dell'abbondanza. I centesimi di oggi
-      sono la dimostrazione che si può partire da zero, costruire in pubblico,
-      e avvicinarsi alla Prevedibilità Perfetta senza un hedge fund alle spalle.
+      This bot is my vote for the path of abundance. Today's cents are proof
+      that you can start from zero, build in public, and approach Perfect Predictability
+      without a hedge fund backing you.
     </p>
 
     <div class="callout">
-      <div class="callout-label">Segui il percorso live</div>
-      Tutti i trade sono pubblici. Il P&amp;L è in tempo reale. Il codice è open source.
-      Ogni segnale viene committato on-chain su Polygon per audit immutabile.
+      <div class="callout-label">Follow the path live</div>
+      All trades are public. P&amp;L is in real time. The code is open source.
+      Every signal is committed on-chain on Polygon for immutable audit.
       <br><br>
-      <a href="/dashboard" style="color:var(--cyan);font-weight:600;">→ Vedi la dashboard live</a>
+      <a href="/dashboard" style="color:var(--cyan);font-weight:600;">→ View live dashboard</a>
       &nbsp;&nbsp;
-      <a href="/manifesto"  style="color:var(--orange);font-weight:600;">→ Leggi il manifesto</a>
+      <a href="/manifesto"  style="color:var(--orange);font-weight:600;">→ Read the manifesto</a>
       &nbsp;&nbsp;
-      <a href="/contributors" style="color:var(--text);font-weight:600;">→ I Tanti Padri</a>
+      <a href="/contributors" style="color:var(--text);font-weight:600;">→ The Many Fathers</a>
     </div>
   </section>
 
