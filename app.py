@@ -8770,25 +8770,18 @@ html, body {{
         with open(html_path, "w", encoding="utf-8") as f:
             f.write(html)
 
-        # Chrome headless → PDF
-        chrome = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-        if not os.path.exists(chrome):
-            chrome = "google-chrome"  # Railway Linux
-        import subprocess
-        subprocess.run([
-            chrome, "--headless", "--disable-gpu", "--no-sandbox",
-            f"--print-to-pdf={pdf_path}",
-            "--no-margins", "--no-pdf-header-footer", "--print-background",
-            f"--user-data-dir=/tmp/chrome-pdf-{os.getpid()}",
-            f"file://{html_path}",
-        ], timeout=30, capture_output=True)
+        # PDF generation — xhtml2pdf (pure Python, works on Railway)
+        from xhtml2pdf import pisa
+        with open(html_path, "r", encoding="utf-8") as src, open(pdf_path, "wb") as dst:
+            pisa_status = pisa.CreatePDF(src.read(), dest=dst)
+        pdf_ok = not pisa_status.err and os.path.exists(pdf_path) and os.path.getsize(pdf_path) > 0
 
         # Cleanup HTML
         if os.path.exists(html_path):
             os.remove(html_path)
 
-        if not os.path.exists(pdf_path):
-            return jsonify({"ok": False, "error": "PDF generation failed"}), 500
+        if not pdf_ok:
+            return jsonify({"ok": False, "error": "PDF generation failed (xhtml2pdf)"}), 500
 
     except Exception as e:
         if os.path.exists(html_path):
