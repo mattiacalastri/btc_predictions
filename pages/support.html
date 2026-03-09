@@ -822,7 +822,7 @@ function selectTier(el){
 function updateLinks(){
   const eip = 'ethereum:' + WALLET + '@' + CHAIN_ID + '?value=' + selectedWei;
   const mm  = 'https://link.metamask.io/send/' + WALLET + '@' + CHAIN_ID + '?value=' + selectedWei;
-  const tw  = 'https://link.trustwallet.com/send?coin=966&address=' + WALLET + '&amount=' + (parseInt(selectedWei)/1e18);
+  const tw  = 'https://link.trustwallet.com/send?coin=966&address=' + WALLET + '&amount=' + selectedPol;
   const cb  = 'https://go.cb-w.com/dapp?cb_url=' + encodeURIComponent(eip);
   document.getElementById('metamaskLink').href = mm;
   document.getElementById('ctaMetamaskLink').href = mm;
@@ -879,8 +879,9 @@ function selectCtaAmount(el){
   document.getElementById('ctaMetamaskLink').href = mm;
 }
 
-// ── LIVE STATS from /health ──
+// ── LIVE STATS from /health + /public-stats ──
 async function loadStats(){
+  // Step 1: health endpoint (public, no auth)
   try {
     const r = await fetch('/health');
     const d = await r.json();
@@ -889,17 +890,20 @@ async function loadStats(){
     document.getElementById('stat-version').textContent = 'v' + (d.version || '—');
     document.getElementById('stat-ts').textContent = new Date(d.serverTime).toLocaleTimeString();
     document.getElementById('hero-live-text').textContent =
-      'Bot LIVE · equity ' + eq + ' · v' + (d.version || '—');
+      (d.paused ? 'Ghost mode' : 'Bot LIVE') + ' · equity ' + eq + ' · v' + (d.version || '—');
+  } catch(e){
+    document.getElementById('hero-live-text').textContent = 'Bot LIVE on Polygon';
+  }
 
-    // fetch bets stats
-    const rb = await fetch('/signals?limit=200');
-    if(rb.ok){
-      const sigs = await rb.json();
-      const closed = sigs.filter(s=>s.bet_taken && s.close_reason);
-      const wins   = closed.filter(s=>s.correct);
-      const wr     = closed.length ? (wins.length/closed.length*100).toFixed(1)+'%' : '—';
+  // Step 2: public-stats endpoint (public, no auth — WR + bets)
+  try {
+    const r2 = await fetch('/public-stats');
+    if(r2.ok){
+      const ps = await r2.json();
+      const wr = ps.ghost_wr != null ? ps.ghost_wr + '%' : '—';
+      const bets = ps.total_bets != null ? ps.total_bets : '—';
       document.getElementById('stat-wr').textContent = wr;
-      document.getElementById('stat-bets').textContent = closed.length;
+      document.getElementById('stat-bets').textContent = bets;
       document.getElementById('story-wr').textContent = wr;
       const wrEl = document.getElementById('stat-wr');
       const wrNum = parseFloat(wr);
@@ -907,9 +911,7 @@ async function loadStats(){
         wrEl.className = 'stat-val ' + (wrNum >= 50 ? 'green' : wrNum >= 40 ? 'orange' : 'red');
       }
     }
-  } catch(e){
-    document.getElementById('hero-live-text').textContent = 'Bot LIVE on Polygon';
-  }
+  } catch(e){ /* public-stats not available — stats stay as — */ }
 }
 
 // ── REGISTRY COUNTER (simulated until real endpoint) ──
