@@ -48,6 +48,54 @@ if(localStorage.getItem('btcp_ga_consent')==='granted'){
   "inLanguage": "en"
 }
 </script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "The win rate is low. Why would I support this?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Because the win rate is published. On-chain, you verify — you don't trust. A system that hides losing months is the red flag, not the one that publishes them. We're in the data collection phase. Statistical significance requires hundreds of bets, not dozens."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What do I get in return?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "A permanent on-chain record that you were here early. Founding tier contributors get access to raw model outputs. The on-chain record of who supported this first is immutable. You can't buy your way in retroactively."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is my contribution safe? Can I verify it?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Your transaction goes directly to 0x7Ac896F18ce52a0520dA49C3129520f7B70d51f0 on Polygon. Verifiable on PolygonScan within seconds. There are no smart contracts between you and the wallet — it's a direct transfer. Always verify the address yourself before sending."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "I don't have time to set this up right now.",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The transaction takes 11 seconds on Polygon. If you have MetaMask installed, tap Open in MetaMask and it pre-fills everything."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "1 POL is too small to matter, isn't it?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The first block in any chain is exactly that size. What matters is that it exists — recorded, timestamped, immutable. The on-chain record doesn't care about the amount. It cares that you were there."
+      }
+    }
+  ]
+}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -448,7 +496,7 @@ footer{border-top:1px solid var(--border);padding:40px 0;font-family:var(--sans)
       </div>
 
       <div class="qr-section">
-        <div id="qrcode"></div>
+        <div id="qrcode" role="img" aria-label="QR code for Polygon wallet address"></div>
         <div class="qr-info">
           <div class="selected-amount-display" id="selectedAmountDisplay">5 POL selected</div>
           <p><strong>Scan with MetaMask mobile</strong></p>
@@ -793,7 +841,7 @@ fetch('/public-contributions').then(r=>r.json()).then(d=>{
 }).catch(()=>animateCounter(3));
 
 // ── NAV BURGER ──
-(function(){var b=document.getElementById('gnavBurger'),l=document.getElementById('gnavLinks');if(!b||!l)return;var BG='<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h12M3 12h12"/></svg>',CL='<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4l10 10M14 4L4 14"/></svg>';function o(){l.style.height=(window.innerHeight-48)+'px';l.classList.add('gnav-open');b.innerHTML=CL;}function c(){l.style.height='';l.classList.remove('gnav-open');b.innerHTML=BG;}b.addEventListener('click',function(e){e.stopPropagation();l.classList.contains('gnav-open')?c():o();});l.querySelectorAll('.gnav-link').forEach(function(a){a.addEventListener('click',c);});document.addEventListener('click',function(e){if(!l.contains(e.target)&&!b.contains(e.target))c();});})();
+(function(){var b=document.getElementById('gnavBurger'),l=document.getElementById('gnavLinks');if(!b||!l)return;b.setAttribute('aria-expanded','false');var BG='<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h12M3 12h12"/></svg>',CL='<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4l10 10M14 4L4 14"/></svg>';function o(){l.style.height=(window.innerHeight-48)+'px';l.classList.add('gnav-open');b.innerHTML=CL;b.setAttribute('aria-expanded','true');}function c(){l.style.height='';l.classList.remove('gnav-open');b.innerHTML=BG;b.setAttribute('aria-expanded','false');}b.addEventListener('click',function(e){e.stopPropagation();l.classList.contains('gnav-open')?c():o();});l.querySelectorAll('.gnav-link').forEach(function(a){a.addEventListener('click',c);});document.addEventListener('click',function(e){if(!l.contains(e.target)&&!b.contains(e.target))c();});})();
 
 // ── INIT ──
 updateLinks();
