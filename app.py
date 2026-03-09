@@ -108,7 +108,7 @@ def _read_page(filename):
 
 
 def _sb_config() -> tuple:
-    """Restituisce (supabase_url, supabase_key). Unica sorgente env vars Supabase."""
+    """Return (supabase_url, supabase_key). Single source of truth for Supabase env vars."""
     url = os.environ.get("SUPABASE_URL", "").rstrip("/")
     key = os.environ.get("SUPABASE_SERVICE_KEY") or os.environ.get("SUPABASE_KEY", "")
     return url, key
@@ -158,9 +158,9 @@ _XGB_GATE_MIN_BETS = int(os.environ.get("XGB_MIN_BETS", "100"))  # bet pulite ne
 
 
 def _check_rate_limit(key: str, max_calls: int = _RL_MAX_DEFAULT) -> bool:
-    """Restituisce True se la chiamata è consentita, False se rate-limited.
-    Utilizza finestre scorrevoli di _RL_WINDOW secondi, con cleanup automatico.
-    Thread-safe tramite _RATE_LOCK (Gunicorn threaded mode).
+    """Return True if call is allowed, False if rate-limited.
+    Uses sliding windows of _RL_WINDOW seconds with automatic cleanup.
+    Thread-safe via _RATE_LOCK (Gunicorn threaded mode).
     """
     now = time.time()
     with _RATE_LOCK:
@@ -222,8 +222,8 @@ def _calculate_pnl(entry_price: float, exit_price: float, bet_size: float,
 # ── Input validation helpers (H-2, H-4) ──────────────────────────────────────
 
 def _safe_float(val, default: float, min_v: float | None = None, max_v: float | None = None) -> float:
-    """Converte val in float con protezione da NaN, Infinity e range non validi.
-    Ritorna default se la conversione fallisce o il valore è fuori range.
+    """Convert val to float with NaN, Infinity and out-of-range protection.
+    Returns default if conversion fails or value is out of range.
     """
     try:
         v = float(val)
@@ -239,7 +239,7 @@ def _safe_float(val, default: float, min_v: float | None = None, max_v: float | 
 
 
 def _safe_int(val, default: int, min_v: int | None = None, max_v: int | None = None) -> int:
-    """Converte val in int con clamp e fallback. Mai lancia ValueError sul chiamante."""
+    """Convert val to int with clamp and fallback. Never raises ValueError on the caller."""
     try:
         v = int(float(val))  # float() prima per gestire "12.0"
     except (ValueError, TypeError):
@@ -399,8 +399,8 @@ def _compute_regime_4h_live() -> dict:
 
 def _compute_micro_regime_1h() -> dict:
     """
-    Calcola la direzione della microtrend su timeframe 1H.
-    Usato per penalizzare segnali contro-microtrend (rimbalzi in downtrend 4H).
+    Compute microtrend direction on 1H timeframe.
+    Used to penalize counter-microtrend signals (bounces in 4H downtrend).
     Returns: { "micro_dir": "UP"|"DOWN", "micro_strength": float, "error": str|None }
     """
     import urllib.request as _m_ureq
@@ -510,7 +510,7 @@ DEAD_HOURS_UTC: set = {5, 7, 10, 11, 17, 19}
 _DEAD_HOURS_LOCK = threading.Lock()
 
 def refresh_calibration():
-    """Aggiorna CONF_CALIBRATION da WR reale Supabase per bucket di confidence."""
+    """Refresh CONF_CALIBRATION from real Supabase WR per confidence bucket."""
     global CONF_CALIBRATION
     sb_url, sb_key = _sb_config()
     if not sb_url or not sb_key:
@@ -555,7 +555,7 @@ def refresh_calibration():
         return {"ok": False, "error": "refresh_error"}
 
 def refresh_dead_hours():
-    """Aggiorna DEAD_HOURS_UTC: ore con WR < 45% e almeno 8 bet. Ora estratta da created_at."""
+    """Refresh DEAD_HOURS_UTC: hours with WR < 45% and at least 8 bets. Hour extracted from created_at."""
     global DEAD_HOURS_UTC
     sb_url, sb_key = _sb_config()
     if not sb_url or not sb_key:
@@ -754,8 +754,8 @@ def _save_bot_paused(paused: bool):
 
 
 def _check_api_key():
-    """Verifica X-API-Key header con timing-safe compare (hmac.compare_digest).
-    Se BOT_API_KEY non configurata, logga warning e passa (backwards compat).
+    """Verify X-API-Key header with timing-safe compare (hmac.compare_digest).
+    If BOT_API_KEY not configured, log warning and pass (backwards compat).
     """
     bot_key = os.environ.get("BOT_API_KEY", "")
     if not bot_key:
@@ -825,10 +825,10 @@ def get_kraken_servertime():
 
 def get_open_position(symbol: str):
     """
-    Legge la posizione con lo SDK (auth=True) => niente firma manuale.
-    Ritorna:
-      None se flat
-      { "side": "long"/"short", "size": float, "price": float } se aperta
+    Read position via SDK (auth=True) => no manual signing.
+    Returns:
+      None if flat
+      { "side": "long"/"short", "size": float, "price": float } if open
     """
     trade = get_trade_client()
     result = trade.request(
@@ -855,8 +855,8 @@ def get_open_position(symbol: str):
 
 def wait_for_position(symbol: str, want_open: bool, retries: int = 10, sleep_s: float = 0.35):
     """
-    want_open=True  -> aspetta che compaia una posizione
-    want_open=False -> aspetta che sparisca (flat)
+    want_open=True  -> wait for a position to appear
+    want_open=False -> wait for it to disappear (flat)
     """
     last = None
     for _ in range(retries):
@@ -873,7 +873,7 @@ def wait_for_position(symbol: str, want_open: bool, retries: int = 10, sleep_s: 
 
 
 def _get_mark_price(symbol: str) -> float:
-    """Ritorna il mark price corrente da Kraken Futures. 0.0 se fallisce."""
+    """Return current mark price from Kraken Futures. 0.0 on failure."""
     try:
         trade = get_trade_client()
         result = trade.request(method="GET", uri="/derivatives/api/v3/tickers", auth=False)
@@ -1982,8 +1982,8 @@ def resume_bot():
 # ── PLACE BET — helper privati ───────────────────────────────────────────────
 
 def _get_clean_bet_count() -> int:
-    """Restituisce il numero di bet con esito noto in SUPABASE_TABLE. Cache 10 min.
-    Usato dal gate XGBoost per sapere se il dataset è abbastanza grande da fidarsi del modello."""
+    """Return number of bets with known outcome in SUPABASE_TABLE. Cache 10 min.
+    Used by XGBoost gate to check if dataset is large enough to trust the model."""
     global _XGB_CLEAN_BET_COUNT, _XGB_CLEAN_BET_CHECKED_AT
     if (
         _XGB_CLEAN_BET_COUNT is not None
@@ -2016,8 +2016,8 @@ def _get_clean_bet_count() -> int:
 
 
 def _run_xgb_gate(direction: str, confidence: float, data: dict, current_hour_utc: int) -> tuple:
-    """Esegue il dual-gate XGBoost. Restituisce (xgb_prob_up, early_exit_response_or_None).
-    Se XGB non è disponibile o fallisce → (0.5, None) = continua normalmente."""
+    """Run dual-gate XGBoost. Returns (xgb_prob_up, early_exit_response_or_None).
+    If XGB unavailable or fails → (0.5, None) = proceed normally."""
     xgb_prob_up = 0.5
     if _XGB_MODEL is None:
         return xgb_prob_up, None
@@ -2066,7 +2066,7 @@ def _run_xgb_gate(direction: str, confidence: float, data: dict, current_hour_ut
 
 
 def _check_pre_flight(direction: str, confidence: float) -> object:
-    """Verifica bot_paused + circuit breaker. Restituisce Flask response se deve fermarsi, None se ok."""
+    """Check bot_paused + circuit breaker. Returns Flask response if must stop, None if ok."""
     global _BOT_PAUSED, _BOT_PAUSED_REFRESHED_AT
     if time.time() - _BOT_PAUSED_REFRESHED_AT > 300:
         _refresh_bot_paused()
@@ -2074,7 +2074,7 @@ def _check_pre_flight(direction: str, confidence: float) -> object:
     if _BOT_PAUSED:
         return jsonify({
             "status": "paused",
-            "message": "Bot in pausa — nessun nuovo trade aperto",
+            "message": "Bot paused — no new trades opened",
             "direction": direction,
             "confidence": confidence,
         }), 200
@@ -3102,8 +3102,8 @@ _public_stats_cache: dict = {}
 @app.route("/public-stats", methods=["GET"])
 def public_stats():
     """
-    Dati pubblici per la homepage: F&G, ghost WR, 24h BTC change, total signals.
-    Cache 5min per non hammering alternative.me e Kraken ad ogni pageview.
+    Public data for homepage: F&G, ghost WR, 24h BTC change, total signals.
+    Cache 5min to avoid hammering alternative.me and Kraken on every pageview.
     """
     global _public_stats_cache
     now = time.time()
@@ -3920,8 +3920,8 @@ def bet_sizing():
 @app.route("/rescue-orphaned", methods=["POST"])
 def rescue_orphaned():
     """
-    Controlla bet orfane (bet_taken=true, correct=null) e ri-triggera wf02 per ognuna.
-    Chiamare periodicamente da launchd ogni 5 minuti.
+    Check orphaned bets (bet_taken=true, correct=null) and re-trigger wf02 for each.
+    Call periodically from launchd every 5 minutes.
     """
     err = _check_api_key()
     if err:
@@ -4333,8 +4333,8 @@ def admin_backfill_signal_price():
 @app.route("/reload-calibration", methods=["POST"])
 def reload_calibration():
     """
-    Aggiorna CONF_CALIBRATION e DEAD_HOURS_UTC da dati Supabase live.
-    Chiamato da launchd dopo ogni retrain XGBoost (POST su Railway URL).
+    Refresh CONF_CALIBRATION and DEAD_HOURS_UTC from live Supabase data.
+    Called by launchd after each XGBoost retrain (POST to Railway URL).
     """
     err = _check_api_key()
     if err:
@@ -5553,7 +5553,7 @@ def submit_contribution():
 
     # ── reCAPTCHA v3 ──
     if not _verify_recaptcha(data.get("recaptcha_token", ""), "submit_contribution"):
-        return jsonify({"ok": False, "error": "Verifica anti-bot fallita. Ricarica la pagina."}), 400
+        return jsonify({"ok": False, "error": "Anti-bot check failed. Please reload the page."}), 400
 
     role    = str(data.get("role", "other"))[:20].strip()
     insight = str(data.get("insight", ""))[:_CONTRIBUTION_MAX_CHARS].strip()
@@ -5584,11 +5584,11 @@ def submit_contribution():
             json=payload, headers=headers, timeout=8,
         )
         if r.status_code not in (200, 201):
-            return jsonify({"ok": False, "error": "Errore salvataggio"}), 500
+            return jsonify({"ok": False, "error": "Save error"}), 500
         saved = r.json()
         contrib_id = saved[0]["id"] if saved else "?"
     except Exception as e:
-        return jsonify({"ok": False, "error": "Errore DB"}), 500
+        return jsonify({"ok": False, "error": "Database error"}), 500
 
     # ── Build approve/reject URLs (token HMAC, non espone BOT_API_KEY) ──
     base_url     = os.environ.get("RAILWAY_URL", "https://btcpredictor.io")
@@ -5602,10 +5602,10 @@ def submit_contribution():
     if telegram_token and telegram_owner:
         try:
             msg = (
-                f"📥 *Nuovo contributo \\#{contrib_id}*\n\n"
-                f"*Ruolo*: {_CONTRIBUTION_ROLES.get(role, role)}\n\n"
+                f"📥 *New contribution \\#{contrib_id}*\n\n"
+                f"*Role*: {_CONTRIBUTION_ROLES.get(role, role)}\n\n"
                 f"*Insight*:\n_{insight[:300]}_\n\n"
-                f"[✅ Approva]({approve_url}) · [❌ Rifiuta]({reject_url})"
+                f"[✅ Approve]({approve_url}) · [❌ Reject]({reject_url})"
             )
             _tg_session.post(
                 f"https://api.telegram.org/bot{telegram_token}/sendMessage",
@@ -5635,7 +5635,7 @@ def submit_contribution():
     except Exception:
         pass  # email is best-effort; Telegram already notified
 
-    return jsonify({"ok": True, "message": "Contributo ricevuto — verrà pubblicato dopo revisione. Grazie!"})
+    return jsonify({"ok": True, "message": "Contribution received — will be published after review. Thank you!"})
 
 
 @app.route("/contribute", methods=["POST"])
@@ -5942,8 +5942,8 @@ def approve_contribution(contrib_id):
             timeout=8,
         )
         if r.ok:
-            return jsonify({"ok": True, "message": f"Contributo #{contrib_id} approvato e pubblicato."})
-        return jsonify({"ok": False, "error": "Errore approvazione"}), 500
+            return jsonify({"ok": True, "message": f"Contribution #{contrib_id} approved and published."})
+        return jsonify({"ok": False, "error": "Approval error"}), 500
     except Exception as e:
         app.logger.exception("Endpoint error")
         return jsonify({"ok": False, "error": "internal_error"}), 500
@@ -5963,8 +5963,8 @@ def reject_contribution(contrib_id):
             timeout=8,
         )
         if r.ok:
-            return jsonify({"ok": True, "message": f"Contributo #{contrib_id} rifiutato e rimosso."})
-        return jsonify({"ok": False, "error": "Errore rifiuto"}), 500
+            return jsonify({"ok": True, "message": f"Contribution #{contrib_id} rejected and removed."})
+        return jsonify({"ok": False, "error": "Rejection error"}), 500
     except Exception as e:
         app.logger.exception("Endpoint error")
         return jsonify({"ok": False, "error": "internal_error"}), 500
@@ -6257,8 +6257,8 @@ def confidence_stats():
 @app.route("/trading-stats", methods=["GET"])
 def trading_stats():
     """
-    Legge la riga più recente dalla tabella trading_stats su Supabase
-    e restituisce i dati in JSON.
+    Read most recent row from trading_stats table on Supabase
+    and return data as JSON.
     """
     try:
         supabase_url, supabase_key = _sb_config()
@@ -6295,9 +6295,9 @@ _MACRO_CALENDAR_URL = "https://nfs.faireconomy.media/ff_calendar_thisweek.json"
 
 
 def _fetch_macro_calendar() -> dict:
-    """Fetcha il calendario ForexFactory con cache 1h.
-    Ritorna {"data": [...], "fetch_failed": bool}.
-    fetch_failed=True se la rete ha fallito e non c'è cache.
+    """Fetch ForexFactory calendar with 1h cache.
+    Returns {"data": [...], "fetch_failed": bool}.
+    fetch_failed=True if network failed and no cache available.
     """
     global _macro_cache
     now_ts = time.time()
@@ -6312,16 +6312,16 @@ def _fetch_macro_calendar() -> dict:
             return {"data": data, "fetch_failed": False}
     except Exception:
         pass
-    # Ritorna cache scaduta se disponibile (meglio che niente)
+    # Return stale cache if available (better than nothing)
     cached = _macro_cache["data"]
     return {"data": cached or [], "fetch_failed": cached is None}
 
 
 @app.route("/macro-guard", methods=["GET"])
 def macro_guard():
-    """Controlla se nelle prossime 2h ci sono eventi macro USD ad alto impatto.
+    """Check if high-impact USD macro events are coming in the next 2h.
 
-    Risposta:
+    Response:
       {"blocked": true,  "reason": "NFP in 47min", "event": {...}}
       {"blocked": false}
       {"blocked": false, "error": "calendar_unavailable"}
@@ -6415,13 +6415,13 @@ _POLYGON_RPC_FALLBACKS = [
 
 
 def _get_web3_contract():
-    """Restituisce (w3, contract, account) oppure raise RuntimeError se non configurato.
+    """Return (w3, contract, account) or raise RuntimeError if not configured.
     Tries primary RPC from env, then falls back through public RPCs."""
     try:
         from web3 import Web3
         from web3.middleware import geth_poa_middleware
     except ImportError:
-        raise RuntimeError("web3 non installato")
+        raise RuntimeError("web3 not installed")
 
     private_key = os.environ.get("POLYGON_PRIVATE_KEY", "")
     contract_address = os.environ.get("POLYGON_CONTRACT_ADDRESS", "")
@@ -6493,9 +6493,9 @@ def _send_onchain_tx(w3, account, tx_built, label="", max_retries=3):
 @app.route("/commit-prediction", methods=["POST"])
 def commit_prediction():
     """
-    Committa l'hash di una prediction su Polygon.
+    Commit prediction hash to Polygon.
     Body JSON: { bet_id, direction, confidence, entry_price, bet_size, timestamp }
-    Salva onchain_commit_hash + onchain_commit_tx su Supabase.
+    Saves onchain_commit_hash + onchain_commit_tx to Supabase.
     """
     err = _check_api_key()
     if err:
@@ -6582,9 +6582,9 @@ def commit_prediction():
 @app.route("/resolve-prediction", methods=["POST"])
 def resolve_prediction():
     """
-    Risolve l'hash dell'outcome di una bet su Polygon.
+    Resolve bet outcome hash on Polygon.
     Body JSON: { bet_id, exit_price, pnl_usd, won, close_timestamp }
-    Salva onchain_resolve_hash + onchain_resolve_tx su Supabase.
+    Saves onchain_resolve_hash + onchain_resolve_tx to Supabase.
     """
     err = _check_api_key()
     if err:
@@ -7314,7 +7314,7 @@ _EMAIL_RE = re.compile(r'^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$')
 
 @app.route("/satoshi-lead", methods=["POST"])
 def satoshi_lead():
-    """Salva email raccolta dal widget Satoshi in Supabase leads."""
+    """Save email collected from Satoshi widget to Supabase leads."""
     data = request.get_json(silent=True) or {}
 
     # ── reCAPTCHA v3 (primary) + Turnstile fallback ───────────────────
@@ -7390,7 +7390,7 @@ _NEWS_FEEDS = [
 
 @app.route("/news-feed", methods=["GET"])
 def news_feed():
-    """Aggrega RSS crypto news — cache 10 min, NO auth required."""
+    """Aggregate RSS crypto news — cache 10 min, NO auth required."""
     import xml.etree.ElementTree as ET
     import email.utils
 
@@ -7440,7 +7440,7 @@ def news_feed():
 def on_chain_audit():
     """
     Proof Chain integrity — NO auth required.
-    Usa select=* per compatibilità con RLS (stesso pattern di /signals).
+    Uses select=* for RLS compatibility (same pattern as /signals).
     """
 
     sb_url, sb_key = _sb_config()
@@ -7555,7 +7555,7 @@ def marketing():
 
 @app.route("/marketing-stats", methods=["GET"])
 def marketing_stats():
-    """Dati pubblici/marketing — NO auth required."""
+    """Public/marketing data — NO auth required."""
     import re as _re
 
     result = {}
@@ -8644,10 +8644,10 @@ html, body {{
         <path d="M35 42l-6-6 2.8-2.8L35 36.4l13.2-13.2L51 26 35 42z" fill="#00d4aa"/>
     </svg>
     <h1>BTC Sentinel — Incident Report</h1>
-    <div class="subtitle">Autonomous Fixer Pipeline — Studiare → Pianificare → Eseguire → Controllare → Report</div>
+    <div class="subtitle">Autonomous Fixer Pipeline — Investigate → Plan → Execute → Verify → Report</div>
     <div class="meta-cards">
         <div class="meta-card">
-            <div class="label">Data</div>
+            <div class="label">Date</div>
             <div class="value" style="font-size:1rem;">{ts_display}</div>
         </div>
         <div class="meta-card">
@@ -8673,19 +8673,19 @@ html, body {{
             <div class="section-icon" style="background:{sev_color}20;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{sev_color}" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             </div>
-            <h2>Errore Originale</h2>
+            <h2>Original Error</h2>
         </div>
         <div class="card error">
-            <div class="card-title">Titolo</div>
+            <div class="card-title">Title</div>
             <div class="card-body" style="font-weight:600;">{error_title}</div>
         </div>
         <div class="card error">
-            <div class="card-title">Dettaglio</div>
-            <div class="card-body">{error_detail or 'Nessun dettaglio aggiuntivo'}</div>
+            <div class="card-title">Detail</div>
+            <div class="card-body">{error_detail or 'No additional details'}</div>
         </div>
         <div class="card error">
-            <div class="card-title">Analisi AI</div>
-            <div class="card-body">{ai_analysis or 'Analisi non disponibile'}</div>
+            <div class="card-title">AI Analysis</div>
+            <div class="card-body">{ai_analysis or 'Analysis not available'}</div>
         </div>
     </div>
 
@@ -8694,14 +8694,14 @@ html, body {{
             <div class="section-icon" style="background:#00d4aa20;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00d4aa" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
             </div>
-            <h2>Fix Applicato</h2>
+            <h2>Applied Fix</h2>
         </div>
         <div class="card fix">
-            <div class="card-title">Descrizione</div>
-            <div class="card-body">{fix_description or 'Nessun fix registrato'}</div>
+            <div class="card-title">Description</div>
+            <div class="card-body">{fix_description or 'No fix recorded'}</div>
         </div>
         <div class="card fix">
-            <div class="card-title">File / Workflow Modificati</div>
+            <div class="card-title">Modified Files / Workflows</div>
             <div class="card-body">{files_html}</div>
         </div>
     </div>
@@ -8711,7 +8711,7 @@ html, body {{
             <div class="section-icon" style="background:#4dabf720;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4dabf7" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
             </div>
-            <h2>Second Check — Verifica</h2>
+            <h2>Second Check — Verification</h2>
         </div>
         <div class="card" style="border-left-color:#4dabf7;">
             <div class="check-row">
@@ -8720,7 +8720,7 @@ html, body {{
             </div>
             <div class="check-row">
                 <span class="check-label">Bot Paused</span>
-                <span class="check-status" style="color:{'#ffb347' if h.get('bot_paused') else '#51cf66'}">{'Si' if h.get('bot_paused') else 'No'}</span>
+                <span class="check-status" style="color:{'#ffb347' if h.get('bot_paused') else '#51cf66'}">{'Yes' if h.get('bot_paused') else 'No'}</span>
             </div>
             <div class="check-row">
                 <span class="check-label">Supabase</span>
@@ -8728,7 +8728,7 @@ html, body {{
             </div>
             <div class="check-row">
                 <span class="check-label">Cockpit (no errors 5min)</span>
-                <span class="check-status {'check-ok' if cockpit.get('ok') else 'check-fail'}">{'PASS — clean' if cockpit.get('ok') else f"FAIL — {cockpit.get('recent_errors', '?')} errori"}</span>
+                <span class="check-status {'check-ok' if cockpit.get('ok') else 'check-fail'}">{'PASS — clean' if cockpit.get('ok') else f"FAIL — {cockpit.get('recent_errors', '?')} errors"}</span>
             </div>
             <div class="check-row">
                 <span class="check-label">Sentry (quiet 5min)</span>
@@ -8744,15 +8744,15 @@ html, body {{
     <div class="verdict-box">
         <div class="verdict-label">{verdict_label}</div>
         <div class="verdict-sub">
-            {'Tutti i check superati. Il fix ha risolto il problema.' if verdict == 'resolved'
-             else 'Fix parziale — alcuni check non superati. Monitorare.' if verdict == 'partial'
-             else 'Fix non riuscito — intervento manuale necessario.'}
+            {'All checks passed. The fix resolved the issue.' if verdict == 'resolved'
+             else 'Partial fix — some checks failed. Monitor closely.' if verdict == 'partial'
+             else 'Fix unsuccessful — manual intervention required.'}
         </div>
     </div>
 
     <div class="footer">
         BTC Sentinel — Autonomous Fixer v{VERSION} — {ts_display}<br>
-        Pipeline: Studiare → Pianificare → Eseguire → Controllare → Report
+        Pipeline: Investigate → Plan → Execute → Verify → Report
     </div>
 </div>
 
@@ -8803,10 +8803,10 @@ html, body {{
             caption = (
                 f"{'🔴' if severity == 'P0' else '🟡' if severity == 'P1' else '🔵'} "
                 f"<b>Incident Report — {severity}</b>\n\n"
-                f"<b>Errore:</b> {error_title[:100]}\n"
+                f"<b>Error:</b> {error_title[:100]}\n"
                 f"<b>Fix:</b> {fix_description[:100]}\n"
                 f"<b>Verdict:</b> <b>{verdict_label}</b>\n\n"
-                f"{'✅ Tutti i check OK' if verdict == 'resolved' else '⚠️ Verifica manuale consigliata'}"
+                f"{'✅ All checks OK' if verdict == 'resolved' else '⚠️ Manual verification recommended'}"
             )
             mime = "application/pdf" if send_name.endswith(".pdf") else "text/html"
             with open(send_path, "rb") as doc_file:

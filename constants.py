@@ -1,8 +1,8 @@
 """
-constants.py — Unica sorgente di verità per costanti condivise tra i moduli.
+constants.py — Single source of truth for constants shared across modules.
 
-Importare qui invece di ridefinire localmente in app.py, build_dataset.py,
-backtest.py, ecc.
+Import from here instead of redefining locally in app.py, build_dataset.py,
+backtest.py, etc.
 """
 
 # ── Fee ────────────────────────────────────────────────────────────────────────
@@ -21,9 +21,9 @@ _BIAS_MAP = {
 }
 
 # ── XGBoost hyperparameters ───────────────────────────────────────────────────
-# Unica sorgente di verità: usati da train_xgboost.py e backtest.py.
-# backtest.py sovrascrive n_estimators=150 per velocità sul dataset ridotto
-# (70% train split vs il dataset completo usato in training).
+# Single source of truth: used by train_xgboost.py and backtest.py.
+# backtest.py overrides n_estimators=150 for speed on the reduced dataset
+# (70% train split vs full dataset used in training).
 XGB_PARAMS = dict(
     n_estimators=200,
     max_depth=4,
