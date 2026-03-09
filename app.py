@@ -8770,23 +8770,28 @@ html, body {{
         with open(html_path, "w", encoding="utf-8") as f:
             f.write(html)
 
-        # PDF generation — xhtml2pdf (pure Python, works on Railway)
-        from xhtml2pdf import pisa
-        with open(html_path, "r", encoding="utf-8") as src, open(pdf_path, "wb") as dst:
-            pisa_status = pisa.CreatePDF(src.read(), dest=dst)
-        pdf_ok = not pisa_status.err and os.path.exists(pdf_path) and os.path.getsize(pdf_path) > 0
-
-        # Cleanup HTML
-        if os.path.exists(html_path):
-            os.remove(html_path)
-
-        if not pdf_ok:
-            return jsonify({"ok": False, "error": "PDF generation failed (xhtml2pdf)"}), 500
+        # PDF generation — try xhtml2pdf, fallback to sending HTML as document
+        send_path = html_path  # default: send HTML
+        send_name = f"{filename}.html"
+        try:
+            from xhtml2pdf import pisa
+            with open(html_path, "r", encoding="utf-8") as src, open(pdf_path, "wb") as dst:
+                pisa_status = pisa.CreatePDF(src.read(), dest=dst)
+            if not pisa_status.err and os.path.exists(pdf_path) and os.path.getsize(pdf_path) > 0:
+                send_path = pdf_path
+                send_name = f"{filename}.pdf"
+                if os.path.exists(html_path):
+                    os.remove(html_path)
+        except ImportError:
+            app.logger.info("[INCIDENT-REPORT] xhtml2pdf not available, sending HTML")
+        except Exception as pdf_err:
+            app.logger.warning("[INCIDENT-REPORT] PDF generation failed: %s, sending HTML", pdf_err)
 
     except Exception as e:
-        if os.path.exists(html_path):
-            os.remove(html_path)
-        return jsonify({"ok": False, "error": f"PDF error: {str(e)[:120]}"}), 500
+        for p in (html_path, pdf_path):
+            if os.path.exists(p):
+                os.remove(p)
+        return jsonify({"ok": False, "error": f"Report error: {str(e)[:120]}"}), 500
 
     # Send via BTC Sentinel (sendDocument to owner DM)
     tg_token = os.environ.get("TELEGRAM_PRIVATE_TOKEN") or os.environ.get("TELEGRAM_BOT_TOKEN", "")
@@ -8803,7 +8808,8 @@ html, body {{
                 f"<b>Verdict:</b> <b>{verdict_label}</b>\n\n"
                 f"{'✅ Tutti i check OK' if verdict == 'resolved' else '⚠️ Verifica manuale consigliata'}"
             )
-            with open(pdf_path, "rb") as pdf_file:
+            mime = "application/pdf" if send_name.endswith(".pdf") else "text/html"
+            with open(send_path, "rb") as doc_file:
                 resp = _tg_session.post(
                     f"https://api.telegram.org/bot{tg_token}/sendDocument",
                     data={
@@ -8811,7 +8817,7 @@ html, body {{
                         "caption": caption[:1024],
                         "parse_mode": "HTML",
                     },
-                    files={"document": (f"{filename}.pdf", pdf_file, "application/pdf")},
+                    files={"document": (send_name, doc_file, mime)},
                     timeout=30,
                 )
             result = resp.json()
@@ -8820,14 +8826,22 @@ html, body {{
         except Exception as e:
             app.logger.warning("[INCIDENT-REPORT] Telegram send failed: %s", e)
 
+    # Cleanup sent file
+    for p in (html_path, pdf_path):
+        if os.path.exists(p):
+            try:
+                os.remove(p)
+            except OSError:
+                pass
+
     _push_cockpit_log("sentinel", "info",
                       f"Incident report sent: {severity} — {verdict}",
                       error_title,
-                      {"pdf": pdf_path, "tg_sent": message_id is not None, "verdict": verdict})
+                      {"file": send_name, "tg_sent": message_id is not None, "verdict": verdict})
 
     return jsonify({
         "ok": True,
-        "pdf_path": pdf_path,
+        "file_sent": send_name,
         "pdf_sent": message_id is not None,
         "message_id": message_id,
         "verdict": verdict,
