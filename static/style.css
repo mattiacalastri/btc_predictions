@@ -2262,77 +2262,7 @@
 .lp-tab-btn .lp-tab-pnl.pos { color: var(--accent); }
 .lp-tab-btn .lp-tab-pnl.neg { color: var(--danger); }
 /* ── GDPR COOKIE BANNER ─────────────────────────────────────────────── */
-#cookieBanner {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 9999;
-  background: rgba(10,14,26,0.97);
-  border-top: 1px solid rgba(0,255,136,0.2);
-  box-shadow: 0 -4px 32px rgba(0,255,136,0.06);
-  padding: 14px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  backdrop-filter: blur(8px);
-  animation: slideUpBanner 0.4s ease;
-  flex-wrap: wrap;
-}
-@keyframes slideUpBanner {
-  from { transform: translateY(100%); opacity: 0; }
-  to   { transform: translateY(0);    opacity: 1; }
-}
-#cookieBanner.hidden { display: none; }
-.cookie-text {
-  font-size: 9px;
-  color: var(--muted);
-  font-family: 'Space Mono', monospace;
-  letter-spacing: 0.5px;
-  line-height: 1.6;
-  flex: 1;
-  min-width: 200px;
-}
-.cookie-text a {
-  color: var(--accent);
-  text-decoration: none;
-  font-weight: 700;
-}
-.cookie-text a:hover { text-decoration: underline; }
-.cookie-actions {
-  display: flex;
-  gap: 8px;
-  flex-shrink: 0;
-}
-.btn-cookie-accept {
-  padding: 7px 18px;
-  background: var(--accent);
-  color: #000;
-  border: none;
-  font-family: 'Space Mono', monospace;
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-.btn-cookie-accept:hover { opacity: 0.85; }
-.btn-cookie-decline {
-  padding: 7px 14px;
-  background: transparent;
-  color: var(--muted);
-  border: 1px solid var(--border);
-  font-family: 'Space Mono', monospace;
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: color 0.2s, border-color 0.2s;
-}
-.btn-cookie-decline:hover { color: var(--text); border-color: var(--muted); }
+/* Cookie banner v2 → handled by /static/cookie-banner.js (self-injecting CSS) */
 
   /* ── SIGNAL CARD MOBILE FIX ──────────────────────────────── */
   @media (max-width: 480px) {

@@ -6828,61 +6828,8 @@ window.addEventListener('load', function() {
 <!-- KPI TOOLTIP -->
 <div id="kpiTooltip"></div>
 
-  <!-- GDPR Cookie Banner -->
-  <div id="cookieBanner" class="hidden">
-    <div class="cookie-text">
-      ⚡ BTCPREDICTOR.IO usa <strong>Google Analytics</strong>, <strong>Microsoft Clarity</strong> (session replay) e <strong>Sentry</strong> (error monitoring) per migliorare il servizio. Nessun dato di trading o finanziario viene condiviso. Nessun cookie di profilazione.
-      <div style="margin-top:5px;">
-        <a href="/legal" style="color:var(--accent);text-decoration:none;">Privacy Policy ↗</a>
-        &nbsp;·&nbsp;
-        <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" style="color:var(--muted);text-decoration:none;font-size:9px;">Google</a>
-        &nbsp;·&nbsp;
-        <a href="https://privacy.microsoft.com/en-us/privacystatement" target="_blank" rel="noopener" style="color:var(--muted);text-decoration:none;font-size:9px;">Microsoft</a>
-        &nbsp;·&nbsp;
-        <a href="https://sentry.io/privacy/" target="_blank" rel="noopener" style="color:var(--muted);text-decoration:none;font-size:9px;">Sentry</a>
-      </div>
-    </div>
-    <div class="cookie-actions">
-      <button class="btn-cookie-decline" onclick="cookieDecline()">RIFIUTA</button>
-      <button class="btn-cookie-accept" onclick="cookieAccept()">ACCETTA</button>
-    </div>
-  </div>
-
-  <script>
-  (function() {
-    var consent = localStorage.getItem('btcp_ga_consent');
-    if (!consent) {
-      // Show banner after 1.5s (non-invasive)
-      setTimeout(function() {
-        var b = document.getElementById('cookieBanner');
-        if (b) b.classList.remove('hidden');
-      }, 1500);
-    }
-  })();
-
-  window.cookieAccept = function() {
-    localStorage.setItem('btcp_ga_consent', 'granted');
-    document.getElementById('cookieBanner').classList.add('hidden');
-    // Load GA4
-    gtag('consent', 'update', { 'analytics_storage': 'granted' });
-    var s = document.createElement('script');
-    s.async = true;
-    s.src = 'https://www.googletagmanager.com/gtag/js?id=G-K2E2B4FVQ5';
-    s.onload = function() {
-      gtag('js', new Date());
-      gtag('config', 'G-K2E2B4FVQ5');
-      gtag('event', 'consent_accepted', { method: 'cookie_banner' });
-    };
-    document.head.appendChild(s);
-    // Load Clarity + Sentry (gated)
-    if (window._loadAnalyticsVendors) window._loadAnalyticsVendors();
-  };
-
-  window.cookieDecline = function() {
-    localStorage.setItem('btcp_ga_consent', 'denied');
-    document.getElementById('cookieBanner').classList.add('hidden');
-  };
-  </script>
+  <!-- ── GDPR COOKIE BANNER v2 (centralizzato) ──────────────────────── -->
+  <script src="/static/cookie-banner.js" defer></script>
 
   <!-- ══════════════════════════════════════════
        TRON/MATRIX NAVIGATION DRAWER
