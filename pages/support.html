@@ -734,7 +734,7 @@ function updateLinks(){
   const eip = 'ethereum:' + WALLET + '@' + CHAIN_ID + '?value=' + selectedWei;
   const mm  = 'https://link.metamask.io/send/' + WALLET + '@' + CHAIN_ID + '?value=' + selectedWei;
   document.getElementById('metamaskLink').href = mm;
-  document.getElementById('eip681Link').href   = eip;
+  document.getElementById('ctaMetamaskLink').href = mm;
   // regenerate QR
   const qrEl = document.getElementById('qrcode');
   qrEl.innerHTML = '';
