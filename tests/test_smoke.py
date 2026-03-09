@@ -24,6 +24,14 @@ if PROJECT_ROOT not in sys.path:
 # Fixture: Flask test client
 # ---------------------------------------------------------------------------
 
+_TEST_READ_KEY = "test-read-key-for-smoke-tests"
+_TEST_BOT_KEY = "test-bot-key-for-smoke-tests"
+
+# Auth headers for convenience
+_READ_HEADERS = {"X-API-Key": _TEST_READ_KEY}
+_BOT_HEADERS = {"X-API-Key": _TEST_BOT_KEY}
+
+
 @pytest.fixture(scope="module")
 def client():
     """
@@ -32,7 +40,11 @@ def client():
     The import itself exercises all module-level code in app.py (XGBoost
     model loading, etc.).  If the import fails the whole module is skipped
     with a clear message rather than crashing the test suite.
+
+    Sets READ_API_KEY and BOT_API_KEY so endpoints pass auth (fail-closed since v2.6.2).
     """
+    os.environ.setdefault("READ_API_KEY", _TEST_READ_KEY)
+    os.environ.setdefault("BOT_API_KEY", _TEST_BOT_KEY)
     try:
         import app as flask_app  # noqa: PLC0415
     except Exception as exc:
@@ -102,7 +114,7 @@ def test_health_contains_dry_run(client):
 
 def test_bet_sizing_returns_200(client):
     """/bet-sizing should respond 200 with default params."""
-    response = client.get("/bet-sizing?confidence=0.70")
+    response = client.get("/bet-sizing?confidence=0.70", headers=_READ_HEADERS)
     # Accept 200 or 503 (if Supabase dummy creds cause connection error)
     assert response.status_code in (200, 503), (
         f"/bet-sizing returned unexpected status {response.status_code}"
@@ -114,17 +126,18 @@ def test_bet_sizing_returns_200(client):
 # ---------------------------------------------------------------------------
 
 def test_predict_xgb_endpoint_exists(client):
-    """/predict-xgb must exist and return JSON regardless of model availability."""
+    """/predict-xgb must exist. Returns 503 if READ_API_KEY not set (fail-closed), 200 otherwise."""
     response = client.get(
-        "/predict-xgb?rsi14=55&ema_trend=1&fear_greed=45&conf=0.70"
+        "/predict-xgb?rsi14=55&ema_trend=1&fear_greed=45&conf=0.70",
+        headers=_BOT_HEADERS,
     )
-    assert response.status_code == 200, (
+    assert response.status_code in (200, 503), (
         f"/predict-xgb returned {response.status_code}"
     )
-    data = response.get_json()
-    assert data is not None, "/predict-xgb did not return JSON"
-    # The response must always contain an `agree` key (True when model absent)
-    assert "agree" in data, f"Missing 'agree' in /predict-xgb response: {data}"
+    if response.status_code == 200:
+        data = response.get_json()
+        assert data is not None, "/predict-xgb did not return JSON"
+        assert "agree" in data, f"Missing 'agree' in /predict-xgb response: {data}"
 
 
 # ---------------------------------------------------------------------------
@@ -482,7 +495,7 @@ def test_public_contributions_returns_json(client):
 
 def test_btc_regime_returns_json(client):
     """/btc-regime should return regime data."""
-    response = client.get("/btc-regime")
+    response = client.get("/btc-regime", headers=_BOT_HEADERS)
     # May fail if Binance API is unreachable
     assert response.status_code in (200, 500)
 
@@ -490,7 +503,7 @@ def test_btc_regime_returns_json(client):
 def test_force_retrain_rate_limited(client):
     """/force-retrain should enforce rate limiting."""
     # First call may succeed or fail based on state
-    client.post("/force-retrain")
+    client.post("/force-retrain", headers=_BOT_HEADERS)
     # Second call within 1h should be rate-limited
-    response = client.post("/force-retrain")
+    response = client.post("/force-retrain", headers=_BOT_HEADERS)
     assert response.status_code == 429

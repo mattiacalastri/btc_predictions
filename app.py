@@ -9,6 +9,8 @@ import datetime as _dt
 import hmac as _hmac
 from joblib import load as joblib_load
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 import sentry_sdk
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import Flask, request, jsonify, redirect
@@ -18,7 +20,34 @@ from constants import TAKER_FEE, _BIAS_MAP
 from portfolio_engine import PortfolioEngine, PortfolioDecision
 import council_engine
 
-VERSION = "2.6.1"
+VERSION = "2.6.2"
+
+
+# ── Resilient HTTP Sessions (retry + connection pooling) ──────────────────────
+# Root cause fix: every zombie bet in history traced back to a single HTTP call
+# failing without retry.  These sessions add 3-attempt exponential backoff on
+# transient errors (502/503/504) and reuse TCP connections (TLS handshake once).
+
+def _build_session(retries=3, backoff=0.4, status_forcelist=(429, 502, 503, 504)):
+    """Create a requests.Session with retry + connection pooling."""
+    s = requests.Session()
+    retry = Retry(
+        total=retries,
+        backoff_factor=backoff,
+        status_forcelist=status_forcelist,
+        allowed_methods=["GET", "POST", "PATCH", "PUT", "DELETE"],
+        raise_on_status=False,
+    )
+    adapter = HTTPAdapter(pool_connections=5, pool_maxsize=20, max_retries=retry)
+    s.mount("https://", adapter)
+    s.mount("http://", adapter)
+    return s
+
+_sb_session = _build_session()      # Supabase REST API
+_kraken_session = _build_session()   # Kraken futures API
+_tg_session = _build_session()       # Telegram Bot API
+_n8n_session = _build_session()      # n8n webhooks
+_ext_session = _build_session()      # external APIs (alternative.me, Google, etc.)
 
 sentry_sdk.init(
     dsn=os.environ.get("SENTRY_DSN", ""),
@@ -97,7 +126,7 @@ def _push_cockpit_log(source: str, level: str, title: str, message: str = "", me
         sb_url, sb_key = _sb_config()
         if not sb_url or not sb_key:
             return
-        requests.post(
+        _sb_session.post(
             f"{sb_url}/rest/v1/cockpit_log",
             json={
                 "source": source[:50],
@@ -143,6 +172,49 @@ def _check_rate_limit(key: str, max_calls: int = _RL_MAX_DEFAULT) -> bool:
         count += 1
         _RATE_STORE[key] = (count, ts)
         return count <= max_calls
+
+
+# ── PnL calculation — single source of truth ──────────────────────────────────
+# Previously duplicated in 4 locations (close_position, rescue_orphaned,
+# place_bet reverse, backfill_bet).  Now unified here.
+
+def _calculate_pnl(entry_price: float, exit_price: float, bet_size: float,
+                   direction: str, fee_rate: float = TAKER_FEE,
+                   funding_fee: float = 0.0) -> dict:
+    """Calculate PnL for a closed position.
+
+    Returns dict with keys:
+        pnl_gross (float): raw directional PnL before fees
+        fee_usd   (float): total taker fee (entry + exit)
+        pnl_net   (float): net PnL after fees + funding
+        pnl_pct   (float): percentage move in trade direction
+        correct   (bool):  True if gross PnL > 0
+        actual_direction (str): "UP" if exit > entry, else "DOWN"
+    """
+    if direction == "UP":
+        pnl_gross = (exit_price - entry_price) * bet_size
+    else:
+        pnl_gross = (entry_price - exit_price) * bet_size
+
+    fee_usd = bet_size * (entry_price + exit_price) * fee_rate
+    pnl_net = round(pnl_gross - fee_usd + funding_fee, 6)
+
+    if entry_price > 0:
+        if direction == "UP":
+            pnl_pct = round((exit_price - entry_price) / entry_price * 100, 4)
+        else:
+            pnl_pct = round((entry_price - exit_price) / entry_price * 100, 4)
+    else:
+        pnl_pct = 0.0
+
+    return {
+        "pnl_gross": pnl_gross,
+        "fee_usd": round(fee_usd, 6),
+        "pnl_net": pnl_net,
+        "pnl_pct": pnl_pct,
+        "correct": pnl_gross > 0,
+        "actual_direction": "UP" if exit_price > entry_price else "DOWN",
+    }
 
 
 # ── Input validation helpers (H-2, H-4) ──────────────────────────────────────
@@ -270,7 +342,8 @@ def _compute_regime_4h_live() -> dict:
     import urllib.parse as _uparse
     import ssl as _ssl
     import json as _json
-    _ctx = _ssl.create_default_context()
+    import certifi as _certifi
+    _ctx = _ssl.create_default_context(cafile=_certifi.where())
 
     # ── Primary: Kraken Spot OHLC (no georestriction from Railway) ────────
     try:
@@ -437,7 +510,7 @@ def refresh_calibration():
     if not sb_url or not sb_key:
         return {"ok": False, "error": "no_supabase_env"}
     try:
-        r = requests.get(
+        r = _sb_session.get(
             f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
             "?select=confidence,correct&bet_taken=eq.true&correct=not.is.null"
             "&close_reason=neq.data_gap",
@@ -481,7 +554,7 @@ def refresh_dead_hours():
     if not sb_url or not sb_key:
         return {"ok": False, "error": "no_supabase_env"}
     try:
-        r = requests.get(
+        r = _sb_session.get(
             f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
             "?select=created_at,correct&bet_taken=eq.true&correct=not.is.null"
             "&close_reason=neq.data_gap",
@@ -569,7 +642,7 @@ def _refresh_bot_paused():
         sb_url, sb_key = _sb_config()
         if not sb_url or not sb_key:
             return
-        r = requests.get(
+        r = _sb_session.get(
             f"{sb_url}/rest/v1/bot_state?key=eq.paused&select=value",
             headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
             timeout=3,
@@ -592,7 +665,7 @@ def _save_resumed_at(iso_ts: str):
         sb_url, sb_key = _sb_config()
         if not sb_url or not sb_key:
             return
-        requests.post(
+        _sb_session.post(
             f"{sb_url}/rest/v1/bot_state",
             json={"key": "resumed_at", "value": iso_ts},
             headers={
@@ -613,7 +686,7 @@ def _load_resumed_at() -> str:
         sb_url, sb_key = _sb_config()
         if not sb_url or not sb_key:
             return ""
-        r = requests.get(
+        r = _sb_session.get(
             f"{sb_url}/rest/v1/bot_state?key=eq.resumed_at&select=value",
             headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
             timeout=3,
@@ -654,7 +727,7 @@ def _save_bot_paused(paused: bool):
         sb_url, sb_key = _sb_config()
         if not sb_url or not sb_key:
             return
-        r = requests.patch(
+        r = _sb_session.patch(
             f"{sb_url}/rest/v1/bot_state?key=eq.paused",
             json={"value": str(paused).lower()},
             headers={
@@ -687,11 +760,11 @@ def _check_api_key():
 def _check_read_key():
     """Auth per endpoint read-only (signals, account-summary, equity-history, risk-metrics).
     Accetta READ_API_KEY (iniettato nel dashboard) oppure BOT_API_KEY (n8n/interni).
-    Se READ_API_KEY non configurata → endpoint rimane pubblico (backwards compat).
+    Se READ_API_KEY non configurata → 503 (fail-closed, non fail-open).
     """
     read_key = os.environ.get("READ_API_KEY", "")
     if not read_key:
-        return None  # non configurato → pubblico
+        return jsonify({"error": "Server misconfigured: READ_API_KEY not set"}), 503
     provided = request.headers.get("X-API-Key", "").encode()
     if provided and _hmac.compare_digest(provided, read_key.encode()):
         return None
@@ -736,7 +809,7 @@ def get_user_client():
 
 def get_kraken_servertime():
     try:
-        r = requests.get(KRAKEN_BASE + "/derivatives/api/v3/servertime", timeout=5)
+        r = _kraken_session.get(KRAKEN_BASE + "/derivatives/api/v3/servertime", timeout=5)
         return r.json().get("serverTime")
     except Exception:
         return None
@@ -833,7 +906,7 @@ def _close_prev_bet_on_reverse(old_side: str, exit_price: float, closed_size: fl
             f"?bet_taken=eq.true&correct=is.null&direction=eq.{old_direction}"
             f"&order=id.desc&limit=1&select=id,entry_fill_price,btc_price_entry,bet_size"
         )
-        resp = requests.get(query, headers=headers, timeout=5)
+        resp = _sb_session.get(query, headers=headers, timeout=5)
         rows = resp.json() if resp.ok else []
         if not rows:
             return
@@ -843,33 +916,24 @@ def _close_prev_bet_on_reverse(old_side: str, exit_price: float, closed_size: fl
         entry_price = float(row.get("entry_fill_price") or row.get("btc_price_entry") or exit_price)
         bet_size = float(row.get("bet_size") or closed_size or 0.0005)
 
-        if old_direction == "UP":
-            pnl_gross = (exit_price - entry_price) * bet_size
-        else:
-            pnl_gross = (entry_price - exit_price) * bet_size
-
-        fee = bet_size * (entry_price + exit_price) * TAKER_FEE  # entry + exit taker fee
-        pnl_net = round(pnl_gross - fee + funding_fee, 6)
-        correct = pnl_gross > 0  # gross directional: aligned with rescue_orphaned()
+        _pnl = _calculate_pnl(entry_price, exit_price, bet_size, old_direction, funding_fee=funding_fee)
 
         # &correct=is.null → atomicità ottimistica: nessuna doppia risoluzione (S-17)
         patch_url = f"{supabase_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{bet_id}&correct=is.null"
         patch_headers = {**headers, "Content-Type": "application/json", "Prefer": "return=minimal"}
-        pnl_pct = round(((exit_price - entry_price) / entry_price * 100) if old_direction == "UP"
-                        else ((entry_price - exit_price) / entry_price * 100), 4) if entry_price > 0 else 0.0
         patch_data = {
             "btc_price_exit":     exit_price,
             "exit_fill_price":    exit_price,
-            "correct":            correct,
-            "pnl_usd":            pnl_net,
-            "pnl_pct":            pnl_pct,
+            "correct":            _pnl["correct"],
+            "pnl_usd":            _pnl["pnl_net"],
+            "pnl_pct":            _pnl["pnl_pct"],
             "close_reason":       "closed_by_reverse_bet",
             "has_real_exit_fill": False,
             "source_updated_by":  "place_bet_reverse",
         }
         if funding_fee != 0.0:
             patch_data["funding_fee"] = round(funding_fee, 6)
-        requests.patch(patch_url, json=patch_data, headers=patch_headers, timeout=5)
+        _sb_session.patch(patch_url, json=patch_data, headers=patch_headers, timeout=5)
     except Exception:
         pass  # non bloccare il flusso principale
 
@@ -899,7 +963,7 @@ def health():
     try:
         sb_url, sb_key = _sb_config()
         if sb_url and sb_key:
-            r = requests.get(
+            r = _sb_session.get(
                 f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
                 "?select=correct,pnl_usd&bet_taken=eq.true&correct=not.is.null&order=id.desc&limit=10",
                 headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
@@ -1047,7 +1111,7 @@ def brain_state():
         sb_headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
         cutoff_6h = (now - _dt.timedelta(hours=6)).strftime("%Y-%m-%dT%H:%M:%SZ")
         try:
-            r = requests.get(
+            r = _sb_session.get(
                 f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
                 "?select=id,direction,confidence,bet_taken,correct,ghost_correct,"
                 "ghost_evaluated_at,created_at,signal_price,noise_reason"
@@ -1095,7 +1159,7 @@ def brain_state():
 
         # 5. Performance (last 10 resolved bets)
         try:
-            r = requests.get(
+            r = _sb_session.get(
                 f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
                 "?select=correct,pnl_usd,confidence,direction"
                 "&bet_taken=eq.true&correct=not.is.null"
@@ -1240,7 +1304,7 @@ def publish_telegram():
                 return jsonify({"error": f"photo not found: {photo_filename}"}), 404
             caption = text[:1024]
             with open(photo_path, "rb") as f:
-                resp = requests.post(
+                resp = _tg_session.post(
                     f"https://api.telegram.org/bot{tg_token}/sendPhoto",
                     data={"chat_id": channel_id, "caption": caption, "parse_mode": parse_mode},
                     files={"photo": f},
@@ -1249,7 +1313,7 @@ def publish_telegram():
         else:
             if len(text) > 4096:
                 return jsonify({"error": "text too long (max 4096 chars)"}), 400
-            resp = requests.post(
+            resp = _tg_session.post(
                 f"https://api.telegram.org/bot{tg_token}/sendMessage",
                 json={"chat_id": channel_id, "text": text, "parse_mode": parse_mode},
                 timeout=10,
@@ -1324,7 +1388,7 @@ def publish_x():
         return jsonify({"error": f"Twitter not configured (missing: {', '.join(missing)})"}), 503
     try:
         url = "https://api.twitter.com/2/tweets"
-        resp = requests.post(
+        resp = _sb_session.post(
             url, json={"text": text},
             headers={"Authorization": _twitter_oauth_header("POST", url),
                      "Content-Type": "application/json"},
@@ -1365,7 +1429,7 @@ def publish_linkedin():
     if not access_token or not person_urn:
         return jsonify({"error": "LinkedIn not configured (set LINKEDIN_ACCESS_TOKEN + LINKEDIN_PERSON_URN on Railway)"}), 503
     try:
-        resp = requests.post(
+        resp = _ext_session.post(
             "https://api.linkedin.com/v2/ugcPosts",
             json={
                 "author": person_urn,
@@ -1422,7 +1486,7 @@ def publish_reddit():
         return jsonify({"error": "Reddit not configured (set REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET, REDDIT_USERNAME, REDDIT_PASSWORD on Railway)"}), 503
     try:
         # Step 1: OAuth2 token
-        auth_resp = requests.post(
+        auth_resp = _ext_session.post(
             "https://www.reddit.com/api/v1/access_token",
             auth=(client_id, client_secret),
             data={"grant_type": "password", "username": username, "password": password},
@@ -1435,7 +1499,7 @@ def publish_reddit():
         if not token:
             return jsonify({"error": "Reddit auth: no access_token"}), 502
         # Step 2: Submit post
-        resp = requests.post(
+        resp = _ext_session.post(
             "https://oauth.reddit.com/api/submit",
             data={"kind": "self", "sr": subreddit, "title": title,
                   "text": text, "api_type": "json"},
@@ -1517,7 +1581,7 @@ def position():
             if not pos.get("price") or float(pos.get("price") or 0) == 0:
                 try:
                     sb_url, sb_key = _sb_config()
-                    r = requests.get(
+                    r = _kraken_session.get(
                         f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
                         f"?bet_taken=eq.true&correct=is.null"
                         f"&select=id,entry_fill_price,btc_price_entry,direction,bet_size,pyramid_count"
@@ -1579,7 +1643,7 @@ def close_position():
                     f"&order=id.desc&limit=1"
                     f"&select=id,entry_fill_price,btc_price_entry,bet_size,direction,funding_rate,created_at"
                 )
-                _or = requests.get(_oq, headers=_sb_h, timeout=5)
+                _or = _sb_session.get(_oq, headers=_sb_h, timeout=5)
                 _orphans = _or.json() if _or.ok else []
             except Exception:
                 _orphans = []
@@ -1702,7 +1766,7 @@ def close_position():
                     _patch["funding_fee"] = round(-_funding_cost, 6)
                 # Optimistic locking: only update if not already resolved
                 _orp_sb_url, _orp_sb_key = _sb_config()
-                requests.patch(
+                _sb_session.patch(
                     f"{_orp_sb_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{_obid}&correct=is.null",
                     json=_patch,
                     headers={"apikey": _orp_sb_key, "Authorization": f"Bearer {_orp_sb_key}",
@@ -1802,7 +1866,7 @@ def close_position():
                         f"&order=id.desc&limit=1"
                         f"&select=id,entry_fill_price,btc_price_entry,bet_size,direction,funding_rate,created_at"
                     )
-                resp = requests.get(query, headers=headers, timeout=5)
+                resp = _sb_session.get(query, headers=headers, timeout=5)
                 rows = resp.json() if resp.ok else []
 
                 if rows and exit_fill_price and exit_fill_price > 0:
@@ -1812,27 +1876,15 @@ def close_position():
                     bet_size = float(row.get("bet_size") or size or 0.001)
                     direction = row.get("direction", "UP")
 
-                    if direction == "UP":
-                        pnl_gross = (exit_fill_price - entry_price) * bet_size
-                        actual_direction = "UP" if exit_fill_price > entry_price else "DOWN"
-                    else:
-                        pnl_gross = (entry_price - exit_fill_price) * bet_size
-                        actual_direction = "DOWN" if exit_fill_price < entry_price else "UP"
-
-                    fee = bet_size * (entry_price + exit_fill_price) * TAKER_FEE
-                    pnl_net = round(pnl_gross - fee + funding_fee, 6)
-                    correct = pnl_gross > 0  # gross directional: aligned with rescue_orphaned()
-
-                    pnl_pct = round(((exit_fill_price - entry_price) / entry_price * 100) if direction == "UP"
-                                    else ((entry_price - exit_fill_price) / entry_price * 100), 4) if entry_price > 0 else 0.0
+                    _pnl = _calculate_pnl(entry_price, exit_fill_price, bet_size, direction, funding_fee=funding_fee)
                     patch_data = {
                         "exit_fill_price":    exit_fill_price,
                         "btc_price_exit":     exit_fill_price,
-                        "correct":            correct,
-                        "actual_direction":   actual_direction,
-                        "pnl_usd":            pnl_net,
-                        "pnl_pct":            pnl_pct,
-                        "fees_total":         round(fee, 6),
+                        "correct":            _pnl["correct"],
+                        "actual_direction":   _pnl["actual_direction"],
+                        "pnl_usd":            _pnl["pnl_net"],
+                        "pnl_pct":            _pnl["pnl_pct"],
+                        "fees_total":         _pnl["fee_usd"],
                         "has_real_exit_fill": True,
                         "close_reason":       "manual_close",
                         "source_updated_by":  "wf02_close",
@@ -1841,7 +1893,7 @@ def close_position():
                         patch_data["funding_fee"] = round(funding_fee, 6)
                     # Optimistic locking: only update if not already resolved
                     _cp_sb_url, _cp_sb_key = _sb_config()
-                    requests.patch(
+                    _sb_session.patch(
                         f"{_cp_sb_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{bet_id}&correct=is.null",
                         json=patch_data,
                         headers={"apikey": _cp_sb_key, "Authorization": f"Bearer {_cp_sb_key}",
@@ -1932,7 +1984,7 @@ def _get_clean_bet_count() -> int:
     try:
         sb_url, sb_key = _sb_config()
         if sb_url and sb_key:
-            r = requests.get(
+            r = _sb_session.get(
                 f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
                 "?select=id&bet_taken=eq.true&correct=not.is.null",
                 headers={
@@ -2030,7 +2082,7 @@ def _check_pre_flight(direction: str, confidence: float) -> object:
             )
             if _RESUMED_AT:
                 cb_query += f"&created_at=gte.{_RESUMED_AT}"
-            r_cb = requests.get(
+            r_cb = _sb_session.get(
                 cb_query,
                 headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
                 timeout=5,
@@ -2280,7 +2332,7 @@ def place_bet():
             try:
                 _sb_u, _sb_k = _sb_config()
                 if _sb_u and _sb_k:
-                    requests.patch(
+                    _sb_session.patch(
                         f"{_sb_u}/rest/v1/{SUPABASE_TABLE}?id=eq.{_bet_id_for_micro}",
                         json=_signal_patch,
                         headers={"apikey": _sb_k, "Authorization": f"Bearer {_sb_k}",
@@ -2332,7 +2384,7 @@ def place_bet():
         try:
             sb_url, sb_key = _sb_config()
             if sb_url and sb_key:
-                r_sp = requests.get(
+                r_sp = _sb_session.get(
                     f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
                     f"?select=id,signal_price,btc_price_entry"
                     f"&direction=eq.{direction}&bet_taken=eq.false"
@@ -2352,7 +2404,7 @@ def place_bet():
             try:
                 sb_url, sb_key = _sb_config()
                 if sb_url and sb_key:
-                    requests.patch(
+                    _sb_session.patch(
                         f"{sb_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{_sp_bet_id}",
                         json={"price_drift_pct": round(price_drift_pct, 6)},
                         headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}",
@@ -2388,7 +2440,7 @@ def place_bet():
         try:
             _sb_url_pf, _sb_key_pf = _sb_config()
             if _sb_url_pf and _sb_key_pf:
-                _pf_r = requests.get(
+                _pf_r = _kraken_session.get(
                     f"{_sb_url_pf}/rest/v1/{SUPABASE_TABLE}"
                     "?select=id&bet_taken=eq.true&correct=is.null",
                     headers={"apikey": _sb_key_pf, "Authorization": f"Bearer {_sb_key_pf}",
@@ -2423,7 +2475,7 @@ def place_bet():
             try:
                 sb_url, sb_key = _sb_config()
                 if sb_url and sb_key:
-                    _sync_r = requests.get(
+                    _sync_r = _kraken_session.get(
                         f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
                         "?select=id&bet_taken=eq.true&correct=is.null&limit=1",
                         headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
@@ -2463,7 +2515,7 @@ def place_bet():
             try:
                 sb_url, sb_key = _sb_config()
                 if sb_url and sb_key:
-                    r_all = requests.get(
+                    r_all = _sb_session.get(
                         f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
                         "?select=id&bet_taken=eq.true&correct=is.null",
                         headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}",
@@ -2486,7 +2538,7 @@ def place_bet():
                         }), 200
 
                     # Fetch latest open bet info
-                    r = requests.get(
+                    r = _sb_session.get(
                         f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
                         "?select=id,created_at,direction,entry_fill_price,pyramid_count"
                         "&bet_taken=eq.true&correct=is.null&order=id.desc&limit=1",
@@ -2505,7 +2557,7 @@ def place_bet():
                             existing_entry_price = float(row["entry_fill_price"])
 
                     # Fetch WR(10) and streak
-                    r_perf = requests.get(
+                    r_perf = _sb_session.get(
                         f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
                         "?select=correct&bet_taken=eq.true&correct=not.is.null"
                         "&order=id.desc&limit=10",
@@ -2628,7 +2680,7 @@ def place_bet():
         try:
             sb_url, sb_key = _sb_config()
             if sb_url and sb_key:
-                requests.post(
+                _sb_session.post(
                     f"{sb_url}/rest/v1/bot_portfolio_decisions",
                     json={
                         "action": _pe_decision.action,
@@ -2682,7 +2734,7 @@ def place_bet():
                 if bet_id:
                     _sb_url, _sb_key = _sb_config()
                     try:
-                        _patch_resp = requests.patch(
+                        _patch_resp = _sb_session.patch(
                             f"{_sb_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{bet_id}",
                             json={"pyramid_count": pyramid_count_existing + 1,
                                   "bet_size": round(current_pos_size + pyramid_size, 4)},
@@ -2889,7 +2941,7 @@ def place_bet():
                 try:
                     sb_url_d, sb_key_d = _sb_config()
                     if sb_url_d and sb_key_d:
-                        requests.patch(
+                        _sb_session.patch(
                             f"{sb_url_d}/rest/v1/{SUPABASE_TABLE}?id=eq.{_sp_bet_id}",
                             json={"price_drift_pct": round(price_drift_pct, 6)},
                             headers={"apikey": sb_key_d, "Authorization": f"Bearer {sb_key_d}",
@@ -3051,7 +3103,7 @@ def public_stats():
 
     # 1. Fear & Greed — alternative.me public API
     try:
-        fg_resp = requests.get(
+        fg_resp = _ext_session.get(
             "https://api.alternative.me/fng/?limit=1",
             timeout=4
         )
@@ -3063,7 +3115,7 @@ def public_stats():
 
     # 2. BTC 24h change — Kraken spot public ticker
     try:
-        kr_resp = requests.get(
+        kr_resp = _kraken_session.get(
             "https://api.kraken.com/0/public/Ticker?pair=XXBTZUSD",
             timeout=4
         )
@@ -3087,7 +3139,7 @@ def public_stats():
                 "&confidence=gte.0.60"
                 "&order=created_at.desc&limit=20"
             )
-            gh = requests.get(
+            gh = _sb_session.get(
                 ghost_url,
                 headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
                 timeout=4
@@ -3103,7 +3155,7 @@ def public_stats():
     try:
         sb_url, sb_key = _sb_config()
         if sb_url and sb_key:
-            count_resp = requests.get(
+            count_resp = _sb_session.get(
                 f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
                 "?select=id&bet_taken=eq.true&correct=not.is.null"
                 "&close_reason=neq.data_gap&limit=0",
@@ -3354,7 +3406,7 @@ def account_summary():
         try:
             supabase_url, supabase_key = _sb_config()
             supabase_headers = {"apikey": supabase_key, "Authorization": f"Bearer {supabase_key}"}
-            r_bets = requests.get(
+            r_bets = _sb_session.get(
                 f"{supabase_url}/rest/v1/{SUPABASE_TABLE}"
                 "?select=id,created_at,direction,confidence,bet_size"
                 "&bet_taken=eq.true&correct=is.null&order=id.desc",
@@ -3451,7 +3503,7 @@ def get_signals():
             "Authorization": f"Bearer {supabase_key}",
             "Prefer": "count=exact"
         }
-        res = requests.get(url, headers=sb_headers, timeout=10)
+        res = _sb_session.get(url, headers=sb_headers, timeout=10)
 
         if not res.ok:
             return jsonify({"error": f"Supabase HTTP {res.status_code}"}), 502
@@ -3473,7 +3525,7 @@ def get_signals():
         if include_history and SUPABASE_TABLE == "btc_predictions":
             hist_url = (f"{supabase_url}/rest/v1/btc_predictions_pre_day0"
                         f"?select=*&bet_taken=eq.true&order=id.desc&limit=2000")
-            hist_res = requests.get(hist_url, headers=sb_headers, timeout=10)
+            hist_res = _sb_session.get(hist_url, headers=sb_headers, timeout=10)
             if hist_res.ok:
                 hist_data = hist_res.json()
                 if isinstance(hist_data, list):
@@ -3518,7 +3570,7 @@ def performance_stats():
             "&close_reason=neq.data_gap"
             "&order=id.desc&limit=50"
         )
-        res = requests.get(url, headers={
+        res = _sb_session.get(url, headers={
             "apikey": supabase_key,
             "Authorization": f"Bearer {supabase_key}"
         }, timeout=5)
@@ -3732,7 +3784,7 @@ def bet_sizing():
         supabase_url, supabase_key = _sb_config()
 
         url = f"{supabase_url}/rest/v1/{SUPABASE_TABLE}?select=correct,pnl_usd&bet_taken=eq.true&correct=not.is.null&order=id.desc&limit=10"
-        res = requests.get(url, headers={
+        res = _sb_session.get(url, headers={
             "apikey": supabase_key,
             "Authorization": f"Bearer {supabase_key}"
         }, timeout=5)
@@ -3874,7 +3926,7 @@ def rescue_orphaned():
 
     # 1. Cerca bet orfane in Supabase
     try:
-        r = requests.get(
+        r = _n8n_session.get(
             f"{supabase_url}/rest/v1/{SUPABASE_TABLE}"
             "?select=id,direction,created_at,entry_fill_price,btc_price_entry,close_reason"
             "&bet_taken=eq.true&correct=is.null&order=created_at.asc",
@@ -3898,7 +3950,7 @@ def rescue_orphaned():
     skipped = []
 
     try:
-        active_r = requests.get(
+        active_r = _n8n_session.get(
             f"{n8n_url}/api/v1/executions?workflowId={WF02_ID}&status=waiting&limit=20",
             headers={"X-N8N-API-KEY": n8n_key},
             timeout=5,
@@ -3962,7 +4014,7 @@ def rescue_orphaned():
                 exit_price = _get_mark_price(DEFAULT_SYMBOL) or 0.0
                 if not exit_price:
                     try:
-                        pr = requests.get(
+                        pr = _kraken_session.get(
                             "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT",
                             timeout=4,
                         )
@@ -3973,22 +4025,11 @@ def rescue_orphaned():
                     exit_price = float(bet.get("entry_fill_price") or bet.get("btc_price_entry") or 0)
                 entry = float(bet.get("entry_fill_price") or bet.get("btc_price_entry") or 0)
                 direction = bet.get("direction", "UP")
-                gross_delta = exit_price - entry
-                if direction == "DOWN":
-                    gross_delta = -gross_delta
-                correct = gross_delta > 0
-                # PnL direction-aware (P0 fix: was always UP formula)
-                if direction == "UP":
-                    pnl = round((exit_price - entry) / entry * 100, 4) if entry else 0
-                else:
-                    pnl = round((entry - exit_price) / entry * 100, 4) if entry else 0
-                actual_dir = "UP" if exit_price > entry else "DOWN" if exit_price < entry else direction
                 bet_size = float(bet.get("bet_size") or 0.001)
-                pnl_gross = (exit_price - entry) * bet_size if direction == "UP" else (entry - exit_price) * bet_size
-                fee = bet_size * (entry + exit_price) * TAKER_FEE
-                pnl_usd = round(pnl_gross - fee, 6)
+                _pnl = _calculate_pnl(entry, exit_price, bet_size, direction)
+                correct = _pnl["correct"]
                 # Aggiorna Supabase — &correct=is.null previene doppia risoluzione (S-17)
-                upd = requests.patch(
+                upd = _sb_session.patch(
                     f"{supabase_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{bet_id}&correct=is.null",
                     headers={
                         "apikey": supabase_key,
@@ -3996,9 +4037,9 @@ def rescue_orphaned():
                         "Content-Type": "application/json",
                         "Prefer": "return=minimal",
                     },
-                    json={"exit_fill_price": exit_price, "correct": correct, "pnl_pct": pnl,
-                          "pnl_usd": pnl_usd, "fees_total": round(fee, 6),
-                          "actual_direction": actual_dir, "source_updated_by": "rescue_stale"},
+                    json={"exit_fill_price": exit_price, "correct": correct, "pnl_pct": _pnl["pnl_pct"],
+                          "pnl_usd": _pnl["pnl_net"], "fees_total": _pnl["fee_usd"],
+                          "actual_direction": _pnl["actual_direction"], "source_updated_by": "rescue_stale"},
                     timeout=6,
                 )
                 if upd.ok:
@@ -4018,7 +4059,7 @@ def rescue_orphaned():
             skipped.append(bet_id)
             continue
         try:
-            trig_r = requests.post(
+            trig_r = _n8n_session.post(
                 RESCUE_WEBHOOK_URL,
                 json={"id": bet_id},
                 timeout=6,
@@ -4065,7 +4106,7 @@ def ghost_evaluate():
     cutoff_old = (now - _dt.timedelta(hours=48)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     try:
-        resp = requests.get(
+        resp = _sb_session.get(
             f"{supabase_url}/rest/v1/{SUPABASE_TABLE}"
             "?select=id,direction,signal_price,created_at"
             "&bet_taken=eq.false"
@@ -4126,7 +4167,7 @@ def ghost_evaluate():
         pnl_pct = (((exit_price - sp) / sp * 100) if direction == "UP" else ((sp - exit_price) / sp * 100)) if sp > 0 else 0.0
 
         try:
-            upd = requests.patch(
+            upd = _sb_session.patch(
                 f"{supabase_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{row_id}&ghost_evaluated_at=is.null",
                 headers={
                     "apikey": supabase_key,
@@ -4193,7 +4234,7 @@ def _fetch_ghost_exit_price(created_at_str):
 
     # Try Kraken Spot OHLC first (no georestriction)
     try:
-        _kr = requests.get(
+        _kr = _kraken_session.get(
             f"https://api.kraken.com/0/public/OHLC?pair=XBTUSD&interval=1&since={target_unix}",
             timeout=8,
         )
@@ -4208,7 +4249,7 @@ def _fetch_ghost_exit_price(created_at_str):
 
     # Fallback: Binance (may 451 from Railway)
     try:
-        r = requests.get(
+        r = _kraken_session.get(
             f"https://api.binance.com/api/v3/klines"
             f"?symbol=BTCUSDT&interval=1m&startTime={target_ms}&limit=1",
             timeout=8,
@@ -4225,7 +4266,7 @@ def _fetch_ghost_exit_price(created_at_str):
 
     # Fallback: CryptoCompare histominute (no geo-restriction, precise timestamp)
     try:
-        r2 = requests.get(
+        r2 = _ext_session.get(
             f"https://min-api.cryptocompare.com/data/v2/histominute"
             f"?fsym=BTC&tsym=USD&limit=1&toTs={target_unix}",
             timeout=8,
@@ -4255,7 +4296,7 @@ def admin_backfill_signal_price():
     if not sb_url or not sb_key:
         return jsonify({"error": "no supabase config"}), 500
     headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}", "Content-Type": "application/json", "Prefer": "return=minimal"}
-    r = requests.get(
+    r = _sb_session.get(
         f"{sb_url}/rest/v1/{SUPABASE_TABLE}?classification=eq.SKIP&signal_price=is.null&btc_price_entry=not.is.null&select=id,btc_price_entry&order=id.asc",
         headers=headers, timeout=10
     )
@@ -4264,7 +4305,7 @@ def admin_backfill_signal_price():
     rows = r.json()
     ok, err_list = 0, []
     for row in rows:
-        upd = requests.patch(
+        upd = _sb_session.patch(
             f"{sb_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{row['id']}",
             json={"signal_price": row["btc_price_entry"]},
             headers=headers, timeout=5
@@ -4671,7 +4712,7 @@ def costs():
     try:
         url = (f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
                f"?select=fees_total&bet_taken=eq.true&correct=not.is.null&limit=10000")
-        res = requests.get(url, headers=sb_headers, timeout=5)
+        res = _kraken_session.get(url, headers=sb_headers, timeout=5)
         rows = res.json() if res.ok else []
         fees_list = [float(r["fees_total"]) for r in rows if r.get("fees_total") is not None]
         kraken_fees_total = round(sum(fees_list), 4)
@@ -4689,7 +4730,7 @@ def costs():
         url = (f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
                f"?select=entry_slippage,bet_size"
                f"&bet_taken=eq.true&correct=not.is.null&entry_slippage=not.is.null&limit=10000")
-        res = requests.get(url, headers=sb_headers, timeout=5)
+        res = _sb_session.get(url, headers=sb_headers, timeout=5)
         slip_rows = res.json() if res.ok else []
         slip_vals = [float(r["entry_slippage"]) for r in slip_rows if r.get("entry_slippage") is not None]
         slip_count = len(slip_vals)
@@ -4702,7 +4743,7 @@ def costs():
     row_count = 0
     try:
         url = f"{sb_url}/rest/v1/{SUPABASE_TABLE}?select=id&limit=0"
-        res = requests.get(url, headers={**sb_headers, "Prefer": "count=exact", "Range": "0-0"}, timeout=5)
+        res = _sb_session.get(url, headers={**sb_headers, "Prefer": "count=exact", "Range": "0-0"}, timeout=5)
         cr = res.headers.get("Content-Range", "")
         if "/" in cr:
             row_count = int(cr.split("/")[1])
@@ -4722,7 +4763,7 @@ def costs():
             n8n_key = os.environ.get("N8N_API_KEY", "")
             n8n_url_base = os.environ.get("N8N_URL", "https://n8n.srv1432354.hstgr.cloud")
             if n8n_key:
-                r = requests.get(
+                r = _n8n_session.get(
                     f"{n8n_url_base}/api/v1/executions?workflowId=OMgFa9Min4qXRnhq&limit=100",
                     headers={"X-N8N-API-KEY": n8n_key},
                     timeout=8,
@@ -4761,7 +4802,7 @@ def costs():
     try:
         url = (f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
                f"?select=id&created_at=gte.{month_start}T00:00:00&limit=0")
-        res = requests.get(url, headers={**sb_headers, "Prefer": "count=exact", "Range": "0-0"}, timeout=5)
+        res = _sb_session.get(url, headers={**sb_headers, "Prefer": "count=exact", "Range": "0-0"}, timeout=5)
         cr = res.headers.get("Content-Range", "")
         if "/" in cr:
             monthly_calls = int(cr.split("/")[1])
@@ -4901,7 +4942,7 @@ def equity_history():
     capital_base = float(os.environ.get("CAPITAL_USD") or os.environ.get("CAPITAL", "100"))
 
     try:
-        r = requests.get(
+        r = _sb_session.get(
             f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
             "?select=id,created_at,pnl_usd"
             "&bet_taken=eq.true&correct=not.is.null&pnl_usd=not.is.null"
@@ -4944,7 +4985,7 @@ def risk_metrics():
     sb_headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
 
     try:
-        r = requests.get(
+        r = _sb_session.get(
             f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
             "?select=id,correct,pnl_usd,direction,created_at"
             "&bet_taken=eq.true&correct=not.is.null"
@@ -5032,7 +5073,7 @@ def wf_status():
     wf02_last_execution = None
     if n8n_key:
         try:
-            r = requests.get(
+            r = _n8n_session.get(
                 f"{n8n_url_base}/api/v1/executions?workflowId=NnjfpzgdIyleMVBO&limit=5",
                 headers={"X-N8N-API-KEY": n8n_key},
                 timeout=8,
@@ -5054,7 +5095,7 @@ def wf_status():
 
     open_bets_supabase = 0
     try:
-        r = requests.get(
+        r = _sb_session.get(
             f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
             "?select=id&bet_taken=eq.true&correct=is.null",
             headers={**sb_headers, "Prefer": "count=exact"},
@@ -5097,7 +5138,7 @@ def check_status():
     wf02_active = False
     if n8n_key:
         try:
-            r = requests.get(
+            r = _n8n_session.get(
                 f"{n8n_url_base}/api/v1/executions?workflowId=NnjfpzgdIyleMVBO&limit=5",
                 headers={"X-N8N-API-KEY": n8n_key},
                 timeout=6,
@@ -5123,7 +5164,7 @@ def check_status():
 
     open_bets_supabase = 0
     try:
-        r = requests.get(
+        r = _sb_session.get(
             f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
             "?select=id&bet_taken=eq.true&correct=is.null",
             headers={**sb_headers, "Prefer": "count=exact"},
@@ -5155,7 +5196,7 @@ def orphaned_bets():
     sb_headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
 
     try:
-        r = requests.get(
+        r = _sb_session.get(
             f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
             "?select=id,created_at,direction,btc_price_entry,bet_size"
             "&bet_taken=eq.true&correct=is.null&entry_fill_price=not.is.null&order=id.desc&limit=20",
@@ -5207,7 +5248,7 @@ def backfill_bet(bet_id):
 
     # 1. Fetch bet from Supabase
     try:
-        r = requests.get(
+        r = _sb_session.get(
             f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
             f"?id=eq.{bet_id}&select=id,direction,btc_price_entry,bet_size,correct",
             headers=sb_headers,
@@ -5231,37 +5272,28 @@ def backfill_bet(bet_id):
     bet_size = float(bet["bet_size"])
     direction = bet["direction"]
 
-    # 2. Calculate fields
-    actual_direction = "UP" if exit_price > entry_price else "DOWN"
-
-    if direction == "UP":
-        pnl_gross = (exit_price - entry_price) * bet_size
-    else:
-        pnl_gross = (entry_price - exit_price) * bet_size
-
-    fee_est = bet_size * (entry_price + exit_price) * TAKER_FEE  # entry + exit taker fee
-    pnl_usd = pnl_gross - fee_est
-    pnl_pct = round(pnl_gross / (entry_price * bet_size) * 100, 4) if entry_price * bet_size != 0 else 0.0
+    # 2. Calculate fields via unified PnL function
+    _pnl = _calculate_pnl(entry_price, exit_price, bet_size, direction)
 
     correct = body.get("correct")
     if correct is None:
-        correct = direction == actual_direction
+        correct = _pnl["correct"]
     else:
         correct = bool(correct)
 
     # 3. PATCH Supabase
     patch_data = {
         "btc_price_exit": exit_price,
-        "actual_direction": actual_direction,
-        "pnl_usd": round(pnl_usd, 4),
-        "pnl_pct": pnl_pct,
-        "fees_total": round(fee_est, 6),
+        "actual_direction": _pnl["actual_direction"],
+        "pnl_usd": round(_pnl["pnl_net"], 4),
+        "pnl_pct": _pnl["pnl_pct"],
+        "fees_total": _pnl["fee_usd"],
         "correct": correct,
         "close_reason": "manual_backfill",
         "source_updated_by": "manual_backfill",
     }
     try:
-        pr = requests.patch(
+        pr = _sb_session.patch(
             f"{sb_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{bet_id}&correct=is.null",
             headers={**sb_headers, "Content-Type": "application/json", "Prefer": "return=minimal"},
             json=patch_data,
@@ -5317,7 +5349,7 @@ def n8n_status():
 
     def _fetch_workflow(wf_id):
         try:
-            wf_r = requests.get(
+            wf_r = _n8n_session.get(
                 f"{n8n_url}/api/v1/workflows/{wf_id}",
                 headers=headers, timeout=5
             )
@@ -5330,7 +5362,7 @@ def n8n_status():
                 "active": wf.get("active", False),
             }
             # Ultime 5 executions per stats e sparkline
-            ex_r = requests.get(
+            ex_r = _n8n_session.get(
                 f"{n8n_url}/api/v1/executions?workflowId={wf_id}&limit=5",
                 headers=headers, timeout=4
             )
@@ -5463,7 +5495,7 @@ def _verify_recaptcha(token: str, action: str = "") -> bool:
     if not token:
         return False
     try:
-        r = requests.post(
+        r = _ext_session.post(
             "https://www.google.com/recaptcha/api/siteverify",
             data={"secret": _RECAPTCHA_SECRET, "response": token},
             timeout=5,
@@ -5532,7 +5564,7 @@ def submit_contribution():
         "Prefer": "return=representation",
     }
     try:
-        r = requests.post(
+        r = _sb_session.post(
             f"{supabase_url}/rest/v1/contributions",
             json=payload, headers=headers, timeout=8,
         )
@@ -5560,7 +5592,7 @@ def submit_contribution():
                 f"*Insight*:\n_{insight[:300]}_\n\n"
                 f"[✅ Approva]({approve_url}) · [❌ Rifiuta]({reject_url})"
             )
-            requests.post(
+            _tg_session.post(
                 f"https://api.telegram.org/bot{telegram_token}/sendMessage",
                 json={"chat_id": telegram_owner, "text": msg, "parse_mode": "MarkdownV2",
                       "disable_web_page_preview": True},
@@ -5573,7 +5605,7 @@ def submit_contribution():
     n8n_webhook = os.environ.get("N8N_CONTRIBUTION_WEBHOOK",
                                  "https://n8n.srv1432354.hstgr.cloud/webhook/contribution-review")
     try:
-        requests.post(
+        _n8n_session.post(
             n8n_webhook,
             json={
                 "id":          contrib_id,
@@ -5604,7 +5636,7 @@ def public_contributions():
     if not supabase_url or not supabase_key:
         return jsonify([])
     try:
-        r = requests.get(
+        r = _sb_session.get(
             f"{supabase_url}/rest/v1/contributions"
             "?select=id,role,insight,created_at"
             "&approved=eq.true"
@@ -5645,7 +5677,7 @@ def pine_script_ghost_bets():
         return "// Error: Supabase not configured\n", 500
 
     try:
-        r = requests.get(
+        r = _sb_session.get(
             f"{supabase_url}/rest/v1/btc_predictions"
             f"?bet_taken=eq.false&ghost_exit_price=not.is.null"
             f"&order=created_at.asc&limit={limit}"
@@ -5733,7 +5765,7 @@ def pine_script_sync():
 
     supabase_url, supabase_key = _sb_config()
     try:
-        r = requests.get(
+        r = _sb_session.get(
             f"{supabase_url}/rest/v1/btc_predictions"
             "?bet_taken=eq.false&ghost_exit_price=not.is.null"
             "&order=created_at.asc&limit=1000"
@@ -5778,7 +5810,7 @@ for i=0 to array.size(_ts)-1
         label.new(bar_index,is_up?high*1.0006:low*0.9994,(is_up?"▲":"▼")+" "+str.tostring(conf)+"%",color=is_win?color.new(color.teal,15):color.new(color.red,15),textcolor=color.white,style=is_up?label.style_label_down:label.style_label_up,size=size.small)"""
 
     try:
-        gh_r = requests.patch(
+        gh_r = _ext_session.patch(
             f"https://api.github.com/gists/{gist_id}",
             json={"files": {"ghost_bets_overlay.pine": {"content": pine}}},
             headers={"Authorization": f"Bearer {gh_token}", "Accept": "application/vnd.github+json"},
@@ -5802,7 +5834,7 @@ def pine_script_page():
     """Webpage with always-fresh Pine Script + one-click copy."""
     supabase_url, supabase_key = _sb_config()
     try:
-        r = requests.get(
+        r = _sb_session.get(
             f"{supabase_url}/rest/v1/btc_predictions"
             "?bet_taken=eq.false&ghost_exit_price=not.is.null"
             "&order=created_at.asc&limit=1000"
@@ -5887,7 +5919,7 @@ def approve_contribution(contrib_id):
         return jsonify({"error": "Unauthorized"}), 401
     supabase_url, supabase_key = _sb_config()
     try:
-        r = requests.patch(
+        r = _sb_session.patch(
             f"{supabase_url}/rest/v1/contributions?id=eq.{contrib_id}",
             json={"approved": True},
             headers={"apikey": supabase_key, "Authorization": f"Bearer {supabase_key}",
@@ -5910,7 +5942,7 @@ def reject_contribution(contrib_id):
         return jsonify({"error": "Unauthorized"}), 401
     supabase_url, supabase_key = _sb_config()
     try:
-        r = requests.delete(
+        r = _sb_session.delete(
             f"{supabase_url}/rest/v1/contributions?id=eq.{contrib_id}",
             headers={"apikey": supabase_key, "Authorization": f"Bearer {supabase_key}"},
             timeout=8,
@@ -6042,7 +6074,7 @@ def training_status():
     if sb_url and sb_key and last_retrain_ts:
         try:
             cutoff = last_retrain_ts.strftime("%Y-%m-%dT%H:%M:%S")
-            r = requests.get(
+            r = _sb_session.get(
                 f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
                 f"?select=id&bet_taken=eq.true"
                 f"&created_at=gt.{cutoff}",
@@ -6129,7 +6161,7 @@ def confidence_stats():
             f"?select=id,confidence,direction,bet_taken,created_at"
             f"&order=id.desc&limit={n}"
         )
-        res = requests.get(url, headers={
+        res = _sb_session.get(url, headers={
             "apikey": supabase_key,
             "Authorization": f"Bearer {supabase_key}"
         }, timeout=8)
@@ -6220,7 +6252,7 @@ def trading_stats():
             return jsonify({"error": "Supabase credentials not configured"}), 500
 
         url = f"{supabase_url}/rest/v1/trading_stats?select=*&limit=1"
-        res = requests.get(url, headers={
+        res = _sb_session.get(url, headers={
             "apikey": supabase_key,
             "Authorization": f"Bearer {supabase_key}"
         }, timeout=8)
@@ -6257,7 +6289,7 @@ def _fetch_macro_calendar() -> dict:
     if _macro_cache["data"] is not None and (now_ts - _macro_cache["ts"]) < _MACRO_CACHE_TTL:
         return {"data": _macro_cache["data"], "fetch_failed": False}
     try:
-        r = requests.get(_MACRO_CALENDAR_URL, timeout=5)
+        r = _ext_session.get(_MACRO_CALENDAR_URL, timeout=5)
         if r.ok:
             data = r.json()
             _macro_cache = {"data": data, "ts": now_ts}
@@ -6503,7 +6535,7 @@ def commit_prediction():
             })
             # Verify the update actually persisted
             sb_url, sb_key = _sb_config()
-            _vr = requests.get(
+            _vr = _sb_session.get(
                 f"{sb_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{bet_id}&select=onchain_commit_tx",
                 headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
                 timeout=5,
@@ -6590,7 +6622,7 @@ def resolve_prediction():
             })
             # Verify the update actually persisted
             sb_url, sb_key = _sb_config()
-            _vr = requests.get(
+            _vr = _sb_session.get(
                 f"{sb_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{bet_id}&select=onchain_resolve_tx",
                 headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
                 timeout=5,
@@ -6819,7 +6851,7 @@ def _supabase_update(bet_id: int, fields: dict, *, only_if_unresolved: bool = Fa
         "Content-Type": "application/json",
         "Prefer": "return=minimal",
     }
-    r = requests.patch(url, json=fields, headers=headers, timeout=10)
+    r = _sb_session.patch(url, json=fields, headers=headers, timeout=10)
     try:
         r.raise_for_status()
     except Exception as e:
@@ -6881,7 +6913,7 @@ def news_fact_check():
             "hash_sha256": hash_hex,
             "status": "pending",
         }
-        resp = requests.post(
+        resp = _sb_session.post(
             f"{supabase_url}/rest/v1/news_fact_checks",
             headers={
                 "apikey": supabase_key,
@@ -6921,7 +6953,7 @@ def news_fact_check():
         # Aggiorna Supabase con tx
         if news_id:
             try:
-                requests.patch(
+                _sb_session.patch(
                     f"{supabase_url}/rest/v1/news_fact_checks?id=eq.{news_id}",
                     headers={
                         "apikey": supabase_key,
@@ -6953,7 +6985,7 @@ def news_fact_check():
         # Aggiorna status failed su Supabase
         if news_id:
             try:
-                requests.patch(
+                _sb_session.patch(
                     f"{supabase_url}/rest/v1/news_fact_checks?id=eq.{news_id}",
                     headers={
                         "apikey": supabase_key,
@@ -7264,7 +7296,7 @@ def satoshi_lead():
             if not cf_token:
                 return jsonify({"ok": False, "error": "captcha_required"}), 400
             try:
-                ts_resp = requests.post(
+                ts_resp = _ext_session.post(
                     "https://challenges.cloudflare.com/turnstile/v0/siteverify",
                     json={"secret": ts_secret, "response": cf_token},
                     timeout=5,
@@ -7296,7 +7328,7 @@ def satoshi_lead():
             "Prefer": "return=minimal",
         }
         payload = {"email": email, "source": source, "metadata": metadata}
-        resp = requests.post(
+        resp = _sb_session.post(
             f"{sb_url}/rest/v1/leads",
             json=payload,
             headers=headers,
@@ -7340,7 +7372,7 @@ def news_feed():
     items = []
     for source, url in _NEWS_FEEDS:
         try:
-            resp = requests.get(url, timeout=6,
+            resp = _sb_session.get(url, timeout=6,
                                 headers={"User-Agent": "BTCPredictor/1.0"})
             if not resp.ok:
                 continue
@@ -7392,7 +7424,7 @@ def on_chain_audit():
                f",onchain_commit_tx,onchain_resolve_tx"
                f",onchain_commit_hash,onchain_resolve_hash"
                f"&bet_taken=eq.true&order=id.desc&limit=30")
-        r = requests.get(url, headers={
+        r = _sb_session.get(url, headers={
             "apikey": sb_key,
             "Authorization": f"Bearer {sb_key}",
         }, timeout=8)
@@ -7401,7 +7433,7 @@ def on_chain_audit():
             url_fb = (f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
                       f"?select=id,direction,confidence,correct,pnl_usd,created_at"
                       f"&bet_taken=eq.true&order=id.desc&limit=30")
-            r_fb = requests.get(url_fb, headers={
+            r_fb = _sb_session.get(url_fb, headers={
                 "apikey": sb_key, "Authorization": f"Bearer {sb_key}"
             }, timeout=8)
             if not r_fb.ok:
@@ -7504,7 +7536,7 @@ def marketing_stats():
     try:
         tg_token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
         if tg_token:
-            r = requests.get(
+            r = _tg_session.get(
                 f"https://api.telegram.org/bot{tg_token}/getChatMemberCount"
                 f"?chat_id=@BTCPredictorBot",
                 timeout=5,
@@ -7571,14 +7603,14 @@ def marketing_stats():
     try:
         sb_url, sb_key = _sb_config()
         _headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}", "Prefer": "count=exact"}
-        r_clean = requests.get(
+        r_clean = _sb_session.get(
             f"{sb_url}/rest/v1/{SUPABASE_TABLE}",
             headers=_headers,
             params={"bet_taken": "eq.true", "correct": "not.is.null", "select": "id", "limit": "0"},
             timeout=5,
         )
         clean_bets = int(r_clean.headers.get("content-range", "*/0").split("/")[-1])
-        r_wins = requests.get(
+        r_wins = _sb_session.get(
             f"{sb_url}/rest/v1/{SUPABASE_TABLE}",
             headers=_headers,
             params={"bet_taken": "eq.true", "correct": "eq.true", "select": "id", "limit": "0"},
@@ -7662,7 +7694,7 @@ def api_audit():
         "Prefer": "count=exact",
     }
     try:
-        res = requests.get(url, headers=sb_headers, timeout=10)
+        res = _sb_session.get(url, headers=sb_headers, timeout=10)
         if not res.ok:
             return jsonify({"error": f"supabase_{res.status_code}"}), 502
 
@@ -7688,16 +7720,16 @@ def api_audit():
             if date_to:
                 stat_base += f"&created_at=lte.{date_to}T23:59:59Z"
 
-            r_total = requests.get(stat_base + "&limit=0", headers=count_headers, timeout=5)
+            r_total = _sb_session.get(stat_base + "&limit=0", headers=count_headers, timeout=5)
             stat_total = int(r_total.headers.get("content-range", "*/0").split("/")[-1])
 
-            r_wins = requests.get(stat_base + "&correct=eq.true&limit=0", headers=count_headers, timeout=5)
+            r_wins = _sb_session.get(stat_base + "&correct=eq.true&limit=0", headers=count_headers, timeout=5)
             stat_wins = int(r_wins.headers.get("content-range", "*/0").split("/")[-1])
 
-            r_closed = requests.get(stat_base + "&correct=not.is.null&limit=0", headers=count_headers, timeout=5)
+            r_closed = _sb_session.get(stat_base + "&correct=not.is.null&limit=0", headers=count_headers, timeout=5)
             stat_closed = int(r_closed.headers.get("content-range", "*/0").split("/")[-1])
 
-            r_sample = requests.get(
+            r_sample = _sb_session.get(
                 f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
                 f"?select=confidence,onchain_commit_tx&bet_taken=eq.true&order=id.desc&limit=2000",
                 headers=sb_headers, timeout=8,
@@ -7840,7 +7872,7 @@ def cockpit_agents():
         if sb_url and sb_key:
             headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
             # Fetch latest state per agent
-            resp = requests.get(
+            resp = _sb_session.get(
                 f"{sb_url}/rest/v1/cockpit_events?select=*&order=updated_at.desc&limit=50",
                 headers=headers, timeout=5
             )
@@ -7988,7 +8020,7 @@ def cockpit_overview():
 
         # Today's predictions (expanded select for pnl + ghost + latest)
         today_str = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%d")
-        resp = requests.get(
+        resp = _kraken_session.get(
             f"{sb_url}/rest/v1/{SUPABASE_TABLE}?select=id,correct,confidence,direction,pnl_usd,bet_taken,created_at,tx_hash"
             f"&created_at=gte.{today_str}T00:00:00Z&order=created_at.desc",
             headers=headers, timeout=5
@@ -8022,7 +8054,7 @@ def cockpit_overview():
                     break
 
         # Overall win rate (last 50 evaluated bets) + total P&L + profit factor
-        resp2 = requests.get(
+        resp2 = _sb_session.get(
             f"{sb_url}/rest/v1/{SUPABASE_TABLE}?select=correct,pnl_usd"
             f"&correct=not.is.null&bet_taken=eq.true&order=created_at.desc&limit=50",
             headers=headers, timeout=5
@@ -8042,7 +8074,7 @@ def cockpit_overview():
 
         # Agent summary from cockpit_events
         try:
-            resp3 = requests.get(
+            resp3 = _sb_session.get(
                 f"{sb_url}/rest/v1/cockpit_events?select=clone_id,status,cost_usd,phase"
                 f"&order=updated_at.desc&limit=20",
                 headers=headers, timeout=5
@@ -8158,7 +8190,7 @@ def cockpit_agents_reset():
         url += "?clone_id=neq.___"  # match all rows
 
     try:
-        resp = requests.patch(url, json=patch_body, headers=headers, timeout=5)
+        resp = _sb_session.patch(url, json=patch_body, headers=headers, timeout=5)
         if not resp.ok:
             return jsonify({"error": "supabase_error", "detail": resp.text}), 502
     except Exception as e:
@@ -8199,7 +8231,7 @@ def cockpit_agents_update():
         patch_body = {"priority": bool(value)}
 
     try:
-        resp = requests.patch(
+        resp = _sb_session.patch(
             f"{sb_url}/rest/v1/cockpit_events?clone_id=eq.{clone_id}",
             json=patch_body, headers=headers, timeout=5,
         )
@@ -8235,7 +8267,7 @@ def cockpit_log():
             source = request.args.get("source")
             if source and re.fullmatch(r'[a-z0-9_-]{1,50}', source):
                 params["source"] = f"eq.{source}"
-            resp = requests.get(
+            resp = _sb_session.get(
                 f"{sb_url}/rest/v1/cockpit_log",
                 headers=headers, params=params, timeout=5,
             )
@@ -8289,7 +8321,7 @@ def _check_anomalies():
         headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
 
         # Check 1: Stuck confidence — last 5 predictions have identical confidence
-        resp = requests.get(
+        resp = _sb_session.get(
             f"{sb_url}/rest/v1/{SUPABASE_TABLE}?select=confidence,created_at"
             "&order=created_at.desc&limit=5",
             headers=headers, timeout=5,
@@ -8310,7 +8342,7 @@ def _check_anomalies():
 
         # Check 2: No predictions in last 2 hours (during expected active period)
         two_hours_ago = (_dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(hours=2)).isoformat()
-        resp2 = requests.get(
+        resp2 = _sb_session.get(
             f"{sb_url}/rest/v1/{SUPABASE_TABLE}?select=id&created_at=gte.{two_hours_ago}&limit=1",
             headers=headers, timeout=5,
         )
@@ -8339,7 +8371,7 @@ def cockpit_ghosts():
         sb_url, sb_key = _sb_config()
         if sb_url and sb_key:
             headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
-            resp = requests.get(
+            resp = _sb_session.get(
                 f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
                 f"?select=id,direction,confidence,reason,created_at,ghost_correct,signal_price"
                 f"&bet_taken=eq.false&order=created_at.desc&limit=10",

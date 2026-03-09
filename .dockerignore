@@ -1,0 +1,39 @@
+# Credentials — NEVER bake into image
+.env
+.env.*
+!.env.example
+.mcp.json
+
+# Git
+.git
+.gitignore
+
+# Data & models (loaded at runtime or built in container)
+datasets/
+*.pkl
+*.joblib
+
+# Reports, scripts results, memory
+reports/
+scripts/results/
+memory/
+vault/
+
+# IDE & OS
+.claude/
+.vscode/
+__pycache__/
+*.pyc
+.DS_Store
+
+# Node tooling (screenshot helper)
+scripts/node_modules/
+scripts/package.json
+scripts/package-lock.json
+
+# Docs
+*.md
+!requirements.txt
+bot/
+security/
+infra/

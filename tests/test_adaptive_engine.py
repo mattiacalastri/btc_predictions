@@ -170,17 +170,17 @@ class TestDirectionBias:
 
     def test_up_biased(self):
         engine = AdaptiveEngine()
-        rows = _make_mixed_rows(30, up_pct=0.80)
+        rows = _make_mixed_rows(30, up_pct=0.90)  # must exceed _DIRECTION_BIAS_THRESHOLD (0.85)
         adj, bias_dir, bias_pct = engine._calc_direction_bias(rows)
-        assert adj == 0.05
+        assert adj == 0.03  # _clamp(0.03, -0.05, 0.08) = 0.03
         assert bias_dir == "UP"
-        assert bias_pct >= 0.70
+        assert bias_pct >= 0.85
 
     def test_down_biased(self):
         engine = AdaptiveEngine()
-        rows = _make_mixed_rows(30, up_pct=0.20)
+        rows = _make_mixed_rows(30, up_pct=0.10)  # 90% DOWN, exceeds threshold
         adj, bias_dir, bias_pct = engine._calc_direction_bias(rows)
-        assert adj == 0.05
+        assert adj == 0.03
         assert bias_dir == "DOWN"
 
     def test_too_few_rows_no_bias(self):
