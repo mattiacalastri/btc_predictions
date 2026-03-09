@@ -293,6 +293,27 @@ footer{border-top:1px solid var(--border);padding:40px 0;font-family:var(--sans)
 .mono{font-family:var(--mono);}
 .copied-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--green);color:#000;font-family:var(--sans);font-size:13px;font-weight:600;padding:8px 20px;border-radius:20px;opacity:0;transition:opacity 0.3s;pointer-events:none;z-index:9999;}
 .copied-toast.show{opacity:1;}
+/* ── MULTI-WALLET GRID ── */
+.wallet-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
+.wallet-btn{display:flex;align-items:center;gap:10px;padding:14px 16px;border-radius:10px;font-family:var(--sans);font-size:13px;font-weight:500;text-decoration:none;cursor:pointer;border:1px solid var(--border2);background:var(--void);color:var(--text);transition:all 0.2s;}
+.wallet-btn:hover{border-color:rgba(255,255,255,0.2);background:rgba(255,255,255,0.03);transform:translateY(-1px);}
+.wallet-btn.primary{border-color:var(--orange);background:rgba(247,147,26,0.06);}
+.wallet-btn.primary:hover{background:rgba(247,147,26,0.12);border-color:var(--orange);}
+.wallet-btn-icon{width:22px;height:22px;flex-shrink:0;border-radius:5px;}
+.wallet-btn-info{display:flex;flex-direction:column;}
+.wallet-btn-name{font-weight:600;font-size:13px;line-height:1.2;}
+.wallet-btn-sub{font-size:10px;color:var(--muted);margin-top:1px;}
+.wallet-universal{grid-column:1/-1;justify-content:center;text-align:center;border-style:dashed;border-color:rgba(255,255,255,0.08);padding:10px 16px;}
+.wallet-universal:hover{border-color:var(--cyan);background:rgba(0,212,255,0.03);}
+@media(max-width:480px){.wallet-grid{grid-template-columns:1fr;}}
+/* ── AI ECONOMY ── */
+.ai-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:32px;}
+.ai-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px 16px;transition:border-color 0.2s;}
+.ai-card:hover{border-color:rgba(0,212,255,0.3);}
+.ai-card-icon{font-size:24px;margin-bottom:10px;}
+.ai-card-title{font-family:var(--sans);font-size:14px;font-weight:600;color:#fff;margin-bottom:6px;}
+.ai-card-desc{font-family:var(--sans);font-size:12px;color:var(--muted);line-height:1.55;}
+@media(max-width:600px){.ai-grid{grid-template-columns:1fr;}}
 /* CTA amount pills */
 .cta-amount{font-family:var(--mono);font-size:15px;font-weight:500;padding:10px 24px;border-radius:40px;border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer;transition:all 0.2s;}
 .cta-amount:hover{border-color:rgba(255,255,255,0.25);color:var(--text);}
@@ -483,25 +504,48 @@ footer{border-top:1px solid var(--border);padding:40px 0;font-family:var(--sans)
         <div class="copy-hint">↑ Click to copy · Always verify the address before sending</div>
       </div>
 
-      <div class="wallet-actions">
-        <a href="#" id="metamaskLink" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
-          <!-- MetaMask fox icon -->
-          <svg width="18" height="18" viewBox="0 0 318.6 318.6" xmlns="http://www.w3.org/2000/svg"><path fill="#E2761B" stroke="#E2761B" stroke-linecap="round" stroke-linejoin="round" d="M274.1 35.5l-99.5 73.9L193 65.8z"/><path fill="#E4761B" stroke="#E4761B" stroke-linecap="round" stroke-linejoin="round" d="M44.4 35.5l98.7 74.6-17.5-44.3zm193.9 171.3l-26.5 40.6 56.7 15.6 16.3-55.3zm-204.4.9L50.1 263l56.7-15.6-26.5-40.6z"/><path fill="#E4761B" stroke="#E4761B" stroke-linecap="round" stroke-linejoin="round" d="M103.6 138.2l-15.8 23.9 56.3 2.5-2-60.5zm111.3 0l-39-34.8-1.3 61.2 56.2-2.5zM106.8 247.4l33.8-16.5-29.2-22.8zm71.1-16.5l33.9 16.5-4.7-39.3z"/><path fill="#D7C1B3" stroke="#D7C1B3" stroke-linecap="round" stroke-linejoin="round" d="M211.8 247.4l-33.9-16.5 2.7 22.1-.3 9.3zm-105 0l31.5 14.9-.2-9.3 2.5-22.1z"/><path fill="#233447" stroke="#233447" stroke-linecap="round" stroke-linejoin="round" d="M138.8 193.5l-28.2-8.3 19.9-9.1zm40.9 0l8.3-17.4 20 9.1z"/><path fill="#CD6116" stroke="#CD6116" stroke-linecap="round" stroke-linejoin="round" d="M106.8 247.4l4.8-40.6-31.3.9zM207 206.8l4.8 40.6 26.5-39.7zm23.8-44.7l-56.2 2.5 5.2 28.9 8.3-17.4 20 9.1zm-120.2 23.1l20-9.1 8.2 17.4 5.3-28.9-56.3-2.5z"/><path fill="#E4751F" stroke="#E4751F" stroke-linecap="round" stroke-linejoin="round" d="M87.8 162.1l23.6 46-.8-22.9zm120.3 23.1l-1 22.9 23.7-46zm-64-20.6l-5.3 28.9 6.6 34.1 1.5-44.9zm30.5 0l-2.7 18 1.2 45 6.7-34.1z"/><path fill="#F6851B" stroke="#F6851B" stroke-linecap="round" stroke-linejoin="round" d="M179.8 193.5l-6.7 34.1 4.8 3.3 29.2-22.8 1-22.9zm-69.2-8.3l.8 22.9 29.2 22.8 4.8-3.3-6.6-34.1z"/><path fill="#C0AD9E" stroke="#C0AD9E" stroke-linecap="round" stroke-linejoin="round" d="M180.3 262.3l.3-9.3-2.5-2.2h-37.7l-2.3 2.2.2 9.3-31.5-14.9 11 9 22.3 15.5h38.3l22.4-15.5 11-9z"/><path fill="#161616" stroke="#161616" stroke-linecap="round" stroke-linejoin="round" d="M178.1 230.9l-4.8-3.3h-27.7l-4.8 3.3-2.5 22.1 2.3-2.2h37.7l2.5 2.2z"/><path fill="#763D16" stroke="#763D16" stroke-linecap="round" stroke-linejoin="round" d="M278.3 114.2l8.5-40.8-12.7-37.9-96.2 71.4 37 31.3 52.3 15.3 11.6-13.5-5-3.6 8-7.3-6.2-4.8 8-6.1zM31.8 73.4l8.5 40.8-5.4 4 8 6.1-6.1 4.8 8 7.3-5 3.6 11.5 13.5 52.3-15.3 37-31.3-96.2-71.4z"/><path fill="#F6851B" stroke="#F6851B" stroke-linecap="round" stroke-linejoin="round" d="M267.2 154.3l-52.3-15.3 15.9 23.9-23.7 46 31.2-.4h46.5zm-163.6-15.3l-52.3 15.3-17.4 54.2h46.4l31.1.4-23.6-46zm71 26.4l3.3-57.7 15.2-41.1h-67.5l15 41.1 3.5 57.7 1.2 18.2.1 44.8h27.7l.2-44.8z"/></svg>
-          Open in MetaMask
+      <!-- MULTI-WALLET HUB -->
+      <div class="wallet-grid">
+        <a href="#" id="metamaskLink" class="wallet-btn primary" target="_blank" rel="noopener noreferrer">
+          <svg class="wallet-btn-icon" viewBox="0 0 318.6 318.6" xmlns="http://www.w3.org/2000/svg"><path fill="#E2761B" stroke="#E2761B" stroke-linecap="round" stroke-linejoin="round" d="M274.1 35.5l-99.5 73.9L193 65.8z"/><path fill="#E4761B" stroke="#E4761B" stroke-linecap="round" stroke-linejoin="round" d="M44.4 35.5l98.7 74.6-17.5-44.3zm193.9 171.3l-26.5 40.6 56.7 15.6 16.3-55.3zm-204.4.9L50.1 263l56.7-15.6-26.5-40.6z"/><path fill="#F6851B" stroke="#F6851B" stroke-linecap="round" stroke-linejoin="round" d="M179.8 193.5l-6.7 34.1 4.8 3.3 29.2-22.8 1-22.9zm-69.2-8.3l.8 22.9 29.2 22.8 4.8-3.3-6.6-34.1z"/><path fill="#763D16" stroke="#763D16" stroke-linecap="round" stroke-linejoin="round" d="M278.3 114.2l8.5-40.8-12.7-37.9-96.2 71.4 37 31.3 52.3 15.3 11.6-13.5-5-3.6 8-7.3-6.2-4.8 8-6.1zM31.8 73.4l8.5 40.8-5.4 4 8 6.1-6.1 4.8 8 7.3-5 3.6 11.5 13.5 52.3-15.3 37-31.3-96.2-71.4z"/></svg>
+          <div class="wallet-btn-info">
+            <span class="wallet-btn-name">MetaMask</span>
+            <span class="wallet-btn-sub">Deep link · instant</span>
+          </div>
         </a>
-        <button class="btn btn-ghost" onclick="copyDeepLink()" id="copyLinkBtn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-          Copy for Any Wallet
+        <a href="#" id="trustwalletLink" class="wallet-btn" target="_blank" rel="noopener noreferrer">
+          <svg class="wallet-btn-icon" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><rect width="40" height="40" rx="8" fill="#0500FF"/><path d="M20 8.5c3.9 3.3 8.3 3.1 9.5 3 0 0-.4 12.1-9.5 20-9.1-7.9-9.5-20-9.5-20 1.2.1 5.6.3 9.5-3z" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <div class="wallet-btn-info">
+            <span class="wallet-btn-name">Trust Wallet</span>
+            <span class="wallet-btn-sub">Deep link · instant</span>
+          </div>
+        </a>
+        <a href="#" id="coinbaseLink" class="wallet-btn" target="_blank" rel="noopener noreferrer">
+          <svg class="wallet-btn-icon" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><rect width="40" height="40" rx="8" fill="#0052FF"/><circle cx="20" cy="20" r="10" fill="#fff"/><rect x="16" y="16" width="8" height="8" rx="1.5" fill="#0052FF"/></svg>
+          <div class="wallet-btn-info">
+            <span class="wallet-btn-name">Coinbase Wallet</span>
+            <span class="wallet-btn-sub">Deep link · instant</span>
+          </div>
+        </a>
+        <button class="wallet-btn" onclick="copyDeepLink()" id="copyLinkBtn">
+          <svg class="wallet-btn-icon" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" fill="none"><rect width="40" height="40" rx="8" fill="rgba(255,255,255,0.06)"/><rect x="13" y="13" width="16" height="16" rx="3" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/><path d="M11 27V11h16" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <div class="wallet-btn-info">
+            <span class="wallet-btn-name">Any EVM Wallet</span>
+            <span class="wallet-btn-sub">Copy EIP-681 link</span>
+          </div>
         </button>
       </div>
+      <p style="font-family:var(--sans);font-size:11px;color:var(--muted);text-align:center;margin-bottom:24px;">
+        Phantom, Rabby, Rainbow, Safe — scan the QR code below (EIP-681 universal standard)
+      </p>
 
       <div class="qr-section">
-        <div id="qrcode" role="img" aria-label="QR code for Polygon wallet address"></div>
+        <div id="qrcode" role="img" aria-label="QR code for Polygon wallet address — works with any EVM wallet"></div>
         <div class="qr-info">
           <div class="selected-amount-display" id="selectedAmountDisplay">5 POL selected</div>
-          <p><strong>Scan with MetaMask mobile</strong></p>
-          <p>Pre-fills address and amount automatically.</p>
-          <p>Switch to Polygon network if prompted.</p>
+          <p><strong>Scan with any EVM wallet</strong></p>
+          <p>EIP-681 standard — pre-fills address, amount, and network.</p>
+          <p>Works with MetaMask, Phantom, Rabby, Rainbow, Safe, and more.</p>
         </div>
       </div>
 
@@ -575,6 +619,51 @@ footer{border-top:1px solid var(--border);padding:40px 0;font-family:var(--sans)
         </div>
       </div>
     </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- AI ECONOMY -->
+<section id="ai-economy" style="padding:80px 0;">
+  <div class="wrap">
+    <div class="section-label">Beyond Trading · The Vision</div>
+    <h2>The AI Economy<br><em>starts here.</em></h2>
+    <div class="prose">
+      <p>
+        You're not just supporting a trading bot. You're funding one of the first
+        <strong>autonomous AI agents that transacts on-chain with real capital.</strong>
+        Every signal committed before execution. Every loss published as proof.
+        This is what the AI economy looks like before anyone calls it that.
+      </p>
+      <p>
+        In 2026, Coinbase launched Agentic Wallets. MoonPay built infrastructure for AI agents.
+        Safe became the multisig standard for autonomous systems.
+        <em>BTC Predictor has been doing this since day one</em> — an AI that reads 13 data sources,
+        makes a decision, commits it on Polygon, and executes. No human in the loop.
+      </p>
+    </div>
+    <div class="ai-grid">
+      <div class="ai-card">
+        <div class="ai-card-icon">🧠</div>
+        <div class="ai-card-title">Autonomous Decision</div>
+        <div class="ai-card-desc">Claude + XGBoost analyze 13 real-time data sources. The AI decides. No human override. The signal is the signal.</div>
+      </div>
+      <div class="ai-card">
+        <div class="ai-card-icon">🔗</div>
+        <div class="ai-card-title">On-Chain Before Execution</div>
+        <div class="ai-card-desc">Every prediction is committed on Polygon before the trade happens. Timestamp-verified. Impossible to fake retroactively.</div>
+      </div>
+      <div class="ai-card">
+        <div class="ai-card-icon">⚡</div>
+        <div class="ai-card-title">Agent Economy Native</div>
+        <div class="ai-card-desc">Built for a world where AI agents hold wallets, make decisions, and prove their work on-chain. The future is already running.</div>
+      </div>
+    </div>
+    <p style="font-family:var(--sans);font-size:13px;color:var(--muted);text-align:center;margin-top:24px;line-height:1.6;">
+      The supporters who back autonomous AI agents before the world understands them<br>
+      are the ones the blockchain remembers. <a href="/manifesto" class="inline-link">Read the Manifesto →</a>
+    </p>
   </div>
 </section>
 
@@ -733,9 +822,13 @@ function selectTier(el){
 function updateLinks(){
   const eip = 'ethereum:' + WALLET + '@' + CHAIN_ID + '?value=' + selectedWei;
   const mm  = 'https://link.metamask.io/send/' + WALLET + '@' + CHAIN_ID + '?value=' + selectedWei;
+  const tw  = 'https://link.trustwallet.com/send?coin=966&address=' + WALLET + '&amount=' + (parseInt(selectedWei)/1e18);
+  const cb  = 'https://go.cb-w.com/dapp?cb_url=' + encodeURIComponent(eip);
   document.getElementById('metamaskLink').href = mm;
   document.getElementById('ctaMetamaskLink').href = mm;
-  // regenerate QR
+  document.getElementById('trustwalletLink').href = tw;
+  document.getElementById('coinbaseLink').href = cb;
+  // regenerate QR (EIP-681 — universal standard for all EVM wallets)
   const qrEl = document.getElementById('qrcode');
   qrEl.innerHTML = '';
   new QRCode(qrEl, {
