@@ -5,147 +5,147 @@
       "scheduled_at": "2026-03-06T09:00:00",
       "sent": false,
       "photo": "/Users/mattiacalastri/btc_predictions/static/marketing_assets/agent-matrix.png",
-      "text": "🤖 Buongiorno dal bunker.\n\nIl bot ha girato tutta la notte.\nNessuno lo ha ringraziato.\nLui non lo sa neanche.\n\nÈ questo il punto: un sistema che non ha bisogno di approvazione per funzionare.\nNon si stufa. Non si distrae. Non ha paura del lunedì.\n\n⚔️ Mentre dormivate, lui stava guardando il grafico.\n\n🎩 Buona settimana."
+      "text": "🤖 Good morning from the bunker.\n\nThe bot ran all night.\nNobody thanked it.\nIt doesn't even know.\n\nThat's the point: a system that doesn't need approval to function.\nIt doesn't get tired. It doesn't get distracted. It's not afraid of Mondays.\n\n⚔️ While you were sleeping, it was watching the chart.\n\n🎩 Have a good week."
     },
     {
       "id": 2,
       "scheduled_at": "2026-03-06T14:00:00",
       "sent": false,
       "photo": "/Users/mattiacalastri/btc_predictions/static/marketing_assets/capello-bitcoin.png",
-      "text": "🐙 C'è una cosa che nessuno dice sul BTC.\n\nNon è imprevedibile.\nÈ illeggibile — per chi non ha gli strumenti giusti.\n\nIl Predittore non cerca il futuro.\nLegge il presente con più attenzione di quanto tu riesca a fare con gli occhi.\n\nQuesto è il manifesto. Vale la pena di leggerlo.\n👇\nhttps://btcpredictor.io/manifesto"
+      "text": "🐙 There's something nobody tells you about BTC.\n\nIt's not unpredictable.\nIt's unreadable — for those without the right tools.\n\nThe Predictor doesn't seek the future.\nIt reads the present more carefully than you ever could with your own eyes.\n\nThis is the manifesto. Worth reading.\n👇\nhttps://btcpredictor.io/manifesto"
     },
     {
       "id": 3,
       "scheduled_at": "2026-03-06T20:00:00",
       "sent": false,
       "photo": null,
-      "text": "💸 Il mercato ha chiuso.\n\nNoi no.\n\nCrypto non dorme. Il bot non dorme.\nMattia forse sì — ma il modello continua a girare anche mentre lui sogna di avere un WR decente.\n\n🙏🏻 A domani."
+      "text": "💸 The market has closed.\n\nWe haven't.\n\nCrypto doesn't sleep. The bot doesn't sleep.\nMattia might — but the model keeps running even while he dreams of having a decent WR.\n\n🙏🏻 See you tomorrow."
     },
     {
       "id": 4,
       "scheduled_at": "2026-03-07T09:00:00",
       "sent": false,
       "photo": "/Users/mattiacalastri/btc_predictions/datasets/feature_importance.png",
-      "text": "🧠 Qualcuno mi ha chiesto: \"ma come fa a decidere?\"\n\nRisposta onesta: due modelli, uno sopra l'altro.\nIl primo dice la direzione. Il secondo decide se il primo sta bluffando.\nEntrano in trade solo se concordano entrambi.\n\nÈ come avere un partner di lavoro che ti fa da freno.\nFunziona meglio di quanto sembra.\n\nCome funziona davvero 👇\nhttps://btcpredictor.io/xgboost-spiegato"
+      "text": "🧠 Someone asked me: \"but how does it decide?\"\n\nHonest answer: two models, one on top of the other.\nThe first one calls the direction. The second decides if the first is bluffing.\nThey only enter a trade if both agree.\n\nIt's like having a work partner who keeps you in check.\nWorks better than it sounds.\n\nHow it actually works 👇\nhttps://btcpredictor.io/xgboost-spiegato"
     },
     {
       "id": 5,
       "scheduled_at": "2026-03-07T14:00:00",
       "sent": false,
       "photo": "/Users/mattiacalastri/btc_predictions/static/marketing_assets/logo-channel.png",
-      "text": "⚔️ Il bot ha preso una posizione.\n\n75% confidence.\nSoglia: 0.54.\nIl modello ha passato il gate.\n\nNon sappiamo ancora com'è andata.\nQuesto è il bello e il brutto allo stesso tempo.\n\n🐙 Il mercato decide. Noi guardiamo."
+      "text": "⚔️ The bot took a position.\n\n75% confidence.\nThreshold: 0.54.\nThe model passed the gate.\n\nWe don't know the outcome yet.\nThat's the beauty and the curse of it.\n\n🐙 The market decides. We watch."
     },
     {
       "id": 6,
       "scheduled_at": "2026-03-07T20:00:00",
       "sent": false,
       "photo": "/Users/mattiacalastri/btc_predictions/static/marketing_assets/agent-matrix.png",
-      "text": "🎩 Ogni sistema ha una storia.\n\nQuesto sistema ha tanti padri.\nNessuno ha chiesto i diritti. Tutti hanno contribuito qualcosa.\n\nRicercatori, paper accademici, forum di trading alle 3 di notte, errori costosi,\ne almeno una crisi esistenziale documentata.\n\nI loro nomi meritano di essere qui 👇\nhttps://btcpredictor.io/contributors"
+      "text": "🎩 Every system has a story.\n\nThis system has many fathers.\nNone asked for credit. All contributed something.\n\nResearchers, academic papers, trading forums at 3 AM, costly mistakes,\nand at least one documented existential crisis.\n\nTheir names deserve to be here 👇\nhttps://btcpredictor.io/contributors"
     },
     {
       "id": 7,
       "scheduled_at": "2026-03-08T09:00:00",
       "sent": false,
       "photo": null,
-      "text": "👾 Sabato mattina.\n\nIl mercato non lo sa.\nIl bot non lo sa.\n\nL'algoritmo non ha il concetto di weekend.\nGira. Analizza. Segnala.\n\nPer lui ogni candela è identica a quella prima.\nÈ questa la sua forza — e il suo limite.\n\n🧠 Noi invece ci riposiamo. Un po'."
+      "text": "👾 Saturday morning.\n\nThe market doesn't know.\nThe bot doesn't know.\n\nThe algorithm has no concept of weekends.\nIt runs. It analyzes. It signals.\n\nTo it, every candle is identical to the one before.\nThat's its strength — and its limitation.\n\n🧠 We, on the other hand, rest. A little."
     },
     {
       "id": 8,
       "scheduled_at": "2026-03-08T14:00:00",
       "sent": false,
       "photo": "/Users/mattiacalastri/btc_predictions/static/marketing_assets/war-room.png",
-      "text": "💸 Vuoi capire davvero di cosa si tratta?\n\nNon il bot. Non il trading.\nIl progetto. La visione. Perché esiste.\n\nC'è una pagina che risponde a quella domanda in modo preciso.\nNessuna promessa. Solo dati, logica, e un po' di ambizione.\n\nThe Case 👇\nhttps://btcpredictor.io/investors"
+      "text": "💸 Want to really understand what this is about?\n\nNot the bot. Not the trading.\nThe project. The vision. Why it exists.\n\nThere's a page that answers that question precisely.\nNo promises. Just data, logic, and a bit of ambition.\n\nThe Case 👇\nhttps://btcpredictor.io/investors"
     },
     {
       "id": 9,
       "scheduled_at": "2026-03-08T20:00:00",
       "sent": false,
       "photo": null,
-      "text": "🙏🏻 Fine settimana.\n\nIl bot ha fatto il suo.\nTre segnali. Due skip. Un trade aperto.\n\nNon ti dico se è in profitto o in perdita.\nTe lo dico quando si chiude.\n\n⚔️ Questa trasparenza ci costa. La facciamo lo stesso."
+      "text": "🙏🏻 Weekend wrap.\n\nThe bot did its job.\nThree signals. Two skips. One open trade.\n\nI'm not telling you if it's in profit or loss.\nI'll tell you when it closes.\n\n⚔️ This transparency costs us. We do it anyway."
     },
     {
       "id": 10,
       "scheduled_at": "2026-03-09T09:00:00",
       "sent": false,
       "photo": "/Users/mattiacalastri/btc_predictions/static/marketing_assets/capello-bitcoin.png",
-      "text": "🐙 C'è un'idea al centro di questo progetto.\n\nChe i mercati non siano caos puro.\nChe ci siano momenti — specifici, identificabili — in cui la struttura emerge.\n\nNon sempre. Non spesso.\nMa abbastanza.\n\nPrevedibilità Perfetta — cosa significa davvero 👇\nhttps://btcpredictor.io/prevedibilita-perfetta"
+      "text": "🐙 There's an idea at the core of this project.\n\nThat markets aren't pure chaos.\nThat there are moments — specific, identifiable — when structure emerges.\n\nNot always. Not often.\nBut enough.\n\nPerfect Predictability — what it really means 👇\nhttps://btcpredictor.io/prevedibilita-perfetta"
     },
     {
       "id": 11,
       "scheduled_at": "2026-03-09T14:00:00",
       "sent": false,
       "photo": null,
-      "text": "🎩 Il modello oggi ha detto SKIP.\n\nNon ho trovato l'edge.\nIl mercato è in ranging.\nMeglio stare fermi.\n\nQuesto è un segnale di salute, non di debolezza.\nUn sistema che sa quando non tradare vale più di uno che tradara sempre.\n\n🧠 L'intelligenza è anche nel silenzio."
+      "text": "🎩 The model said SKIP today.\n\nNo edge found.\nThe market is ranging.\nBetter to stand still.\n\nThis is a sign of health, not weakness.\nA system that knows when not to trade is worth more than one that trades all the time.\n\n🧠 Intelligence is also in the silence."
     },
     {
       "id": 12,
       "scheduled_at": "2026-03-09T20:00:00",
       "sent": false,
       "photo": "/Users/mattiacalastri/btc_predictions/static/marketing_assets/agent-matrix.png",
-      "text": "🤖 Non sono solo.\n\nDietro ogni segnale ci sono agenti AI specializzati.\nOgnuno guarda una cosa diversa: tecnica, sentiment, on-chain, funding rate.\n\nPoi si consultano. Si contraddicono. A volte litigano.\nIl risultato è la previsione.\n\nIl Consiglio di AI 👇\nhttps://btcpredictor.io/council"
+      "text": "🤖 I'm not alone.\n\nBehind every signal are specialized AI agents.\nEach one watches something different: technicals, sentiment, on-chain, funding rate.\n\nThen they consult. They contradict each other. Sometimes they argue.\nThe result is the prediction.\n\nThe AI Council 👇\nhttps://btcpredictor.io/council"
     },
     {
       "id": 13,
       "scheduled_at": "2026-03-10T09:00:00",
       "sent": false,
       "photo": null,
-      "text": "⚔️ Lunedì.\n\nIl mercato ha riaperto con energia.\nIl bot ha già fatto tre analisi prima che tu finissi il caffè.\n\nNon ti chiedo di fidarti.\nTi chiedo di osservare.\n\n🐙 I dati parlano da soli — se hai la pazienza di ascoltarli."
+      "text": "⚔️ Monday.\n\nThe market opened with energy.\nThe bot already ran three analyses before you finished your coffee.\n\nI'm not asking you to trust.\nI'm asking you to observe.\n\n🐙 Data speaks for itself — if you have the patience to listen."
     },
     {
       "id": 14,
       "scheduled_at": "2026-03-10T14:00:00",
       "sent": false,
       "photo": "/Users/mattiacalastri/btc_predictions/static/marketing_assets/logo-channel.png",
-      "text": "❤️ Questo progetto è strano.\n\nNon è un fondo. Non è una call room. Non è un influencer crypto.\nÈ un esperimento pubblico su se stesso.\n\nOgni errore è documentato.\nOgni previsione è verificabile on-chain prima che si sappia l'esito.\n\nQuello che non ti aspetti di trovare 👇\nhttps://btcpredictor.io/manifesto"
+      "text": "❤️ This project is strange.\n\nIt's not a fund. It's not a call room. It's not a crypto influencer.\nIt's a public experiment on itself.\n\nEvery mistake is documented.\nEvery prediction is verifiable on-chain before the outcome is known.\n\nWhat you don't expect to find 👇\nhttps://btcpredictor.io/manifesto"
     },
     {
       "id": 15,
       "scheduled_at": "2026-03-10T20:00:00",
       "sent": false,
       "photo": null,
-      "text": "💸 Il bot ha chiuso un trade oggi.\n\nNon ti dico il numero perché non è quello il punto.\nIl punto è che ha girato. Ha analizzato. Ha deciso.\n\nE domani ricomincia.\nSenza memoria del ieri. Senza bagaglio emotivo.\n\n🎩 A volte vorrei essere io così."
+      "text": "💸 The bot closed a trade today.\n\nI'm not telling you the number because that's not the point.\nThe point is it ran. It analyzed. It decided.\n\nAnd tomorrow it starts again.\nNo memory of yesterday. No emotional baggage.\n\n🎩 Sometimes I wish I could be like that."
     },
     {
       "id": 16,
       "scheduled_at": "2026-03-11T09:00:00",
       "sent": false,
       "photo": "/Users/mattiacalastri/btc_predictions/datasets/feature_importance.png",
-      "text": "🧠 La domanda che mi fanno sempre:\n\n\"Ma davvero funziona?\"\n\nRisposta onesta: dipende da cosa intendi per funzionare.\nBatte il random? Sì.\nBatte il mercato ogni mese? No.\nÈ trasparente su quando sbaglia? Assolutamente sì.\n\nCome è costruito 👇\nhttps://btcpredictor.io/xgboost-spiegato"
+      "text": "🧠 The question I always get:\n\n\"Does it actually work?\"\n\nHonest answer: depends on what you mean by work.\nDoes it beat random? Yes.\nDoes it beat the market every month? No.\nIs it transparent when it's wrong? Absolutely.\n\nHow it's built 👇\nhttps://btcpredictor.io/xgboost-spiegato"
     },
     {
       "id": 17,
       "scheduled_at": "2026-03-11T14:00:00",
       "sent": false,
       "photo": null,
-      "text": "🙏🏻 Questo sistema non l'ho inventato io.\n\nHo assemblato pezzi che altri hanno costruito nel corso di decenni.\nResearch papers di MIT e Stanford.\nTrader che hanno perso soldi veri per capire come funziona il mercato.\nCommunity open source che condividono codice alle 2 di notte.\n\nI loro nomi meritano di essere qui 👇\nhttps://btcpredictor.io/contributors"
+      "text": "🙏🏻 I didn't invent this system.\n\nI assembled pieces that others built over decades.\nResearch papers from MIT and Stanford.\nTraders who lost real money to understand how the market works.\nOpen source communities sharing code at 2 AM.\n\nTheir names deserve to be here 👇\nhttps://btcpredictor.io/contributors"
     },
     {
       "id": 18,
       "scheduled_at": "2026-03-11T20:00:00",
       "sent": false,
       "photo": null,
-      "text": "👾 Fine giornata.\n\nIl bot ha fatto le sue analisi. Qualche SKIP. Qualche segnale. Un trade.\n\nNon è una grande storia.\nMa è una storia vera.\n\n⚔️ E questo conta più di qualsiasi backtested performance."
+      "text": "👾 End of the day.\n\nThe bot ran its analyses. Some SKIPs. Some signals. A trade.\n\nIt's not a big story.\nBut it's a true one.\n\n⚔️ And that matters more than any backtested performance."
     },
     {
       "id": 19,
       "scheduled_at": "2026-03-12T09:00:00",
       "sent": false,
       "photo": "/Users/mattiacalastri/btc_predictions/static/marketing_assets/war-room.png",
-      "text": "💸 Non cerco investitori nel senso classico.\n\nCerco persone che capiscono che un sistema trasparente,\nverificabile on-chain,\ncon dati pubblici e errori pubblici,\nvale più di qualsiasi rendimento promesso nel whitepaper.\n\nSe sei quella persona 👇\nhttps://btcpredictor.io/investors"
+      "text": "💸 I'm not looking for investors in the traditional sense.\n\nI'm looking for people who understand that a transparent system,\nverifiable on-chain,\nwith public data and public mistakes,\nis worth more than any return promised in a whitepaper.\n\nIf you're that person 👇\nhttps://btcpredictor.io/investors"
     },
     {
       "id": 20,
       "scheduled_at": "2026-03-12T14:00:00",
       "sent": false,
       "photo": "/Users/mattiacalastri/btc_predictions/static/marketing_assets/capello-bitcoin.png",
-      "text": "🐙 Il mercato non è mai uguale.\n\nMa ha dei pattern. Piccoli. Sottili. Statisticamente significativi.\nNon abbastanza per essere ricchi.\nAbbastanza per avere un edge.\n\nE un edge, nel tempo, è tutto quello che serve.\n\nRegime di abbondanza — cosa significa 👇\nhttps://btcpredictor.io/prevedibilita-perfetta"
+      "text": "🐙 The market is never the same.\n\nBut it has patterns. Small. Subtle. Statistically significant.\nNot enough to get rich.\nEnough to have an edge.\n\nAnd an edge, over time, is all you need.\n\nAbundance regime — what it means 👇\nhttps://btcpredictor.io/prevedibilita-perfetta"
     },
     {
       "id": 21,
       "scheduled_at": "2026-03-12T20:00:00",
       "sent": false,
       "photo": null,
-      "text": "🎩 Fine della settimana.\n\n21 messaggi. Qualche trade. Qualche skip.\nIl modello ha imparato qualcosa.\nForse anche voi.\n\nQuesto progetto non finisce qui.\nContinua domani, con lo stesso bot, la stessa trasparenza, la stessa ossessione.\n\n❤️ Grazie per essere qui.\n\n🐙 Stay long. Stay weird."
+      "text": "🎩 End of the week.\n\n21 messages. Some trades. Some skips.\nThe model learned something.\nMaybe you did too.\n\nThis project doesn't end here.\nIt continues tomorrow, with the same bot, the same transparency, the same obsession.\n\n❤️ Thanks for being here.\n\n🐙 Stay long. Stay weird."
     }
   ]
 }
