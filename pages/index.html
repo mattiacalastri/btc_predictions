@@ -75,7 +75,6 @@
 <meta name="author" content="Mattia Calastri">
 <link rel="canonical" href="https://btcpredictor.io/dashboard">
 <link rel="alternate" hreflang="en" href="https://btcpredictor.io/dashboard">
-<link rel="alternate" hreflang="it" href="https://btcpredictor.io/manifesto">
 <link rel="alternate" hreflang="x-default" href="https://btcpredictor.io/dashboard">
 
 <!-- ── Open Graph (LinkedIn, Telegram, Discord, WhatsApp) ────────── -->
@@ -244,21 +243,21 @@
   <div class="mini-status-bar" id="miniStatusBar">
     <!-- PIPELINE: core trading flow (01A → 01B → 02 → 08) -->
     <span class="msb-label">PIPELINE</span>
-    <span class="msb-item" title="01A — Input Fetcher: fetches 16 market data sources ogni 6min"><span class="lsb-robot">🤖</span><span class="status-dot" id="statusWf01a"></span>FEEDS<span class="msb-stxt" id="stxtWf01a"></span></span>
+    <span class="msb-item" title="01A — Input Fetcher: fetches 16 market data sources every 6min"><span class="lsb-robot">🤖</span><span class="status-dot" id="statusWf01a"></span>FEEDS<span class="msb-stxt" id="stxtWf01a"></span></span>
     <span class="msb-sep"></span>
     <span class="msb-item" title="01B — AI Prediction Engine: Claude + XGBoost dual-gate"><span class="lsb-robot">🤖</span><span class="status-dot" id="statusWf01b"></span>BRAIN<span class="msb-stxt" id="stxtWf01b"></span></span>
     <span class="msb-sep"></span>
     <span class="msb-item" title="02 — Trade Desk: SL/TP/timeout exit manager"><span class="lsb-robot">🤖</span><span class="status-dot" id="statusWf02"></span>DESK<span class="msb-stxt" id="stxtWf02"></span></span>
     <span class="msb-sep"></span>
-    <span class="msb-item" title="08 — Position Monitor: fires wf02 ogni 3min per ogni posizione aperta"><span class="lsb-robot">🤖</span><span class="status-dot" id="statusWf08"></span>GUARD<span class="msb-stxt" id="stxtWf08"></span></span>
+    <span class="msb-item" title="08 — Position Monitor: fires wf02 every 3min for each open position"><span class="lsb-robot">🤖</span><span class="status-dot" id="statusWf08"></span>GUARD<span class="msb-stxt" id="stxtWf08"></span></span>
     <!-- COMMS: communication & monitoring agents -->
     <span class="msb-bigsep"></span>
     <span class="msb-label">COMMS</span>
-    <span class="msb-item" title="07 — Commander: Telegram bot per controllo sistema"><span class="lsb-robot">🤖</span><span class="status-dot" id="statusWf07"></span>CMD<span class="msb-stxt" id="stxtWf07"></span></span>
+    <span class="msb-item" title="07 — Commander: Telegram bot for system control"><span class="lsb-robot">🤖</span><span class="status-dot" id="statusWf07"></span>CMD<span class="msb-stxt" id="stxtWf07"></span></span>
     <span class="msb-sep"></span>
-    <span class="msb-item" title="09A — Social Manager: post automatici dopo ogni trade"><span class="lsb-robot">🤖</span><span class="status-dot" id="statusWf09a"></span>SOC<span class="msb-stxt" id="stxtWf09a"></span></span>
+    <span class="msb-item" title="09A — Social Manager: auto-posts after every trade"><span class="lsb-robot">🤖</span><span class="status-dot" id="statusWf09a"></span>SOC<span class="msb-stxt" id="stxtWf09a"></span></span>
     <span class="msb-sep"></span>
-    <span class="msb-item" title="06 — System Watchdog: monitora anomalie sistema ogni 15min"><span class="lsb-robot">🤖</span><span class="status-dot" id="statusWf06"></span>WATCH<span class="msb-stxt" id="stxtWf06"></span></span>
+    <span class="msb-item" title="06 — System Watchdog: monitors system anomalies every 15min"><span class="lsb-robot">🤖</span><span class="status-dot" id="statusWf06"></span>WATCH<span class="msb-stxt" id="stxtWf06"></span></span>
     <!-- INFRA: infrastructure health -->
     <span class="msb-bigsep"></span>
     <span class="msb-label">INFRA</span>
@@ -284,7 +283,7 @@
   </div>
 
   <div id="dry-run-banner" style="display:none; background:#f59e0b; color:#000; text-align:center; padding:10px; font-weight:bold; font-size:14px; letter-spacing:1px;">
-  🧪 DRY RUN MODE — Nessun trade reale in esecuzione
+  🧪 DRY RUN MODE — No real trades being executed
 </div>
 <div class="container">
 
@@ -698,10 +697,10 @@
       </div>
       <div class="filter-group-sep"></div>
       <div class="filter-group">
-        <button class="filter-btn active" data-filter="outcome" data-value="all"  onclick="setSignalFilter(this,'outcome')">Tutti</button>
+        <button class="filter-btn active" data-filter="outcome" data-value="all"  onclick="setSignalFilter(this,'outcome')">All</button>
         <button class="filter-btn"        data-filter="outcome" data-value="win"  onclick="setSignalFilter(this,'outcome')">WIN</button>
         <button class="filter-btn"        data-filter="outcome" data-value="loss" onclick="setSignalFilter(this,'outcome')">LOSS</button>
-        <button class="filter-btn"        data-filter="outcome" data-value="open" onclick="setSignalFilter(this,'outcome')">Aperte</button>
+        <button class="filter-btn"        data-filter="outcome" data-value="open" onclick="setSignalFilter(this,'outcome')">Open</button>
       </div>
       <div class="filter-group-sep"></div>
       <div class="filter-group">
@@ -4477,9 +4476,9 @@ function renderAgents(data, errorMsg) {
   if (!data || data.status !== 'ok') {
     const errDetail = errorMsg || (data && data.error) || 'Railway non raggiungibile';
     const hint = (data && data.error && data.error.includes('N8N_API_KEY'))
-      ? '<br><span style="font-size:10px;color:var(--muted)">Configura <code style="color:var(--blue)">N8N_API_KEY</code> su Railway per abilitare questo pannello</span>'
+      ? '<br><span style="font-size:10px;color:var(--muted)">Configure <code style="color:var(--blue)">N8N_API_KEY</code> on Railway to enable this panel</span>'
       : '';
-    grid.innerHTML = `<div style="grid-column:1/-1;padding:24px 16px;color:var(--danger);font-size:11px;letter-spacing:1px">⚠️ n8n status non disponibile: ${escapeHtml(errDetail)}${hint}</div>`;
+    grid.innerHTML = `<div style="grid-column:1/-1;padding:24px 16px;color:var(--danger);font-size:11px;letter-spacing:1px">⚠️ n8n status unavailable: ${escapeHtml(errDetail)}${hint}</div>`;
     return;
   }
   const wfs = data.workflows || [];
@@ -5042,9 +5041,9 @@ async function fetchTradingStats() {
     if (badge) {
       const verdict = (s.expectancy_verdict || '').toUpperCase();
       badge.textContent = verdict || 'N/A';
-      if (verdict.includes('POSITIVO') || verdict.includes('POSITIVE')) {
+      if (verdict.includes('POSITIVE')) {
         badge.className = 'panel-tag tag-green';
-      } else if (verdict.includes('NEGATIVO') || verdict.includes('NEGATIVE')) {
+      } else if (verdict.includes('NEGATIVE')) {
         badge.className = 'panel-tag tag-red';
       } else {
         badge.className = 'panel-tag tag-yellow';
@@ -5243,10 +5242,10 @@ function renderTrainingTab(d) {
     if (isRateLimited) {
       retrainBtn.classList.remove('ready');
       const mins = Math.ceil(cooldown / 60);
-      if (retrainHint) retrainHint.innerHTML = `🔒 Rate limited &mdash; disponibile tra <strong style="color:var(--warn)">${mins}min</strong>`;
+      if (retrainHint) retrainHint.innerHTML = `🔒 Rate limited &mdash; available in <strong style="color:var(--warn)">${mins}min</strong>`;
     } else {
       retrainBtn.classList.add('ready');
-      if (retrainHint) retrainHint.innerHTML = 'Aggiorna conf threshold + dead hours dai dati live.<br><span style="color:rgba(255,170,0,0.6)">⚠ Non è un retrain XGBoost — indipendente dal counter 39/30</span>';
+      if (retrainHint) retrainHint.innerHTML = 'Update conf threshold + dead hours from live data.<br><span style="color:rgba(255,170,0,0.6)">⚠ This is NOT an XGBoost retrain — independent from the 39/30 counter</span>';
     }
   }
 
@@ -5340,10 +5339,10 @@ async function trnForceRetrain() {
       btn.innerHTML = '<span style="font-size:15px;line-height:1">🧠</span><span>Force Recalibrate</span>';
       if (success) {
         // Show "last run" timestamp for 30s, then re-check threshold
-        const ts = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+        const ts = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
         btn.innerHTML = `<span style="font-size:15px;line-height:1">✅</span><span>Done · ${ts}</span>`;
         btn.disabled = true;
-        if (hint) { hint.innerHTML = `<span style="color:var(--accent)">✅ Calibrazione completata alle ${ts}</span> — prossima disponibile tra ~1h`; }
+        if (hint) { hint.innerHTML = `<span style="color:var(--accent)">✅ Calibration completed at ${ts}</span> — next available in ~1h`; }
         setTimeout(() => {
           if (btn) {
             btn.innerHTML = '<span style="font-size:15px;line-height:1">🧠</span><span>Force Recalibrate</span>';
@@ -5601,8 +5600,8 @@ fetch(CONFIG.RAILWAY_URL + '/health')
     'XGBOOST':     {cat:'ML GATE',     color:'#a855f7', desc:'Internal XGBoost model (47 features). Dual-gate: bets execute ONLY when LLM + XGBoost agree on direction.'},
     'PATTERNS':    {cat:'MEMORY',      color:'#ff44aa', desc:'Historical signal patterns from Supabase DB. Similar past setups and their outcomes inform the AI.'},
     'CNBC':        {cat:'NEWS',        color:'#e5251b', desc:'CNBC Finance RSS — US financial & markets headlines. Macro context from Wall Street perspective.'},
-    'ORDER BOOK':  {cat:'MICROSTRUCTURE', color:'#00ccff', desc:'Order book imbalance calcolato su 5 livelli bid/ask dal Kraken Futures. Segnali: STRONG_BUY_PRESSURE / MILD_BUY / NEUTRAL / MILD_SELL / STRONG_SELL. Utile per rilevare pressione immediata sul prezzo.'},
-    'MULTI-TF':    {cat:'TECHNICAL',   color:'#88ddff', desc:'Analisi multi-timeframe 15m e 4h: EMA9, EMA21, RSI14 per ciascuno. MTF Consensus: STRONG_UP (entrambi bullish), STRONG_DOWN (entrambi bearish), MIXED. Riduce il noise del timeframe 1m.'},
+    'ORDER BOOK':  {cat:'MICROSTRUCTURE', color:'#00ccff', desc:'Order book imbalance computed across 5 bid/ask levels from Kraken Futures. Signals: STRONG_BUY_PRESSURE / MILD_BUY / NEUTRAL / MILD_SELL / STRONG_SELL. Useful for detecting immediate price pressure.'},
+    'MULTI-TF':    {cat:'TECHNICAL',   color:'#88ddff', desc:'Multi-timeframe analysis 15m and 4h: EMA9, EMA21, RSI14 for each. MTF Consensus: STRONG_UP (both bullish), STRONG_DOWN (both bearish), MIXED. Reduces 1m timeframe noise.'},
   };
   const KPI_INFO = {
     'BTC Price':      {cat:'LIVE DATA',  color:'#00aaff', desc:'Current BTC/USD price, refreshed every 30s from Kraken Futures mark price.'},

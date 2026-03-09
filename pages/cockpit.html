@@ -1008,7 +1008,7 @@ body.heartbeat-offline { animation: hb-flat 4s linear infinite; }
         <div class="sw">
           <div class="sw-icon">🧠</div>
           <div class="sw-body">
-            <span class="sw-label">Prossimo Retrain</span>
+            <span class="sw-label">Next Retrain</span>
             <span class="sw-value dot-load" id="swRetrain">—</span>
           </div>
         </div>
@@ -1068,8 +1068,8 @@ body.heartbeat-offline { animation: hb-flat 4s linear infinite; }
       <!-- OPS PANE: CHANNELS -->
       <div class="ops-pane" id="ops-pane-channels">
         <div class="mkt-section-hdr">
-          <h2>Canali di Distribuzione</h2>
-          <span>metriche live dove disponibili</span>
+          <h2>Distribution Channels</h2>
+          <span>live metrics where available</span>
         </div>
         <div class="channels-grid">
           <div class="chan-card" style="border-color:rgba(0,212,255,.25);">
@@ -1103,17 +1103,17 @@ body.heartbeat-offline { animation: hb-flat 4s linear infinite; }
       <!-- OPS PANE: SCHEDULE -->
       <div class="ops-pane" id="ops-pane-schedule">
         <div class="mkt-section-hdr">
-          <h2>Schedule Ricorrente</h2>
-          <span>UTC — timezone base del bot</span>
+          <h2>Recurring Schedule</h2>
+          <span>UTC — bot base timezone</span>
         </div>
         <div class="schedule-list">
-          <div class="sch-item"><div class="sch-time">Ogni 5 min</div><div class="sch-chan">🤖</div><div class="sch-desc">Position Monitor — wf28<br><span style="color:var(--text-muted);font-size:11px;">Controlla posizioni aperte, rescue se necessario</span></div><span class="sch-type auto">auto</span></div>
-          <div class="sch-item"><div class="sch-time">Ogni ora</div><div class="sch-chan">🤖</div><div class="sch-desc">System Watchdog — wf06<br><span style="color:var(--text-muted);font-size:11px;">Health check infrastruttura, alert se wf critici offline</span></div><span class="sch-type sys">system</span></div>
-          <div class="sch-item"><div class="sch-time">00:00 / 08:00 / 16:00</div><div class="sch-chan">📊</div><div class="sch-desc">Funding rate settlement (Binance perp)<br><span style="color:var(--text-muted);font-size:11px;">Pattern: pressione buy post-settlement quando funding era positivo</span></div><span class="sch-type sys">market</span></div>
-          <div class="sch-item"><div class="sch-time">Daily 09:00 CET</div><div class="sch-chan">📬</div><div class="sch-desc">Ghost Report Telegram — wf Ghost Daily<br><span style="color:var(--text-muted);font-size:11px;">Report giornaliero ghost bets su @BTCPredictorBot</span></div><span class="sch-type content">content</span></div>
-          <div class="sch-item"><div class="sch-time">Lun/Mer/Ven 16:00 CET</div><div class="sch-chan">📣</div><div class="sch-desc">AutoConv Council — wf AutoConv<br><span style="color:var(--text-muted);font-size:11px;">Contenuti AI Council su canale Telegram</span></div><span class="sch-type content">content</span></div>
-          <div class="sch-item"><div class="sch-time">Dom 03:00</div><div class="sch-chan">🧠</div><div class="sch-desc">XGBoost retrain — /force-retrain automatico<br><span style="color:var(--text-muted);font-size:11px;">Retrain su dataset aggiornato → push model → reload</span></div><span class="sch-type sys">ML retrain</span></div>
-          <div class="sch-item"><div class="sch-time">1° mese 09:00</div><div class="sch-chan">💾</div><div class="sch-desc">Vault backup — launchd Mac<br><span style="color:var(--text-muted);font-size:11px;">Backup credenziali cifrate AES in ~/Documents/Vault/</span></div><span class="sch-type sys">system</span></div>
+          <div class="sch-item"><div class="sch-time">Every 5 min</div><div class="sch-chan">🤖</div><div class="sch-desc">Position Monitor — wf28<br><span style="color:var(--text-muted);font-size:11px;">Checks open positions, rescue if needed</span></div><span class="sch-type auto">auto</span></div>
+          <div class="sch-item"><div class="sch-time">Every hour</div><div class="sch-chan">🤖</div><div class="sch-desc">System Watchdog — wf06<br><span style="color:var(--text-muted);font-size:11px;">Infrastructure health check, alerts if critical wf offline</span></div><span class="sch-type sys">system</span></div>
+          <div class="sch-item"><div class="sch-time">00:00 / 08:00 / 16:00</div><div class="sch-chan">📊</div><div class="sch-desc">Funding rate settlement (Binance perp)<br><span style="color:var(--text-muted);font-size:11px;">Pattern: buy pressure post-settlement when funding was positive</span></div><span class="sch-type sys">market</span></div>
+          <div class="sch-item"><div class="sch-time">Daily 09:00 CET</div><div class="sch-chan">📬</div><div class="sch-desc">Ghost Report Telegram — wf Ghost Daily<br><span style="color:var(--text-muted);font-size:11px;">Daily ghost bets report on @BTCPredictorBot</span></div><span class="sch-type content">content</span></div>
+          <div class="sch-item"><div class="sch-time">Mon/Wed/Fri 16:00 CET</div><div class="sch-chan">📣</div><div class="sch-desc">AutoConv Council — wf AutoConv<br><span style="color:var(--text-muted);font-size:11px;">AI Council content on Telegram channel</span></div><span class="sch-type content">content</span></div>
+          <div class="sch-item"><div class="sch-time">Sun 03:00</div><div class="sch-chan">🧠</div><div class="sch-desc">XGBoost retrain — automatic /force-retrain<br><span style="color:var(--text-muted);font-size:11px;">Retrain on updated dataset → push model → reload</span></div><span class="sch-type sys">ML retrain</span></div>
+          <div class="sch-item"><div class="sch-time">1st of month 09:00</div><div class="sch-chan">💾</div><div class="sch-desc">Vault backup — launchd Mac<br><span style="color:var(--text-muted);font-size:11px;">AES-encrypted credentials backup in ~/Documents/Vault/</span></div><span class="sch-type sys">system</span></div>
         </div>
       </div>
 
@@ -1567,7 +1567,7 @@ function asimovLevel(agent) {
 function renderAgents(agents) {
   const grid = document.getElementById('agents-grid');
   if (!agents || agents.length === 0) {
-    grid.innerHTML = '<div style="color:var(--text-muted);padding:24px;text-align:center">Nessun agent attivo. Lancia l\'orchestratore per iniziare.</div>';
+    grid.innerHTML = '<div style="color:var(--text-muted);padding:24px;text-align:center">No active agents. Launch the orchestrator to begin.</div>';
     return;
   }
 
@@ -2126,10 +2126,10 @@ function pedRenderPosts() {
   const el = document.getElementById('pedPostsList');
   if (!el) return;
   const posts = pedGetPosts();
-  if (!posts.length) { el.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:16px 0;">Nessun post in bozza.</div>'; return; }
+  if (!posts.length) { el.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:16px 0;">No draft posts.</div>'; return; }
   el.innerHTML = posts.map(p => {
     const safeId = String(p.id).replace(/[^a-zA-Z0-9_-]/g, '_');
-    const dt = p.date ? new Date(p.date).toLocaleString('it-IT', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
+    const dt = p.date ? new Date(p.date).toLocaleString('en-US', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
     const chanMap = {tg:'post-chan-tg',x:'post-chan-x',li:'post-chan-li',rd:'post-chan-rd'};
     const chanLabel = {tg:'✈️ TG',x:'𝕏 X',li:'💼 LI',rd:'🤖 RD',all:'📡 All'};
     const chanBadge = `<span class="post-chan-badge ${chanMap[p.channel]||'post-chan-tg'}">${chanLabel[p.channel]||'✈️ TG'}</span>`;
@@ -2195,7 +2195,7 @@ function pedPublishTG(id) {
 }
 
 function pedDeletePost(id) {
-  if (!confirm('Eliminare questo post?')) return;
+  if (!confirm('Delete this post?')) return;
   pedSavePosts(pedGetPosts().filter(p => String(p.id).replace(/[^a-zA-Z0-9_-]/g, '_') !== id));
   pedRenderPosts();
 }
