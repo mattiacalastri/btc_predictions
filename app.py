@@ -119,32 +119,34 @@ def _sb_config() -> tuple:
 _LOG_VALID_LEVELS = {"info", "success", "warning", "error", "critical"}
 
 def _push_cockpit_log(source: str, level: str, title: str, message: str = "", metadata=None):
-    """Insert a row into cockpit_log. Non-blocking, swallows all errors."""
+    """Insert a row into cockpit_log. Truly non-blocking via daemon thread."""
     if level not in _LOG_VALID_LEVELS:
         level = "info"
-    try:
-        sb_url, sb_key = _sb_config()
-        if not sb_url or not sb_key:
-            return
-        _sb_session.post(
-            f"{sb_url}/rest/v1/cockpit_log",
-            json={
-                "source": source[:50],
-                "level": level,
-                "title": title[:120],
-                "message": message[:2000],
-                "metadata": json.dumps(metadata or {}),
-            },
-            headers={
-                "apikey": sb_key,
-                "Authorization": f"Bearer {sb_key}",
-                "Content-Type": "application/json",
-                "Prefer": "return=minimal",
-            },
-            timeout=3,
-        )
-    except Exception:
-        pass  # never block the caller
+    def _do_push():
+        try:
+            sb_url, sb_key = _sb_config()
+            if not sb_url or not sb_key:
+                return
+            _sb_session.post(
+                f"{sb_url}/rest/v1/cockpit_log",
+                json={
+                    "source": source[:50],
+                    "level": level,
+                    "title": title[:120],
+                    "message": message[:2000],
+                    "metadata": json.dumps(metadata or {}),
+                },
+                headers={
+                    "apikey": sb_key,
+                    "Authorization": f"Bearer {sb_key}",
+                    "Content-Type": "application/json",
+                    "Prefer": "return=minimal",
+                },
+                timeout=3,
+            )
+        except Exception:
+            pass  # never block the caller
+    threading.Thread(target=_do_push, daemon=True).start()
 
 
 # ── Rate limiting (S-20) ──────────────────────────────────────────────────────
@@ -489,9 +491,12 @@ CONF_CALIBRATION = {
     (0.65, 0.70): 0.455,
     (0.70, 1.00): 0.500,
 }
+_CALIBRATION_LOCK = threading.Lock()
 
 def get_calibrated_wr(conf):
-    for (lo, hi), wr in CONF_CALIBRATION.items():
+    with _CALIBRATION_LOCK:
+        cal = dict(CONF_CALIBRATION)
+    for (lo, hi), wr in cal.items():
         if lo <= conf < hi:
             return wr
     return 0.50
@@ -502,6 +507,7 @@ def get_calibrated_wr(conf):
 # (soglia live: n>=8 && WR<45%; 11h ha 7 bet — incluso come prior di calibrazione)
 # Post-Day0: refresh_dead_hours() non trova dati → usa questi come fallback.
 DEAD_HOURS_UTC: set = {5, 7, 10, 11, 17, 19}
+_DEAD_HOURS_LOCK = threading.Lock()
 
 def refresh_calibration():
     """Aggiorna CONF_CALIBRATION da WR reale Supabase per bucket di confidence."""
@@ -540,7 +546,8 @@ def refresh_calibration():
             else:
                 new_cal[(lo, hi)] = CONF_CALIBRATION.get((lo, hi), 0.50)
                 stats[key] = {"wr": new_cal[(lo, hi)], "n": len(vals), "fallback": True}
-        CONF_CALIBRATION = new_cal
+        with _CALIBRATION_LOCK:
+            CONF_CALIBRATION = new_cal
         print(f"[CAL] Calibration updated: {stats}")
         return {"ok": True, "stats": stats, "total_rows": len(rows)}
     except Exception as e:
@@ -583,7 +590,8 @@ def refresh_dead_hours():
             if len(vals) >= 5 and wr < 0.35:
                 dead.add(h)
         # fallback: se non ci sono ore con n>=5 e WR<35%, usa prior da calibrazione storica
-        DEAD_HOURS_UTC = dead if dead else {5, 7, 10, 11, 17, 19}
+        with _DEAD_HOURS_LOCK:
+            DEAD_HOURS_UTC = dead if dead else {5, 7, 10, 11, 17, 19}
         print(f"[CAL] Dead hours updated: {sorted(DEAD_HOURS_UTC)}")
         return {"ok": True, "dead_hours": sorted(DEAD_HOURS_UTC), "hour_stats": hour_stats}
     except Exception as e:
@@ -610,6 +618,7 @@ _RESUMED_AT = ""                 # ISO timestamp of last /resume — circuit bre
 _CB_TRIPPED_AT = 0.0             # timestamp of last circuit-breaker auto-pause (0.0 = never)
 _CB_COOLDOWN_SEC = 1800          # 30 min minimum wait before manual resume after circuit breaker trip
 _costs_cache = {"data": None, "ts": 0.0}
+_CACHE_LOCK = threading.Lock()  # protects _costs_cache, _public_stats_cache, _macro_cache
 
 # [FIX3] Trade cooldown — prevent over-trading (31 trades in 3h = fee drag)
 _TRADE_LOCK = threading.Lock()
@@ -2171,7 +2180,9 @@ def place_bet():
 
     # P0.2 — filtro ore morte (WR storico < 45% UTC, aggiornato da /reload-calibration)
     current_hour_utc = time.gmtime().tm_hour
-    if current_hour_utc in DEAD_HOURS_UTC:
+    with _DEAD_HOURS_LOCK:
+        _is_dead_hour = current_hour_utc in DEAD_HOURS_UTC
+    if _is_dead_hour:
         return jsonify({
             "status": "skipped",
             "reason": "dead_hour",
@@ -3173,7 +3184,8 @@ def public_stats():
     except Exception:
         pass
 
-    _public_stats_cache = {"ts": now, "data": result}
+    with _CACHE_LOCK:
+        _public_stats_cache = {"ts": now, "data": result}
     return jsonify(result)
 
 
@@ -5481,6 +5493,7 @@ _CONTRIBUTION_ROLES = {
 }
 _CONTRIBUTION_MAX_CHARS = 500
 _CONTRIBUTION_RATE = {}   # ip → last_submit timestamp (in-memory, ephemeral)
+_CONTRIBUTION_LOCK = threading.Lock()
 _CONTRIBUTION_COOLDOWN = 300  # 5 min between submissions per IP
 
 # ── reCAPTCHA v3 ────────────────────────────────────────────────
@@ -5511,7 +5524,7 @@ def _verify_recaptcha(token: str, action: str = "") -> bool:
         return True
     except Exception as exc:
         app.logger.error("recaptcha verify error: %s", exc)
-        return True  # fail open on network error
+        return False  # fail closed on network error — block suspicious requests
 
 
 @app.route("/submit-contribution", methods=["POST"])
@@ -5524,15 +5537,16 @@ def submit_contribution():
     # ── Rate limit by IP (in-memory, not stored) ──
     ip = request.headers.get("X-Forwarded-For", request.remote_addr or "unknown").split(",")[0].strip()
     now = time.time()
-    # Purge stale entries to prevent unbounded growth (memory leak A-08)
-    for _k in [k for k, v in list(_CONTRIBUTION_RATE.items()) if now - v >= _CONTRIBUTION_COOLDOWN]:
-        _CONTRIBUTION_RATE.pop(_k, None)
-    last = _CONTRIBUTION_RATE.get(ip, 0)
-    if now - last < _CONTRIBUTION_COOLDOWN:
-        remaining = int(_CONTRIBUTION_COOLDOWN - (now - last))
-        return jsonify({"ok": False, "error": "rate_limited",
-                        "message": f"Aspetta {remaining // 60}m {remaining % 60}s prima di inviare un altro contributo."}), 429
-    _CONTRIBUTION_RATE[ip] = now
+    with _CONTRIBUTION_LOCK:
+        # Purge stale entries to prevent unbounded growth (memory leak A-08)
+        for _k in [k for k, v in list(_CONTRIBUTION_RATE.items()) if now - v >= _CONTRIBUTION_COOLDOWN]:
+            _CONTRIBUTION_RATE.pop(_k, None)
+        last = _CONTRIBUTION_RATE.get(ip, 0)
+        if now - last < _CONTRIBUTION_COOLDOWN:
+            remaining = int(_CONTRIBUTION_COOLDOWN - (now - last))
+            return jsonify({"ok": False, "error": "rate_limited",
+                            "message": f"Aspetta {remaining // 60}m {remaining % 60}s prima di inviare un altro contributo."}), 429
+        _CONTRIBUTION_RATE[ip] = now
 
     data = request.get_json(silent=True) or {}
 
@@ -6292,7 +6306,8 @@ def _fetch_macro_calendar() -> dict:
         r = _ext_session.get(_MACRO_CALENDAR_URL, timeout=5)
         if r.ok:
             data = r.json()
-            _macro_cache = {"data": data, "ts": now_ts}
+            with _CACHE_LOCK:
+                _macro_cache = {"data": data, "ts": now_ts}
             return {"data": data, "fetch_failed": False}
     except Exception:
         pass
@@ -7791,6 +7806,7 @@ def page_not_found(e):
 
 _COCKPIT_TOKEN = os.environ.get("COCKPIT_TOKEN", "")
 _cockpit_rl = {}  # rate limiting for cockpit auth
+_COCKPIT_RL_LOCK = threading.Lock()
 
 
 def _check_cockpit_auth():
@@ -7822,15 +7838,16 @@ def cockpit_auth():
     """Validate cockpit token. Rate limited: max 5 attempts per minute per IP."""
     ip = request.remote_addr or "unknown"
     now = time.time()
-    # Rate limit cleanup — purge all stale IPs to prevent memory leak
-    stale_ips = [k for k, v in _cockpit_rl.items() if all(now - t >= 60 for t in v)]
-    for k in stale_ips:
-        del _cockpit_rl[k]
-    _cockpit_rl[ip] = [t for t in _cockpit_rl.get(ip, []) if now - t < 60]
-    if len(_cockpit_rl.get(ip, [])) >= 5:
-        app.logger.warning("[COCKPIT] Auth rate limited for %s", ip)
-        return jsonify({"error": "rate_limited"}), 429
-    _cockpit_rl.setdefault(ip, []).append(now)
+    with _COCKPIT_RL_LOCK:
+        # Rate limit cleanup — purge all stale IPs to prevent memory leak
+        stale_ips = [k for k, v in _cockpit_rl.items() if all(now - t >= 60 for t in v)]
+        for k in stale_ips:
+            del _cockpit_rl[k]
+        _cockpit_rl[ip] = [t for t in _cockpit_rl.get(ip, []) if now - t < 60]
+        if len(_cockpit_rl.get(ip, [])) >= 5:
+            app.logger.warning("[COCKPIT] Auth rate limited for %s", ip)
+            return jsonify({"error": "rate_limited"}), 429
+        _cockpit_rl.setdefault(ip, []).append(now)
 
     data = request.get_json(force=True) or {}
     token = data.get("token", "")
@@ -8304,15 +8321,17 @@ def cockpit_log_ingest():
 # ── Anomaly Detection (lightweight, runs on cockpit overview refresh) ───────
 _LAST_ANOMALY_CHECK = 0
 _LAST_CONFIDENCE_VALUES: list = []
+_ANOMALY_LOCK = threading.Lock()
 
 
 def _check_anomalies():
     """Lightweight anomaly checks. Called from cockpit overview, max once per 60s."""
     global _LAST_ANOMALY_CHECK, _LAST_CONFIDENCE_VALUES
     now = time.time()
-    if now - _LAST_ANOMALY_CHECK < 60:
-        return
-    _LAST_ANOMALY_CHECK = now
+    with _ANOMALY_LOCK:
+        if now - _LAST_ANOMALY_CHECK < 60:
+            return
+        _LAST_ANOMALY_CHECK = now
 
     try:
         sb_url, sb_key = _sb_config()

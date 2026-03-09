@@ -18,7 +18,7 @@ import requests
 
 COUNCIL_MEMBERS = {
     "TECNICO":   {"model": "claude-sonnet-4-6",   "weight": 0.30},
-    "SENTIMENT": {"model": "gemini-flash-latest",     "weight": 0.15},
+    "SENTIMENT": {"model": "gemini-2.0-flash",         "weight": 0.15},
     "QUANT":     {"model": "xgboost-local",        "weight": 0.25},
 }
 
@@ -175,7 +175,7 @@ def call_sentiment(payload: dict) -> dict:
                 "reasoning": "GEMINI_API_KEY not configured",
                 "raw_response": {"error": "missing_api_key"}, "error": "missing_api_key",
             }
-        _gemini_model = os.environ.get("GEMINI_MODEL", "gemini-flash-latest")
+        _gemini_model = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
         _url = f"https://generativelanguage.googleapis.com/v1beta/models/{_gemini_model}:generateContent?key={gemini_key}"
         _body = {
             "contents": [{"role": "user", "parts": [{"text": _SENTIMENT_SYSTEM + "\n\n" + _build_sentiment_message(payload)}]}],
