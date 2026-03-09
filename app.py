@@ -8418,6 +8418,431 @@ def cockpit_ghosts():
     return jsonify({"ghosts": ghosts}), 200
 
 
+# ── FIXER VERIFY (Second Check post-fix) ────────────────────────────────────
+
+@app.route("/fixer-verify", methods=["POST"])
+def fixer_verify():
+    """Second check after autonomous fixer applies a fix.
+    Called by n8n wf13 post-fix step. Runs health + Sentry + cockpit_log checks.
+
+    Body JSON: {
+        error_title: str,      # original error title
+        fix_description: str,  # what the fixer did
+        fix_source: str,       # "wf13" / "manual"
+    }
+    Returns: {ok, checks: {health, sentry_quiet, cockpit_clean}, verdict}
+    """
+    err = _check_api_key()
+    if err:
+        return err
+    data = request.get_json(force=True) or {}
+    error_title = str(data.get("error_title", "unknown"))[:200]
+    checks = {}
+
+    # 1. Health check
+    try:
+        h_resp = requests.get(
+            f"http://127.0.0.1:{os.environ.get('PORT', '5000')}/health",
+            timeout=5,
+        )
+        h_data = h_resp.json() if h_resp.ok else {}
+        checks["health"] = {
+            "ok": h_data.get("status") == "ok",
+            "bot_paused": h_data.get("bot_paused", True),
+            "supabase_ok": h_data.get("supabase_ok"),
+            "wallet_equity": h_data.get("wallet_equity"),
+            "version": h_data.get("version"),
+        }
+    except Exception as e:
+        checks["health"] = {"ok": False, "error": str(e)[:120]}
+
+    # 2. Cockpit log — check no new critical/error in last 5 min
+    try:
+        sb_url, sb_key = _sb_config()
+        five_min_ago = (_dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(minutes=5)).isoformat()
+        r = _sb_session.get(
+            f"{sb_url}/rest/v1/cockpit_log"
+            f"?select=level,title,created_at&level=in.(critical,error)"
+            f"&created_at=gte.{five_min_ago}&order=created_at.desc&limit=5",
+            headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
+            timeout=5,
+        )
+        recent_errors = r.json() if r.ok else []
+        checks["cockpit_clean"] = {
+            "ok": len(recent_errors) == 0,
+            "recent_errors": len(recent_errors),
+            "latest": recent_errors[0]["title"] if recent_errors else None,
+        }
+    except Exception as e:
+        checks["cockpit_clean"] = {"ok": False, "error": str(e)[:120]}
+
+    # 3. Sentry quiet — check via cockpit_log source="sentry" in last 5 min
+    try:
+        r2 = _sb_session.get(
+            f"{sb_url}/rest/v1/cockpit_log"
+            f"?select=title,created_at&source=eq.sentry"
+            f"&created_at=gte.{five_min_ago}&order=created_at.desc&limit=3",
+            headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
+            timeout=5,
+        )
+        sentry_hits = r2.json() if r2.ok else []
+        checks["sentry_quiet"] = {
+            "ok": len(sentry_hits) == 0,
+            "recent_hits": len(sentry_hits),
+        }
+    except Exception as e:
+        checks["sentry_quiet"] = {"ok": False, "error": str(e)[:120]}
+
+    # Verdict
+    all_ok = all(c.get("ok", False) for c in checks.values())
+    verdict = "resolved" if all_ok else "partial" if checks.get("health", {}).get("ok") else "failed"
+
+    _push_cockpit_log("fixer", "success" if all_ok else "warning",
+                      f"Second check: {verdict}",
+                      f"Error: {error_title}",
+                      {"checks": checks, "verdict": verdict})
+
+    return jsonify({"ok": all_ok, "checks": checks, "verdict": verdict})
+
+
+# ── INCIDENT REPORT (Gold Standard PDF via Sentinel) ────────────────────────
+
+@app.route("/incident-report", methods=["POST"])
+def incident_report():
+    """Generate a brief Gold Standard PDF incident report and send via BTC Sentinel.
+
+    Body JSON: {
+        error_title: str,
+        error_detail: str,       # Sentry error message
+        error_source: str,       # "ai_predict", "place_bet", etc.
+        severity: str,           # "P0" / "P1" / "P2"
+        ai_analysis: str,        # AI analysis from wf00/wf10
+        fix_description: str,    # what the fixer did
+        fix_files: [str],        # files/workflows modified
+        verify_result: {         # output from /fixer-verify
+            ok: bool, checks: {}, verdict: str
+        }
+    }
+    Returns: {ok, pdf_sent, message_id?}
+    """
+    err = _check_api_key()
+    if err:
+        return err
+    data = request.get_json(force=True) or {}
+
+    error_title = str(data.get("error_title", "Unknown Error"))[:200]
+    error_detail = str(data.get("error_detail", ""))[:500]
+    error_source = str(data.get("error_source", "unknown"))[:50]
+    severity = str(data.get("severity", "P2"))[:3]
+    ai_analysis = str(data.get("ai_analysis", ""))[:1000]
+    fix_description = str(data.get("fix_description", ""))[:1000]
+    fix_files = data.get("fix_files", [])
+    if not isinstance(fix_files, list):
+        fix_files = []
+    fix_files = [str(f)[:120] for f in fix_files[:10]]
+    verify = data.get("verify_result", {})
+    verdict = str(verify.get("verdict", "unknown"))
+    checks = verify.get("checks", {})
+
+    now = _dt.datetime.now(_dt.timezone.utc)
+    ts_display = now.strftime("%Y-%m-%d %H:%M UTC")
+
+    # Severity colors
+    sev_colors = {"P0": "#ff4757", "P1": "#ffb347", "P2": "#4dabf7"}
+    sev_color = sev_colors.get(severity, "#4dabf7")
+    verdict_colors = {"resolved": "#51cf66", "partial": "#ffb347", "failed": "#ff4757"}
+    verdict_color = verdict_colors.get(verdict, "#8899b4")
+    verdict_label = {"resolved": "RISOLTO", "partial": "PARZIALE", "failed": "FALLITO"}.get(verdict, verdict.upper())
+
+    # Health data
+    h = checks.get("health", {})
+    cockpit = checks.get("cockpit_clean", {})
+    sentry = checks.get("sentry_quiet", {})
+
+    # Build files list HTML
+    files_html = ""
+    for f in fix_files:
+        files_html += f'<div class="file-item">{f}</div>\n'
+    if not files_html:
+        files_html = '<div class="file-item" style="color:#8899b4;">Nessun file modificato</div>'
+
+    html = f"""<!DOCTYPE html>
+<html lang="it">
+<head><meta charset="UTF-8">
+<style>
+@page {{ margin: 0; size: A4; }}
+* {{ margin: 0; padding: 0; box-sizing: border-box; }}
+html, body {{
+    width: 100%; background: #0a0e1a; color: #e8ecf4;
+    font-family: -apple-system, 'SF Pro Display', system-ui, sans-serif;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}}
+@media print {{
+    html, body {{ background: #0a0e1a; margin: 0; padding: 0; }}
+}}
+.page {{ padding: 2.5rem; min-height: 100vh; }}
+
+/* Cover */
+.cover {{ display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }}
+.shield {{ width: 80px; height: 80px; margin-bottom: 1.5rem; }}
+.cover h1 {{ font-size: 1.8rem; color: #00d4aa; margin-bottom: 0.5rem; }}
+.cover .subtitle {{ color: #8899b4; font-size: 1rem; margin-bottom: 2rem; }}
+.meta-cards {{ display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }}
+.meta-card {{
+    background: #1a2035; border-radius: 12px; padding: 1rem 1.5rem;
+    min-width: 120px; text-align: center;
+}}
+.meta-card .label {{ font-size: 0.7rem; text-transform: uppercase; color: #8899b4; letter-spacing: 1px; }}
+.meta-card .value {{ font-size: 1.3rem; font-weight: 700; margin-top: 0.3rem; }}
+
+/* Body */
+.section {{ margin-bottom: 2rem; }}
+.section-header {{
+    display: flex; align-items: center; gap: 0.8rem;
+    border-bottom: 1px solid #1a2035; padding-bottom: 0.8rem; margin-bottom: 1.2rem;
+}}
+.section-header h2 {{ font-size: 1.1rem; color: #e8ecf4; }}
+.section-icon {{
+    width: 32px; height: 32px; border-radius: 8px; display: flex;
+    align-items: center; justify-content: center; font-size: 1rem;
+}}
+.card {{
+    background: #1a2035; border-radius: 10px; padding: 1.2rem;
+    margin-bottom: 1rem; border-left: 3px solid #00d4aa;
+}}
+.card.error {{ border-left-color: {sev_color}; }}
+.card.fix {{ border-left-color: #00d4aa; }}
+.card.verdict {{ border-left-color: {verdict_color}; }}
+.card-title {{ font-size: 0.7rem; text-transform: uppercase; color: #8899b4; letter-spacing: 1px; margin-bottom: 0.5rem; }}
+.card-body {{ font-size: 0.9rem; line-height: 1.5; }}
+.file-item {{
+    font-family: 'SF Mono', monospace; font-size: 0.8rem;
+    background: #111827; padding: 0.4rem 0.8rem; border-radius: 6px;
+    margin-bottom: 0.3rem; color: #b197fc;
+}}
+.check-row {{
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.6rem 0; border-bottom: 1px solid #111827;
+}}
+.check-label {{ color: #8899b4; font-size: 0.85rem; }}
+.check-status {{ font-weight: 700; font-size: 0.85rem; }}
+.check-ok {{ color: #51cf66; }}
+.check-fail {{ color: #ff4757; }}
+.verdict-box {{
+    text-align: center; padding: 1.5rem; background: #1a2035;
+    border-radius: 12px; border: 2px solid {verdict_color};
+}}
+.verdict-label {{ font-size: 2rem; font-weight: 800; color: {verdict_color}; }}
+.verdict-sub {{ color: #8899b4; margin-top: 0.5rem; font-size: 0.85rem; }}
+.footer {{ text-align: center; color: #8899b4; font-size: 0.7rem; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #1a2035; }}
+</style></head>
+<body>
+
+<!-- PAGE 1: COVER -->
+<div class="page cover">
+    <svg class="shield" viewBox="0 0 80 80" fill="none">
+        <path d="M40 5L10 20v20c0 16.57 12.83 32.08 30 36 17.17-3.92 30-19.43 30-36V20L40 5z"
+              fill="#1a2035" stroke="#00d4aa" stroke-width="2"/>
+        <path d="M35 42l-6-6 2.8-2.8L35 36.4l13.2-13.2L51 26 35 42z" fill="#00d4aa"/>
+    </svg>
+    <h1>BTC Sentinel — Incident Report</h1>
+    <div class="subtitle">Autonomous Fixer Pipeline — Studiare → Pianificare → Eseguire → Controllare → Report</div>
+    <div class="meta-cards">
+        <div class="meta-card">
+            <div class="label">Data</div>
+            <div class="value" style="font-size:1rem;">{ts_display}</div>
+        </div>
+        <div class="meta-card">
+            <div class="label">Severity</div>
+            <div class="value" style="color:{sev_color};">{severity}</div>
+        </div>
+        <div class="meta-card">
+            <div class="label">Verdict</div>
+            <div class="value" style="color:{verdict_color};">{verdict_label}</div>
+        </div>
+        <div class="meta-card">
+            <div class="label">Source</div>
+            <div class="value" style="font-size:0.9rem;">{error_source}</div>
+        </div>
+    </div>
+</div>
+
+<!-- PAGE 2: BODY -->
+<div class="page" style="page-break-before:always;">
+
+    <div class="section">
+        <div class="section-header">
+            <div class="section-icon" style="background:{sev_color}20;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{sev_color}" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </div>
+            <h2>Errore Originale</h2>
+        </div>
+        <div class="card error">
+            <div class="card-title">Titolo</div>
+            <div class="card-body" style="font-weight:600;">{error_title}</div>
+        </div>
+        <div class="card error">
+            <div class="card-title">Dettaglio</div>
+            <div class="card-body">{error_detail or 'Nessun dettaglio aggiuntivo'}</div>
+        </div>
+        <div class="card error">
+            <div class="card-title">Analisi AI</div>
+            <div class="card-body">{ai_analysis or 'Analisi non disponibile'}</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-header">
+            <div class="section-icon" style="background:#00d4aa20;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00d4aa" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+            </div>
+            <h2>Fix Applicato</h2>
+        </div>
+        <div class="card fix">
+            <div class="card-title">Descrizione</div>
+            <div class="card-body">{fix_description or 'Nessun fix registrato'}</div>
+        </div>
+        <div class="card fix">
+            <div class="card-title">File / Workflow Modificati</div>
+            <div class="card-body">{files_html}</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-header">
+            <div class="section-icon" style="background:#4dabf720;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4dabf7" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+            </div>
+            <h2>Second Check — Verifica</h2>
+        </div>
+        <div class="card" style="border-left-color:#4dabf7;">
+            <div class="check-row">
+                <span class="check-label">Health Endpoint</span>
+                <span class="check-status {'check-ok' if h.get('ok') else 'check-fail'}">{'PASS' if h.get('ok') else 'FAIL'}</span>
+            </div>
+            <div class="check-row">
+                <span class="check-label">Bot Paused</span>
+                <span class="check-status" style="color:{'#ffb347' if h.get('bot_paused') else '#51cf66'}">{'Si' if h.get('bot_paused') else 'No'}</span>
+            </div>
+            <div class="check-row">
+                <span class="check-label">Supabase</span>
+                <span class="check-status {'check-ok' if h.get('supabase_ok') else 'check-fail'}">{'PASS' if h.get('supabase_ok') else 'FAIL'}</span>
+            </div>
+            <div class="check-row">
+                <span class="check-label">Cockpit (no errors 5min)</span>
+                <span class="check-status {'check-ok' if cockpit.get('ok') else 'check-fail'}">{'PASS — clean' if cockpit.get('ok') else f"FAIL — {cockpit.get('recent_errors', '?')} errori"}</span>
+            </div>
+            <div class="check-row">
+                <span class="check-label">Sentry (quiet 5min)</span>
+                <span class="check-status {'check-ok' if sentry.get('ok') else 'check-fail'}">{'PASS — quiet' if sentry.get('ok') else f"FAIL — {sentry.get('recent_hits', '?')} hit"}</span>
+            </div>
+            <div class="check-row">
+                <span class="check-label">Wallet Equity</span>
+                <span class="check-status" style="color:#00d4aa;">${h.get('wallet_equity', 'N/A')}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="verdict-box">
+        <div class="verdict-label">{verdict_label}</div>
+        <div class="verdict-sub">
+            {'Tutti i check superati. Il fix ha risolto il problema.' if verdict == 'resolved'
+             else 'Fix parziale — alcuni check non superati. Monitorare.' if verdict == 'partial'
+             else 'Fix non riuscito — intervento manuale necessario.'}
+        </div>
+    </div>
+
+    <div class="footer">
+        BTC Sentinel — Autonomous Fixer v{VERSION} — {ts_display}<br>
+        Pipeline: Studiare → Pianificare → Eseguire → Controllare → Report
+    </div>
+</div>
+
+</body></html>"""
+
+    # Write HTML → PDF → send via Sentinel
+    base_dir = os.path.join(os.path.dirname(__file__), "reports")
+    os.makedirs(base_dir, exist_ok=True)
+    safe_title = re.sub(r'[^\w\s-]', '', error_title)[:40].strip().replace(' ', '_')
+    filename = f"Incident_{severity}_{now.strftime('%Y%m%d_%H%M')}_{safe_title}"
+    html_path = os.path.join(base_dir, f"{filename}.html")
+    pdf_path = os.path.join(base_dir, f"{filename}.pdf")
+
+    try:
+        with open(html_path, "w", encoding="utf-8") as f:
+            f.write(html)
+
+        # Chrome headless → PDF
+        chrome = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+        if not os.path.exists(chrome):
+            chrome = "google-chrome"  # Railway Linux
+        import subprocess
+        subprocess.run([
+            chrome, "--headless", "--disable-gpu", "--no-sandbox",
+            f"--print-to-pdf={pdf_path}",
+            "--no-margins", "--no-pdf-header-footer", "--print-background",
+            f"--user-data-dir=/tmp/chrome-pdf-{os.getpid()}",
+            f"file://{html_path}",
+        ], timeout=30, capture_output=True)
+
+        # Cleanup HTML
+        if os.path.exists(html_path):
+            os.remove(html_path)
+
+        if not os.path.exists(pdf_path):
+            return jsonify({"ok": False, "error": "PDF generation failed"}), 500
+
+    except Exception as e:
+        if os.path.exists(html_path):
+            os.remove(html_path)
+        return jsonify({"ok": False, "error": f"PDF error: {str(e)[:120]}"}), 500
+
+    # Send via BTC Sentinel (sendDocument to owner DM)
+    tg_token = os.environ.get("TELEGRAM_PRIVATE_TOKEN") or os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    tg_owner = os.environ.get("TELEGRAM_OWNER_ID", "")
+    message_id = None
+
+    if tg_token and tg_owner:
+        try:
+            caption = (
+                f"{'🔴' if severity == 'P0' else '🟡' if severity == 'P1' else '🔵'} "
+                f"<b>Incident Report — {severity}</b>\n\n"
+                f"<b>Errore:</b> {error_title[:100]}\n"
+                f"<b>Fix:</b> {fix_description[:100]}\n"
+                f"<b>Verdict:</b> <b>{verdict_label}</b>\n\n"
+                f"{'✅ Tutti i check OK' if verdict == 'resolved' else '⚠️ Verifica manuale consigliata'}"
+            )
+            with open(pdf_path, "rb") as pdf_file:
+                resp = _tg_session.post(
+                    f"https://api.telegram.org/bot{tg_token}/sendDocument",
+                    data={
+                        "chat_id": tg_owner,
+                        "caption": caption[:1024],
+                        "parse_mode": "HTML",
+                    },
+                    files={"document": (f"{filename}.pdf", pdf_file, "application/pdf")},
+                    timeout=30,
+                )
+            result = resp.json()
+            if result.get("ok"):
+                message_id = result["result"]["message_id"]
+        except Exception as e:
+            app.logger.warning("[INCIDENT-REPORT] Telegram send failed: %s", e)
+
+    _push_cockpit_log("sentinel", "info",
+                      f"Incident report sent: {severity} — {verdict}",
+                      error_title,
+                      {"pdf": pdf_path, "tg_sent": message_id is not None, "verdict": verdict})
+
+    return jsonify({
+        "ok": True,
+        "pdf_path": pdf_path,
+        "pdf_sent": message_id is not None,
+        "message_id": message_id,
+        "verdict": verdict,
+    })
+
+
 # ── MAIN ─────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
