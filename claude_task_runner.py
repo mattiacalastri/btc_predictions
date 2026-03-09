@@ -3,14 +3,23 @@
 claude_task_runner.py — Telegram→Claude Code bridge (Mac-side)
 Polls Supabase claude_tasks WHERE status='pending', runs claude -p, sends result to Telegram.
 Runs every 5s via launchd com.btcbot.claude_runner.plist
+
+Security (SEC-04):
+  - Rate limit: max 10 task/minuto (rolling window 60s)
+  - Cooldown: 3 secondi minimi tra task consecutivi
+  - Concurrency: max 1 task alla volta (atomic claim Supabase)
+  - Owner check: solo OWNER_CHAT_ID può eseguire task
 """
 
 import html
+import json
 import os
 import re
 import subprocess
+import time
 import requests
 from datetime import datetime, timezone
+from pathlib import Path
 
 SUPABASE_URL  = os.environ.get("SUPABASE_URL", "https://oimlamjilivrcnhztwvj.supabase.co")
 SUPABASE_KEY  = os.environ.get("SUPABASE_ANON_KEY", "")
@@ -20,6 +29,61 @@ DEFAULT_WORK_DIR = "/Users/mattiacalastri/btc_predictions"
 CLAUDE_TIMEOUT   = 180  # seconds
 OWNER_CHAT_ID    = "368092324"   # sicurezza: solo Mattia può avere task eseguiti
 
+# ── SEC-04: Rate limiting ─────────────────────────────────────────────────────
+MAX_TASKS_PER_MINUTE = 10
+COOLDOWN_SECONDS = 3
+_RATE_FILE = Path.home() / ".cache" / "claude_runner_rate.json"
+
+
+def _load_rate_state() -> dict:
+    """Carica stato rate limit da file persistente tra invocazioni launchd."""
+    try:
+        if _RATE_FILE.exists():
+            data = json.loads(_RATE_FILE.read_text())
+            # Pulisci timestamp più vecchi di 60 secondi
+            now = time.time()
+            data["timestamps"] = [t for t in data.get("timestamps", []) if now - t < 60]
+            return data
+    except (json.JSONDecodeError, KeyError, OSError):
+        pass
+    return {"timestamps": [], "last_run": 0}
+
+
+def _save_rate_state(state: dict):
+    """Salva stato rate limit."""
+    try:
+        _RATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        _RATE_FILE.write_text(json.dumps(state))
+    except OSError:
+        pass
+
+
+def _check_rate_limit() -> str | None:
+    """Ritorna None se OK, stringa errore se rate limit superato."""
+    state = _load_rate_state()
+    now = time.time()
+
+    # Cooldown: almeno 3s dall'ultimo task
+    if state["last_run"] and (now - state["last_run"]) < COOLDOWN_SECONDS:
+        return f"cooldown ({COOLDOWN_SECONDS}s tra task)"
+
+    # Rolling window: max 10 task negli ultimi 60s
+    if len(state["timestamps"]) >= MAX_TASKS_PER_MINUTE:
+        return f"rate limit ({MAX_TASKS_PER_MINUTE} task/min)"
+
+    return None
+
+
+def _record_task_execution():
+    """Registra l'esecuzione per il rate limiter."""
+    state = _load_rate_state()
+    now = time.time()
+    state["timestamps"].append(now)
+    state["last_run"] = now
+    _save_rate_state(state)
+
+
+# ── Supabase helpers ──────────────────────────────────────────────────────────
 
 def _headers():
     return {
@@ -64,6 +128,8 @@ def mark_done(task_id, result, status="completed"):
     payload = {"status": status, "result": result[:10000], "completed_at": _now()}
     requests.patch(url, headers=_headers(), json=payload, timeout=10).raise_for_status()
 
+
+# ── Telegram ──────────────────────────────────────────────────────────────────
 
 def md_to_html(text: str) -> str:
     """Convert Claude's markdown output to Telegram HTML."""
@@ -120,6 +186,8 @@ def send_telegram(chat_id, text, command="", is_error=False):
             print(f"[{datetime.now().isoformat()}] send_telegram fallita (chunk {idx}): {e}")
 
 
+# ── Claude execution ──────────────────────────────────────────────────────────
+
 def run_claude(command, work_dir=None):
     cwd = work_dir if (work_dir and os.path.isdir(work_dir)) else DEFAULT_WORK_DIR
     proc = subprocess.run(
@@ -135,6 +203,8 @@ def run_claude(command, work_dir=None):
         output = f"[exit {proc.returncode}]\n{proc.stderr[:500]}\n{output}"
     return output or "(nessun output)"
 
+
+# ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
     if not SUPABASE_KEY:
@@ -159,10 +229,19 @@ def main():
         mark_done(task_id, "Unauthorized", "error")
         return
 
+    # SEC-04: Rate limit check — prima di eseguire
+    rate_err = _check_rate_limit()
+    if rate_err:
+        print(f"[{datetime.now().isoformat()}] Task #{task_id} SKIPPED: {rate_err}")
+        return  # Non marcare errore — verrà riprovato al prossimo ciclo
+
     print(f"[{datetime.now().isoformat()}] Task #{task_id} [{work_dir}]: {command[:80]}")
     if not mark_inprogress(task_id):
         print(f"[{datetime.now().isoformat()}] Task #{task_id} già claimato da altra istanza — uscita")
         return  # C-01: altra istanza launchd ci ha preceduti
+
+    # SEC-04: Registra esecuzione per rate limiter
+    _record_task_execution()
 
     try:
         result = run_claude(command, work_dir=work_dir)

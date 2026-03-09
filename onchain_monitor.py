@@ -12,12 +12,13 @@ Fasi:
 Eseguito da launchd com.btcbot.onchain_monitor ogni ora.
 
 Env vars richieste (plist EnvironmentVariables):
-  BOT_API_KEY       — per autenticarsi agli endpoint Flask
-  SUPABASE_URL      — es. https://oimlamjilivrcnhztwvj.supabase.co
-  SUPABASE_KEY      — anon/service key Supabase
-  RAILWAY_URL       — es. https://web-production-e27d0.up.railway.app
-  TELEGRAM_BOT_TOKEN  (opzionale) — notifiche Telegram
-  TELEGRAM_CHAT_ID    (opzionale) — es. 368092324
+  BOT_API_KEY            — per autenticarsi agli endpoint Flask
+  SUPABASE_URL           — es. https://oimlamjilivrcnhztwvj.supabase.co
+  SUPABASE_KEY           — anon/service key Supabase
+  RAILWAY_URL            — es. https://web-production-e27d0.up.railway.app
+  TELEGRAM_PRIVATE_TOKEN (opzionale) — notifiche via Sentinel (preferito)
+  TELEGRAM_BOT_TOKEN     (opzionale) — fallback se PRIVATE_TOKEN non presente
+  TELEGRAM_CHAT_ID       (opzionale) — es. 368092324
 """
 
 import os
@@ -45,7 +46,7 @@ BOT_API_KEY      = os.environ.get("BOT_API_KEY", "")
 SUPABASE_URL     = os.environ.get("SUPABASE_URL", "https://oimlamjilivrcnhztwvj.supabase.co")
 SUPABASE_KEY     = os.environ.get("SUPABASE_KEY", "")
 RAILWAY_URL      = os.environ.get("RAILWAY_URL", "https://web-production-e27d0.up.railway.app")
-TELEGRAM_TOKEN   = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_TOKEN   = os.environ.get("TELEGRAM_PRIVATE_TOKEN", "") or os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT    = os.environ.get("TELEGRAM_CHAT_ID", "368092324")
 TABLE            = "btc_predictions"
 MAX_PER_RUN      = 30    # limite TX per singola esecuzione (sicurezza)
