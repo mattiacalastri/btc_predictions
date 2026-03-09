@@ -6551,12 +6551,15 @@ function updateMiniStatusBar(agentsData, railwayOk) {
   }
   var wfs = agentsData.workflows || [];
   var now = Date.now();
-  // Max acceptable staleness per workflow (ms): scheduled workflows stale if not run within 2x period
+  // Max acceptable staleness per workflow (ms): stale if not run within ~2x scheduled period
   var maxStaleness = {
-    'statusWf01a': 8  * 60000,  // 01A fires every 6min → stale after 8min
-    'statusWf01b': 8  * 60000,  // 01B fires per 01A → same
-    'statusWf08':  10 * 60000,  // 08 fires every 3min → stale after 10min
-    'statusWf06':  75 * 60000,  // 06 watchdog runs hourly → stale after 75min
+    'statusWf01a': 8   * 60000,  // 01A fires every 6min → stale after 8min
+    'statusWf01b': 8   * 60000,  // 01B fires per 01A → same
+    'statusWf02':  120 * 60000,  // 02 fires per trade → stale after 2h (no trades = expected)
+    'statusWf08':  10  * 60000,  // 08 fires every 3min → stale after 10min
+    'statusWf07':  30  * 60000,  // 07 Commander: TG poll every 15min → stale after 30min
+    'statusWf09a': 240 * 60000,  // 09A Social: fires per trade → stale after 4h
+    'statusWf06':  75  * 60000,  // 06 watchdog runs hourly → stale after 75min
   };
   var targets = {
     'statusWf01a': { prefixes: ['01A'], txt: 'stxtWf01a' },
@@ -6635,7 +6638,12 @@ function refreshMiniStatusBarLive() {
         equityEl.style.color = eq >= 100 ? 'var(--accent)' : 'var(--danger)';
       }
       if (krakenDot) {
-        _msbSet('statusKraken', 'stxtKraken', h.wallet_equity > 0 ? 'green' : 'yellow', h.wallet_equity > 0 ? 'OK' : '?');
+        // serverTime non-null = Kraken API reachable; wallet_equity null = auth/wallet issue
+        var krakenUp = h.serverTime != null;
+        var walletOk = h.wallet_equity != null && h.wallet_equity > 0;
+        if (krakenUp && walletOk)       { _msbSet('statusKraken', 'stxtKraken', 'green',  'OK');  }
+        else if (krakenUp && !walletOk) { _msbSet('statusKraken', 'stxtKraken', 'yellow', 'AUTH'); }
+        else                            { _msbSet('statusKraken', 'stxtKraken', 'red',    'DOWN'); }
       }
       if (dryDot && dryLabel) {
         if (h.dry_run) {
@@ -6655,10 +6663,12 @@ function refreshMiniStatusBarLive() {
     })
     .catch(function() {
       var d = document.getElementById('statusBot');
+      var l = document.getElementById('msbBotLabel');
       if (d) d.className = 'status-dot red';
-      var k = document.getElementById('statusKraken');
-      if (k) k.className = 'status-dot red';
+      if (l) { l.textContent = 'ERR'; l.style.color = 'var(--danger)'; }
+      _msbSet('statusKraken', 'stxtKraken', 'red', 'DOWN');
       _msbSet('statusDB', 'stxtDB', 'red', 'ERR');
+      _msbSet('statusRailway', 'stxtRailway', 'red', 'ERR');
     });
 
   /* ── /signals?limit=1: last prediction age ── */
