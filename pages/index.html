@@ -615,6 +615,43 @@
     </div>
   </div>
 
+  <!-- Thoth Reasoning Drawer — click cube to open -->
+  <div class="thoth-drawer" id="thothDrawer">
+    <div class="thoth-drawer-header">
+      <div class="thoth-drawer-title">
+        <svg width="16" height="16" viewBox="0 0 32 32" style="vertical-align:middle"><path d="M8 16 Q16 6 24 16 Q16 26 8 16Z" fill="none" stroke="#d4af37" stroke-width="1.5"/><circle cx="16" cy="16" r="4" fill="none" stroke="#00d4aa" stroke-width="1.2"/><circle cx="16" cy="16" r="1.5" fill="#d4af37"/></svg>
+        <span>COUNCIL REASONING</span>
+      </div>
+      <button class="thoth-drawer-close" id="thothDrawerClose">&times;</button>
+    </div>
+    <div class="thoth-drawer-tabs">
+      <button class="thoth-tab active" data-tab="tecnico" style="--tab-color:#00aaff">TECNICO</button>
+      <button class="thoth-tab" data-tab="sentiment" style="--tab-color:#51cf66">SENTIMENT</button>
+      <button class="thoth-tab" data-tab="quant" style="--tab-color:#d4af37">QUANT</button>
+    </div>
+    <div class="thoth-drawer-body" id="thothDrawerBody">
+      <div class="thoth-panel" data-panel="tecnico">
+        <div class="thoth-vote-badge" id="thothVoteTecnico">—</div>
+        <div class="thoth-model">claude-sonnet-4-6 &middot; weight 0.30</div>
+        <div class="thoth-reasoning" id="thothReasonTecnico">No deliberation data yet.</div>
+      </div>
+      <div class="thoth-panel" data-panel="sentiment" style="display:none">
+        <div class="thoth-vote-badge" id="thothVoteSentiment">—</div>
+        <div class="thoth-model">gemini-2.0-flash &middot; weight 0.15</div>
+        <div class="thoth-reasoning" id="thothReasonSentiment">No deliberation data yet.</div>
+      </div>
+      <div class="thoth-panel" data-panel="quant" style="display:none">
+        <div class="thoth-vote-badge" id="thothVoteQuant">—</div>
+        <div class="thoth-model">xgboost-local &middot; weight 0.25</div>
+        <div class="thoth-reasoning" id="thothReasonQuant">No deliberation data yet.</div>
+      </div>
+    </div>
+    <div class="thoth-drawer-footer" id="thothDrawerFooter">
+      <span class="thoth-hash" id="thothHash">—</span>
+      <span class="thoth-timestamp" id="thothTimestamp">—</span>
+    </div>
+  </div>
+
   <!-- TASK 2: Story Highlights (mobile only) -->
   <div class="story-highlights" id="storyHighlights">
     <div class="story-item" data-source="kpiWinRate">
@@ -6058,6 +6095,9 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
       }
 
+      // Feed drawer with latest data
+      if (window._updateDrawerData) window._updateDrawerData(data);
+
       // Check for new verdict (different hash)
       if (data.last_deliberation && data.last_deliberation.signal_hash !== lastHash) {
         lastHash = data.last_deliberation.signal_hash;
@@ -6071,6 +6111,90 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initial poll + interval
   setTimeout(pollCouncilStatus, 2000); // first poll after 2s
   setInterval(pollCouncilStatus, POLL_INTERVAL);
+})();
+
+// ── THOTH REASONING DRAWER — click cube to view AI thinking ───────────────────
+(function() {
+  var drawer  = document.getElementById('thothDrawer');
+  var closeBtn = document.getElementById('thothDrawerClose');
+  var scene   = document.getElementById('cubeScene');
+  var tabs    = drawer ? drawer.querySelectorAll('.thoth-tab') : [];
+  var panels  = drawer ? drawer.querySelectorAll('.thoth-panel') : [];
+
+  if (!drawer || !scene) return;
+
+  // Store last council data for drawer display
+  var _drawerData = null;
+  window._updateDrawerData = function(data) { _drawerData = data; };
+
+  function openDrawer() {
+    if (!_drawerData || !_drawerData.last_deliberation) return;
+    populateDrawer(_drawerData.last_deliberation);
+    drawer.classList.add('drawer-open');
+  }
+
+  function closeDrawer() {
+    drawer.classList.remove('drawer-open');
+  }
+
+  function populateDrawer(delib) {
+    if (!delib) return;
+    var votes = delib.votes || [];
+    var memberMap = { TECNICO: 'tecnico', SENTIMENT: 'sentiment', QUANT: 'quant' };
+
+    votes.forEach(function(v) {
+      var key = memberMap[v.member];
+      if (!key) return;
+
+      var badge = document.getElementById('thothVote' + key.charAt(0).toUpperCase() + key.slice(1));
+      var reason = document.getElementById('thothReason' + key.charAt(0).toUpperCase() + key.slice(1));
+
+      if (badge) {
+        var conf = Math.round((v.confidence || 0) * 100);
+        badge.textContent = v.direction + ' ' + conf + '%';
+        badge.className = 'thoth-vote-badge';
+        if (v.direction === 'UP') badge.classList.add('badge-up');
+        else if (v.direction === 'DOWN') badge.classList.add('badge-down');
+      }
+      if (reason) {
+        reason.textContent = v.reasoning || 'No reasoning provided.';
+      }
+    });
+
+    // Footer
+    var hashEl = document.getElementById('thothHash');
+    var tsEl   = document.getElementById('thothTimestamp');
+    if (hashEl) hashEl.textContent = 'HASH ' + (delib.signal_hash || '—');
+    if (tsEl) {
+      var ts = delib.timestamp || '';
+      tsEl.textContent = ts.slice(11, 19) + ' UTC';
+    }
+  }
+
+  // Click cube to toggle drawer
+  scene.addEventListener('click', function(e) {
+    if (e.target.closest && e.target.closest('.thoth-drawer')) return;
+    if (drawer.classList.contains('drawer-open')) closeDrawer();
+    else openDrawer();
+  });
+
+  // Close button
+  if (closeBtn) closeBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    closeDrawer();
+  });
+
+  // Tab switching
+  tabs.forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      var target = tab.dataset.tab;
+      tabs.forEach(function(t) { t.classList.remove('active'); });
+      tab.classList.add('active');
+      panels.forEach(function(p) {
+        p.style.display = p.dataset.panel === target ? 'block' : 'none';
+      });
+    });
+  });
 })();
 
 // ── TASK 2: Story Highlights sync ─────────────────────────────────────────────
