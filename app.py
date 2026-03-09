@@ -521,8 +521,9 @@ def get_calibrated_wr(conf):
 # Calibrazione 2026-02-28 su 650 segnali pre-Day0 (xgb_report.txt hourly WR):
 #   5h 42.3% | 7h 42.1% | 10h 44.0% | 11h 42.9% | 17h 43.6% | 19h 44.4%
 # (soglia live: n>=8 && WR<45%; 11h ha 7 bet — incluso come prior di calibrazione)
-# Post-Day0: refresh_dead_hours() non trova dati → usa questi come fallback.
-DEAD_HOURS_UTC: set = {5, 7, 10, 11, 17, 19}
+# Fallback dead hours. Updated sess.173 from ghost WR data analysis.
+# Old: {5, 7, 10, 11, 17, 19}. New: based on 0% WR hours in ghost bets post-7 Mar.
+DEAD_HOURS_UTC: set = {0, 1, 2, 7, 17, 18, 22}
 _DEAD_HOURS_LOCK = threading.Lock()
 
 def refresh_calibration():
@@ -571,20 +572,35 @@ def refresh_calibration():
         return {"ok": False, "error": "refresh_error"}
 
 def refresh_dead_hours():
-    """Refresh DEAD_HOURS_UTC: hours with WR < 45% and at least 8 bets. Hour extracted from created_at."""
+    """Refresh DEAD_HOURS_UTC: hours with WR < 35% and at least 5 bets.
+    sess.173 fix: includes ghost bets when bot is PAUSED (same pattern as ACE).
+    """
     global DEAD_HOURS_UTC
     sb_url, sb_key = _sb_config()
     if not sb_url or not sb_key:
         return {"ok": False, "error": "no_supabase_env"}
     try:
+        headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
+        rows = []
+        # 1. Real bets
         r = _sb_session.get(
             f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
             "?select=created_at,correct&bet_taken=eq.true&correct=not.is.null"
             "&close_reason=neq.data_gap",
-            headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
-            timeout=8,
+            headers=headers, timeout=8,
         )
-        rows = r.json() if r.ok else []
+        if r.ok:
+            rows.extend(r.json())
+        # 2. Ghost bets (sess.173: critical when bot is PAUSED)
+        r_ghost = _sb_session.get(
+            f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
+            "?select=created_at,ghost_correct&bet_taken=eq.false&ghost_correct=not.is.null",
+            headers=headers, timeout=8,
+        )
+        if r_ghost.ok:
+            for gr in r_ghost.json():
+                rows.append({"created_at": gr["created_at"], "correct": gr.get("ghost_correct")})
+
         if len(rows) < 20:
             return {"ok": False, "error": "insufficient_data", "count": len(rows)}
         from collections import defaultdict
@@ -605,9 +621,9 @@ def refresh_dead_hours():
             hour_stats[h] = {"wr": round(wr, 3), "n": len(vals)}
             if len(vals) >= 5 and wr < 0.35:
                 dead.add(h)
-        # fallback: se non ci sono ore con n>=5 e WR<35%, usa prior da calibrazione storica
+        # Fallback: updated sess.173 based on ghost WR data (0h,1h,2h,7h,17h,18h,22h = 0%)
         with _DEAD_HOURS_LOCK:
-            DEAD_HOURS_UTC = dead if dead else {5, 7, 10, 11, 17, 19}
+            DEAD_HOURS_UTC = dead if dead else {0, 1, 2, 7, 17, 18, 22}
         app.logger.info(f"[CAL] Dead hours updated: {sorted(DEAD_HOURS_UTC)}")
         return {"ok": True, "dead_hours": sorted(DEAD_HOURS_UTC), "hour_stats": hour_stats}
     except Exception as e:

@@ -41,12 +41,15 @@ _DIRECTION_WINDOW = 30            # last N signals for bias detection
 _DIRECTION_BIAS_THRESHOLD = 0.85  # 85% = biased (relaxed: trending markets legitimately cluster)
 
 # Confidence bands: (lower, upper)
+# Updated sess.173: max confidence now 0.68 (was 0.80).
+# Finer granularity in 0.55-0.68 range where most signals live.
 _CONF_BANDS = [
     (0.50, 0.55),
-    (0.55, 0.60),
-    (0.60, 0.65),
-    (0.65, 0.70),
-    (0.70, 1.00),
+    (0.55, 0.58),
+    (0.58, 0.61),
+    (0.61, 0.64),
+    (0.64, 0.68),
+    (0.68, 1.00),  # safety: catch any legacy signals above new max
 ]
 
 
@@ -479,22 +482,61 @@ class AdaptiveEngine:
     # ── Data access ───────────────────────────────────────────────────────────
 
     def _fetch_signals(self) -> list:
-        """Fetch last 200 resolved signals from Supabase."""
+        """Fetch last 200 resolved signals from Supabase.
+        Includes both real bets AND ghost bets (sess.173 fix).
+        When bot is PAUSED, ghost bets are the only source of data — ACE
+        must see them to keep ceiling/threshold/momentum updated.
+        """
         if not self._sb_url or not self._sb_key:
             return []
-        url = (
+        headers = {
+            "apikey": self._sb_key,
+            "Authorization": f"Bearer {self._sb_key}",
+        }
+        rows = []
+        # 1. Real bets (bet_taken=true, correct resolved)
+        url_real = (
             f"{self._sb_url}/rest/v1/{self._table}"
             "?select=id,direction,confidence,correct,pnl_pct,pnl_usd,created_at"
             "&bet_taken=eq.true"
             "&correct=not.is.null"
             "&order=id.desc&limit=200"
         )
-        req = urllib.request.Request(url, headers={
-            "apikey": self._sb_key,
-            "Authorization": f"Bearer {self._sb_key}",
-        })
-        with urllib.request.urlopen(req, context=_SSL_CTX, timeout=10) as resp:
-            return json.loads(resp.read().decode())
+        try:
+            req = urllib.request.Request(url_real, headers=headers)
+            with urllib.request.urlopen(req, context=_SSL_CTX, timeout=10) as resp:
+                rows.extend(json.loads(resp.read().decode()))
+        except Exception:
+            logger.debug("[ACE] fetch real bets failed", exc_info=True)
+
+        # 2. Ghost bets (bet_taken=false, ghost_correct resolved)
+        url_ghost = (
+            f"{self._sb_url}/rest/v1/{self._table}"
+            "?select=id,direction,confidence,ghost_correct,pnl_pct,created_at"
+            "&bet_taken=eq.false"
+            "&ghost_correct=not.is.null"
+            "&order=id.desc&limit=200"
+        )
+        try:
+            req = urllib.request.Request(url_ghost, headers=headers)
+            with urllib.request.urlopen(req, context=_SSL_CTX, timeout=10) as resp:
+                ghost_rows = json.loads(resp.read().decode())
+                # Normalize ghost_correct → correct for downstream compatibility
+                for r in ghost_rows:
+                    r["correct"] = r.pop("ghost_correct", None)
+                rows.extend(ghost_rows)
+        except Exception:
+            logger.debug("[ACE] fetch ghost bets failed", exc_info=True)
+
+        # Deduplicate by id (a row could theoretically appear in both)
+        seen = set()
+        unique = []
+        for r in rows:
+            rid = r.get("id")
+            if rid not in seen:
+                seen.add(rid)
+                unique.append(r)
+        return unique
 
     def _persist_state(self, st: AdaptiveState, trigger: str, signals_used: int):
         """Save state to Supabase (fire-and-forget)."""

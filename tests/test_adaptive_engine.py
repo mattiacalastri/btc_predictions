@@ -196,11 +196,11 @@ class TestDirectionBias:
 class TestFindBestBand:
     def test_finds_best_band(self):
         engine = AdaptiveEngine()
-        # Create rows with high WR at 0.60-0.65 band
+        # Create rows with high WR at 0.61-0.64 band (sess.173: finer bands)
         rows = _make_rows(30, wr=0.70, conf=0.62)
         thr, label, exp = engine._find_best_band(rows)
-        assert label == "0.60-0.65"
-        assert thr == 0.60
+        assert label == "0.61-0.64"
+        assert thr == 0.61
         assert exp is not None and exp > 0
 
     def test_insufficient_data_returns_default(self):
