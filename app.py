@@ -4221,6 +4221,7 @@ def ghost_evaluate():
     return jsonify({
         "status": "ok",
         "evaluated": len(evaluated),
+        "message": f"Evaluated {len(evaluated)} ghost signals" if evaluated else "No signals evaluated in this batch",
         "errors": len(errors),
         "remaining": len(candidates) - batch_limit,
         "results": evaluated,
