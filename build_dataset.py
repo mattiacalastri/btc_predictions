@@ -531,6 +531,13 @@ def main():
             "~1 req HTTP per riga. Disabilitato di default."
         ),
     )
+    parser.add_argument(
+        "--reset-date", type=str, default=None,
+        help=(
+            "P4 DB Reset: exclude signals before this date (ISO format YYYY-MM-DD). "
+            "Filters out contaminated pre-fix data. Example: --reset-date 2026-03-07"
+        ),
+    )
     args = parser.parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)
@@ -543,9 +550,26 @@ def main():
         print("Nessuna predizione trovata. Controlla SUPABASE_URL e SUPABASE_KEY.")
         return
 
+    # ── P4: DB Reset — exclude contaminated pre-fix data ───────────────────────
+    if args.reset_date:
+        _before = len(rows)
+        rows = [r for r in rows if r.get("created_at", "") >= args.reset_date]
+        _after = len(rows)
+        print(f"[{datetime.now():%H:%M:%S}] DB Reset: excluded {_before - _after} rows before {args.reset_date} "
+              f"({_before} → {_after})")
+        if not rows:
+            print(f"No rows remaining after reset-date filter. Check date format (YYYY-MM-DD).")
+            return
+
     # ── M-4: Ghost signals ─────────────────────────────────────────────────────
     if args.include_ghost:
         ghost_rows = fetch_ghost_signals()
+        # Apply same reset-date filter to ghost signals
+        if args.reset_date and ghost_rows:
+            _g_before = len(ghost_rows)
+            ghost_rows = [r for r in ghost_rows if r.get("created_at", "") >= args.reset_date]
+            if _g_before != len(ghost_rows):
+                print(f"[{datetime.now():%H:%M:%S}] DB Reset (ghost): excluded {_g_before - len(ghost_rows)} ghost rows")
         if ghost_rows:
             g_wins   = sum(1 for r in ghost_rows if r.get("correct") is True)
             g_losses = sum(1 for r in ghost_rows if r.get("correct") is False)

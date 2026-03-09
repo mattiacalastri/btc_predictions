@@ -63,6 +63,7 @@ class AdaptiveState:
         "wr_up", "wr_down", "wr_recent_10", "wr_baseline_50",
         "bias_direction", "bias_pct", "best_band_label",
         "best_band_expectancy", "total_signals_used", "updated_at",
+        "confidence_ceiling", "worst_band_label",
     )
 
     def __init__(self, **kwargs):
@@ -87,6 +88,7 @@ class AdaptiveState:
             bias_direction=None, bias_pct=None,
             best_band_label=None, best_band_expectancy=None,
             total_signals_used=0, updated_at=None,
+            confidence_ceiling=None, worst_band_label=None,
         )
 
 
@@ -151,7 +153,18 @@ class AdaptiveEngine:
             if adj_conf < env_floor and raw_confidence >= env_floor:
                 effective_conf = raw_confidence  # bypass WR/momentum penalty at floor
 
-            should_trade = effective_conf >= eff_threshold
+            # Confidence ceiling: skip signals in historically bad bands
+            _ceiling_applied = False
+            if st.confidence_ceiling is not None and raw_confidence >= st.confidence_ceiling:
+                should_trade = False
+                _ceiling_applied = True
+                logger.info(
+                    f"[ACE] Ceiling cap: raw_conf={raw_confidence:.3f} >= "
+                    f"ceiling={st.confidence_ceiling:.2f} ({st.worst_band_label})"
+                )
+            else:
+                should_trade = effective_conf >= eff_threshold
+
             return {
                 "should_trade": should_trade,
                 "adjusted_conf": round(adj_conf, 4),
@@ -165,7 +178,9 @@ class AdaptiveEngine:
                 "size_factor": round(st.regime_size_factor, 4),
                 "momentum_factor": round(st.momentum_factor, 4),
                 "calibration_wr_factor": round(st.calibration_wr_factor, 4),
-                "reason": "adaptive",
+                "confidence_ceiling": st.confidence_ceiling,
+                "ceiling_applied": _ceiling_applied,
+                "reason": "adaptive_ceiling" if _ceiling_applied else "adaptive",
             }
         except Exception:
             logger.exception("[ACE] evaluate error — fail-open")
@@ -262,6 +277,11 @@ class AdaptiveEngine:
         else:
             calibration_wr_factor = 1.0
 
+        # 7. Confidence ceiling: cap signals in bands with WR < 35%
+        # Fixes the "floor-only" bug: ACE used to find the best band as threshold
+        # floor but let high-confidence (worst WR) signals through.
+        conf_ceiling, worst_label = self._find_confidence_ceiling(rows)
+
         # Composite effective threshold
         effective_threshold = optimal_threshold + regime_adj + direction_bias_adj
         effective_threshold = _clamp(effective_threshold, *_THRESHOLD_BOUNDS)
@@ -279,6 +299,7 @@ class AdaptiveEngine:
             best_band_label=best_label, best_band_expectancy=best_exp,
             total_signals_used=len(rows),
             updated_at=time.time(),
+            confidence_ceiling=conf_ceiling, worst_band_label=worst_label,
         )
 
     @staticmethod
@@ -324,6 +345,40 @@ class AdaptiveEngine:
                 best_threshold = _clamp(lo, *_THRESHOLD_BOUNDS)
 
         return best_threshold, best_label, best_exp
+
+    def _find_confidence_ceiling(self, rows: list) -> tuple:
+        """Find the lowest confidence band with WR < 35% (n >= 10).
+        Returns (ceiling_value, worst_band_label).
+        If no band is bad enough, returns (None, None) — no ceiling applied.
+        """
+        _WR_CEILING_THRESHOLD = 0.35  # bands below this WR get capped
+        _MIN_SAMPLES_CEILING = 10     # need enough data to be confident
+
+        ceiling = None
+        worst_label = None
+
+        for lo, hi in _CONF_BANDS:
+            band_rows = [
+                r for r in rows
+                if r.get("confidence") is not None
+                and lo <= float(r["confidence"]) < hi
+                and r.get("correct") is not None
+            ]
+            if len(band_rows) < _MIN_SAMPLES_CEILING:
+                continue
+
+            wins = sum(1 for r in band_rows if r.get("correct"))
+            wr = wins / len(band_rows)
+
+            if wr < _WR_CEILING_THRESHOLD:
+                # Found a bad band — ceiling at its lower bound
+                if ceiling is None or lo < ceiling:
+                    ceiling = lo
+                    worst_label = f"{lo:.2f}-{hi:.2f} (WR={wr:.1%}, n={len(band_rows)})"
+
+        if ceiling is not None:
+            logger.info(f"[ACE] Confidence ceiling set at {ceiling:.2f}: {worst_label}")
+        return ceiling, worst_label
 
     @staticmethod
     def _avg_pnl(rows: list, default: float = 0.0) -> float:

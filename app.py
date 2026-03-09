@@ -2204,6 +2204,22 @@ def place_bet():
     if direction not in ("UP", "DOWN"):
         return jsonify({"status": "failed", "error": "invalid_direction"}), 400
 
+    # ── P0 FIX: Anti-consensus confidence cap ─────────────────────────────────
+    # Root cause: Pearson r=+0.504 between confidence and technical_score.
+    # When all technicals agree (|score|>=4), LLM assigns high confidence,
+    # but consensus = late entry = reversal. Data: 0.70+ WR=23.5%, 0.50-0.55 WR=69.7%.
+    # Cap high-confidence signals when technical consensus is strong.
+    _tech_score = _safe_float(data.get("technical_score", 0), default=0.0)
+    _ANTI_CONSENSUS_CEILING = 0.65
+    _ANTI_CONSENSUS_TECH_THRESHOLD = 4.0
+    if abs(_tech_score) >= _ANTI_CONSENSUS_TECH_THRESHOLD and confidence > _ANTI_CONSENSUS_CEILING:
+        _prev_conf = confidence
+        confidence = _ANTI_CONSENSUS_CEILING
+        app.logger.info(
+            f"[P0-FIX] Anti-consensus cap: |tech_score|={abs(_tech_score):.1f} >= "
+            f"{_ANTI_CONSENSUS_TECH_THRESHOLD}, conf {_prev_conf:.3f} → {confidence:.3f}"
+        )
+
     # P0.2 — filtro ore morte (WR storico < 45% UTC, aggiornato da /reload-calibration)
     current_hour_utc = time.gmtime().tm_hour
     with _DEAD_HOURS_LOCK:
