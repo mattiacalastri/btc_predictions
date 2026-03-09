@@ -2204,11 +2204,9 @@ def place_bet():
     if direction not in ("UP", "DOWN"):
         return jsonify({"status": "failed", "error": "invalid_direction"}), 400
 
-    # ── P0 FIX: Anti-consensus confidence cap ─────────────────────────────────
-    # Root cause: Pearson r=+0.504 between confidence and technical_score.
-    # When all technicals agree (|score|>=4), LLM assigns high confidence,
-    # but consensus = late entry = reversal. Data: 0.70+ WR=23.5%, 0.50-0.55 WR=69.7%.
-    # Cap high-confidence signals when technical consensus is strong.
+    # ── P0 FIX: Anti-consensus confidence cap (safety net) ──────────────────
+    # Primary cap now lives in /ai-predict (sess.173). This is a fallback
+    # for direct place_bet() calls that bypass /ai-predict.
     _tech_score = _safe_float(data.get("technical_score", 0), default=0.0)
     _ANTI_CONSENSUS_CEILING = 0.65
     _ANTI_CONSENSUS_TECH_THRESHOLD = 4.0
@@ -2216,9 +2214,12 @@ def place_bet():
         _prev_conf = confidence
         confidence = _ANTI_CONSENSUS_CEILING
         app.logger.info(
-            f"[P0-FIX] Anti-consensus cap: |tech_score|={abs(_tech_score):.1f} >= "
+            f"[P0-FIX] Anti-consensus cap (place_bet fallback): |tech_score|={abs(_tech_score):.1f} >= "
             f"{_ANTI_CONSENSUS_TECH_THRESHOLD}, conf {_prev_conf:.3f} → {confidence:.3f}"
         )
+    # Hard ceiling: prompt max is 0.68, enforce here too
+    if confidence > 0.68:
+        confidence = 0.68
 
     # P0.2 — filtro ore morte (WR storico < 45% UTC, aggiornato da /reload-calibration)
     current_hour_utc = time.gmtime().tm_hour
@@ -4495,41 +4496,52 @@ def force_retrain():
 
 
 _AI_PREDICT_SYSTEM = (
-    "You are a profitable Bitcoin short-term Automatic Prediction Trading Agent on 5-minute horizons. "
-    "Each cycle evaluates multi-factor BTC/USD market data to predict UP or DOWN for a Kraken Futures perpetual trade on PF_XBTUSD. "
+    "You are a profitable Bitcoin short-term Automatic Prediction Trading Agent on 30-minute horizons. "
+    "Each cycle evaluates multi-factor BTC/USD market data to predict UP or DOWN over the next 30 minutes "
+    "for a Kraken Futures perpetual trade on PF_XBTUSD. "
     "Be data-driven, avoid speculation, prioritize signal alignment and internal consistency.\n\n"
     "Think through all steps before producing the final JSON output.\n\n"
     "## STEP 0 — FORCE_NO_BET CHECK\n"
     "If force_no_bet = true: determine natural direction anyway, force confidence = 0.50, begin reasoning with 'STRUCTURAL OVERRIDE: [reason]'.\n\n"
-    "## STEP 1 — TECHNICAL SCORE CEILING\n"
+    "## STEP 1 — TECHNICAL SCORE CEILING (ANTI-CONSENSUS)\n"
     "Read Technical Score from data. Let S = |score|.\n"
-    "S <= 1.0 -> ceiling 0.62 | S 1.0-2.5 -> 0.65 | S 2.5-3.5 -> 0.65 | S 3.5-4.5 -> 0.72 | S > 4.5 -> 0.78\n"
-    "Absolute max: 0.80.\n\n"
+    "CRITICAL: HIGH CONSENSUS = LATE ENTRY. When all indicators agree, the move is likely exhausted.\n"
+    "S <= 1.0 -> ceiling 0.62 (weak signal, low confidence correct)\n"
+    "S 1.0-2.5 -> ceiling 0.68 (moderate signal, best range for genuine edge)\n"
+    "S 2.5-3.5 -> ceiling 0.65 (consensus building, start capping)\n"
+    "S 3.5-4.5 -> ceiling 0.62 (strong consensus = late entry risk, cap aggressively)\n"
+    "S > 4.5 -> ceiling 0.60 (extreme consensus = reversal imminent, minimum confidence)\n"
+    "Absolute max: 0.68. NEVER assign confidence above 0.68.\n\n"
     "## STEP 2 — BASE SIGNAL WEIGHTS\n"
-    "Technical Score (±7) — 40% | RSI14 — 10% | MACD — 10% | Derivatives (LS + Funding) — 13% | "
-    "OI + Futures Volume — 12% | Taker Buy/Sell — 5% | MTF Consensus — 5% | News/Macro — 5%\n\n"
+    "Technical Score (±7) — 35% | RSI14 — 12% | MACD — 10% | Derivatives (LS + Funding) — 15% | "
+    "OI + Futures Volume — 13% | Taker Buy/Sell — 5% | MTF Consensus — 5% | News/Macro — 5%\n\n"
     "## DIRECTIONAL SYMMETRY RULES\n"
     "- EMA BULL -> UP unless contradicted | EMA BEAR -> DOWN unless contradicted | EMA NEUTRAL -> use MTF + taker\n"
-    "- EMA opposes direction -> CAP 0.62\n"
+    "- EMA opposes direction -> CAP 0.60\n"
     "- Derivatives are BIDIRECTIONAL: funding positive = bearish pressure, negative = bullish pressure\n"
     "- Only crypto-specific news has weight (10%). Generic macro = 0%.\n\n"
     "## CONFIDENCE CALIBRATION\n"
-    "0.50-0.54 = conflicting | 0.55-0.62 = mild | 0.63-0.72 = clear (3+ agree) | 0.73-0.80 = strong convergence\n"
-    "Use FULL range. Never default to 0.55.\n\n"
+    "0.50-0.54 = conflicting signals, unclear edge\n"
+    "0.55-0.60 = mild directional lean, 2 categories agree\n"
+    "0.61-0.65 = clear signal, 3+ categories agree with NO contradiction\n"
+    "0.66-0.68 = strong edge, rare — only when moderate tech score (S 1-2.5) PLUS derivatives confirm\n"
+    "Stay in 0.55-0.65 range for most signals. 0.66+ is exceptional.\n\n"
     "## KEY RULES\n"
     "- Doji pattern: -0.10 penalty\n"
-    "- Thin volume: -0.15 penalty, CAP 0.61\n"
+    "- Thin volume: -0.15 penalty, CAP 0.58\n"
     "- Bollinger squeeze (<0.3%): -0.05\n"
     "- |score| >= 5 AND EMA opposes: -0.20\n"
-    "- Capitulation Risk + crowd_long_contrarian: -0.20, CAP 0.55-0.59\n"
-    "- Short Squeeze + crowd_short_contrarian: -0.20, CAP 0.55-0.59\n"
+    "- |score| >= 5 AND EMA aligns: STILL cap 0.60 (extreme consensus = reversal risk)\n"
+    "- Capitulation Risk + crowd_long_contrarian: -0.20, CAP 0.55-0.58\n"
+    "- Short Squeeze + crowd_short_contrarian: -0.20, CAP 0.55-0.58\n"
     "- < 3 categories align: -0.05\n"
-    "- Final clamp: [0.50, 0.80]\n\n"
+    "- Final clamp: [0.50, 0.68]\n\n"
     "## ANTI-BIAS CHECK\n"
-    "Before answering: Is direction data-driven or 'safe feeling'? Would flipping EMA flip your call?\n\n"
+    "Before answering: Is direction data-driven or 'safe feeling'? Would flipping EMA flip your call? "
+    "Is your confidence high because indicators agree, or because you have genuine edge? Agreement ≠ edge.\n\n"
     "## OUTPUT\n"
     "Return SINGLE valid JSON. No markdown, no backticks.\n"
-    '{"direction":"UP|DOWN","confidence":0.50-0.80,"reasoning":"min 30 chars",'
+    '{"direction":"UP|DOWN","confidence":0.50-0.68,"reasoning":"min 30 chars",'
     '"signals":{"technical":"...","sentiment":"...","fear_greed":"...","volume":"...",'
     '"technical_bias_bullish":bool,"signal_fg_fear":bool},'
     '"telegram_message":"min 10 chars"}'
@@ -4710,11 +4722,26 @@ def ai_predict():
         if not parsed or "direction" not in parsed:
             return jsonify({"status": "error", "error": "invalid_ai_response", "raw": raw_text[:500]}), 500
 
+        # ── P0 FIX sess.173: Anti-consensus cap at source ────────────────────
+        # Applied HERE so n8n stores the capped value in Supabase.
+        # Previously this only ran in place_bet() which ghost bets never reach.
+        _parsed_conf = max(0.50, min(0.68, float(parsed.get("confidence", 0.55))))
+        _ts_raw = data.get('technical_score', {})
+        _ts_value = float(_ts_raw.get('value', 0)) if isinstance(_ts_raw, dict) else float(_ts_raw or 0)
+        _AC_CEILING = 0.65
+        _AC_TECH_THRESHOLD = 4.0
+        if abs(_ts_value) >= _AC_TECH_THRESHOLD and _parsed_conf > _AC_CEILING:
+            app.logger.info(
+                f"[AI_PREDICT] Anti-consensus cap: |tech_score|={abs(_ts_value):.1f}, "
+                f"conf {_parsed_conf:.3f} → {_AC_CEILING:.3f}"
+            )
+            _parsed_conf = _AC_CEILING
+
         # Wrap in "output" key to match n8n $json.output.* references
         return jsonify({
             "output": {
                 "direction": parsed.get("direction", "").upper(),
-                "confidence": max(0.50, min(0.80, float(parsed.get("confidence", 0.55)))),
+                "confidence": _parsed_conf,
                 "reasoning": parsed.get("reasoning", ""),
                 "signals": parsed.get("signals", {}),
                 "telegram_message": parsed.get("telegram_message", ""),
