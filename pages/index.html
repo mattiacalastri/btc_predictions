@@ -569,23 +569,48 @@
           <span style="color:var(--accent);font-size:9px">TP ▶</span>
         </div>
       </div>
-      <!-- RIGHT: AI cube + decision -->
+      <!-- RIGHT: AI cube + decision — Thoth Protocol -->
       <div class="lp-right">
-        <div class="ai-cube-scene" id="cubeScene">
-          <div class="ai-cube" id="aiCube" data-state="neutral">
-            <div class="cube-face cube-front">AI</div>
-            <div class="cube-face cube-back">XGB</div>
-            <div class="cube-face cube-right">HOLD</div>
-            <div class="cube-face cube-left">EXIT</div>
-            <div class="cube-face cube-top" id="cubeFaceConf">—%</div>
-            <div class="cube-face cube-bottom">BOT</div>
+        <div class="thoth-arena" id="thothArena">
+          <!-- 3 Mini-orb dei membri del Council -->
+          <div class="council-orb orb-tecnico" id="orbTecnico" title="TECNICO — Claude Sonnet">T</div>
+          <div class="council-orb orb-sentiment" id="orbSentiment" title="SENTIMENT — Gemini Flash">S</div>
+          <div class="council-orb orb-quant" id="orbQuant" title="QUANT — XGBoost">Q</div>
+          <!-- SVG lines: orb → cube (animated during deliberation) -->
+          <svg class="council-lines" id="councilLines" viewBox="0 0 120 120" preserveAspectRatio="xMidYMid meet">
+            <line class="c-line line-tecnico" x1="20" y1="18" x2="60" y2="60"/>
+            <line class="c-line line-sentiment" x1="100" y1="18" x2="60" y2="60"/>
+            <line class="c-line line-quant" x1="60" y1="110" x2="60" y2="60"/>
+          </svg>
+          <!-- Sacred geometry background (Flower of Life) -->
+          <svg class="sacred-geo-bg" id="sacredGeoBg" viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r="25" fill="none" stroke="rgba(212,175,55,0.04)" stroke-width="0.5"/>
+            <circle cx="60" cy="35" r="25" fill="none" stroke="rgba(212,175,55,0.03)" stroke-width="0.5"/>
+            <circle cx="60" cy="85" r="25" fill="none" stroke="rgba(212,175,55,0.03)" stroke-width="0.5"/>
+            <circle cx="38" cy="47" r="25" fill="none" stroke="rgba(212,175,55,0.03)" stroke-width="0.5"/>
+            <circle cx="82" cy="47" r="25" fill="none" stroke="rgba(212,175,55,0.03)" stroke-width="0.5"/>
+            <circle cx="38" cy="73" r="25" fill="none" stroke="rgba(212,175,55,0.03)" stroke-width="0.5"/>
+            <circle cx="82" cy="73" r="25" fill="none" stroke="rgba(212,175,55,0.03)" stroke-width="0.5"/>
+          </svg>
+          <!-- The Cube of Thoth -->
+          <div class="ai-cube-scene" id="cubeScene">
+            <div class="ai-cube" id="aiCube" data-state="neutral" data-thoth="idle">
+              <div class="cube-face cube-front" id="cubeFaceFront">AI</div>
+              <div class="cube-face cube-back" id="cubeFaceBack">XGB</div>
+              <div class="cube-face cube-right" id="cubeFaceRight">HOLD</div>
+              <div class="cube-face cube-left" id="cubeFaceLeft">EXIT</div>
+              <div class="cube-face cube-top" id="cubeFaceConf">—%</div>
+              <div class="cube-face cube-bottom" id="cubeFaceBottom">BOT</div>
+            </div>
           </div>
         </div>
         <div class="ai-decision">
-          <span class="ai-status-dot"></span>
+          <span class="ai-status-dot" id="aiStatusDot"></span>
           <span id="aiDecisionText">Monitoring</span>
         </div>
-        <div class="ai-think-label">AI Exit Manager</div>
+        <div class="ai-think-label" id="aiThinkLabel">AI Exit Manager</div>
+        <!-- Micro-timeline: last 9 deliberations as diamonds -->
+        <div class="council-micro-timeline" id="councilTimeline"></div>
       </div>
     </div>
   </div>
@@ -5798,14 +5823,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Auto-rotate: ~stessa velocità dell'animazione CSS originale (9s = 40°/s)
   const AUTO_SPEED = 40 / 60; // gradi per frame a 60fps
 
-  function tick() {
-    if (!dragging) {
-      rotX += AUTO_SPEED;
-      rotY += AUTO_SPEED;
-    }
-    cube.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
-    requestAnimationFrame(tick);
-  }
+  // tick() removed — replaced by thothTick() below with variable speed
 
   // ── Touch (mobile) ──
   scene.addEventListener('touchstart', function(e) {
@@ -5852,7 +5870,207 @@ document.addEventListener('DOMContentLoaded', function() {
     scene.style.cursor = 'grab';
   });
 
-  requestAnimationFrame(tick);
+  // ── Thoth Protocol: modulate auto-rotate speed based on deliberation state ──
+  let _thothSpeed = AUTO_SPEED; // normal: 40deg/s
+  window._setThothSpeed = function(s) { _thothSpeed = s; };
+  // Override tick to use _thothSpeed
+  function thothTick() {
+    if (!dragging) {
+      rotX += _thothSpeed;
+      rotY += _thothSpeed;
+    }
+    cube.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+    requestAnimationFrame(thothTick);
+  }
+
+  // Replace original tick with thothTick
+  requestAnimationFrame(thothTick);
+})();
+
+// ── THOTH PROTOCOL — Council Deliberation Theater (sess.166) ──────────────────
+(function() {
+  const POLL_INTERVAL = 5000; // 5s — same as wf28 cycle
+  const arena    = document.getElementById('thothArena');
+  const cube     = document.getElementById('aiCube');
+  const label    = document.getElementById('aiThinkLabel');
+  const timeline = document.getElementById('councilTimeline');
+  const aiText   = document.getElementById('aiDecisionText');
+  const aiDot    = document.getElementById('aiStatusDot');
+  const orbT     = document.getElementById('orbTecnico');
+  const orbS     = document.getElementById('orbSentiment');
+  const orbQ     = document.getElementById('orbQuant');
+  const lineT    = document.querySelector('.line-tecnico');
+  const lineS    = document.querySelector('.line-sentiment');
+  const lineQ    = document.querySelector('.line-quant');
+  const sacredBg = document.getElementById('sacredGeoBg');
+
+  if (!arena || !cube) return;
+
+  let lastHash = null;
+  let animating = false;
+
+  // Create Thoth Seal SVG (Eye of Thoth)
+  const seal = document.createElement('div');
+  seal.className = 'thoth-seal';
+  seal.innerHTML = '<svg viewBox="0 0 60 60" width="60" height="60"><path d="M10 30 Q30 10 50 30 Q30 50 10 30Z" fill="none" stroke="rgba(212,175,55,0.6)" stroke-width="1.5"/><circle cx="30" cy="30" r="8" fill="none" stroke="rgba(0,212,170,0.5)" stroke-width="1.2"/><circle cx="30" cy="30" r="3" fill="rgba(212,175,55,0.5)"/></svg>';
+  arena.appendChild(seal);
+
+  function resetOrbs() {
+    [orbT, orbS, orbQ].forEach(function(o) {
+      if (o) o.classList.remove('orb-active', 'vote-up', 'vote-down');
+    });
+    [lineT, lineS, lineQ].forEach(function(l) {
+      if (l) l.classList.remove('line-active');
+    });
+  }
+
+  // Tesla 369 timing: 300ms, 600ms, 900ms
+  function animateVotes(votes) {
+    var orbs  = [orbT, orbS, orbQ];
+    var lines = [lineT, lineS, lineQ];
+    var order = ['TECNICO', 'SENTIMENT', 'QUANT'];
+
+    order.forEach(function(member, i) {
+      var vote = votes.find(function(v) { return v.member === member; });
+      if (!vote) return;
+      var delay = (i + 1) * 300; // 300, 600, 900 — Tesla's 3-6-9
+
+      setTimeout(function() {
+        var orb = orbs[i];
+        var line = lines[i];
+        if (orb) {
+          orb.classList.add('orb-active');
+          if (vote.direction === 'UP') orb.classList.add('vote-up');
+          else if (vote.direction === 'DOWN') orb.classList.add('vote-down');
+        }
+        if (line) line.classList.add('line-active');
+      }, delay);
+    });
+  }
+
+  function showVerdict(verdict) {
+    if (!verdict) return;
+    var dir = verdict.direction;
+    var conf = Math.round((verdict.confidence || 0) * 100);
+
+    // Cube state
+    if (dir === 'UP')        cube.dataset.thoth = 'verdict-up';
+    else if (dir === 'DOWN') cube.dataset.thoth = 'verdict-down';
+    else                     cube.dataset.thoth = 'verdict-skip';
+
+    // Update cube faces with verdict data
+    var faceRight = document.getElementById('cubeFaceRight');
+    var faceLeft  = document.getElementById('cubeFaceLeft');
+    if (faceRight) faceRight.textContent = dir === 'SKIP' ? 'WAIT' : dir;
+    if (faceLeft)  faceLeft.textContent = conf + '%';
+
+    // Update decision text
+    if (aiText) {
+      if (dir === 'UP')        aiText.textContent = 'Council: LONG';
+      else if (dir === 'DOWN') aiText.textContent = 'Council: SHORT';
+      else                     aiText.textContent = 'Council: OBSERVE';
+    }
+
+    // Label update
+    if (label) label.textContent = 'THOTH COUNCIL';
+
+    // Dot color
+    if (aiDot) {
+      if (dir === 'UP')        aiDot.style.background = 'var(--accent)';
+      else if (dir === 'DOWN') aiDot.style.background = 'var(--danger)';
+      else                     aiDot.style.background = 'var(--warn)';
+    }
+
+    // Thoth Seal flash (only for decisive verdicts)
+    if (dir !== 'SKIP' && conf >= 60) {
+      seal.classList.remove('seal-flash');
+      void seal.offsetWidth; // force reflow
+      seal.classList.add('seal-flash');
+    }
+
+    // Restore cube speed after 3s (Fibonacci: 3)
+    setTimeout(function() {
+      if (window._setThothSpeed) window._setThothSpeed(40 / 60); // back to normal
+      cube.dataset.thoth = 'idle';
+      arena.classList.remove('deliberating');
+    }, 3000);
+  }
+
+  function renderTimeline(history) {
+    if (!timeline) return;
+    timeline.innerHTML = '';
+    var items = history.slice(-9); // last 9
+    items.forEach(function(entry, i) {
+      var d = document.createElement('div');
+      d.className = 'ct-diamond';
+      var dir = entry.verdict ? entry.verdict.direction : 'SKIP';
+      if (dir === 'UP')        d.classList.add('ct-up');
+      else if (dir === 'DOWN') d.classList.add('ct-down');
+      else                     d.classList.add('ct-skip');
+      if (i === items.length - 1) d.classList.add('ct-latest');
+      d.title = (entry.timestamp || '').slice(11, 19) + ' — ' + dir;
+      timeline.appendChild(d);
+    });
+  }
+
+  function runDeliberationSequence(data) {
+    if (animating) return;
+    animating = true;
+    var delib = data.last_deliberation;
+    if (!delib) { animating = false; return; }
+
+    // Phase 1: Invocation (0ms) — cube accelerates, arena glows
+    arena.classList.add('deliberating');
+    if (window._setThothSpeed) window._setThothSpeed(80 / 60); // 2x speed
+    cube.dataset.thoth = 'deliberating';
+    resetOrbs();
+
+    // Phase 2: Votes (300-900ms) — orbs light up sequentially
+    animateVotes(delib.votes || []);
+
+    // Phase 3: Convergence (1500ms) — lines complete, verdict appears
+    setTimeout(function() {
+      showVerdict(delib.verdict);
+      renderTimeline(data.history || []);
+      animating = false;
+    }, 1500);
+  }
+
+  async function pollCouncilStatus() {
+    try {
+      var baseUrl = (typeof CONFIG !== 'undefined' && CONFIG.RAILWAY_URL) || '';
+      if (!baseUrl) return;
+      var res = await fetch(baseUrl + '/council-status', { signal: AbortSignal.timeout(8000) });
+      if (!res.ok) return;
+      var data = await res.json();
+
+      // Always render timeline even without new deliberation
+      if (data.history && data.history.length > 0) {
+        renderTimeline(data.history);
+      }
+
+      // Check if deliberation is in progress
+      if (data.deliberating && !animating) {
+        arena.classList.add('deliberating');
+        cube.dataset.thoth = 'deliberating';
+        if (window._setThothSpeed) window._setThothSpeed(80 / 60);
+        if (label) label.textContent = 'DELIBERATING...';
+        return;
+      }
+
+      // Check for new verdict (different hash)
+      if (data.last_deliberation && data.last_deliberation.signal_hash !== lastHash) {
+        lastHash = data.last_deliberation.signal_hash;
+        runDeliberationSequence(data);
+      }
+    } catch (e) {
+      // Silent fail — non-critical UI feature
+    }
+  }
+
+  // Initial poll + interval
+  setTimeout(pollCouncilStatus, 2000); // first poll after 2s
+  setInterval(pollCouncilStatus, POLL_INTERVAL);
 })();
 
 // ── TASK 2: Story Highlights sync ─────────────────────────────────────────────

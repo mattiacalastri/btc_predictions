@@ -634,6 +634,13 @@ TREND_ALIGN_FILTER = os.environ.get("TREND_ALIGN_FILTER", "true").lower() == "tr
 # AI Council mode (Fase 2) — TECNICO + SENTIMENT + QUANT vote before each trade
 COUNCIL_MODE = os.environ.get("COUNCIL_MODE", "false").lower() == "true"
 
+# Council status cache — Thoth Protocol (sess.166)
+# Stores last deliberation result for GET /council-status (read-only, no auth)
+_COUNCIL_LOCK = threading.Lock()
+_COUNCIL_DELIBERATING = False
+_COUNCIL_LAST: dict = {}       # populated after every run_round1()
+_COUNCIL_HISTORY: list = []    # ring buffer, last 9 deliberations
+
 # [FIX2] Prediction horizon (env-driven, used by /config and ATR scaling)
 PREDICTION_HORIZON_MINUTES = _safe_float(os.environ.get("PREDICTION_HORIZON_MINUTES", "30"), default=30.0, min_v=1.0, max_v=1440.0)
 
@@ -2212,6 +2219,9 @@ def place_bet():
         # Pre-compute XGB probability for QUANT member (avoid circular import)
         _c_xgb_prob_up, _ = _run_xgb_gate(direction, confidence, data, current_hour_utc)
         _council_payload = {**data, "xgb_prob_up": _c_xgb_prob_up}
+        with _COUNCIL_LOCK:
+            global _COUNCIL_DELIBERATING
+            _COUNCIL_DELIBERATING = True
         _council_votes = council_engine.run_round1(_council_payload)
         _council_result = council_engine.compute_weighted_vote(_council_votes)
 
@@ -2220,6 +2230,9 @@ def place_bet():
             f"{direction}{confidence}{int(time.time() // 300)}".encode()
         ).hexdigest()[:16]
         council_engine.log_votes_async(_council_votes, _council_hash)
+
+        # Thoth Protocol — cache deliberation for /council-status
+        _store_council_result(_council_votes, _council_result, _council_hash)
 
         _council_dir = _council_result["direction"]
         _council_agr = _council_result["agreement_score"]
@@ -3043,6 +3056,9 @@ def council_deliberate():
     xgb_prob_up, _ = _run_xgb_gate(direction, confidence, data, current_hour_utc)
     council_payload = {**data, "xgb_prob_up": xgb_prob_up}
 
+    with _COUNCIL_LOCK:
+        global _COUNCIL_DELIBERATING
+        _COUNCIL_DELIBERATING = True
     votes = council_engine.run_round1(council_payload)
     result = council_engine.compute_weighted_vote(votes)
 
@@ -3050,6 +3066,9 @@ def council_deliberate():
         f"{direction}{confidence}{int(time.time() // 300)}".encode()
     ).hexdigest()[:16]
     council_engine.log_votes_async(votes, signal_hash)
+
+    # Thoth Protocol — cache deliberation for /council-status
+    _store_council_result(votes, result, signal_hash)
 
     return jsonify({
         "status": "ok",
@@ -3059,6 +3078,62 @@ def council_deliberate():
         "council_decision": result,
         "votes": votes,
         "council_mode_active": COUNCIL_MODE,
+    })
+
+
+# ── THOTH PROTOCOL — Council Status (sess.166) ───────────────────────────────
+
+def _store_council_result(votes: list, result: dict, signal_hash: str):
+    """Cache the latest council deliberation for /council-status."""
+    global _COUNCIL_DELIBERATING
+    ts = _dt.datetime.now(_dt.timezone.utc).isoformat()
+    safe_votes = []
+    for v in votes:
+        safe_votes.append({
+            "member": v.get("member"),
+            "direction": v.get("direction"),
+            "confidence": round(float(v.get("confidence", 0)), 4),
+            "reasoning": (v.get("reasoning") or "")[:100],
+            "model_used": v.get("model_used"),
+            "weight": v.get("weight"),
+        })
+    entry = {
+        "timestamp": ts,
+        "votes": safe_votes,
+        "verdict": {
+            "direction": result.get("direction"),
+            "confidence": round(float(result.get("council_confidence", 0)), 4),
+            "agreement": round(float(result.get("agreement_score", 0)), 4),
+            "score": round(float(result.get("score", 0)), 4),
+        },
+        "signal_hash": signal_hash,
+    }
+    with _COUNCIL_LOCK:
+        _COUNCIL_LAST.clear()
+        _COUNCIL_LAST.update(entry)
+        _COUNCIL_HISTORY.append(entry)
+        # Ring buffer: keep last 9 (Tesla's number)
+        while len(_COUNCIL_HISTORY) > 9:
+            _COUNCIL_HISTORY.pop(0)
+        _COUNCIL_DELIBERATING = False
+
+
+@app.route("/council-status", methods=["GET"])
+def council_status():
+    """Read-only endpoint: last council deliberation + history (last 9).
+
+    Public (no auth) — exposes only vote directions/confidence, no market data.
+    Used by frontend councilTheater() for live deliberation visualization.
+    """
+    with _COUNCIL_LOCK:
+        last = dict(_COUNCIL_LAST) if _COUNCIL_LAST else None
+        history = list(_COUNCIL_HISTORY)
+        deliberating = _COUNCIL_DELIBERATING
+    return jsonify({
+        "deliberating": deliberating,
+        "last_deliberation": last,
+        "history": history,
+        "council_mode": COUNCIL_MODE,
     })
 
 
