@@ -396,5 +396,10 @@ def log_votes_async(votes: list, signal_hash: str, prediction_id=None):
         except Exception as _log_err:
             import logging
             logging.getLogger("council_engine").warning(f"log_votes_async failed: {_log_err}")
+            try:
+                import sentry_sdk
+                sentry_sdk.capture_exception(_log_err)
+            except Exception:
+                pass
 
     threading.Thread(target=_do_log, daemon=True).start()

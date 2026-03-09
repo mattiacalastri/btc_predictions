@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import logging
 import math
 import time
 import hashlib
@@ -12,6 +13,9 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import sentry_sdk
+import anthropic
+import httpx
+import certifi
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import Flask, request, jsonify, redirect
 from flask_compress import Compress
@@ -56,7 +60,18 @@ sentry_sdk.init(
 )
 
 app = Flask(__name__)
+app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024  # 5 MB — prevent memory exhaustion from oversized payloads
 Compress(app)  # gzip all responses >500 bytes — cuts dashboard from 411KB to ~80KB
+
+
+@app.teardown_appcontext
+def _shutdown_sessions(exception=None):
+    """Close persistent HTTP sessions on worker shutdown to release TCP connections."""
+    for s in (_sb_session, _kraken_session, _tg_session, _n8n_session, _ext_session):
+        try:
+            s.close()
+        except Exception:
+            pass
 
 
 @app.before_request
@@ -144,8 +159,8 @@ def _push_cockpit_log(source: str, level: str, title: str, message: str = "", me
                 },
                 timeout=3,
             )
-        except Exception:
-            pass  # never block the caller
+        except Exception as _ck_err:
+            sentry_sdk.capture_exception(_ck_err)  # never block, but report
     threading.Thread(target=_do_push, daemon=True).start()
 
 
@@ -256,6 +271,7 @@ _XGB_MODEL = None
 _XGB_CLEAN_BET_COUNT: int | None = None   # cache count bet pulite (post-Day0)
 _XGB_CLEAN_BET_CHECKED_AT: float = 0.0   # timestamp ultimo check
 _XGB_CLEAN_CACHE_TTL = 600               # 10 min
+_xgb_cache_lock = threading.Lock()        # protects _XGB_CLEAN_BET_COUNT + _CHECKED_AT
 # _BIAS_MAP e TAKER_FEE importati da constants.py
 # Feature order per XGBoost (usare stessa sequenza in feat_row): vedi _run_xgb_gate() riga ~974
 # [confidence, fear_greed, rsi14, technical_score, hour_sin, hour_cos,
@@ -272,9 +288,9 @@ def _load_xgb_model():
         assert isinstance(temp, XGBClassifier), "Direction model type mismatch"
         with _model_lock:
             _XGB_MODEL = temp
-        print(f"[XGB] Model loaded from {model_path}")
+        app.logger.info(f"[XGB] Model loaded from {model_path}")
     else:
-        print(f"[XGB] Model not found at {model_path} — /predict-xgb will return agree=True")
+        app.logger.warning(f"[XGB] Model not found at {model_path} — /predict-xgb will return agree=True")
 
 _load_xgb_model()
 
@@ -455,9 +471,9 @@ try:
     _xgb_correctness = joblib_load(_corr_path)
     from xgboost import XGBClassifier
     assert isinstance(_xgb_correctness, XGBClassifier), "Correctness model type mismatch"
-    print("[XGB] Correctness model loaded")
+    logging.getLogger(__name__).info("[XGB] Correctness model loaded")
 except Exception as _e:
-    print(f"[XGB] Correctness model NOT loaded: {_e}")
+    logging.getLogger(__name__).warning(f"[XGB] Correctness model NOT loaded: {_e}")
 
 # ── Adaptive Calibration Engine (ACE) ────────────────────────────────────────
 from adaptive_engine import AdaptiveEngine
@@ -476,10 +492,10 @@ def _ace_initial_calc():
     except Exception:
         pass
 threading.Thread(target=_ace_initial_calc, daemon=True).start()
-print(f"[ACE] Adaptive engine initialized (disabled={_adaptive_engine.disabled})")
+logging.getLogger(__name__).info(f"[ACE] Adaptive engine initialized (disabled={_adaptive_engine.disabled})")
 
 _portfolio_engine = PortfolioEngine()
-print(f"[PE] Portfolio engine initialized (disabled={_portfolio_engine.disabled})")
+logging.getLogger(__name__).info(f"[PE] Portfolio engine initialized (disabled={_portfolio_engine.disabled})")
 
 # ── Confidence calibration table (storico WR per bucket) ─────────────────────
 CONF_CALIBRATION = {
@@ -548,7 +564,7 @@ def refresh_calibration():
                 stats[key] = {"wr": new_cal[(lo, hi)], "n": len(vals), "fallback": True}
         with _CALIBRATION_LOCK:
             CONF_CALIBRATION = new_cal
-        print(f"[CAL] Calibration updated: {stats}")
+        app.logger.info(f"[CAL] Calibration updated: {stats}")
         return {"ok": True, "stats": stats, "total_rows": len(rows)}
     except Exception as e:
         app.logger.exception("Calibration refresh error")
@@ -592,7 +608,7 @@ def refresh_dead_hours():
         # fallback: se non ci sono ore con n>=5 e WR<35%, usa prior da calibrazione storica
         with _DEAD_HOURS_LOCK:
             DEAD_HOURS_UTC = dead if dead else {5, 7, 10, 11, 17, 19}
-        print(f"[CAL] Dead hours updated: {sorted(DEAD_HOURS_UTC)}")
+        app.logger.info(f"[CAL] Dead hours updated: {sorted(DEAD_HOURS_UTC)}")
         return {"ok": True, "dead_hours": sorted(DEAD_HOURS_UTC), "hour_stats": hour_stats}
     except Exception as e:
         app.logger.exception("Calibration refresh error")
@@ -1992,11 +2008,12 @@ def _get_clean_bet_count() -> int:
     """Return number of bets with known outcome in SUPABASE_TABLE. Cache 10 min.
     Used by XGBoost gate to check if dataset is large enough to trust the model."""
     global _XGB_CLEAN_BET_COUNT, _XGB_CLEAN_BET_CHECKED_AT
-    if (
-        _XGB_CLEAN_BET_COUNT is not None
-        and time.time() - _XGB_CLEAN_BET_CHECKED_AT < _XGB_CLEAN_CACHE_TTL
-    ):
-        return _XGB_CLEAN_BET_COUNT
+    with _xgb_cache_lock:
+        if (
+            _XGB_CLEAN_BET_COUNT is not None
+            and time.time() - _XGB_CLEAN_BET_CHECKED_AT < _XGB_CLEAN_CACHE_TTL
+        ):
+            return _XGB_CLEAN_BET_COUNT
     try:
         sb_url, sb_key = _sb_config()
         if sb_url and sb_key:
@@ -2014,12 +2031,14 @@ def _get_clean_bet_count() -> int:
             if r.status_code in (200, 206):
                 cr = r.headers.get("content-range", "")
                 count = int(cr.split("/")[1]) if "/" in cr else 0
-                _XGB_CLEAN_BET_COUNT = count
-                _XGB_CLEAN_BET_CHECKED_AT = time.time()
+                with _xgb_cache_lock:
+                    _XGB_CLEAN_BET_COUNT = count
+                    _XGB_CLEAN_BET_CHECKED_AT = time.time()
                 return count
     except Exception:
         pass
-    return _XGB_CLEAN_BET_COUNT or 0
+    with _xgb_cache_lock:
+        return _XGB_CLEAN_BET_COUNT or 0
 
 
 def _run_xgb_gate(direction: str, confidence: float, data: dict, current_hour_utc: int) -> tuple:
@@ -2384,6 +2403,8 @@ def place_bet():
     xgb_prob_up, xgb_early_exit = _run_xgb_gate(direction, confidence, data, current_hour_utc)
     if xgb_early_exit:
         return xgb_early_exit
+    if xgb_prob_up is None:
+        xgb_prob_up = 0.5
 
     desired_side = "long" if direction == "UP" else "short"
 
@@ -4642,12 +4663,9 @@ def ai_predict():
         return jsonify({"status": "error", "error": "anthropic_key_missing"}), 503
 
     try:
-        import anthropic
-        import httpx
-        import certifi as _certifi_ai
         client = anthropic.Anthropic(
             api_key=_anthropic_key,
-            http_client=httpx.Client(verify=_certifi_ai.where()),
+            http_client=httpx.Client(verify=certifi.where()),
         )
         msg = client.messages.create(
             model="claude-sonnet-4-6",
@@ -4690,6 +4708,10 @@ def ai_predict():
     except SystemExit as e:
         app.logger.error(f"[AI_PREDICT] SystemExit caught (gunicorn shutdown mid-request): code={e.code}")
         return jsonify({"status": "error", "error": "worker_shutdown", "code": str(e.code)}), 503
+    except httpx.TimeoutException as e:
+        app.logger.warning(f"[AI_PREDICT] Anthropic timeout (30s): {e}")
+        sentry_sdk.capture_exception(e)
+        return jsonify({"status": "error", "error": "ai_timeout", "detail": str(e)[:200]}), 504
     except Exception as e:
         import traceback
         app.logger.error(f"[AI_PREDICT] error: {e}\n{traceback.format_exc()}")
@@ -4768,10 +4790,14 @@ def auto_retrain():
 
             app.logger.info("[RETRAIN] Pipeline completed successfully")
 
-        except subprocess.TimeoutExpired:
+        except subprocess.TimeoutExpired as _te:
             app.logger.error("[RETRAIN] Pipeline timed out")
+            sentry_sdk.capture_exception(_te)
+            _push_cockpit_log("retrain", "critical", "Retrain TIMEOUT", "build_dataset or train_xgboost exceeded timeout limit")
         except Exception as e:
             app.logger.error(f"[RETRAIN] Pipeline error: {e}")
+            sentry_sdk.capture_exception(e)
+            _push_cockpit_log("retrain", "error", "Retrain FAILED", str(e)[:500])
 
     _threading.Thread(target=_run_retrain, daemon=True).start()
     return jsonify({
@@ -5877,7 +5903,7 @@ def pine_script_sync():
     ok_arr   = ", ".join("1" if g.get("ghost_correct") else "0" for g in ghosts)
     wins     = sum(1 for g in ghosts if g.get("ghost_correct"))
     wr       = round(wins / len(ghosts) * 100, 1) if ghosts else 0
-    now_str  = _dt.now(_dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    now_str  = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
     pine = f"""//@version=5
 // BTC Predictor — Ghost Bets Overlay | {len(ghosts)} segnali | Ghost WR: {wr}% | {now_str}
@@ -5946,7 +5972,7 @@ def pine_script_page():
     ok_arr   = ", ".join("1" if g.get("ghost_correct") else "0" for g in ghosts)
     wins     = sum(1 for g in ghosts if g.get("ghost_correct"))
     wr       = round(wins / len(ghosts) * 100, 1) if ghosts else 0
-    now_str  = _dt.now(_dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    now_str  = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     gist_id  = os.environ.get("GIST_ID", "")
     gist_url = f"https://gist.github.com/mattiacalastri/{gist_id}" if gist_id else "#"
     wr_color = "#3fb950" if wr >= 50 else "#f85149"
@@ -6531,6 +6557,40 @@ def _get_web3_contract():
 
 _onchain_nonce_lock = threading.Lock()
 
+# ── On-chain circuit breaker ──────────────────────────────────────────────────
+# Trips after _ONCHAIN_CB_THRESHOLD consecutive failures. Cooldown: 5 min.
+_ONCHAIN_CB_FAILURES = 0
+_ONCHAIN_CB_TRIPPED_AT: float = 0.0
+_ONCHAIN_CB_THRESHOLD = 3
+_ONCHAIN_CB_COOLDOWN = 300  # 5 min
+_onchain_cb_lock = threading.Lock()
+
+
+def _onchain_cb_check() -> bool:
+    """Return True if circuit is open (should skip on-chain calls)."""
+    with _onchain_cb_lock:
+        if _ONCHAIN_CB_FAILURES >= _ONCHAIN_CB_THRESHOLD:
+            if time.time() - _ONCHAIN_CB_TRIPPED_AT < _ONCHAIN_CB_COOLDOWN:
+                return True
+            # cooldown expired — reset
+            _onchain_cb_reset()
+    return False
+
+
+def _onchain_cb_record_failure():
+    global _ONCHAIN_CB_FAILURES, _ONCHAIN_CB_TRIPPED_AT
+    with _onchain_cb_lock:
+        _ONCHAIN_CB_FAILURES += 1
+        if _ONCHAIN_CB_FAILURES >= _ONCHAIN_CB_THRESHOLD:
+            _ONCHAIN_CB_TRIPPED_AT = time.time()
+            app.logger.warning(f"[ONCHAIN] Circuit breaker TRIPPED after {_ONCHAIN_CB_FAILURES} failures. Cooldown {_ONCHAIN_CB_COOLDOWN}s.")
+
+
+def _onchain_cb_reset():
+    global _ONCHAIN_CB_FAILURES, _ONCHAIN_CB_TRIPPED_AT
+    _ONCHAIN_CB_FAILURES = 0
+    _ONCHAIN_CB_TRIPPED_AT = 0.0
+
 
 _NONCE_ERRORS = ("replacement transaction underpriced", "nonce too low", "already known")
 
@@ -6539,7 +6599,11 @@ def _send_onchain_tx(w3, account, tx_built, label="", max_retries=3):
     """Sign, send and wait for receipt. Fail-open: returns tx_hex or None on failure.
     Receipt wait reduced to 8s to stay within Railway's 30s request timeout.
     The tx is already broadcast after send_raw_transaction — receipt is just confirmation.
-    Nonce is refreshed inside the lock to prevent race conditions."""
+    Nonce is refreshed inside the lock to prevent race conditions.
+    Circuit breaker: skips if too many recent failures."""
+    if _onchain_cb_check():
+        app.logger.warning(f"[ONCHAIN] {label} SKIPPED — circuit breaker open")
+        return None
     import time as _time
     tx_hex = None
     for attempt in range(max_retries):
@@ -6549,6 +6613,7 @@ def _send_onchain_tx(w3, account, tx_built, label="", max_retries=3):
                 signed = account.sign_transaction(tx_built)
                 tx_hash = w3.eth.send_raw_transaction(signed.rawTransaction)
             tx_hex = tx_hash.hex()
+            _onchain_cb_reset()
             break
         except Exception as e:
             err_lower = str(e).lower()
@@ -6557,6 +6622,7 @@ def _send_onchain_tx(w3, account, tx_built, label="", max_retries=3):
                 _time.sleep(2)
                 continue
             app.logger.error(f"[ONCHAIN] {label} sign/send FAILED: {type(e).__name__}: {e}")
+            _onchain_cb_record_failure()
             return None
     try:
         w3.eth.wait_for_transaction_receipt(tx_hash, timeout=8)
