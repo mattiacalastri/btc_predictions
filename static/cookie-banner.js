@@ -152,10 +152,10 @@
       '    <div class="cb-body">',
       '      <div class="cb-title">Cookie &amp; Privacy</div>',
       '      <div class="cb-desc">',
-      '        Questo sito utilizza cookie tecnici necessari al funzionamento e, previo tuo consenso, strumenti analitici di terze parti per migliorare il servizio:',
-      '        <strong>Google Analytics</strong> (analisi traffico), <strong>Microsoft Clarity</strong> (session replay),',
+      '        This site uses essential technical cookies and, with your consent, third-party analytics tools to improve the service:',
+      '        <strong>Google Analytics</strong> (traffic analysis), <strong>Microsoft Clarity</strong> (session replay),',
       '        <strong>Sentry</strong> (error monitoring).<br>',
-      '        Nessun dato di trading o finanziario viene condiviso con terze parti. Nessun cookie di profilazione pubblicitaria.',
+      '        No trading or financial data is shared with third parties. No advertising profiling cookies.',
       '      </div>',
       '      <div class="cb-links">',
       '        <a href="/legal">Privacy &amp; Cookie Policy</a>',
@@ -170,9 +170,9 @@
       '      </div>',
       '    </div>',
       '    <div class="cb-actions">',
-      '      <button class="cb-btn cb-btn-accept" id="cbAcceptAll">ACCETTA TUTTO</button>',
-      '      <button class="cb-btn cb-btn-custom" id="cbCustomizeBtn">PERSONALIZZA</button>',
-      '      <button class="cb-btn cb-btn-decline" id="cbDeclineAll">RIFIUTA</button>',
+      '      <button class="cb-btn cb-btn-accept" id="cbAcceptAll">ACCEPT ALL</button>',
+      '      <button class="cb-btn cb-btn-custom" id="cbCustomizeBtn">CUSTOMIZE</button>',
+      '      <button class="cb-btn cb-btn-decline" id="cbDeclineAll">DECLINE</button>',
       '    </div>',
       '  </div>',
 
@@ -181,38 +181,38 @@
 
       '      <div class="cb-cat">',
       '        <div class="cb-cat-info">',
-      '          <span class="cb-cat-name">Necessari <span class="cb-cat-tag cb-tag-required">SEMPRE ATTIVI</span></span>',
-      '          <span class="cb-cat-desc">Cookie tecnici essenziali per il funzionamento del sito. Non possono essere disattivati.</span>',
+      '          <span class="cb-cat-name">Essential <span class="cb-cat-tag cb-tag-required">ALWAYS ACTIVE</span></span>',
+      '          <span class="cb-cat-desc">Technical cookies required for the site to function. Cannot be disabled.</span>',
       '        </div>',
       '        <label class="cb-toggle"><input type="checkbox" checked disabled><span class="cb-slider"></span></label>',
       '      </div>',
 
       '      <div class="cb-cat">',
       '        <div class="cb-cat-info">',
-      '          <span class="cb-cat-name">Analytics <span class="cb-cat-tag cb-tag-optional">OPZIONALE</span></span>',
-      '          <span class="cb-cat-desc">Google Analytics &mdash; analisi anonima del traffico e comportamento di navigazione.</span>',
+      '          <span class="cb-cat-name">Analytics <span class="cb-cat-tag cb-tag-optional">OPTIONAL</span></span>',
+      '          <span class="cb-cat-desc">Google Analytics &mdash; anonymous traffic analysis and browsing behavior.</span>',
       '        </div>',
       '        <label class="cb-toggle"><input type="checkbox" id="cbToggleGA" checked><span class="cb-slider"></span></label>',
       '      </div>',
 
       '      <div class="cb-cat">',
       '        <div class="cb-cat-info">',
-      '          <span class="cb-cat-name">Session Replay <span class="cb-cat-tag cb-tag-optional">OPZIONALE</span></span>',
-      '          <span class="cb-cat-desc">Microsoft Clarity &mdash; heatmap e replay per migliorare la user experience.</span>',
+      '          <span class="cb-cat-name">Session Replay <span class="cb-cat-tag cb-tag-optional">OPTIONAL</span></span>',
+      '          <span class="cb-cat-desc">Microsoft Clarity &mdash; heatmaps and session replays to improve user experience.</span>',
       '        </div>',
       '        <label class="cb-toggle"><input type="checkbox" id="cbToggleClarity" checked><span class="cb-slider"></span></label>',
       '      </div>',
 
       '      <div class="cb-cat">',
       '        <div class="cb-cat-info">',
-      '          <span class="cb-cat-name">Error Monitoring <span class="cb-cat-tag cb-tag-optional">OPZIONALE</span></span>',
-      '          <span class="cb-cat-desc">Sentry &mdash; rilevamento errori per garantire stabilit&agrave; del servizio.</span>',
+      '          <span class="cb-cat-name">Error Monitoring <span class="cb-cat-tag cb-tag-optional">OPTIONAL</span></span>',
+      '          <span class="cb-cat-desc">Sentry &mdash; error detection to ensure service stability.</span>',
       '        </div>',
       '        <label class="cb-toggle"><input type="checkbox" id="cbToggleSentry" checked><span class="cb-slider"></span></label>',
       '      </div>',
 
       '      <div class="cb-save-row">',
-      '        <button class="cb-btn cb-btn-save" id="cbSaveCustom">SALVA PREFERENZE</button>',
+      '        <button class="cb-btn cb-btn-save" id="cbSaveCustom">SAVE PREFERENCES</button>',
       '      </div>',
 
       '    </div>',
@@ -234,7 +234,7 @@
     document.getElementById('cbCustomizeBtn').addEventListener('click', function () {
       var panel = document.getElementById('cbCustomizePanel');
       panel.classList.toggle('cb-open');
-      this.textContent = panel.classList.contains('cb-open') ? 'CHIUDI' : 'PERSONALIZZA';
+      this.textContent = panel.classList.contains('cb-open') ? 'CLOSE' : 'CUSTOMIZE';
     });
 
     document.getElementById('cbSaveCustom').addEventListener('click', function () {

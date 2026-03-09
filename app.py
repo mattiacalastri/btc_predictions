@@ -1660,7 +1660,7 @@ def close_position():
             if not _orphans:
                 return jsonify({
                     "status": "no_position",
-                    "message": "Nessuna posizione aperta, nulla da chiudere.",
+                    "message": "No open position, nothing to close.",
                     "symbol": symbol
                 })
 
@@ -1948,7 +1948,7 @@ def pause_bot():
     _BOT_PAUSED_REFRESHED_AT = time.time()
     _save_bot_paused(True)
     _push_cockpit_log("app", "warning", "Bot PAUSED", "Manual pause via /pause API")
-    return jsonify({"paused": True, "message": "Bot in pausa — nessun nuovo trade"}), 200
+    return jsonify({"paused": True, "message": "Bot paused — no new trades"}), 200
 
 
 @app.route("/resume", methods=["POST"])
@@ -1966,7 +1966,7 @@ def resume_bot():
         return jsonify({
             "paused": True,
             "error": "cooldown_active",
-            "message": f"Circuit breaker cooldown attivo — riprova tra {remaining} minuti",
+            "message": f"Circuit breaker cooldown active — retry in {remaining} minutes",
             "cooldown_remaining_min": remaining,
         }), 429
     global _BOT_PAUSED, _BOT_PAUSED_REFRESHED_AT, _RESUMED_AT
@@ -1976,7 +1976,7 @@ def resume_bot():
     _save_bot_paused(False)
     _save_resumed_at(_RESUMED_AT)
     _push_cockpit_log("app", "success", "Bot RESUMED", f"Manual resume via /resume API — resumed_at={_RESUMED_AT}")
-    return jsonify({"paused": False, "message": "Bot riattivato — trading ripreso", "resumed_at": _RESUMED_AT}), 200
+    return jsonify({"paused": False, "message": "Bot resumed — trading active", "resumed_at": _RESUMED_AT}), 200
 
 
 # ── PLACE BET — helper privati ───────────────────────────────────────────────
@@ -2115,7 +2115,7 @@ def _check_pre_flight(direction: str, confidence: float) -> object:
                     return jsonify({
                         "status": "paused",
                         "reason": "circuit_breaker",
-                        "message": "5 perdite consecutive — bot auto-pausato. Riattivare manualmente con /resume.",
+                        "message": "5 consecutive losses — bot auto-paused. Resume manually with /resume.",
                         "direction": direction,
                         "confidence": confidence,
                     }), 200

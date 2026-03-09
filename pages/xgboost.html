@@ -1232,21 +1232,21 @@
 ===================================== -->
 <div class="hero">
   <div class="hero-content">
-    <p class="hero-eyebrow">btcpredictor.io &mdash; Architettura AI</p>
-    <h1 class="hero-title">IL DUAL-GATE AI</h1>
-    <p class="hero-subtitle">Come Claude LLM + XGBoost decidono ogni trade Bitcoin</p>
+    <p class="hero-eyebrow">btcpredictor.io &mdash; AI Architecture</p>
+    <h1 class="hero-title">THE DUAL-GATE AI</h1>
+    <p class="hero-subtitle">How Claude LLM + XGBoost decide every Bitcoin trade</p>
 
     <div class="hero-stats">
-      <span class="stat-pill">1.070+ segnali analizzati</span>
+      <span class="stat-pill">1,070+ signals analyzed</span>
       <span class="stat-pill">54% win rate</span>
       <span class="stat-pill">86% direction accuracy</span>
     </div>
 
-    <a href="#problema" class="hero-cta">Scopri il sistema</a>
+    <a href="#problema" class="hero-cta">Explore the system</a>
   </div>
 
   <div class="scroll-indicator">
-    <span>Scorri</span>
+    <span>Scroll</span>
     <div class="scroll-arrow"></div>
   </div>
 </div>
@@ -1260,19 +1260,19 @@
   <section id="problema">
     <div class="page-wrapper">
       <div class="reveal">
-        <p class="section-label">// sezione 01</p>
-        <h2 class="section-title orange">Il Problema</h2>
+        <p class="section-label">// section 01</p>
+        <h2 class="section-title orange">The Problem</h2>
       </div>
 
       <div class="problema-quotes reveal-stagger">
         <div class="quote-block">
-          <p>"I mercati finanziari generano segnali in continuazione. La maggior parte &egrave; rumore."</p>
+          <p>"Financial markets generate signals constantly. Most of it is noise."</p>
         </div>
         <div class="quote-block">
-          <p>"Un modello AI che non distingue il segnale dal rumore perde denaro — anche se &egrave; &laquo;intelligente&raquo;."</p>
+          <p>"An AI model that can't tell signal from noise loses money — even if it's 'intelligent'."</p>
         </div>
         <div class="quote-block">
-          <p>"La soluzione: due cancelli indipendenti. Entrambi devono aprirsi. Solo allora si esegue il trade."</p>
+          <p>"The solution: two independent gates. Both must open. Only then is the trade executed."</p>
         </div>
       </div>
     </div>
@@ -1285,11 +1285,11 @@
     <div class="page-wrapper">
 
       <div class="reveal">
-        <p class="section-label">// sezione 02 — gate 01</p>
+        <p class="section-label">// section 02 — gate 01</p>
         <h2 class="section-title orange">Gate 1: Claude LLM</h2>
         <div class="pulse-badge" style="margin-bottom: 24px;">
           <div class="pulse-dot"></div>
-          LIVE su ogni segnale orario
+          LIVE on every hourly signal
         </div>
       </div>
 
@@ -1313,13 +1313,13 @@
 
       <div class="neon-card orange-border reveal">
         <div class="section-body">
-          <p>Claude analizza <strong style="color:var(--orange)">13 fonti di dati</strong> in linguaggio naturale — non solo numeri, ma contesto, narrative e correlazioni cross-asset.</p>
-          <p>Output: una <strong>direzione</strong> (UP o DOWN) e un <strong>confidence score</strong> tra 0.0 e 1.0. Solo i segnali con confidence &ge; 0.75 accedono al secondo cancello.</p>
-          <p>Il confidence score non &egrave; arbitrario: viene scalato in un moltiplicatore di position sizing. Pi&ugrave; &egrave; alto, pi&ugrave; &egrave; grande la scommessa — entro un range clampato tra 0.8x e 1.2x del capitale base.</p>
+          <p>Claude analyzes <strong style="color:var(--orange)">13 data sources</strong> in natural language — not just numbers, but context, narratives, and cross-asset correlations.</p>
+          <p>Output: a <strong>direction</strong> (UP or DOWN) and a <strong>confidence score</strong> between 0.0 and 1.0. Only signals with confidence &ge; 0.75 reach the second gate.</p>
+          <p>The confidence score isn't arbitrary: it scales into a position sizing multiplier. The higher it is, the larger the bet — within a clamped range of 0.8x to 1.2x base capital.</p>
         </div>
 
         <div class="terminal">
-          <pre><span class="comment">// 13 INPUT SOURCES — analizzate da Claude ad ogni ciclo</span>
+          <pre><span class="comment">// 13 INPUT SOURCES — analyzed by Claude every cycle</span>
 
 <span class="key">01</span>  FEAR_GREED_INDEX      <span class="comment">→</span> <span class="val">sentiment 0-100</span>
 <span class="key">02</span>  RSI_14                <span class="comment">→</span> <span class="val">momentum indicator</span>
@@ -1347,8 +1347,8 @@
     <div class="page-wrapper">
 
       <div class="reveal">
-        <p class="section-label">// sezione 03 — il verificatore</p>
-        <h2 class="section-title cyan">XGBoost — Il Verificatore</h2>
+        <p class="section-label">// section 03 — the verifier</p>
+        <h2 class="section-title cyan">XGBoost — The Verifier</h2>
       </div>
 
       <!-- SVG Decision Tree art -->
@@ -1408,9 +1408,9 @@
 
       <div class="neon-card cyan-border reveal">
         <div class="section-body">
-          <p>XGBoost (eXtreme Gradient Boosting) &egrave; un algoritmo di machine learning che impara dai pattern storici — non dalle regole scritte a mano.</p>
-          <p>Il modello &egrave; stato addestrato su <strong style="color:var(--cyan)">1.000+ segnali passati</strong> con la loro correttezza reale come label di training. Ogni nuova previsione di Claude viene valutata contro i pattern che hanno storicamente funzionato.</p>
-          <p>La validazione usa <strong>TimeSeriesSplit</strong> — non un train/test split casuale, perch&eacute; il futuro non pu&ograve; mai informare il passato.</p>
+          <p>XGBoost (eXtreme Gradient Boosting) is a machine learning algorithm that learns from historical patterns — not hand-written rules.</p>
+          <p>The model was trained on <strong style="color:var(--cyan)">1,000+ past signals</strong> with their actual correctness as training labels. Every new Claude prediction is evaluated against patterns that have historically worked.</p>
+          <p>Validation uses <strong>TimeSeriesSplit</strong> — not a random train/test split, because the future can never inform the past.</p>
         </div>
 
         <div class="terminal">
@@ -1422,11 +1422,11 @@
 <span class="key">learning_rate </span>  <span class="val">0.05</span>
 <span class="key">Features      </span>  <span class="val">11  (temporal + technical)</span>
 <span class="key">Validation    </span>  <span class="val">TimeSeriesSplit(n_splits=5)</span>
-<span class="key">Retrain       </span>  <span class="val">on demand (ogni ~500 segnali)</span></pre>
+<span class="key">Retrain       </span>  <span class="val">on demand (every ~500 signals)</span></pre>
         </div>
 
         <div style="margin-top: 24px;">
-          <p style="font-size: 11px; letter-spacing: 2px; color: var(--dim); text-transform: uppercase; margin-bottom: 12px;">// Features utilizzate</p>
+          <p style="font-size: 11px; letter-spacing: 2px; color: var(--dim); text-transform: uppercase; margin-bottom: 12px;">// Features used</p>
           <div class="feature-pills">
             <span class="feature-pill">confidence</span>
             <span class="feature-pill">fear_greed_value</span>
@@ -1441,8 +1441,8 @@
             <span class="feature-pill">session</span>
           </div>
           <p style="font-size: 11px; color: var(--dim); margin-top: 12px;">
-            hour_sin/cos e dow_sin/cos codificano la ciclicit&agrave; temporale senza discontinuit&agrave;.<br>
-            session: Asia=0, Londra=1, New York=2.
+            hour_sin/cos and dow_sin/cos encode temporal cyclicality without discontinuities.<br>
+            session: Asia=0, London=1, New York=2.
           </p>
         </div>
       </div>
@@ -1457,8 +1457,8 @@
     <div class="page-wrapper">
 
       <div class="reveal">
-        <p class="section-label">// sezione 04 — gate 02</p>
-        <h2 class="section-title cyan">Gate 2: il Voto XGBoost</h2>
+        <p class="section-label">// section 04 — gate 02</p>
+        <h2 class="section-title cyan">Gate 2: The XGBoost Vote</h2>
       </div>
 
       <div class="gate-visual reveal">
@@ -1481,21 +1481,21 @@
 
       <div class="neon-card cyan-border reveal">
         <div class="section-body">
-          <p>XGBoost vota: la direzione prevista da Claude coincide con i pattern storici di successo?</p>
-          <p>Se <strong style="color:var(--green)">s&igrave;</strong> &rarr; il trade viene eseguito su Kraken Futures (PF_XBTUSD).</p>
-          <p>Se <strong style="color:#ff5555">no</strong> &rarr; il segnale viene scartato silenziosamente (SKIP). Nessun trade, nessun rischio.</p>
-          <p>Questa alta selettivit&agrave; — circa il <strong style="color:var(--cyan)">7% dei segnali</strong> supera entrambi i gate — &egrave; intenzionale. &Egrave; meglio non fare nulla che fare la cosa sbagliata.</p>
+          <p>XGBoost votes: does Claude's predicted direction match historically successful patterns?</p>
+          <p>If <strong style="color:var(--green)">yes</strong> &rarr; the trade is executed on Kraken Futures (PF_XBTUSD).</p>
+          <p>If <strong style="color:#ff5555">no</strong> &rarr; the signal is silently discarded (SKIP). No trade, no risk.</p>
+          <p>This high selectivity — about <strong style="color:var(--cyan)">7% of signals</strong> pass both gates — is intentional. It's better to do nothing than to do the wrong thing.</p>
         </div>
       </div>
 
       <div class="stats-grid reveal-stagger">
         <div class="stat-card">
           <span class="stat-number"><span id="counter-signals">0</span>+</span>
-          <span class="stat-label">segnali analizzati</span>
+          <span class="stat-label">signals analyzed</span>
         </div>
         <div class="stat-card">
           <span class="stat-number">~7%</span>
-          <span class="stat-label">superano entrambi i gate</span>
+          <span class="stat-label">pass both gates</span>
         </div>
         <div class="stat-card">
           <span class="stat-number"><span id="counter-accuracy">0</span>%</span>
@@ -1513,7 +1513,7 @@
     <div class="page-wrapper">
 
       <div class="reveal">
-        <p class="section-label">// sezione 05 — immutabilit&agrave;</p>
+        <p class="section-label">// section 05 — immutability</p>
         <h2 class="section-title orange">On-Chain Audit</h2>
       </div>
 
@@ -1541,9 +1541,9 @@
 
       <div class="neon-card orange-border reveal">
         <div class="section-body">
-          <p>Ogni segnale che supera entrambi i gate viene scritto permanentemente sulla <strong style="color:var(--orange)">blockchain Polygon PoS</strong> prima che il trade venga eseguito.</p>
-          <p><strong>Immutabile. Verificabile. Non manipolabile.</strong></p>
-          <p>Questo &egrave; l'audit trail definitivo: nessuno pu&ograve; rivendicare previsioni retroattive o modificare la storia dei segnali. Il timestamp on-chain precede sempre l'esecuzione del trade.</p>
+          <p>Every signal that passes both gates is permanently written to the <strong style="color:var(--orange)">Polygon PoS blockchain</strong> before the trade is executed.</p>
+          <p><strong>Immutable. Verifiable. Tamper-proof.</strong></p>
+          <p>This is the ultimate audit trail: nobody can claim retroactive predictions or alter signal history. The on-chain timestamp always precedes trade execution.</p>
         </div>
 
         <div class="contract-box">
@@ -1563,24 +1563,24 @@
     <div class="page-wrapper">
 
       <div class="reveal">
-        <p class="section-label">// sezione 06 — flusso completo</p>
-        <h2 class="section-title cyan">Il Flusso del Dual-Gate</h2>
-        <p style="color:var(--dim); font-size:13px; margin-bottom: 40px;">Dalla fonte dati al trade — ogni passo, in ordine.</p>
+        <p class="section-label">// section 06 — full flow</p>
+        <h2 class="section-title cyan">The Dual-Gate Flow</h2>
+        <p style="color:var(--dim); font-size:13px; margin-bottom: 40px;">From data source to trade — every step, in order.</p>
       </div>
 
       <div class="flow-diagram">
         <div class="flow-container" id="flow-container">
 
           <!-- Step 0: Start -->
-          <div class="flow-node start" data-flow="0">MERCATO BTC (Kraken Futures)</div>
+          <div class="flow-node start" data-flow="0">BTC MARKET (Kraken Futures)</div>
           <div class="flow-arrow" data-flow="1"><div class="flow-arrow-line"></div><div class="flow-arrow-head"></div></div>
 
           <!-- Step 2: Data -->
-          <div class="flow-node data" data-flow="2">RACCOLTA DATI — 13 fonti in parallelo</div>
+          <div class="flow-node data" data-flow="2">DATA COLLECTION — 13 sources in parallel</div>
           <div class="flow-arrow" data-flow="3"><div class="flow-arrow-line"></div><div class="flow-arrow-head"></div></div>
 
           <!-- Step 4: LLM -->
-          <div class="flow-node llm" data-flow="4">CLAUDE LLM — Analisi &amp; Confidence Score</div>
+          <div class="flow-node llm" data-flow="4">CLAUDE LLM — Analysis &amp; Confidence Score</div>
 
           <!-- Gate 1: conf ≥ 0.75? — YES continues down, NO exits right -->
           <div class="fl-gate-row" data-flow="5">
@@ -1591,17 +1591,17 @@
             <div class="fl-gate-exit">
               <div class="fl-exit-line"></div>
               <div class="fl-no-pill">NO</div>
-              <div class="flow-node skip fl-exit-node">SEGNALE<br>SCARTATO</div>
+              <div class="flow-node skip fl-exit-node">SIGNAL<br>DISCARDED</div>
             </div>
           </div>
 
           <!-- Step 6: XGBoost -->
-          <div class="flow-node xgb" data-flow="6">XGBOOST VERIFICA</div>
+          <div class="flow-node xgb" data-flow="6">XGBOOST VERIFICATION</div>
 
           <!-- Gate 2: LLM dir = XGB dir? — YES continues down, NO exits right -->
           <div class="fl-gate-row" data-flow="7">
             <div class="fl-gate-main">
-              <div class="fl-yes-pill">YES &middot; concordano</div>
+              <div class="fl-yes-pill">YES &middot; they agree</div>
               <div class="flow-arrow-line" style="height:18px;"></div>
             </div>
             <div class="fl-gate-exit">
@@ -1612,7 +1612,7 @@
           </div>
 
           <!-- Step 8: Trade -->
-          <div class="flow-node trade" data-flow="8">TRADE ESEGUITO</div>
+          <div class="flow-node trade" data-flow="8">TRADE EXECUTED</div>
           <div class="flow-arrow" data-flow="9"><div class="flow-arrow-line"></div><div class="flow-arrow-head"></div></div>
 
           <!-- Step 10: On-chain -->
@@ -1628,21 +1628,21 @@
   <section class="cta-section">
     <div class="page-wrapper">
       <div class="reveal">
-        <h2 class="cta-title">Guarda il sistema in azione</h2>
-        <p class="cta-sub">Dashboard live — segnali in tempo reale, storico completo, metriche.</p>
+        <h2 class="cta-title">Watch the system in action</h2>
+        <p class="cta-sub">Live dashboard — real-time signals, full history, metrics.</p>
         <div class="cta-buttons">
-          <a href="https://btcpredictor.io/dashboard" class="btn-primary">Vai alla Dashboard</a>
-          <a href="https://btcpredictor.io/manifesto" class="btn-secondary">Leggi il Manifesto</a>
+          <a href="https://btcpredictor.io/dashboard" class="btn-primary">Go to Dashboard</a>
+          <a href="https://btcpredictor.io/manifesto" class="btn-secondary">Read the Manifesto</a>
         </div>
       </div>
 
       <!-- DISCLAIMER -->
       <div class="disclaimer reveal" style="text-align: left; margin-top: 60px;">
-        <div class="disclaimer-title">// Disclaimer Legale — Leggere Prima di Procedere</div>
-        <p>Questo sito non fornisce consulenza finanziaria. Le previsioni sono sperimentali e non garantite. I risultati passati non sono indicativi di rendimenti futuri.</p>
-        <p>Il trading su strumenti derivati (futures, perpetual contracts) comporta rischi significativi di perdita del capitale, inclusa la perdita totale dell'investimento. L'uso della leva finanziaria amplifica sia i guadagni che le perdite.</p>
-        <p>btcpredictor.io &egrave; un progetto di ricerca e sviluppo sperimentale. Non &egrave; registrato come consulente finanziario, gestore di fondi o fornitore di segnali ai sensi della direttiva MiFID II o di qualsiasi altra normativa finanziaria applicabile. Qualsiasi decisione di investimento &egrave; di esclusiva responsabilit&agrave; dell'utente.</p>
-        <p style="color: rgba(90,90,122,0.7); font-size: 11px;">Aggiornato: Febbraio 2026 &mdash; Versione 1.0</p>
+        <div class="disclaimer-title">// Legal Disclaimer — Read Before Proceeding</div>
+        <p>This site does not provide financial advice. Predictions are experimental and not guaranteed. Past results are not indicative of future returns.</p>
+        <p>Trading derivative instruments (futures, perpetual contracts) carries significant risk of capital loss, including total loss of investment. The use of leverage amplifies both gains and losses.</p>
+        <p>btcpredictor.io is an experimental research and development project. It is not registered as a financial advisor, fund manager, or signal provider under MiFID II or any other applicable financial regulation. Any investment decision is the sole responsibility of the user.</p>
+        <p style="color: rgba(90,90,122,0.7); font-size: 11px;">Updated: February 2026 &mdash; Version 1.0</p>
       </div>
 
     </div>

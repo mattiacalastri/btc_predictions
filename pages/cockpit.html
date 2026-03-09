@@ -873,7 +873,7 @@ body.heartbeat-offline { animation: hb-flat 4s linear infinite; }
       </div>
     </div>
     <div class="davide-quote">
-      "Riduci la complessita per raggiungere la <em>prevedibilita perfetta</em>."
+      "Reduce complexity to reach <em>perfect predictability</em>."
     </div>
   </div>
 
@@ -988,7 +988,7 @@ body.heartbeat-offline { animation: hb-flat 4s linear infinite; }
       <div class="log-container" id="log-container">
         <div class="log-empty" id="log-empty">
           <div class="log-empty-icon">&#9776;</div>
-          Log vuoto. Gli eventi appariranno quando il sistema sar&agrave; attivo.
+          Log empty. Events will appear when the system is active.
         </div>
       </div>
     </div>
@@ -1049,16 +1049,16 @@ body.heartbeat-offline { animation: hb-flat 4s linear infinite; }
             <input type="datetime-local" id="pedFormDate">
             <select id="pedFormChannel">
               <option value="tg">✈️ Telegram</option>
-              <option value="all">📡 Tutti</option>
+              <option value="all">📡 All</option>
               <option value="x">𝕏 X</option>
               <option value="li">💼 LinkedIn</option>
               <option value="rd">🤖 Reddit</option>
             </select>
           </div>
-          <textarea class="ped-form-textarea" id="pedFormText" placeholder="Testo del post… (max 4096 char per Telegram)"></textarea>
+          <textarea class="ped-form-textarea" id="pedFormText" placeholder="Post text… (max 4096 chars for Telegram)"></textarea>
           <div class="ped-form-actions">
-            <button class="btn-form-save" onclick="pedSaveNewPost()">💾 Salva Bozza</button>
-            <button class="btn-form-cancel" onclick="pedToggleNewForm()">Annulla</button>
+            <button class="btn-form-save" onclick="pedSaveNewPost()">💾 Save Draft</button>
+            <button class="btn-form-cancel" onclick="pedToggleNewForm()">Cancel</button>
           </div>
         </div>
 
@@ -1724,7 +1724,7 @@ function relativeTime(ts) {
 function renderLog(logs) {
   const container = document.getElementById('log-container');
   if (!logs || logs.length === 0) {
-    container.innerHTML = `<div class="log-empty" id="log-empty"><div class="log-empty-icon">&#9776;</div>Log vuoto. Gli eventi appariranno quando il sistema sar&agrave; attivo.</div>`;
+    container.innerHTML = `<div class="log-empty" id="log-empty"><div class="log-empty-icon">&#9776;</div>Log empty. Events will appear when the system is active.</div>`;
     _LOG_LEVELS.forEach(l => {
       const el = document.getElementById('log-count-' + l);
       if (el) el.textContent = '0';
@@ -2096,9 +2096,9 @@ function loadOpsStats() {
       const wrStr = wr != null ? ' · WR ' + wr + '%' : '';
       if (cleanBets >= milestone) { rtEl.textContent = '🟢 FINESTRA APERTA — ' + cleanBets + ' bet' + wrStr; rtEl.className = 'sw-value dot-ok'; }
       else if (cleanBets > 0) { rtEl.textContent = '🧠 ' + cleanBets + ' bet' + wrStr + ' · −' + remaining + ' → fin.' + milestone; rtEl.className = remaining <= 10 ? 'sw-value dot-ok' : 'sw-value dot-warn'; }
-      else { rtEl.textContent = 'Day 0 — 0 bet · −50 → prima finestra'; rtEl.className = 'sw-value dot-warn'; }
+      else { rtEl.textContent = 'Day 0 — 0 bet · −50 → first window'; rtEl.className = 'sw-value dot-warn'; }
     })
-    .catch(() => { document.getElementById('opsLastUpdated').textContent = '⚠ errore'; });
+    .catch(() => { document.getElementById('opsLastUpdated').textContent = '⚠ error'; });
 }
 
 // PED
@@ -2135,16 +2135,16 @@ function pedRenderPosts() {
     const chanBadge = `<span class="post-chan-badge ${chanMap[p.channel]||'post-chan-tg'}">${chanLabel[p.channel]||'✈️ TG'}</span>`;
     const photoThumb = p.photo ? `<div class="post-photo-thumb"><img src="/static/marketing_assets/${escHtmlOps(p.photo)}" alt="" loading="lazy"><span class="post-photo-name">🖼 ${escHtmlOps(p.photo)}</span></div>` : '';
     const canTG = p.channel === 'tg' || p.channel === 'all';
-    const tgLabel = p.photo ? '🖼 Invia con foto' : '✈️ Pubblica su TG';
+    const tgLabel = p.photo ? '🖼 Send with photo' : '✈️ Publish to TG';
     return `<div class="post-card" id="pcard_${safeId}">
       <div class="post-card-meta"><span class="post-date-badge">📅 ${dt}</span>${chanBadge}</div>
       ${photoThumb}
       <div class="post-title">${escHtmlOps(p.title||'')}</div>
       <div class="post-text" id="ptext_${safeId}">${escHtmlOps(p.text||'')}</div>
-      <span class="post-text-toggle" onclick="pedToggleExpand('${safeId}')">▼ leggi tutto</span>
+      <span class="post-text-toggle" onclick="pedToggleExpand('${safeId}')">▼ read more</span>
       <div class="post-actions">
-        <button class="btn-pub btn-pub-copy" onclick="pedCopyPost('${safeId}')">📋 Copia</button>
-        ${canTG ? `<button class="btn-pub btn-pub-tg" onclick="pedPublishTG('${safeId}')">${p.sent_tg ? '✅ Inviato' : tgLabel}</button>` : ''}
+        <button class="btn-pub btn-pub-copy" onclick="pedCopyPost('${safeId}')">📋 Copy</button>
+        ${canTG ? `<button class="btn-pub btn-pub-tg" onclick="pedPublishTG('${safeId}')">${p.sent_tg ? '✅ Sent' : tgLabel}</button>` : ''}
         <button class="btn-pub btn-pub-del" onclick="pedDeletePost('${safeId}')" style="margin-left:auto;">🗑</button>
       </div>
     </div>`;
@@ -2158,18 +2158,18 @@ function pedToggleExpand(id) {
   const tog = el && el.nextElementSibling;
   if (!el) return;
   const exp = el.classList.toggle('expanded');
-  if (tog) tog.textContent = exp ? '▲ chiudi' : '▼ leggi tutto';
+  if (tog) tog.textContent = exp ? '▲ close' : '▼ read more';
 }
 
 function pedCopyPost(id) {
   const p = pedGetPosts().find(x => String(x.id).replace(/[^a-zA-Z0-9_-]/g, '_') === id);
   if (!p) return;
-  navigator.clipboard.writeText(p.text || '').then(() => pedShowToast('📋 Testo copiato!', false)).catch(() => pedShowToast('⚠ Errore clipboard', true));
+  navigator.clipboard.writeText(p.text || '').then(() => pedShowToast('📋 Text copied!', false)).catch(() => pedShowToast('⚠ Clipboard error', true));
 }
 
 function pedPublishTG(id) {
   const apiKey = localStorage.getItem(_PED_APIKEY);
-  if (!apiKey) { pedShowToast('⚠ API Key mancante — settings Railway BOT_API_KEY', true); return; }
+  if (!apiKey) { pedShowToast('⚠ API Key missing — check Railway BOT_API_KEY', true); return; }
   const posts = pedGetPosts();
   const p = posts.find(x => String(x.id).replace(/[^a-zA-Z0-9_-]/g, '_') === id);
   if (!p) return;
