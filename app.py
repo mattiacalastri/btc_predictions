@@ -8439,13 +8439,11 @@ def fixer_verify():
     error_title = str(data.get("error_title", "unknown"))[:200]
     checks = {}
 
-    # 1. Health check
+    # 1. Health check — call internal function directly (avoids localhost networking issues on Railway)
     try:
-        h_resp = requests.get(
-            f"http://127.0.0.1:{os.environ.get('PORT', '5000')}/health",
-            timeout=5,
-        )
-        h_data = h_resp.json() if h_resp.ok else {}
+        with app.test_request_context("/health"):
+            h_response = health()
+            h_data = h_response.get_json() if hasattr(h_response, 'get_json') else {}
         checks["health"] = {
             "ok": h_data.get("status") == "ok",
             "bot_paused": h_data.get("bot_paused", True),
