@@ -609,8 +609,20 @@
           <span id="aiDecisionText">Monitoring</span>
         </div>
         <div class="ai-think-label" id="aiThinkLabel">AI Exit Manager</div>
+        <!-- Confidence Spiral Gauge -->
+        <div class="spiral-gauge" id="spiralGauge">
+          <svg viewBox="0 0 48 48" width="48" height="48">
+            <path class="spiral-track" d="M24 42 A18 18 0 1 1 24.01 42" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="2"/>
+            <path class="spiral-fill" id="spiralFill" d="M24 42 A18 18 0 1 1 24.01 42" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-dasharray="113.1" stroke-dashoffset="113.1"/>
+            <text x="24" y="26" text-anchor="middle" fill="var(--text)" font-size="9" font-weight="700" font-family="'SF Mono',monospace" id="spiralText">—</text>
+          </svg>
+        </div>
         <!-- Micro-timeline: last 9 deliberations as diamonds -->
         <div class="council-micro-timeline" id="councilTimeline"></div>
+        <!-- Audio toggle -->
+        <button class="thoth-audio-toggle" id="thothAudioToggle" title="Toggle deliberation sound (432Hz)">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path class="audio-wave" d="M19 12c0-2.5-1.5-4.5-3.5-5.5M15.5 12c0-1.2-.7-2.2-1.7-2.7" opacity="0.5"/></svg>
+        </button>
       </div>
     </div>
   </div>
@@ -6195,6 +6207,150 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     });
   });
+})();
+
+// ── THOTH AUDIO ENGINE — 432Hz Sacred Frequencies ─────────────────────────────
+(function() {
+  var audioBtn = document.getElementById('thothAudioToggle');
+  if (!audioBtn) return;
+
+  var audioEnabled = false;
+  var audioCtx = null;
+
+  // Sacred frequencies: 432Hz base, phi harmonics
+  var PHI = 1.618033988749895;
+  var FREQ_TECNICO  = 432;                 // A=432Hz (Thoth's fundamental)
+  var FREQ_SENTIMENT = 432 * PHI;          // ~699Hz (golden harmonic)
+  var FREQ_QUANT    = 432 * PHI * PHI;     // ~1131Hz (double golden)
+
+  audioBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    audioEnabled = !audioEnabled;
+    audioBtn.classList.toggle('audio-on', audioEnabled);
+    if (audioEnabled && !audioCtx) {
+      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+      catch(err) { audioEnabled = false; audioBtn.classList.remove('audio-on'); }
+    }
+  });
+
+  function playTone(freq, duration, delay) {
+    if (!audioEnabled || !audioCtx) return;
+    var startTime = audioCtx.currentTime + delay;
+    var osc = audioCtx.createOscillator();
+    var gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0, startTime);
+    gain.gain.linearRampToValueAtTime(0.04, startTime + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(startTime);
+    osc.stop(startTime + duration);
+  }
+
+  // Exposed globally for councilTheater to call
+  window._thothPlayDeliberation = function() {
+    if (!audioEnabled || !audioCtx) return;
+    // Resume suspended context (browser autoplay policy)
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    // 3 tones at 300ms intervals (Tesla 369) resolving to chord
+    playTone(FREQ_TECNICO,  0.8, 0.3);   // 300ms — deep fundamental
+    playTone(FREQ_SENTIMENT, 0.6, 0.6);  // 600ms — golden harmonic
+    playTone(FREQ_QUANT,    0.5, 0.9);   // 900ms — high golden
+  };
+
+  window._thothPlayVerdict = function(direction) {
+    if (!audioEnabled || !audioCtx) return;
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    if (direction === 'UP') {
+      // Ascending resolution — confidence
+      playTone(432, 0.3, 0);
+      playTone(540, 0.3, 0.15);  // 432 × 1.25 (major third)
+      playTone(648, 0.6, 0.3);   // 432 × 1.5 (perfect fifth)
+    } else if (direction === 'DOWN') {
+      // Descending minor — caution
+      playTone(432, 0.3, 0);
+      playTone(518, 0.3, 0.15);  // 432 × 1.2 (minor third)
+      playTone(324, 0.6, 0.3);   // 432 × 0.75 (descending fourth)
+    } else {
+      // Single sustained note — observation
+      playTone(432, 1.0, 0);
+    }
+  };
+})();
+
+// ── THOTH SPIRAL GAUGE — Confidence as sacred spiral ──────────────────────────
+(function() {
+  var spiralFill = document.getElementById('spiralFill');
+  var spiralText = document.getElementById('spiralText');
+  var spiralGauge = document.getElementById('spiralGauge');
+  if (!spiralFill) return;
+
+  // Total arc length (circle circumference ≈ 2πr = 2π×18 ≈ 113.1)
+  var TOTAL = 113.1;
+
+  window._updateSpiralGauge = function(confidence, direction) {
+    if (!spiralFill) return;
+    var pct = Math.max(0, Math.min(1, confidence || 0));
+    var offset = TOTAL * (1 - pct);
+    spiralFill.style.strokeDashoffset = offset;
+
+    if (direction === 'UP')        spiralFill.style.stroke = 'var(--accent)';
+    else if (direction === 'DOWN') spiralFill.style.stroke = 'var(--danger)';
+    else                           spiralFill.style.stroke = 'var(--warn)';
+
+    if (spiralText) spiralText.textContent = Math.round(pct * 100) + '%';
+    if (spiralGauge) spiralGauge.classList.toggle('active', pct > 0.5);
+  };
+})();
+
+// ── Hook spiral + audio into councilTheater ───────────────────────────────────
+(function() {
+  // Monkey-patch: intercept runDeliberationSequence via poll data
+  var _origUpdateDrawer = window._updateDrawerData;
+  window._updateDrawerData = function(data) {
+    if (_origUpdateDrawer) _origUpdateDrawer(data);
+    // Update spiral gauge with latest verdict
+    if (data && data.last_deliberation && data.last_deliberation.verdict) {
+      var v = data.last_deliberation.verdict;
+      if (window._updateSpiralGauge) window._updateSpiralGauge(v.confidence, v.direction);
+    }
+  };
+
+  // Hook audio into the deliberation animation
+  // We listen for the thoth-arena 'deliberating' class change
+  var arena = document.getElementById('thothArena');
+  if (!arena) return;
+  var observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(m) {
+      if (m.attributeName === 'class') {
+        if (arena.classList.contains('deliberating')) {
+          if (window._thothPlayDeliberation) window._thothPlayDeliberation();
+        }
+      }
+    });
+  });
+  observer.observe(arena, { attributes: true });
+
+  // Hook verdict sound
+  var cube = document.getElementById('aiCube');
+  if (!cube) return;
+  var cubeObserver = new MutationObserver(function(mutations) {
+    mutations.forEach(function(m) {
+      if (m.attributeName === 'data-thoth') {
+        var state = cube.dataset.thoth;
+        if (state === 'verdict-up') {
+          if (window._thothPlayVerdict) window._thothPlayVerdict('UP');
+        } else if (state === 'verdict-down') {
+          if (window._thothPlayVerdict) window._thothPlayVerdict('DOWN');
+        } else if (state === 'verdict-skip') {
+          if (window._thothPlayVerdict) window._thothPlayVerdict('SKIP');
+        }
+      }
+    });
+  });
+  cubeObserver.observe(cube, { attributes: true });
 })();
 
 // ── TASK 2: Story Highlights sync ─────────────────────────────────────────────

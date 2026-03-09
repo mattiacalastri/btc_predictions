@@ -1544,6 +1544,36 @@
   .ct-diamond.ct-skip  { background: var(--muted);  border-color: var(--muted);  opacity: 0.4; }
   .ct-diamond.ct-latest { opacity: 1; box-shadow: 0 0 4px currentColor; }
 
+  /* ── CONFIDENCE SPIRAL GAUGE ── */
+  .spiral-gauge {
+    margin: 4px auto 0;
+    text-align: center;
+    opacity: 0.7;
+    transition: opacity 0.5s;
+  }
+  .spiral-gauge.active { opacity: 1; }
+  .spiral-fill {
+    transition: stroke-dashoffset 1s cubic-bezier(.22,.61,.36,1), stroke 0.5s;
+  }
+
+  /* ── AUDIO TOGGLE ── */
+  .thoth-audio-toggle {
+    display: block;
+    margin: 2px auto 0;
+    background: none;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 50%;
+    width: 22px; height: 22px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    color: var(--muted);
+    transition: color 0.2s, border-color 0.2s;
+    padding: 0;
+  }
+  .thoth-audio-toggle:hover { color: #d4af37; border-color: rgba(212,175,55,0.3); }
+  .thoth-audio-toggle.audio-on { color: #d4af37; border-color: rgba(212,175,55,0.4); }
+  .thoth-audio-toggle.audio-on .audio-wave { opacity: 1; }
+
   /* ── THOTH REASONING DRAWER ── */
   .thoth-drawer {
     position: fixed;
@@ -2290,9 +2320,22 @@
     .lp-right .cube-face.cube-top    { transform: rotateX(90deg)   translateZ(22px); }
     .lp-right .cube-face.cube-bottom { transform: rotateX(-90deg)  translateZ(22px); }
     .lp-right .ai-decision,
-    .lp-right .ai-think-label {
+    .lp-right .ai-think-label,
+    .lp-right .spiral-gauge,
+    .lp-right .council-micro-timeline,
+    .lp-right .thoth-audio-toggle {
       display: none;
     }
+    /* Thoth arena: shrink to cube size on mobile */
+    .thoth-arena {
+      width: 44px; height: 44px;
+    }
+    .council-orb { width: 14px; height: 14px; font-size: 6px; }
+    .orb-tecnico { top: -6px; left: 2px; }
+    .orb-sentiment { top: -6px; right: 2px; }
+    .orb-quant { bottom: -6px; }
+    .sacred-geo-bg { display: none; }
+    .council-lines { display: none; }
 
     /* Gauge SL/TP: seconda riga, full width, in fondo */
     .lp-center {
