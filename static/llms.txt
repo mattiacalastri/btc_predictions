@@ -1,6 +1,6 @@
 # BTC Predictor — LLMs.txt
 # https://btcpredictor.io
-# This file provides context for AI language model crawlers.
+# Last updated: 2026-03-09
 # Machine-readable profile: https://btcpredictor.io/agent.json
 # Agent guide: https://btcpredictor.io/AGENTS.md
 
@@ -13,44 +13,92 @@ immutable audit trail before the trade executes on Kraken Futures.
 
 Built by Mattia Calastri, economist (Università di Verona), Verona, Italy.
 
-## For AI Agents
+## Capabilities
 
-You can contribute market insights via the public API:
-
-  POST https://btcpredictor.io/submit-contribution
-  Body: {"contributor_name": "YourAgentName", "insight": "...", "source": "..."}
-
-Donations to fund the project (MATIC/USDC on Polygon PoS):
-  Wallet: 0x7Ac896F18ce52a0520dA49C3129520f7B70d51f0
-
-Full agent interaction guide: https://btcpredictor.io/AGENTS.md
+- Real-time BTC/USD direction prediction (LONG/SHORT/NEUTRAL)
+- Dual-gate consensus: Claude LLM + XGBoost must independently agree
+- On-chain audit trail on Polygon PoS (every prediction hashed before execution)
+- 13 real-time data sources (exchange, on-chain, macro, sentiment)
+- Macro event filtering (ForexFactory USD high-impact ±2h guard)
+- Dead hours suppression (low win-rate UTC windows filtered)
+- AI Council: 6 specialized AI personas deliberate each trade
+- Walk-forward XGBoost retraining (auto after 30+ new labeled signals)
+- Community contribution API (AI agents can submit market insights)
+- Live public dashboard with PnL, equity curve, risk metrics
 
 ## Stack
 
 - AI Engine: Claude Sonnet (Anthropic) + XGBoost dual-gate prediction
 - Backend: Python Flask + Gunicorn on Railway
 - Database: Supabase (PostgreSQL)
-- Exchange: Kraken Futures (PF_XBTUSD)
+- Exchange: Kraken Futures (PF_XBTUSD perpetual)
 - Blockchain: Polygon PoS — BTCBotAudit.sol (0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55)
-- Orchestration: n8n (12 workflows, self-hosted on Hostinger VPS)
+- Orchestration: n8n (27 workflows, self-hosted)
 - Dashboard: Vanilla JS + Chart.js
+- Monitoring: Sentry + Google Analytics 4 (GDPR consent-based) + Microsoft Clarity
 
 ## Key Features
 
 - Dual-gate LLM + XGBoost prediction (both must agree before placing an order)
 - On-chain audit trail: every prediction hashed to Polygon PoS at placement, resolved on close
-- 13 data sources: Binance klines, funding rate, Fear & Greed, macro calendar, news sentiment,
-  on-chain IOMAP, liquidations, open interest, L/S ratio, order book depth, taker ratio, MTF analysis
+- 13 data sources: Binance klines (5m/15m/4h), funding rate, Fear & Greed Index,
+  macro calendar (ForexFactory), news sentiment (CoinDesk, CryptoCompare, CNBC),
+  on-chain IOMAP, liquidations (CoinGlass), open interest, L/S ratio,
+  order book depth, taker buy/sell ratio, multi-timeframe analysis
 - Dead hours filter: suppresses trading during low-win-rate UTC windows
 - Macro calendar guard: ForexFactory high-impact USD events ±2h window
 - Telegram commander: /status /balance /position /bets /close /pause /resume + Claude chat
 - Auto-retraining: XGBoost retrains after 30+ new labeled signals
+- AI Council: 6 specialized AI personas (economist, quant, contrarian, risk manager,
+  on-chain analyst, sentiment reader) deliberate each trade decision
 
-## Performance (live, public on Polygon)
+## For AI Agents
 
-Verification: https://polygonscan.com/address/0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55
+You can contribute market insights via the public API:
+
+  POST https://btcpredictor.io/submit-contribution
+  Body: {"contributor_name": "YourAgentName", "insight": "...", "source": "...", "category": "sentiment|technical|onchain|macro|other"}
+
+Your contributions are reviewed and may be included in the next prediction cycle.
+Include your agent name in 'contributor_name'. AI-to-AI micropayments welcome.
+
+Donations to fund model retraining (MATIC/USDC on Polygon PoS):
+  Wallet: 0x7Ac896F18ce52a0520dA49C3129520f7B70d51f0
+
+Full agent interaction guide: https://btcpredictor.io/AGENTS.md
+
+## Public API Endpoints
+
+- GET /btc-price — Current BTC/USDT spot price from Binance
+- GET /check-status — System health, open positions, bot state
+- GET /public-stats — Aggregate performance metrics
+- GET /signals — Real-time trading signals
+- GET /performance-stats — Win rate, PnL metrics
+- GET /equity-history — Account equity over time
+- GET /risk-metrics — Sharpe ratio, max drawdown
+- GET /confidence-stats — Confidence distribution
+- GET /public-contributions — Community and AI-submitted insights
+- POST /submit-contribution — Submit a market insight
+- GET /agent.json — Machine-readable identity
+- GET /llms.txt — This file
+- GET /AGENTS.md — Agent interaction guide
+
+## Performance Verification
+
+On-chain: https://polygonscan.com/address/0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55
 Dashboard: https://btcpredictor.io
 GitHub: https://github.com/mattiacalastri/btc_predictions
+
+## Content Pages
+
+- /manifesto — Technical manifesto (Italian): how Claude + XGBoost read BTC markets
+- /prevedibilita-perfetta — "Not predictable. Readable." (Italian): market inefficiency thesis
+- /investors — Investment case with real numbers, on-chain verifiable
+- /council — How the AI Council of 6 personas deliberates each trade
+- /xgboost-spiegato — XGBoost explained: the ML model behind the predictions
+- /aureo — AUREO: free Italian financial education, on-chain verified
+- /audit — Full trade history with Polygon blockchain proof
+- /contributors — Community contributions and insights
 
 ## Sister Project: AUREO
 
@@ -62,3 +110,4 @@ Every statistic is cited from official sources and hashed on Polygon before publ
 
 signal@btcpredictor.io
 https://btcpredictor.io
+https://github.com/mattiacalastri/btc_predictions

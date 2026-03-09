@@ -7102,12 +7102,22 @@ def robots_txt():
         "Disallow: /predict-xgb\n"
         "Disallow: /marketing-stats\n"
         "\n"
-        "# AI crawlers\n"
+        "# AI crawlers — explicit allow\n"
         "User-agent: GPTBot\n"
         "Allow: /\n"
         "User-agent: ClaudeBot\n"
         "Allow: /\n"
         "User-agent: PerplexityBot\n"
+        "Allow: /\n"
+        "User-agent: Applebot-Extended\n"
+        "Allow: /\n"
+        "User-agent: Google-Extended\n"
+        "Allow: /\n"
+        "User-agent: Bytespider\n"
+        "Allow: /\n"
+        "User-agent: CCBot\n"
+        "Allow: /\n"
+        "User-agent: cohere-ai\n"
         "Allow: /\n"
         "\n"
         "Sitemap: https://btcpredictor.io/sitemap.xml\n"
@@ -7128,11 +7138,15 @@ def sitemap_xml():
         ("https://btcpredictor.io/dashboard",              "hourly",  "1.0", today),
         ("https://btcpredictor.io/manifesto",              "monthly", "0.8", "2026-02-27"),
         ("https://btcpredictor.io/prevedibilita-perfetta", "monthly", "0.9", "2026-02-27"),
+        ("https://btcpredictor.io/investors",              "monthly", "0.9", "2026-03-01"),
+        ("https://btcpredictor.io/council",                "monthly", "0.8", "2026-03-01"),
+        ("https://btcpredictor.io/audit",                  "weekly",  "0.9", today),
         ("https://btcpredictor.io/contributors",           "weekly",  "0.7", "2026-03-01"),
         ("https://btcpredictor.io/xgboost-spiegato",       "monthly", "0.8", "2026-02-27"),
         ("https://btcpredictor.io/aureo",                  "monthly", "0.7", "2026-03-01"),
         ("https://btcpredictor.io/legal",                  "monthly", "0.3", "2026-03-01"),
         ("https://btcpredictor.io/support",                "weekly",  "0.8", today),
+        ("https://btcpredictor.io/privacy",                "monthly", "0.3", "2026-03-01"),
     ]
     urls = ""
     for loc, freq, prio, lastmod in pages:
