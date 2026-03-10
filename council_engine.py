@@ -185,7 +185,7 @@ def call_sentiment(payload: dict) -> dict:
         }
         _resp = _requests.post(_url, json=_body, timeout=30, verify=certifi.where())
         if not _resp.ok:
-            raise Exception(f"Gemini {_resp.status_code}: {_resp.text[:300]}")
+            raise Exception(f"Gemini {_resp.status_code}: request failed")
         raw_text = _resp.json()["candidates"][0]["content"]["parts"][0]["text"]
         parsed = _parse_llm_json(raw_text)
         direction = str(parsed.get("direction", "")).upper()

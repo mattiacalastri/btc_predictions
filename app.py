@@ -6656,7 +6656,7 @@ def _onchain_cb_check() -> bool:
             if time.time() - _ONCHAIN_CB_TRIPPED_AT < _ONCHAIN_CB_COOLDOWN:
                 return True
             # cooldown expired — reset
-            _onchain_cb_reset()
+            _onchain_cb_reset_unlocked()
     return False
 
 
@@ -6669,10 +6669,16 @@ def _onchain_cb_record_failure():
             app.logger.warning(f"[ONCHAIN] Circuit breaker TRIPPED after {_ONCHAIN_CB_FAILURES} failures. Cooldown {_ONCHAIN_CB_COOLDOWN}s.")
 
 
-def _onchain_cb_reset():
+def _onchain_cb_reset_unlocked():
+    """Reset CB state. Caller MUST hold _onchain_cb_lock."""
     global _ONCHAIN_CB_FAILURES, _ONCHAIN_CB_TRIPPED_AT
     _ONCHAIN_CB_FAILURES = 0
     _ONCHAIN_CB_TRIPPED_AT = 0.0
+
+
+def _onchain_cb_reset():
+    with _onchain_cb_lock:
+        _onchain_cb_reset_unlocked()
 
 
 _NONCE_ERRORS = ("replacement transaction underpriced", "nonce too low", "already known")
