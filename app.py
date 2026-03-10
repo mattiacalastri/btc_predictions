@@ -47,6 +47,19 @@ def _build_session(retries=3, backoff=0.4, status_forcelist=(429, 502, 503, 504)
     s.mount("http://", adapter)
     return s
 
+_safe_json_logger = logging.getLogger("safe_json")
+
+def _safe_json(response, context="unknown"):
+    """Parse response.json() without crashing on invalid/empty body."""
+    try:
+        return response.json()
+    except (json.JSONDecodeError, ValueError):
+        _safe_json_logger.error(
+            "JSON decode failed [%s]: status=%s body=%.200s",
+            context, response.status_code, response.text
+        )
+        return None
+
 _sb_session = _build_session()      # Supabase REST API
 _kraken_session = _build_session()   # Kraken futures API
 _tg_session = _build_session()       # Telegram Bot API
@@ -663,6 +676,22 @@ _CB_TRIPPED_AT = 0.0             # timestamp of last circuit-breaker auto-pause 
 _CB_COOLDOWN_SEC = 1800          # 30 min minimum wait before manual resume after circuit breaker trip
 _costs_cache = {"data": None, "ts": 0.0}
 _CACHE_LOCK = threading.Lock()  # protects _costs_cache, _public_stats_cache, _macro_cache
+
+# [FIX-PYRAMID] Per-bet lock for pyramid read-modify-write atomicity
+_pyramid_locks: dict = {}          # bet_id → Lock
+_pyramid_meta_lock = threading.Lock()
+
+def _get_pyramid_lock(bet_id) -> threading.Lock:
+    """Get or create a lock for pyramid operations on a specific bet."""
+    with _pyramid_meta_lock:
+        if bet_id not in _pyramid_locks:
+            _pyramid_locks[bet_id] = threading.Lock()
+        return _pyramid_locks[bet_id]
+
+def _cleanup_pyramid_lock(bet_id):
+    """Remove lock for a closed bet to prevent memory leak."""
+    with _pyramid_meta_lock:
+        _pyramid_locks.pop(bet_id, None)
 
 # [FIX3] Trade cooldown — prevent over-trading (31 trades in 3h = fee drag)
 _TRADE_LOCK = threading.Lock()
@@ -1378,7 +1407,9 @@ def publish_telegram():
                 json={"chat_id": channel_id, "text": text, "parse_mode": parse_mode},
                 timeout=10,
             )
-        result = resp.json()
+        result = _safe_json(resp, "publish_tg")
+        if result is None:
+            return jsonify({"error": "Telegram returned invalid JSON"}), 502
         if not result.get("ok"):
             return jsonify({"error": result.get("description", "Telegram error")}), 502
         return jsonify({"ok": True, "message_id": result["result"]["message_id"]})
@@ -2492,6 +2523,14 @@ def place_bet():
         except Exception as _sp_err:
             app.logger.warning(f"[place-bet] signal_price fetch failed (fail-open): {_sp_err}")
 
+    # [FIX2] Pre-fetch fresh mark price to eliminate stale-signal race condition.
+    # Signal price is ~100ms old; market can move 0.5-2% in that window.
+    # We fetch mark price HERE and pass it to _check_price_drift so the drift
+    # comparison uses the freshest possible data point.
+    _fresh_mark = _get_mark_price(symbol)
+    if _fresh_mark > 0 and signal_price <= 0:
+        signal_price = _fresh_mark  # fallback: no signal_price → use fresh mark
+
     price_drift_pct, drift_exit = _check_price_drift(signal_price, symbol, direction, confidence)
     if drift_exit:
         if _sp_bet_id and signal_price > 0:
@@ -2815,7 +2854,12 @@ def place_bet():
         if _pe_decision.action == "PYRAMID":
             pyramid_size = _pe_decision.size
             current_pos_size = float(pos.get("size", 0))
+            _pyr_bet_id = existing_bet_info.get("existing_bet_id")
+            # [FIX-PYRAMID] Lock per-bet to prevent concurrent pyramid_count corruption
+            _pyr_lock = _get_pyramid_lock(_pyr_bet_id) if _pyr_bet_id else None
             try:
+                if _pyr_lock:
+                    _pyr_lock.acquire()
                 _order_side = "buy" if direction == "UP" else "sell"
                 pyramid_result = trade.create_order(
                     orderType="mkt",
@@ -2824,7 +2868,7 @@ def place_bet():
                     size=pyramid_size,
                 )
                 # UPDATE Supabase: pyramid_count + bet_size
-                bet_id = existing_bet_info.get("existing_bet_id")
+                bet_id = _pyr_bet_id
                 if bet_id:
                     _sb_url, _sb_key = _sb_config()
                     try:
@@ -2869,6 +2913,9 @@ def place_bet():
                     "symbol": symbol, "direction": direction, "confidence": confidence,
                     "no_stack": True, **existing_bet_info,
                 }), 200
+            finally:
+                if _pyr_lock and _pyr_lock.locked():
+                    _pyr_lock.release()
 
         # REVERSE — close existing position, then fall through to OPEN
         if _pe_decision.action == "REVERSE":
@@ -3092,7 +3139,10 @@ def debug_gemini():
                 f"https://generativelanguage.googleapis.com/{api_ver}/models?key={key}",
                 timeout=10, verify=_certifi.where(),
             )
-            data = resp.json()
+            data = _safe_json(resp, f"gemini_models_{api_ver}")
+            if data is None:
+                results[api_ver] = {"error": f"Invalid JSON (status {resp.status_code})"}
+                continue
             models = [m["name"] for m in data.get("models", []) if "generateContent" in m.get("supportedGenerationMethods", [])]
             results[api_ver] = {"status": resp.status_code, "models": models[:20]}
         except Exception as e:
@@ -3263,7 +3313,8 @@ def public_stats():
             "https://api.alternative.me/fng/?limit=1",
             timeout=4
         )
-        fg_data_list = fg_resp.json().get("data", [])
+        fg_data = _safe_json(fg_resp, "fear_greed")
+        fg_data_list = (fg_data or {}).get("data", [])
         fg_entry = fg_data_list[0] if fg_data_list else {}
         result["fear_greed_value"] = int(fg_entry.get("value", 0))
         result["fear_greed_label"] = fg_entry.get("value_classification", "")
@@ -3276,7 +3327,8 @@ def public_stats():
             "https://api.kraken.com/0/public/Ticker?pair=XXBTZUSD",
             timeout=4
         )
-        kr_data = kr_resp.json().get("result", {}).get("XXBTZUSD", {})
+        kr_json = _safe_json(kr_resp, "kraken_ticker")
+        kr_data = (kr_json or {}).get("result", {}).get("XXBTZUSD", {})
         c_prices = kr_data.get("c", [])
         last  = float(c_prices[0]) if c_prices else 0.0
         open_ = float(kr_data.get("o", 0) or 0)
@@ -3297,11 +3349,12 @@ def public_stats():
                 "&confidence=gte.0.60"
                 "&order=created_at.desc&limit=20"
             )
-            gh = _sb_session.get(
+            _gh_resp = _sb_session.get(
                 ghost_url,
                 headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
                 timeout=4
-            ).json()
+            )
+            gh = _safe_json(_gh_resp, "ghost_wr") or []
             if isinstance(gh, list) and gh:
                 wins = sum(1 for r in gh if r.get("ghost_correct") is True)
                 result["ghost_wr"] = round(wins / len(gh) * 100)
@@ -6644,6 +6697,7 @@ _onchain_nonce_lock = threading.Lock()
 # Trips after _ONCHAIN_CB_THRESHOLD consecutive failures. Cooldown: 5 min.
 _ONCHAIN_CB_FAILURES = 0
 _ONCHAIN_CB_TRIPPED_AT: float = 0.0
+_ONCHAIN_CB_LAST_FAILURE_AT: float = 0.0   # [FIX7] track last failure for stale cleanup
 _ONCHAIN_CB_THRESHOLD = 3
 _ONCHAIN_CB_COOLDOWN = 300  # 5 min
 _onchain_cb_lock = threading.Lock()
@@ -6657,13 +6711,19 @@ def _onchain_cb_check() -> bool:
                 return True
             # cooldown expired — reset
             _onchain_cb_reset_unlocked()
+        elif _ONCHAIN_CB_FAILURES > 0 and _ONCHAIN_CB_LAST_FAILURE_AT > 0:
+            # [FIX7] Cleanup stale sub-threshold failures after 300s
+            # Prevents unbounded accumulation of old failures that never tripped
+            if time.time() - _ONCHAIN_CB_LAST_FAILURE_AT > _ONCHAIN_CB_COOLDOWN:
+                _onchain_cb_reset_unlocked()
     return False
 
 
 def _onchain_cb_record_failure():
-    global _ONCHAIN_CB_FAILURES, _ONCHAIN_CB_TRIPPED_AT
+    global _ONCHAIN_CB_FAILURES, _ONCHAIN_CB_TRIPPED_AT, _ONCHAIN_CB_LAST_FAILURE_AT
     with _onchain_cb_lock:
         _ONCHAIN_CB_FAILURES += 1
+        _ONCHAIN_CB_LAST_FAILURE_AT = time.time()
         if _ONCHAIN_CB_FAILURES >= _ONCHAIN_CB_THRESHOLD:
             _ONCHAIN_CB_TRIPPED_AT = time.time()
             app.logger.warning(f"[ONCHAIN] Circuit breaker TRIPPED after {_ONCHAIN_CB_FAILURES} failures. Cooldown {_ONCHAIN_CB_COOLDOWN}s.")
@@ -6671,9 +6731,10 @@ def _onchain_cb_record_failure():
 
 def _onchain_cb_reset_unlocked():
     """Reset CB state. Caller MUST hold _onchain_cb_lock."""
-    global _ONCHAIN_CB_FAILURES, _ONCHAIN_CB_TRIPPED_AT
+    global _ONCHAIN_CB_FAILURES, _ONCHAIN_CB_TRIPPED_AT, _ONCHAIN_CB_LAST_FAILURE_AT
     _ONCHAIN_CB_FAILURES = 0
     _ONCHAIN_CB_TRIPPED_AT = 0.0
+    _ONCHAIN_CB_LAST_FAILURE_AT = 0.0
 
 
 def _onchain_cb_reset():
@@ -6682,6 +6743,27 @@ def _onchain_cb_reset():
 
 
 _NONCE_ERRORS = ("replacement transaction underpriced", "nonce too low", "already known")
+
+# Gas price floor & ceiling to prevent overspending on spikes
+_GAS_PRICE_FLOOR_GWEI = 30
+_GAS_PRICE_CEILING_GWEI = 500
+
+
+def _get_dynamic_gas_price(w3) -> int:
+    """Fetch current gas price from network with 1.2x buffer, clamped to ceiling.
+    Returns gas price in wei. Falls back to 50 gwei on RPC failure."""
+    try:
+        network_gas = w3.eth.gas_price
+        # 1.2x multiplier for faster inclusion
+        buffered = int(network_gas * 1.2)
+        floor_wei = w3.to_wei(_GAS_PRICE_FLOOR_GWEI, "gwei")
+        ceiling_wei = w3.to_wei(_GAS_PRICE_CEILING_GWEI, "gwei")
+        result = max(floor_wei, min(buffered, ceiling_wei))
+        app.logger.debug(f"[ONCHAIN] gas price: network={network_gas/1e9:.1f} buffered={buffered/1e9:.1f} final={result/1e9:.1f} gwei")
+        return result
+    except Exception as e:
+        app.logger.warning(f"[ONCHAIN] gas price fetch failed, using 50 gwei fallback: {e}")
+        return w3.to_wei("50", "gwei")
 
 
 def _send_onchain_tx(w3, account, tx_built, label="", max_retries=3):
@@ -6761,7 +6843,7 @@ def commit_prediction():
             "from": account.address,
             "nonce": 0,  # refreshed inside _send_onchain_tx under lock
             "gas": 120_000,
-            "gasPrice": w3.to_wei("30", "gwei"),
+            "gasPrice": _get_dynamic_gas_price(w3),
             "chainId": 137,
         })
         tx_hex = _send_onchain_tx(w3, account, tx, label=f"commit #{bet_id}")
@@ -6848,7 +6930,7 @@ def resolve_prediction():
             "from": account.address,
             "nonce": 0,  # refreshed inside _send_onchain_tx under lock
             "gas": 120_000,
-            "gasPrice": w3.to_wei("30", "gwei"),
+            "gasPrice": _get_dynamic_gas_price(w3),
             "chainId": 137,
         })
         tx_hex = _send_onchain_tx(w3, account, tx, label=f"resolve #{bet_id}")
@@ -6946,7 +7028,7 @@ def commit_inputs():
         tx = contract.functions.commit(onchain_id, commit_hash).build_transaction({
             "from": account.address,
             "nonce": 0,  # refreshed inside _send_onchain_tx under lock
-            "gas": 120_000, "gasPrice": w3.to_wei("30", "gwei"), "chainId": 137,
+            "gas": 120_000, "gasPrice": _get_dynamic_gas_price(w3), "chainId": 137,
         })
         tx_hex = _send_onchain_tx(w3, account, tx, label=f"inputs id={onchain_id}")
         if tx_hex is None:
@@ -7005,7 +7087,7 @@ def commit_fill():
         tx = contract.functions.commit(onchain_id, commit_hash).build_transaction({
             "from": account.address,
             "nonce": 0,  # refreshed inside _send_onchain_tx under lock
-            "gas": 120_000, "gasPrice": w3.to_wei("30", "gwei"), "chainId": 137,
+            "gas": 120_000, "gasPrice": _get_dynamic_gas_price(w3), "chainId": 137,
         })
         tx_hex = _send_onchain_tx(w3, account, tx, label=f"fill bet #{bet_id}")
         if tx_hex is None:
@@ -7063,7 +7145,7 @@ def commit_stops():
         tx = contract.functions.commit(onchain_id, commit_hash).build_transaction({
             "from": account.address,
             "nonce": 0,  # refreshed inside _send_onchain_tx under lock
-            "gas": 120_000, "gasPrice": w3.to_wei("30", "gwei"), "chainId": 137,
+            "gas": 120_000, "gasPrice": _get_dynamic_gas_price(w3), "chainId": 137,
         })
         tx_hex = _send_onchain_tx(w3, account, tx, label=f"stops bet #{bet_id}")
         if tx_hex is None:
@@ -7179,8 +7261,9 @@ def news_fact_check():
             json=row,
             timeout=8,
         )
-        if resp.ok and resp.json():
-            news_id = resp.json()[0]["id"]
+        _nfc_data = _safe_json(resp, "news_fc_insert")
+        if resp.ok and _nfc_data:
+            news_id = _nfc_data[0]["id"]
         elif not resp.ok:
             app.logger.warning(f"[NEWS-FC] Supabase insert failed: {resp.status_code}")
     except Exception as e:
@@ -7196,7 +7279,7 @@ def news_fact_check():
             "from": account.address,
             "nonce": w3.eth.get_transaction_count(account.address, "pending"),
             "gas": 120_000,
-            "gasPrice": w3.to_wei("30", "gwei"),
+            "gasPrice": _get_dynamic_gas_price(w3),
             "chainId": 137,
         })
         tx_hex = _send_onchain_tx(w3, account, tx, label=f"news_fc id={news_id}")
@@ -8154,7 +8237,7 @@ def cockpit_agents():
                 headers=headers, timeout=5
             )
             if resp.ok:
-                rows = resp.json()
+                rows = _safe_json(resp, "cockpit_events") or []
                 # Deduplicate: keep latest per clone_id
                 seen = set()
                 for row in rows:
@@ -8303,7 +8386,7 @@ def cockpit_overview():
             headers=headers, timeout=5
         )
         if resp.ok:
-            preds = resp.json()
+            preds = _safe_json(resp, "today_predictions") or []
             taken = [p for p in preds if p.get("bet_taken") is not False]
             ghosts = [p for p in preds if p.get("bet_taken") is False]
             overview["today_predictions"] = len(taken)
@@ -8549,7 +8632,7 @@ def cockpit_log():
                 headers=headers, params=params, timeout=5,
             )
             if resp.ok:
-                logs = resp.json()
+                logs = _safe_json(resp, "cockpit_log") or []
     except Exception as e:
         app.logger.warning("[COCKPIT] Log fetch error: %s", e)
     return jsonify({"logs": logs}), 200
@@ -8606,7 +8689,7 @@ def _check_anomalies():
             headers=headers, timeout=5,
         )
         if resp.ok:
-            preds = resp.json()
+            preds = _safe_json(resp, "anomaly_confidence") or []
             confs = [p.get("confidence") for p in preds if p.get("confidence") is not None]
             if len(confs) >= 5 and len(set(confs)) == 1:
                 # All 5 identical → anomaly
@@ -8657,7 +8740,7 @@ def cockpit_ghosts():
                 headers=headers, timeout=5,
             )
             if resp.ok:
-                ghosts = resp.json()
+                ghosts = _safe_json(resp, "cockpit_ghosts") or []
     except Exception as e:
         app.logger.warning("[COCKPIT] Ghosts error: %s", e)
     return jsonify({"ghosts": ghosts}), 200

@@ -150,15 +150,18 @@ def call_tecnico(payload: dict) -> dict:
             "error": None,
         }
     except Exception as e:
+        error_str = str(e)
+        if "429" in error_str or "rate" in error_str.lower():
+            logger.warning(f"[COUNCIL] API rate limited for {member}: {error_str[:150]}")
         return {
             "member": member,
             "model_used": model,
             "direction": "ABSTAIN",
             "confidence": 0.5,
             "weight": weight,
-            "reasoning": f"error: {str(e)[:100]}",
-            "raw_response": {"error": str(e)},
-            "error": str(e),
+            "reasoning": f"error: {error_str[:100]}",
+            "raw_response": {"error": error_str},
+            "error": error_str,
         }
 
 
@@ -186,7 +189,12 @@ def call_sentiment(payload: dict) -> dict:
         _resp = _requests.post(_url, json=_body, timeout=30, verify=certifi.where())
         if not _resp.ok:
             raise Exception(f"Gemini {_resp.status_code}: request failed")
-        raw_text = _resp.json()["candidates"][0]["content"]["parts"][0]["text"]
+        # [FIX8] Safe JSON parse — Gemini can return non-JSON on 200 (rare edge case)
+        try:
+            _resp_data = _resp.json()
+        except (json.JSONDecodeError, ValueError) as _je:
+            raise Exception(f"Gemini returned invalid JSON: {_je}")
+        raw_text = _resp_data["candidates"][0]["content"]["parts"][0]["text"]
         parsed = _parse_llm_json(raw_text)
         direction = str(parsed.get("direction", "")).upper()
         if direction not in ("UP", "DOWN"):
@@ -204,15 +212,19 @@ def call_sentiment(payload: dict) -> dict:
             "error": None,
         }
     except Exception as e:
+        error_str = str(e)
+        # [FIX4] Distinguish Gemini 429 rate-limit from real timeout/ABSTAIN
+        if "429" in error_str or "rate" in error_str.lower() or "quota" in error_str.lower():
+            logger.warning(f"[COUNCIL] Gemini rate limited for {member}: {error_str[:150]}")
         return {
             "member": member,
             "model_used": model,
             "direction": "ABSTAIN",
             "confidence": 0.5,
             "weight": weight,
-            "reasoning": f"error: {str(e)[:100]}",
-            "raw_response": {"error": str(e)},
-            "error": str(e),
+            "reasoning": f"error: {error_str[:100]}",
+            "raw_response": {"error": error_str},
+            "error": error_str,
         }
 
 
