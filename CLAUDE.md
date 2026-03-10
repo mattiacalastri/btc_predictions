@@ -1,13 +1,14 @@
 # CLAUDE.md — BTC Predictor Bot
-> Aggiornato: 2026-03-08 | Leggi PRIMA di toccare qualsiasi file o n8n
+> Aggiornato: 2026-03-10 | Leggi PRIMA di toccare qualsiasi file o n8n
 
 ---
 
 ## STATO ATTUALE (aggiorna ad ogni sessione)
-- **BOT: LIVE** — v2.6.2 resumed 8 Mar 13:20 UTC. Ghost WR 50% last20. Regime label + counter_trend_block ATTIVI
-- **Root cause confermato**: BIAS UP in downtrend. Fix P0: regime_label + conf_threshold 0.60+
-- **Wallet**: $83.12 | **conf_threshold**: 0.62 (Railway default) | **n8n gate**: 0.60 | **XGB gate**: 62/100
-- **Council**: ATTIVO | **Dead hours**: {0, 22, 23} UTC | **ACE bias_threshold**: 0.85
+- **BOT: PAUSED** — v2.6.2 | Ghost WR 31.3% (8-9 Mar) | Phase 3 LIVE 10 Mar
+- **Phase 3 deployed**: trending_down nuclear gate + dead hours {4,5,6} + threshold 0.58 base
+- **Wallet**: $84.39 | **conf_threshold**: 0.62 (Railway) | **n8n base threshold**: 0.58 | **XGB gate**: 62/100
+- **Council**: ATTIVO | **Dead hours**: {4, 5, 6} UTC (n8n) | **ACE bias_threshold**: 0.85
+- **GO/NO-GO**: monitorare ghost WR 11-12-13 Mar. Target ≥55% per 3gg → GO LIVE
 
 ## INFRASTRUTTURA RAPIDA
 ```
@@ -62,9 +63,9 @@ curl -X POST https://n8n.srv1432354.hstgr.cloud/webhook/rescue-wf02 -d '{"id": B
 ```
 
 ## TOP 3 TASK APERTI
-1. **P0** — Implementare regime_label + conf_threshold 0.60+ → fix bias UP
-2. **P1** — Dry-run 20+ ghost bets con nuovo threshold → validare prima di LIVE
-3. **P2** — SQL migration funding_rate + verificare fill micro_regime_1h da prossimo trade
+1. **P0** — ✅ DONE Phase 1+2+3: regime_label + counter_trend + trending_down nuclear gate + threshold 0.58
+2. **P0** — Monitorare ghost WR 11-12-13 Mar → GO/NO-GO LIVE (target ≥55% 3gg)
+3. **P1** — Code Audit Fase 2 COMPLETA: 79 test nuovi (portfolio+council), 4 bug fix build_dataset
 
 ## DASHBOARD — accesso unico
 ```
