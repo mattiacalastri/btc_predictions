@@ -57,10 +57,10 @@ if (Math.abs(eqDelta) > 2) {
   events.push({ type: 'ALERT', emoji: eqDelta > 0 ? '📈' : '📉', text: `Equity ${eqDelta > 0?'+':''}$${eqDelta.toFixed(2)}` });
 }
 
-// Ghost
+// Ghost (trigger only — detailed block built below)
 const gh = data.ghost || {};
 if (gh.evaluated > 0) {
-  events.push({ type: 'INFO', emoji: '👻', text: `Ghost: ${gh.correct}/${gh.evaluated} corretti${gh.wr !== null ? ` (${gh.wr}%)` : ''} | ${gh.pending} pending` });
+  events.push({ type: 'INFO', emoji: '👻', text: `Ghost: ${gh.evaluated} giudicati` });
 }
 
 // Bias
@@ -124,6 +124,64 @@ const perf = data.performance;
 if (perf) lines.push(`📈 WR(10): ${perf.wr_10}% | PnL(5): ${perf.pnl_5>=0?'+':''}$${perf.pnl_5}`);
 const xgb = data.xgb_gate || {};
 lines.push(`🤖 XGB: ${xgb.active ? '✅ ON' : `⏳ ${xgb.clean_bets}/${xgb.min_bets}`}`);
+
+// ── Ghost Evaluator Block ──────────────────────────────────────────────────
+const ghostSigs = (data.signals_6h || []).filter(s => s.ghost_evaluated_at && s.bet_taken === false);
+if (ghostSigs.length > 0) {
+  lines.push('');
+  lines.push('┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈');
+  lines.push('👻 <b>GHOST EVALUATOR</b>');
+  lines.push('<i>Segnali filtrati — verdetto a T+30min</i>');
+  lines.push('');
+
+  const maxShow = 5;
+  for (const s of ghostSigs.slice(0, maxShow)) {
+    const hit = s.ghost_correct;
+    const dir = (s.direction || '?').toUpperCase();
+    const conf = s.confidence ? parseFloat(s.confidence).toFixed(2) : '—';
+    const verdict = hit ? 'Azzeccato' : 'Sbagliato';
+    lines.push(`${hit ? '✅' : '❌'} ${dir.padEnd(4)} ${conf} → <i>${verdict}</i>`);
+  }
+  if (ghostSigs.length > maxShow) {
+    lines.push(`   <i>+${ghostSigs.length - maxShow} altri…</i>`);
+  }
+
+  lines.push('');
+  const wr = gh.wr !== null ? gh.wr : 0;
+  const filled = Math.round(wr / 10);
+  const bar = '\u2593'.repeat(filled) + '\u2591'.repeat(10 - filled);
+  lines.push(`\u2693 <b>${gh.correct}/${gh.evaluated}</b> ${bar} <b>${wr}%</b>`);
+  if (gh.pending > 0) lines.push(`\u23f3 ${gh.pending} ancora in mare aperto`);
+
+  lines.push('');
+  const q = [];
+  if (wr >= 75) {
+    q.push('Il mare parla a chi sa ascoltare. Oggi parla chiaro.');
+    q.push('Vento in poppa. Chi ha il coraggio di salpare, raccoglie.');
+    q.push('Le correnti ci obbediscono. Non per fortuna \u2014 per studio.');
+  } else if (wr >= 60) {
+    q.push('Non serve prevedere ogni onda \u2014 basta cavalcare quelle giuste.');
+    q.push('La bussola punta bene. Il tesoro si avvicina.');
+    q.push('Acque fertili. Il capitano che studia le correnti trova l\'oro.');
+  } else if (wr >= 50) {
+    q.push('Anche il miglior navigatore incontra correnti avverse. La rotta resta.');
+    q.push('Mare incerto \u2014 ma chi ricalibra le vele non affonda mai.');
+    q.push('Met\u00e0 delle onde sono nostre. L\'altra met\u00e0 la studieremo.');
+  } else if (wr >= 40) {
+    q.push('Tempesta. Ma \u00e8 nella tempesta che si distingue il capitano dal passeggero.');
+    q.push('I mari peggiori forgiano i migliori navigatori.');
+    q.push('Porto vicino. Chi sa quando fermarsi, sa anche quando ripartire.');
+  } else {
+    q.push('Nebbia fitta. Il capitano studia \u2014 chi sa aspettare, conquista.');
+    q.push('I mari si calmano. E quando lo fanno, saremo i primi a salpare.');
+    q.push('Anche Barbanera sapeva quando restare in porto.');
+  }
+  const quote = q[gh.evaluated % q.length];
+  lines.push(`\ud83c\udff4\u200d\u2620\ufe0f <i>"${quote}"</i>`);
+} else if (gh.pending > 0) {
+  lines.push('');
+  lines.push(`👻 \u23f3 ${gh.pending} segnali in mare aperto \u2014 verdetto in arrivo`);
+}
 
 state.lastRun = now.toISOString();
 state.lastEquity = data.equity;
