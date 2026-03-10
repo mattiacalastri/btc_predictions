@@ -2323,7 +2323,7 @@ function hideApiError() {
 async function fetchAccountSummary() {
   try {
     const res = await fetch(`${CONFIG.RAILWAY_URL}/account-summary`, {
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(20000),
       headers: {'X-API-Key': CONFIG.READ_KEY}
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -2729,7 +2729,7 @@ async function fetchData(includeHistory) {
     const hist = includeHistory ?? _historyActive;
     const url = `${CONFIG.RAILWAY_URL}/signals?limit=${CONFIG.LIMIT}${hist ? '&include_history=true' : ''}`;
     const res = await fetch(url, {
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(25000),
       headers: {'X-API-Key': CONFIG.READ_KEY}
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -2912,6 +2912,8 @@ function renderAll(data) {
   renderLivePosition(); // mostra widget se c'è posizione aperta
   // Populate intro hero KPIs (populateIntroHero is hoisted — safe to call here)
   if (typeof populateIntroHero === 'function') populateIntroHero(data);
+  // Fill KPI cards from equity history when signal window has no real bets
+  if (typeof _fillKpiFallbacksFromEquity === 'function') _fillKpiFallbacksFromEquity();
 }
 
 function _updateSlStats(data) {
@@ -4998,14 +5000,88 @@ function _bt(id, text, color) {
 }
 
 
+// -- KPI FALLBACK FROM EQUITY HISTORY -----------------------------------------
+// When the /signals window (2000 most recent) has no real bets (bot paused),
+// populate WR, DD, STK, Bets, PnL from /equity-history which fetches ALL bets.
+let _equityHistoryData = null;
+
+function _fillKpiFallbacksFromEquity() {
+  if (!_equityHistoryData || !_equityHistoryData.history || !_equityHistoryData.history.length) return;
+  const h = _equityHistoryData.history;
+  const count = _equityHistoryData.count || h.length;
+  const capitalBase = _equityHistoryData.capital_base || 100;
+  const totalPnl = _equityHistoryData.final_equity - capitalBase;
+
+  // Win Rate (from real bets)
+  const wins = h.filter(r => r.pnl_usd > 0).length;
+  const wr = count > 0 ? Math.round(wins / count * 100) : null;
+
+  // Max Drawdown (worst single trade PnL)
+  const pnls = h.map(r => r.pnl_usd);
+  const worstPnl = pnls.length ? Math.min(...pnls) : null;
+
+  // Streak (from most recent bets, history is ordered by id asc)
+  let streak = 0, streakType = null;
+  for (let i = h.length - 1; i >= 0; i--) {
+    const type = h[i].pnl_usd > 0 ? 'W' : 'L';
+    if (streakType === null) streakType = type;
+    if (type === streakType) streak++;
+    else break;
+  }
+
+  // Fill KPI cards only if they still show "—"
+  const _fill = (id, val, color) => {
+    const el = document.getElementById(id);
+    if (el && el.textContent.trim() === '—' && val !== null && val !== undefined) {
+      el.textContent = val;
+      if (color) el.style.color = color;
+    }
+  };
+
+  _fill('kpiWinRate', wr !== null ? wr + '%' : null, wr >= 50 ? 'var(--accent)' : 'var(--danger)');
+  _fill('kpiWrNoBet', wr !== null ? wr + '%' : null, wr >= 50 ? 'var(--accent)' : 'var(--danger)');
+  _fill('kpiDrawdown', worstPnl !== null && worstPnl < 0 ? '$' + worstPnl.toFixed(2) : null, 'var(--danger)');
+  _fill('kpiBets', count + '/' + (dbTotalCount || '—'));
+
+  // Streak
+  const streakEl = document.getElementById('statStreak');
+  if (streakEl && streakEl.textContent.trim() === '—' && streak > 0) {
+    streakEl.textContent = streakType + '×' + streak;
+    streakEl.style.color = streakType === 'W' ? 'var(--accent)' : 'var(--danger)';
+  }
+
+  // Accuracy (same as WR for real bets — all have correct field)
+  _fill('kpiAccuracy', wr !== null ? wr + '%' : null);
+
+  // Expectancy
+  const expectancy = count > 0 ? totalPnl / count : null;
+  const expEl = document.getElementById('statExpectancy');
+  if (expEl && expEl.textContent.trim() === '—' && expectancy !== null) {
+    expEl.textContent = (expectancy >= 0 ? '+$' : '-$') + Math.abs(expectancy).toFixed(3);
+    expEl.style.color = expectancy >= 0 ? 'var(--accent)' : 'var(--danger)';
+  }
+
+  // Profit Factor
+  const grossWins = pnls.filter(p => p > 0).reduce((s, p) => s + p, 0);
+  const grossLoss = Math.abs(pnls.filter(p => p < 0).reduce((s, p) => s + p, 0));
+  const pf = grossLoss > 0 ? grossWins / grossLoss : null;
+  const pfEl = document.getElementById('statProfitFactor');
+  if (pfEl && pfEl.textContent.trim() === '—' && pf !== null) {
+    pfEl.textContent = pf.toFixed(2) + '×';
+    pfEl.style.color = pf >= 1 ? 'var(--accent)' : 'var(--danger)';
+  }
+}
+
 // -- EQUITY HISTORY (real data from /equity-history) --------------------------
 
 async function fetchEquityHistory() {
   try {
-    const res = await fetch(CONFIG.RAILWAY_URL + '/equity-history', { signal: AbortSignal.timeout(8000), headers: {'X-API-Key': CONFIG.READ_KEY} });
+    const res = await fetch(CONFIG.RAILWAY_URL + '/equity-history', { signal: AbortSignal.timeout(15000), headers: {'X-API-Key': CONFIG.READ_KEY} });
     if (!res.ok) return;
     const d = await res.json();
     if (!d.history || d.history.length === 0) return;
+    _equityHistoryData = d;  // store for KPI fallback
+    _fillKpiFallbacksFromEquity();  // populate KPI cards if signal window has no bets
     const svg = document.getElementById('equitySvg');
     const tag = document.getElementById('equityTag');
     if (!svg) return;
@@ -5043,7 +5119,7 @@ async function fetchEquityHistory() {
 async function fetchTradingStats() {
   const badge = document.getElementById('tsVerdictBadge');
   try {
-    const res = await fetch(CONFIG.RAILWAY_URL + '/trading-stats', { signal: AbortSignal.timeout(8000) });
+    const res = await fetch(CONFIG.RAILWAY_URL + '/trading-stats', { signal: AbortSignal.timeout(15000) });
     if (!res.ok) { if (badge) badge.textContent = 'ERR'; return; }
     const d = await res.json();
     if (!d || !d.data) { if (badge) badge.textContent = 'N/A'; return; }
