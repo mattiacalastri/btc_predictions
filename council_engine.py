@@ -8,7 +8,6 @@ import os
 import re
 import json
 import threading
-import datetime as _dt
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import certifi

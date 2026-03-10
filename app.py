@@ -81,6 +81,8 @@ def redirect_www():
     if host.startswith("www."):
         canonical = host[4:]
         scheme = request.headers.get("X-Forwarded-Proto", "https")
+        if scheme not in ("http", "https"):
+            scheme = "https"
         return redirect(f"{scheme}://{canonical}{request.full_path}", code=301)
 
 
@@ -114,11 +116,14 @@ _PAGES_DIR = os.path.join(os.path.dirname(__file__), "pages")
 
 
 def _read_page(filename):
-    """Read an HTML page from the pages/ directory."""
+    """Read an HTML page from the pages/ directory (path traversal safe)."""
     path = os.path.join(_PAGES_DIR, filename)
-    if not os.path.isfile(path):
-        return f"<h1>404</h1><p>Page not found: {filename}</p>"
-    with open(path, "r") as f:
+    real_path = os.path.realpath(path)
+    if not real_path.startswith(os.path.realpath(_PAGES_DIR)):
+        return "<h1>403</h1><p>Forbidden</p>"
+    if not os.path.isfile(real_path):
+        return "<h1>404</h1><p>Page not found</p>"
+    with open(real_path, "r") as f:
         return f.read()
 
 
@@ -127,6 +132,13 @@ def _sb_config() -> tuple:
     url = os.environ.get("SUPABASE_URL", "").rstrip("/")
     key = os.environ.get("SUPABASE_SERVICE_KEY") or os.environ.get("SUPABASE_KEY", "")
     return url, key
+
+
+def _sb_headers(key: str = None) -> dict:
+    """Build Supabase auth headers. Single source of truth — eliminates 50+ inline dicts."""
+    if key is None:
+        _, key = _sb_config()
+    return {"apikey": key, "Authorization": f"Bearer {key}"}
 
 
 # ── Cockpit Log Helper ──────────────────────────────────────────────────────
@@ -703,8 +715,8 @@ def _refresh_bot_paused():
                 else:
                     _BOT_PAUSED = False
                 _BOT_PAUSED_REFRESHED_AT = time.time()
-    except Exception:
-        pass
+    except Exception as e:
+        app.logger.error("[PAUSE_STATE] refresh failed: %s", e)
 
 
 def _save_resumed_at(iso_ts: str):
@@ -1032,11 +1044,11 @@ def health():
                 if recent_pnl < -0.15: multiplier = 0.25
                 elif streak_type == False and streak >= 2: multiplier = 0.5
                 elif streak_type == True and streak >= 3:
-                    _conf_h = float(request.args.get("confidence", 0.65))
+                    _conf_h = _safe_float(request.args.get("confidence", 0.65), default=0.65, min_v=0.0, max_v=1.0)
                     multiplier = 1.5 if _conf_h >= 0.75 else 1.2
                 base_size = round(max(0.001, min(0.005, 0.002 * multiplier)), 6)
-    except Exception:
-        pass
+    except Exception as e:
+        app.logger.error("[HEALTH] adaptive sizing failed: %s", e)
 
     _clean_bets = _get_clean_bet_count()
     _polygon_configured = bool(
@@ -1642,8 +1654,8 @@ def position():
                         pos["price"] = float(row.get("entry_fill_price") or row.get("btc_price_entry") or 0)
                         pos["entry_fill_price"] = pos["price"]
                         pos["pyramid_count"] = row.get("pyramid_count", 0)
-                except Exception:
-                    pass
+                except Exception as e:
+                    app.logger.error("[POSITION] Supabase enrichment failed: %s", e)
             return jsonify({"status": "open", "symbol": symbol, **pos})
         return jsonify({"status": "flat", "symbol": symbol})
     except Exception as e:
@@ -1873,8 +1885,8 @@ def close_position():
                     post_params={"order_id": sl_order_id},
                     auth=True,
                 )
-            except Exception:
-                pass  # se già triggerato, non bloccare
+            except Exception as e:
+                app.logger.warning("[CLOSE] SL cancel failed (may be already triggered): %s", e)
 
         result = trade.create_order(
             orderType="mkt",
@@ -2051,8 +2063,8 @@ def _get_clean_bet_count() -> int:
                     _XGB_CLEAN_BET_COUNT = count
                     _XGB_CLEAN_BET_CHECKED_AT = time.time()
                 return count
-    except Exception:
-        pass
+    except Exception as e:
+        app.logger.error("[XGB_GATE] clean bet count fetch failed: %s", e)
     with _xgb_cache_lock:
         return _XGB_CLEAN_BET_COUNT or 0
 
@@ -2091,6 +2103,9 @@ def _run_xgb_gate(direction: str, confidence: float, data: dict, current_hour_ut
             float(_session_xgb),
         ]]
         prob = _XGB_MODEL.predict_proba(feat_row)[0]  # [P(DOWN), P(UP)]
+        if len(prob) < 2:
+            app.logger.warning("[XGB] predict_proba returned shape %s, expected >=2", len(prob))
+            return 0.5, None
         xgb_prob_up = float(prob[1])
         xgb_direction = "UP" if prob[1] > 0.5 else "DOWN"
         if xgb_direction != direction:
@@ -2415,8 +2430,8 @@ def place_bet():
                                  "Content-Type": "application/json", "Prefer": "return=minimal"},
                         timeout=2,
                     )
-            except Exception:
-                pass  # fail-open — never block a trade for data logging
+            except Exception as e:
+                app.logger.warning("[PLACE_BET] signal data PATCH failed (fail-open): %s", e)
 
     # ACE — Adaptive Calibration Engine gate
     ace_result = _adaptive_engine.evaluate(confidence, direction)
@@ -2488,8 +2503,8 @@ def place_bet():
                         headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}",
                                  "Content-Type": "application/json", "Prefer": "return=minimal"},
                         timeout=3)
-            except Exception:
-                pass
+            except Exception as e:
+                app.logger.warning("[PLACE_BET] price_drift PATCH failed: %s", e)
         return drift_exit
 
     if DRY_RUN:
@@ -2657,8 +2672,8 @@ def place_bet():
                                 _pe_streak_count += 1
                             else:
                                 break
-            except Exception:
-                pass  # fail-open: defaults will be used
+            except Exception as e:
+                app.logger.warning("[PE] streak/history fetch failed (fail-open): %s", e)
 
             # Calculate PnL% (single mark price fetch, reused below)
             _pe_btc_price = _get_mark_price(symbol) or 0.0
@@ -2675,8 +2690,8 @@ def place_bet():
             _eq = flex.get("marginEquity") or flex.get("pv") or flex.get("portfolioValue")
             if _eq:
                 _pe_equity = float(_eq)
-        except Exception:
-            pass
+        except Exception as e:
+            app.logger.warning("[PE] equity fetch failed (using default): %s", e)
 
         if not pos:
             _pe_btc_price = _get_mark_price(symbol) or 0.0
@@ -3247,11 +3262,12 @@ def public_stats():
             "https://api.alternative.me/fng/?limit=1",
             timeout=4
         )
-        fg_entry = fg_resp.json().get("data", [{}])[0]
+        fg_data_list = fg_resp.json().get("data", [])
+        fg_entry = fg_data_list[0] if fg_data_list else {}
         result["fear_greed_value"] = int(fg_entry.get("value", 0))
         result["fear_greed_label"] = fg_entry.get("value_classification", "")
-    except Exception:
-        pass
+    except Exception as e:
+        app.logger.warning("[PUBLIC_STATS] Fear&Greed fetch failed: %s", e)
 
     # 2. BTC 24h change — Kraken spot public ticker
     try:
@@ -3260,12 +3276,13 @@ def public_stats():
             timeout=4
         )
         kr_data = kr_resp.json().get("result", {}).get("XXBTZUSD", {})
-        last  = float(kr_data.get("c", [0])[0] or 0)
+        c_prices = kr_data.get("c", [])
+        last  = float(c_prices[0]) if c_prices else 0.0
         open_ = float(kr_data.get("o", 0) or 0)
         if last and open_:
             result["btc_change_24h"] = round((last - open_) / open_ * 100, 2)
-    except Exception:
-        pass
+    except Exception as e:
+        app.logger.warning("[PUBLIC_STATS] Kraken ticker fetch failed: %s", e)
 
     # 3. Ghost WR last 20 — Supabase (anon key, read-only)
     # Colonne reali: confidence (non conf_score), ghost_correct (non correct)
@@ -3288,8 +3305,8 @@ def public_stats():
                 wins = sum(1 for r in gh if r.get("ghost_correct") is True)
                 result["ghost_wr"] = round(wins / len(gh) * 100)
                 result["ghost_n"]  = len(gh)
-    except Exception:
-        pass
+    except Exception as e:
+        app.logger.warning("[PUBLIC_STATS] ghost WR fetch failed: %s", e)
 
     # 4. Total real bets — Supabase count header
     try:
@@ -3310,8 +3327,8 @@ def public_stats():
             total = cr.split("/")[-1] if "/" in cr else None
             if total and total.isdigit():
                 result["total_bets"] = int(total)
-    except Exception:
-        pass
+    except Exception as e:
+        app.logger.warning("[PUBLIC_STATS] total bets count failed: %s", e)
 
     with _CACHE_LOCK:
         _public_stats_cache = {"ts": now, "data": result}
@@ -3869,6 +3886,9 @@ def predict_xgb():
         features = [_feat_base]
 
         prob = _XGB_MODEL.predict_proba(features)[0]  # [P(DOWN), P(UP)]
+        if len(prob) < 2:
+            app.logger.warning("[XGB] predict_proba returned shape %s, expected >=2", len(prob))
+            return jsonify({"xgb_direction": None, "agree": True, "reason": "bad_prob_shape"})
         xgb_dir = "UP" if prob[1] > prob[0] else "DOWN"
         agree = (xgb_dir == claude_dir) or (claude_dir in ("NO_BET", ""))
 
@@ -4006,7 +4026,10 @@ def bet_sizing():
                     math.cos(2 * math.pi * _dow3 / 7),      # dow_cos
                     float(_session3),                            # session
                 ]]
-                corr_prob = float(_xgb_correctness.predict_proba(feat_row)[0][1])  # P(CORRECT)
+                _corr_raw = _xgb_correctness.predict_proba(feat_row)[0]
+                if len(_corr_raw) < 2:
+                    raise ValueError(f"correctness model returned shape {len(_corr_raw)}")
+                corr_prob = float(_corr_raw[1])  # P(CORRECT)
                 # Se P(CORRECT) < 0.45: size -20%, se > 0.55: size +10%, altrimenti invariata
                 if corr_prob < 0.45:
                     corr_multiplier = 0.80
@@ -4772,9 +4795,9 @@ def ai_predict():
         sentry_sdk.capture_exception(e)
         return jsonify({"status": "error", "error": "ai_timeout", "detail": str(e)[:200]}), 504
     except Exception as e:
-        import traceback
-        app.logger.error(f"[AI_PREDICT] error: {e}\n{traceback.format_exc()}")
-        return jsonify({"status": "error", "error": str(e)[:200], "trace": traceback.format_exc()[-300:]}), 500
+        app.logger.exception("[AI_PREDICT] unexpected error")
+        sentry_sdk.capture_exception(e)
+        return jsonify({"status": "error", "error": "internal_error"}), 500
 
 
 _auto_retrain_last: float = 0.0
@@ -7056,22 +7079,31 @@ def commit_stops():
 
 def _supabase_update(bet_id: int, fields: dict, *, only_if_unresolved: bool = False):
     """Helper: aggiorna una riga Supabase per bet_id.
-    only_if_unresolved: adds &correct=is.null guard (optimistic locking)."""
-    sb_url, sb_key = _sb_config()
-    url = f"{sb_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{bet_id}"
-    if only_if_unresolved:
-        url += "&correct=is.null"
-    headers = {
-        "apikey": sb_key,
-        "Authorization": f"Bearer {sb_key}",
-        "Content-Type": "application/json",
-        "Prefer": "return=minimal",
-    }
-    r = _sb_session.patch(url, json=fields, headers=headers, timeout=10)
+    only_if_unresolved: adds &correct=is.null guard (optimistic locking).
+    Never crashes the app — logs and returns False on failure."""
     try:
+        sb_url, sb_key = _sb_config()
+        if not sb_url or not sb_key:
+            app.logger.error("_supabase_update bet_id=%s: missing Supabase config", bet_id)
+            return False
+        url = f"{sb_url}/rest/v1/{SUPABASE_TABLE}?id=eq.{bet_id}"
+        if only_if_unresolved:
+            url += "&correct=is.null"
+        headers = {
+            "apikey": sb_key,
+            "Authorization": f"Bearer {sb_key}",
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal",
+        }
+        r = _sb_session.patch(url, json=fields, headers=headers, timeout=10)
         r.raise_for_status()
+        return True
+    except requests.HTTPError as e:
+        app.logger.error("_supabase_update bet_id=%s HTTP error: %s", bet_id, e)
+        return False
     except Exception as e:
         app.logger.error("_supabase_update bet_id=%s error: %s", bet_id, e)
+        return False
 
 
 # ── NEWS BLOCKCHAIN FACT-CHECK ────────────────────────────────────────────────
@@ -7279,6 +7311,8 @@ _GOOGLE_SITE_VERIFICATION = os.environ.get("GOOGLE_SITE_VERIFICATION", "")
 @app.route("/google<code>.html", methods=["GET"])
 def google_verification(code):
     """Google Search Console HTML file verification."""
+    if not re.match(r'^[a-zA-Z0-9_-]+$', code):
+        return "Not Found", 404
     expected = _GOOGLE_SITE_VERIFICATION
     if not expected or code != expected:
         return "Not Found", 404
