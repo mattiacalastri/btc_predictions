@@ -97,7 +97,7 @@ def fetch_bets() -> pd.DataFrame:
             "offset":    offset,
         })
         all_rows.extend(rows)
-        if len(rows) < 1000:
+        if len(rows) == 0:
             break
         offset += 1000
 

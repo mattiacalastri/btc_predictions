@@ -2116,7 +2116,7 @@ def _run_xgb_gate(direction: str, confidence: float, data: dict, current_hour_ut
                 "xgb_direction": xgb_direction,
                 "xgb_prob_up": round(float(prob[1]), 3),
                 "message": f"XGB predicts {xgb_direction}, LLM predicts {direction}. Skipping for safety.",
-            }), 200)
+            }), 409)
     except Exception as e:
         app.logger.warning(f"[XGB] Check failed: {e}")
     return xgb_prob_up, None
@@ -2265,21 +2265,22 @@ def place_bet():
         }), 200
 
     # [FIX3B] Cooldown — prevent over-trading (was 31 trades in 3h)
+    # Race condition fix: check AND update timestamp inside the same lock acquisition
     global _LAST_TRADE_PLACED_AT
+    _cooldown_required = TRADE_COOLDOWN_MINUTES * 60
     with _TRADE_LOCK:
         _cooldown_elapsed = time.time() - _LAST_TRADE_PLACED_AT
-    _cooldown_required = TRADE_COOLDOWN_MINUTES * 60
-    if _cooldown_elapsed < _cooldown_required:
-        _remaining = round((_cooldown_required - _cooldown_elapsed) / 60, 1)
-        app.logger.info(f"[FIX3] Cooldown active: {_remaining}min remaining")
-        return jsonify({
-            "status": "skipped",
-            "reason": "cooldown",
-            "cooldown_minutes": TRADE_COOLDOWN_MINUTES,
-            "remaining_minutes": _remaining,
-            "direction": direction,
-            "confidence": confidence,
-        }), 200
+        if _cooldown_elapsed < _cooldown_required:
+            _remaining = round((_cooldown_required - _cooldown_elapsed) / 60, 1)
+            app.logger.info(f"[FIX3] Cooldown active: {_remaining}min remaining")
+            return jsonify({
+                "status": "skipped",
+                "reason": "cooldown",
+                "cooldown_minutes": TRADE_COOLDOWN_MINUTES,
+                "remaining_minutes": _remaining,
+                "direction": direction,
+                "confidence": confidence,
+            }), 200
 
     # ── AI Council deliberation (COUNCIL_MODE=true) ───────────────────────────
     if COUNCIL_MODE:
@@ -7916,7 +7917,11 @@ def api_audit():
         limit = 50
 
     direction = request.args.get("direction", "").strip().upper()
+    if direction and direction not in ("UP", "DOWN"):
+        return jsonify({"error": "direction must be UP or DOWN"}), 400
     correct = request.args.get("correct", "").strip().lower()
+    if correct and correct not in ("true", "false"):
+        return jsonify({"error": "correct must be true or false"}), 400
     date_from = request.args.get("from", "").strip()
     date_to = request.args.get("to", "").strip()
     # Sanitize date params to prevent PostgREST injection (YYYY-MM-DD only)

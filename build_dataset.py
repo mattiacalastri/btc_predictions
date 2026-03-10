@@ -363,7 +363,7 @@ def build_assistant_message(row: dict, flip: bool) -> str:
 
     if flip:
         # Predizione sbagliata → invertiamo la direzione
-        correct_dir = OPPOSITE[original_dir]
+        correct_dir = OPPOSITE.get(original_dir, "DOWN" if original_dir == "UP" else "UP")
         # Abbassa leggermente la confidence (la predizione era incerta)
         correct_conf = round(min(original_conf, 0.65), 2)
         reasoning = (
@@ -459,14 +459,14 @@ def row_to_csv_dict(row: dict, cvd_6m_pct: float | None = None, regime_label: in
         # cronologico (walk-forward CV, T-02). NON è una feature ML.
         "created_at": row.get("created_at", ""),
         # Target
-        "label": 1 if row.get("correct") else 0,
+        "label": 1 if row.get("correct") is True else (0 if row.get("correct") is False else None),
         "direction": row.get("direction", ""),
         # Numeriche (None se mancante/zero — dropna() in train_xgboost.py filtra la riga)
         "confidence": conf,
         "btc_price_entry": price,
-        "fear_greed_value": float(row.get("fear_greed_value") or 50),
-        "rsi14": float(row.get("rsi14") or 50),
-        "technical_score": float(row.get("technical_score") or 0),
+        "fear_greed_value": float(row["fear_greed_value"]) if row.get("fear_greed_value") is not None else 50.0,
+        "rsi14": float(row["rsi14"]) if row.get("rsi14") is not None else 50.0,
+        "technical_score": float(row["technical_score"]) if row.get("technical_score") is not None else 0.0,
         # Ora UTC: intero grezzo (per reporting) + encoding ciclico (per ML)
         "hour_utc": hour,
         "hour_sin": round(hour_sin, 6),   # sin(2π * hour / 24)
@@ -495,7 +495,7 @@ def row_to_csv_dict(row: dict, cvd_6m_pct: float | None = None, regime_label: in
         # Derivato dal valore numerico fear_greed_value (0-100), non dal testo LLM.
         # fear_greed_value < 45 = zona Fear/Extreme Fear (0-44). Più affidabile
         # del campo testuale signal_fear_greed che il LLM spesso inverte.
-        "signal_fg_fear": 1 if float(row.get("fear_greed_value") or 50) < 45 else 0,
+        "signal_fg_fear": 1 if (row.get("fear_greed_value") is not None and float(row["fear_greed_value"]) < 45) else 0,
         "signal_volume_high": 1 if "high" in (row.get("signal_volume") or "").lower() else 0,
         "classification": row.get("classification", ""),
     }

@@ -10,8 +10,11 @@ import json
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+import logging
 import certifi
 import requests
+
+logger = logging.getLogger("council_engine")
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -245,15 +248,18 @@ def call_quant(payload: dict) -> dict:
             "error": None,
         }
     except Exception as e:
+        error_str = str(e)
+        if "429" in error_str or "rate" in error_str.lower():
+            logger.warning(f"[COUNCIL] Gemini rate limited for {member}: {error_str[:100]}")
         return {
             "member": member,
             "model_used": model,
             "direction": "ABSTAIN",
             "confidence": 0.5,
             "weight": weight,
-            "reasoning": f"error: {str(e)[:100]}",
-            "raw_response": {"error": str(e)},
-            "error": str(e),
+            "reasoning": f"error: {error_str[:100]}",
+            "raw_response": {"error": error_str},
+            "error": error_str,
         }
 
 
