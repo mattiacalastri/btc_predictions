@@ -7000,6 +7000,12 @@ def commit_inputs():
     err = _check_api_key()
     if err:
         return err
+
+    # Skip onchain commit when bot is paused — saves gas in ghost/paused mode
+    if _BOT_PAUSED:
+        app.logger.debug("[ONCHAIN] commit_inputs skipped — bot is paused")
+        return jsonify({"ok": True, "skipped": True, "reason": "bot_paused"}), 200
+
     data = request.get_json(force=True) or {}
     required = ["btc_price", "rsi14", "fg_value", "funding_rate", "timestamp"]
     missing = [f for f in required if f not in data]
