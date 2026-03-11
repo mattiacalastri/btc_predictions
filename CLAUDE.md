@@ -1,15 +1,21 @@
 # CLAUDE.md — BTC Predictor Bot
-> Aggiornato: 2026-03-11 sess.216 | Leggi PRIMA di toccare qualsiasi file o n8n
+> Aggiornato: 2026-03-11 sess.231 | Leggi PRIMA di toccare qualsiasi file o n8n
 
 ---
 
 ## STATO ATTUALE (aggiorna ad ogni sessione)
-- **BOT: PAUSED** — v2.6.2 | Ghost WR 31.3% (8-9 Mar) | Phase 3 LIVE 10 Mar
-- **Phase 3 deployed**: trending_down nuclear gate + dead hours {4,5,6} + threshold 0.58 base
-- **Wallet**: $84.39 | **conf_threshold**: 0.62 (Railway) | **n8n base threshold**: 0.58 | **XGB gate**: 62/100
-- **Council**: ATTIVO | **Dead hours**: {4, 5, 6} UTC (n8n) | **ACE bias_threshold**: 0.85
-- **GO/NO-GO**: monitorare ghost WR 11-12-13 Mar. Target ≥55% per 3gg → GO LIVE
-- **sess.216 fix**: 01B `AI Predict (Railway)` + `Open Position` → `retryOnFail=True, maxTries=3, waitBetweenTries=15000ms` — era la root cause dei 95+ errori/giorno e 0 ghost predictions 11 Mar
+- **BOT: PAUSED** — v2.6.2 | Ghost WR 50% (11 Mar, solo 2 segnali conf≥0.60) | Phase 3 LIVE
+- **GO/NO-GO FALLITO**: ghost WR conf≥0.60 troppo pochi segnali (3/2/2 dal 9→11 Mar)
+- **ROOT CAUSE Phase 3 filtering** (diagnosicato sess.231):
+  - PRIMARY: anti-consensus ceiling `/ai-predict` system prompt (ts>3.5 → cap 0.62) + CONF_THRESHOLD=0.62 Railway → collision blocca quasi tutto
+  - SECONDARY: trending_down gate a 0.2% (troppo sensibile, quasi sempre attivo con BTC a $83k)
+  - XGB impara dai segnali PEGGIORI: banda 0.58-0.61 WR 36% > banda 0.50-0.55 WR 57% paradosso DOWN bias
+- **Calibrazioni PRONTE (non applicate)** — diff in memoria:
+  1. `app.py:2394` → `_trend_str > 0.2` → `> 0.4`
+  2. system prompt `ts>3.5: 0.62→0.64`, `ts>4.5: 0.60→0.62`
+- **DB cutoff ottimale**: 2026-03-09 (esclude DOWN bias puro 7-8 Mar, conserva 233 ghost per ACE/XGB)
+- **Wallet**: $84.39 | **conf_threshold**: 0.62 Railway | **PERF_CUTOFF**: da settare a 2026-03-09
+- **Commit sess.231**: `5c7b5f4` — cockpit PERF tab + ghost orbit ticker
 
 ## INFRASTRUTTURA RAPIDA
 ```
