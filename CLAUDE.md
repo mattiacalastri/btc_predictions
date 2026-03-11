@@ -1,5 +1,5 @@
 # CLAUDE.md — BTC Predictor Bot
-> Aggiornato: 2026-03-10 sess.192 | Leggi PRIMA di toccare qualsiasi file o n8n
+> Aggiornato: 2026-03-11 sess.216 | Leggi PRIMA di toccare qualsiasi file o n8n
 
 ---
 
@@ -9,6 +9,7 @@
 - **Wallet**: $84.39 | **conf_threshold**: 0.62 (Railway) | **n8n base threshold**: 0.58 | **XGB gate**: 62/100
 - **Council**: ATTIVO | **Dead hours**: {4, 5, 6} UTC (n8n) | **ACE bias_threshold**: 0.85
 - **GO/NO-GO**: monitorare ghost WR 11-12-13 Mar. Target ≥55% per 3gg → GO LIVE
+- **sess.216 fix**: 01B `AI Predict (Railway)` + `Open Position` → `retryOnFail=True, maxTries=3, waitBetweenTries=15000ms` — era la root cause dei 95+ errori/giorno e 0 ghost predictions 11 Mar
 
 ## INFRASTRUTTURA RAPIDA
 ```
