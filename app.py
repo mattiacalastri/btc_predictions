@@ -4845,7 +4845,7 @@ def ai_predict():
         })
 
     except SystemExit as e:
-        app.logger.error(f"[AI_PREDICT] SystemExit caught (gunicorn shutdown mid-request): code={e.code}")
+        app.logger.warning(f"[AI_PREDICT] SystemExit caught (gunicorn shutdown mid-request): code={e.code}")
         return jsonify({"status": "error", "error": "worker_shutdown", "code": str(e.code)}), 503
     except httpx.TimeoutException as e:
         app.logger.warning(f"[AI_PREDICT] Anthropic timeout (30s): {e}")
