@@ -1,5 +1,5 @@
 # CLAUDE.md — BTC Predictor Bot
-> Aggiornato: 2026-03-10 | Leggi PRIMA di toccare qualsiasi file o n8n
+> Aggiornato: 2026-03-10 sess.192 | Leggi PRIMA di toccare qualsiasi file o n8n
 
 ---
 
@@ -40,6 +40,9 @@ n8n cred IDs: Telegram=`DUBgkzRL1ONUstm5` | Supabase=`xaGS2AzVGYaV8WR8` | OpenRo
 7. **Zombie bets**: usare Supabase PATCH diretto, NON rescue webhook (race condition su Update Result)
 8. **wf28 IF condition**: usare `={{ $json.id }}` non `={{ .id }}`
 9. **Ghost evaluate**: COCKPIT_TOKEN funziona sempre. Dual auth attivo. wf02 ogni 30min
+10. **Polygon gas**: MAI hardcodare gasPrice. Usare `_get_dynamic_gas_price(w3)` (eth_gasPrice*1.2x, floor 30, ceiling 500 gwei)
+11. **Polygon phantom tx**: `send_raw_transaction` ritorna hash PRIMA del mining. Verificare SEMPRE con `eth_getTransactionReceipt`
+12. **PolygonScan API V1 deprecata**: usare RPC diretto o V2
 
 ## SUPABASE — schema note
 - `bet_taken=true` → real bets | `correct=not.null` senza bet_taken → ghost evals
@@ -63,9 +66,9 @@ curl -X POST https://n8n.srv1432354.hstgr.cloud/webhook/rescue-wf02 -d '{"id": B
 ```
 
 ## TOP 3 TASK APERTI
-1. **P0** — ✅ DONE Phase 1+2+3: regime_label + counter_trend + trending_down nuclear gate + threshold 0.58
-2. **P0** — Monitorare ghost WR 11-12-13 Mar → GO/NO-GO LIVE (target ≥55% 3gg)
-3. **P1** — Code Audit Fase 2 COMPLETA: 79 test nuovi (portfolio+council), 4 bug fix build_dataset
+1. **P0** — Monitorare ghost WR 11-12-13 Mar → GO/NO-GO LIVE (target ≥55% 3gg)
+2. **P0** — ✅ DONE Crash Prevention sess.192: 9 fix + Polygon gas dinamico + 880 phantom tx cleaned. Deploy `8c8e035`
+3. **P1** — ✅ DONE Code Audit Fase 2: 79 test nuovi (portfolio+council), 4 bug fix build_dataset
 
 ## DASHBOARD — accesso unico
 ```
