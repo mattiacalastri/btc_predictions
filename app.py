@@ -4786,7 +4786,10 @@ def ai_predict():
     try:
         client = anthropic.Anthropic(
             api_key=_anthropic_key,
-            http_client=httpx.Client(verify=certifi.where()),
+            http_client=httpx.Client(
+                verify=certifi.where(),
+                timeout=httpx.Timeout(60.0, connect=10.0),
+            ),
         )
         msg = client.messages.create(
             model="claude-sonnet-4-6",
