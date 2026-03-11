@@ -263,6 +263,156 @@ body.heartbeat-offline { animation: hb-flat 4s linear infinite; }
 .ghost-result.loss { color: var(--red); }
 .ghost-result.pending { color: var(--text-muted); }
 
+/* ── PERF TAB ── */
+.perf-section { margin-bottom: 20px; }
+.perf-section-hdr {
+  font-size: 10px; color: var(--text-muted); text-transform: uppercase;
+  letter-spacing: 1px; margin-bottom: 10px;
+  display: flex; align-items: center; gap: 8px;
+}
+.perf-section-hdr::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+.perf-kpi-row {
+  display: flex; gap: 8px; margin-bottom: 4px; flex-wrap: wrap;
+}
+.perf-kpi {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 14px; flex: 1; min-width: 90px;
+}
+.perf-kpi .pk-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .8px; }
+.perf-kpi .pk-val { font-size: 20px; font-weight: 700; margin-top: 2px; font-family: 'JetBrains Mono', monospace; }
+.perf-kpi .pk-sub { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+.perf-cutoff-note {
+  font-size: 10px; color: var(--text-muted); text-align: right; margin-bottom: 14px;
+}
+
+/* Equity curve SVG wrapper */
+.equity-wrap {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px; position: relative;
+}
+.equity-wrap .eq-legend {
+  display: flex; gap: 14px; margin-bottom: 8px;
+}
+.equity-wrap .eq-legend span {
+  font-size: 10px; display: flex; align-items: center; gap: 5px;
+}
+.equity-wrap .eq-legend .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+}
+.equity-svg { width: 100%; height: 90px; overflow: visible; }
+
+/* WR direction bars */
+.wr-dir-row { margin-bottom: 10px; }
+.wr-dir-label {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 4px;
+}
+.wr-dir-label .dir-name { font-size: 11px; font-weight: 700; }
+.wr-dir-label .dir-name.UP { color: var(--green); }
+.wr-dir-label .dir-name.DOWN { color: var(--red); }
+.wr-dir-label .dir-stat { font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+.wr-bar-track {
+  height: 6px; background: var(--border); border-radius: 3px; overflow: hidden;
+}
+.wr-bar-fill { height: 100%; border-radius: 3px; transition: width .6s ease; }
+
+/* WR by hour heatmap */
+.wr-hour-grid {
+  display: grid; grid-template-columns: repeat(24, 1fr); gap: 2px;
+  align-items: end; height: 52px;
+}
+.wr-hour-bar {
+  border-radius: 2px 2px 0 0; min-height: 4px;
+  position: relative; cursor: default;
+  transition: opacity .2s;
+}
+.wr-hour-bar:hover { opacity: .8; }
+.wr-hour-labels {
+  display: grid; grid-template-columns: repeat(24, 1fr); gap: 2px;
+  margin-top: 3px;
+}
+.wr-hour-labels span {
+  font-size: 7px; color: var(--text-muted); text-align: center;
+}
+
+/* WR by band */
+.wr-band-row { margin-bottom: 8px; }
+.wr-band-header {
+  display: flex; justify-content: space-between; margin-bottom: 3px;
+}
+.wr-band-label {
+  font-size: 10px; font-family: 'JetBrains Mono', monospace;
+  display: flex; align-items: center; gap: 6px;
+}
+.wr-band-pill {
+  font-size: 8px; padding: 1px 5px; border-radius: 3px;
+  text-transform: uppercase; letter-spacing: .5px;
+}
+.wr-band-pill.training { background: rgba(0,212,170,.15); color: var(--accent); }
+.wr-band-pill.non-training { background: rgba(255,255,255,.06); color: var(--text-muted); }
+.wr-band-stat { font-size: 10px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+.wr-band-track { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.wr-band-fill { height: 100%; border-radius: 3px; transition: width .6s ease; }
+
+/* ── GHOST ORBIT TICKER ── */
+.ghost-ticker {
+  background: var(--bg-card); border: 1px dashed rgba(0,212,170,.3);
+  border-radius: 12px; padding: 14px 16px;
+  display: flex; align-items: center; gap: 16px;
+  margin-bottom: 12px; transition: border-color .4s;
+}
+.ghost-ticker.win  { border-color: rgba(0,255,136,.5); }
+.ghost-ticker.loss { border-color: rgba(255,80,80,.4); }
+.ghost-orbit-wrap {
+  position: relative; width: 56px; height: 56px; flex-shrink: 0;
+}
+.ghost-orbit-ring {
+  position: absolute; inset: 4px; border-radius: 50%;
+  border: 1px solid rgba(0,212,170,.3);
+  transition: border-color .4s;
+}
+.ghost-orbit-core {
+  position: absolute; inset: 14px; border-radius: 50%;
+  background: rgba(0,212,170,.08); border: 1px solid rgba(0,212,170,.3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; transition: background .4s, border-color .4s;
+}
+.ghost-orbit-dot {
+  position: absolute; top: 50%; left: 50%;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--accent); margin: -3.5px;
+  animation: orbit-spin 3s linear infinite;
+  transform-origin: 0 0;
+}
+@keyframes orbit-spin {
+  from { transform: rotate(0deg) translateX(24px) rotate(0deg); }
+  to   { transform: rotate(360deg) translateX(24px) rotate(-360deg); }
+}
+.ghost-ticker.win  .ghost-orbit-dot  { background: var(--green); animation-duration: 1.2s; }
+.ghost-ticker.loss .ghost-orbit-dot  { background: var(--red); animation-duration: 5s; opacity: .6; }
+.ghost-ticker.win  .ghost-orbit-core { background: rgba(0,255,136,.12); border-color: rgba(0,255,136,.4); }
+.ghost-ticker.loss .ghost-orbit-core { background: rgba(255,80,80,.08); border-color: rgba(255,80,80,.3); }
+@keyframes pulse-win {
+  0%,100% { box-shadow: 0 0 0 0 rgba(0,255,136,0); }
+  50%      { box-shadow: 0 0 0 8px rgba(0,255,136,.15); }
+}
+.ghost-ticker.win .ghost-orbit-wrap { animation: pulse-win 1.5s ease 2; }
+.ghost-ticker-info { flex: 1; min-width: 0; }
+.ghost-ticker-dir {
+  font-size: 14px; font-weight: 700; font-family: 'JetBrains Mono', monospace;
+}
+.ghost-ticker-dir.UP { color: var(--green); }
+.ghost-ticker-dir.DOWN { color: var(--red); }
+.ghost-ticker-result {
+  font-size: 11px; font-weight: 600; margin-top: 2px;
+}
+.ghost-ticker-result.win { color: var(--green); }
+.ghost-ticker-result.loss { color: var(--red); }
+.ghost-ticker-result.pending { color: var(--text-muted); }
+.ghost-ticker-meta { font-size: 10px; color: var(--text-muted); margin-top: 3px; }
+
 /* ── AGENTS GRID ── */
 .agents-grid {
   display: grid; grid-template-columns: 1fr;
@@ -850,6 +1000,10 @@ body.heartbeat-offline { animation: hb-flat 4s linear infinite; }
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 10.8a19.79 19.79 0 01-3.07-8.72A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92v2z"/></svg>
       <span>Ops</span>
     </button>
+    <button class="tab-btn" data-tab="perf" onclick="switchTab('perf')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      <span>Perf</span>
+    </button>
     <button class="tab-btn" data-tab="settings" onclick="switchTab('settings')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
       <span>Settings</span>
@@ -951,6 +1105,22 @@ body.heartbeat-offline { animation: hb-flat 4s linear infinite; }
           <div class="label">Phase</div>
           <div class="value" id="m-phase">-</div>
           <div class="sub" id="m-phase-detail">-</div>
+        </div>
+      </div>
+
+      <!-- Ghost Orbit Ticker (last signal, always visible in ghost mode) -->
+      <div id="ghost-ticker-wrap" style="display:none">
+        <div class="ghost-ticker" id="ghost-ticker">
+          <div class="ghost-orbit-wrap">
+            <div class="ghost-orbit-ring"></div>
+            <div class="ghost-orbit-core" id="ghost-orbit-core">👻</div>
+            <div class="ghost-orbit-dot" id="ghost-orbit-dot"></div>
+          </div>
+          <div class="ghost-ticker-info">
+            <div class="ghost-ticker-dir" id="ghost-ticker-dir">—</div>
+            <div class="ghost-ticker-result" id="ghost-ticker-result">—</div>
+            <div class="ghost-ticker-meta" id="ghost-ticker-meta">—</div>
+          </div>
         </div>
       </div>
 
@@ -1122,6 +1292,90 @@ body.heartbeat-offline { animation: hb-flat 4s linear infinite; }
 
     </div>
 
+    <!-- TAB: PERF -->
+    <div class="tab-panel" id="panel-perf">
+
+      <!-- KPI row -->
+      <div class="perf-section">
+        <div class="perf-kpi-row" id="perf-kpi-row">
+          <div class="perf-kpi">
+            <div class="pk-label">Ghost WR</div>
+            <div class="pk-val" id="pk-wr-all">—</div>
+            <div class="pk-sub" id="pk-wr-all-sub">all signals</div>
+          </div>
+          <div class="perf-kpi">
+            <div class="pk-label">Training WR</div>
+            <div class="pk-val" id="pk-wr-train">—</div>
+            <div class="pk-sub" id="pk-wr-train-sub">conf ≥ 0.58</div>
+          </div>
+          <div class="perf-kpi">
+            <div class="pk-label">↑ UP WR</div>
+            <div class="pk-val" id="pk-wr-up" style="color:var(--green)">—</div>
+            <div class="pk-sub" id="pk-wr-up-sub">—</div>
+          </div>
+          <div class="perf-kpi">
+            <div class="pk-label">↓ DOWN WR</div>
+            <div class="pk-val" id="pk-wr-down" style="color:var(--red)">—</div>
+            <div class="pk-sub" id="pk-wr-down-sub">—</div>
+          </div>
+        </div>
+        <div class="perf-cutoff-note" id="perf-cutoff-note">cutoff: —</div>
+      </div>
+
+      <!-- Equity curve -->
+      <div class="perf-section">
+        <div class="perf-section-hdr">Equity Curve</div>
+        <div class="equity-wrap">
+          <div class="eq-legend">
+            <span><span class="dot" style="background:var(--accent)"></span> All ghost</span>
+            <span><span class="dot" style="background:rgba(255,255,255,.6)"></span> Training (conf ≥ 0.58)</span>
+          </div>
+          <svg class="equity-svg" id="equity-svg" viewBox="0 0 400 80" preserveAspectRatio="none">
+            <line x1="0" y1="40" x2="400" y2="40" stroke="rgba(255,255,255,.08)" stroke-width="1"/>
+            <polyline id="eq-line-all" fill="none" stroke="var(--accent)" stroke-width="1.5" points=""/>
+            <polyline id="eq-line-train" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1.2" stroke-dasharray="4 3" points=""/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- WR by direction -->
+      <div class="perf-section">
+        <div class="perf-section-hdr">Win Rate per Direzione</div>
+        <div id="wr-dir-container">
+          <div class="wr-dir-row" id="wr-dir-UP">
+            <div class="wr-dir-label">
+              <span class="dir-name UP">▲ UP</span>
+              <span class="dir-stat" id="wr-dir-up-stat">—</span>
+            </div>
+            <div class="wr-bar-track"><div class="wr-bar-fill" id="wr-bar-up" style="width:0%;background:var(--green)"></div></div>
+          </div>
+          <div class="wr-dir-row" id="wr-dir-DOWN">
+            <div class="wr-dir-label">
+              <span class="dir-name DOWN">▼ DOWN</span>
+              <span class="dir-stat" id="wr-dir-down-stat">—</span>
+            </div>
+            <div class="wr-bar-track"><div class="wr-bar-fill" id="wr-bar-down" style="width:0%;background:var(--red)"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- WR by confidence band -->
+      <div class="perf-section">
+        <div class="perf-section-hdr">Win Rate per Banda Confidence</div>
+        <div id="wr-bands-container"></div>
+      </div>
+
+      <!-- WR by UTC hour -->
+      <div class="perf-section">
+        <div class="perf-section-hdr">Win Rate per Ora UTC</div>
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:12px">
+          <div class="wr-hour-grid" id="wr-hour-grid"></div>
+          <div class="wr-hour-labels" id="wr-hour-labels"></div>
+        </div>
+      </div>
+
+    </div>
+
     <!-- TAB: SETTINGS -->
     <div class="tab-panel" id="panel-settings">
       <div class="settings-group">
@@ -1248,6 +1502,7 @@ const STATE = {
   refreshTimer: null,
   lastAgentStatuses: {},
   ghostsLoaded: false,
+  perfLoaded: false,
   lastPredictionId: null,
 };
 
@@ -1326,7 +1581,10 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
   document.getElementById('set-davide').checked = STATE.davideMode;
   document.getElementById('set-sound').checked = STATE.soundEnabled;
   applyDavideMode();
-  if (STATE.ghostMode) document.getElementById('ghost-section').style.display = '';
+  if (STATE.ghostMode) {
+    document.getElementById('ghost-section').style.display = '';
+    document.getElementById('ghost-ticker-wrap').style.display = '';
+  }
 })();
 
 function logout() {
@@ -1357,6 +1615,7 @@ function switchTab(tab) {
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
   if (tab === 'overview' && STATE.ghostMode && !STATE.ghostsLoaded) loadGhosts();
   if (tab === 'ops') opsInitOnce();
+  if (tab === 'perf' && !STATE.perfLoaded) loadPerf();
 }
 
 // ── CLOCK ──
@@ -1786,6 +2045,139 @@ async function loadGhosts() {
   } catch(e) { console.error('Ghost load error:', e); }
 }
 
+// ── GHOST TICKER (overview orbit widget) ──────────────────────────────────
+function renderGhostTicker(lg) {
+  const wrap = document.getElementById('ghost-ticker-wrap');
+  if (!lg) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  const ticker = document.getElementById('ghost-ticker');
+  const gc = lg.ghost_correct;
+  const stateCls = gc === true ? 'win' : gc === false ? 'loss' : '';
+  ticker.className = 'ghost-ticker' + (stateCls ? ' ' + stateCls : '');
+  const dir = (lg.direction || '').toUpperCase();
+  const conf = lg.confidence ? (parseFloat(lg.confidence) * 100).toFixed(0) + '%' : '—';
+  document.getElementById('ghost-ticker-dir').textContent = `${dir} ${conf}`;
+  document.getElementById('ghost-ticker-dir').className = `ghost-ticker-dir ${dir}`;
+  const rEl = document.getElementById('ghost-ticker-result');
+  if (gc === true)       { rEl.textContent = '✓ Would have WON'; rEl.className = 'ghost-ticker-result win'; }
+  else if (gc === false) { rEl.textContent = '✗ Would have LOST'; rEl.className = 'ghost-ticker-result loss'; }
+  else                   { rEl.textContent = 'Pending evaluation…'; rEl.className = 'ghost-ticker-result pending'; }
+  const ts = lg.created_at ? new Date(lg.created_at).toISOString().slice(11, 16) + ' UTC' : '';
+  document.getElementById('ghost-ticker-meta').textContent = ts;
+}
+
+// ── PERF TAB ──────────────────────────────────────────────────────────────
+function _perfColor(wr) {
+  if (wr === null || wr === undefined) return 'rgba(255,255,255,.15)';
+  if (wr >= 0.50) return 'var(--accent)';
+  if (wr >= 0.35) return 'var(--yellow, #f5c842)';
+  return 'var(--red)';
+}
+
+function _perfWrTxt(wr) {
+  return wr !== null && wr !== undefined ? (wr * 100).toFixed(1) + '%' : '—';
+}
+
+function _buildEquityPoints(data, w, h) {
+  if (!data || data.length < 2) return '';
+  const vals = data.map(d => d.cum);
+  const minV = Math.min(0, ...vals);
+  const maxV = Math.max(0, ...vals);
+  const range = maxV - minV || 1;
+  const pad = 6;
+  return data.map((d, i) => {
+    const x = pad + (i / (data.length - 1)) * (w - pad * 2);
+    const y = h - pad - ((d.cum - minV) / range) * (h - pad * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+}
+
+async function loadPerf() {
+  try {
+    const data = await apiFetch('/cockpit/api/performance');
+    const s = data.summary || {};
+
+    // KPIs
+    const wrAll = s.wr_all;
+    const wrTr  = s.wr_training;
+    const kpiWrEl = document.getElementById('pk-wr-all');
+    kpiWrEl.textContent = _perfWrTxt(wrAll);
+    kpiWrEl.style.color = _perfColor(wrAll);
+    document.getElementById('pk-wr-all-sub').textContent = `${s.total_all || 0} segnali`;
+    const kpiTrEl = document.getElementById('pk-wr-train');
+    kpiTrEl.textContent = _perfWrTxt(wrTr);
+    kpiTrEl.style.color = _perfColor(wrTr);
+    document.getElementById('pk-wr-train-sub').textContent = `${s.total_training || 0} conf ≥ 0.58`;
+    const upD = (data.wr_direction || {}).UP || {};
+    const dnD = (data.wr_direction || {}).DOWN || {};
+    const kpiUpEl = document.getElementById('pk-wr-up');
+    kpiUpEl.textContent = _perfWrTxt(upD.wr);
+    document.getElementById('pk-wr-up-sub').textContent = `${upD.n || 0} signals`;
+    const kpiDnEl = document.getElementById('pk-wr-down');
+    kpiDnEl.textContent = _perfWrTxt(dnD.wr);
+    document.getElementById('pk-wr-down-sub').textContent = `${dnD.n || 0} signals`;
+    document.getElementById('perf-cutoff-note').textContent = `cutoff: ${data.cutoff || '—'} | ${new Date().toISOString().slice(0,10)}`;
+
+    // Equity curves
+    const eq = data.all_equity || [];
+    const eqT = data.training_equity || [];
+    const svgW = 400, svgH = 80;
+    document.getElementById('eq-line-all').setAttribute('points', _buildEquityPoints(eq, svgW, svgH));
+    document.getElementById('eq-line-train').setAttribute('points', _buildEquityPoints(eqT, svgW, svgH));
+
+    // WR direction bars
+    document.getElementById('wr-dir-up-stat').textContent =
+      upD.n ? `${_perfWrTxt(upD.wr)} (${upD.correct}/${upD.n})` : '—';
+    document.getElementById('wr-bar-up').style.width = upD.wr ? (upD.wr * 100) + '%' : '0%';
+    document.getElementById('wr-dir-down-stat').textContent =
+      dnD.n ? `${_perfWrTxt(dnD.wr)} (${dnD.correct}/${dnD.n})` : '—';
+    document.getElementById('wr-bar-down').style.width = dnD.wr ? (dnD.wr * 100) + '%' : '0%';
+
+    // WR by confidence band
+    const bandsEl = document.getElementById('wr-bands-container');
+    bandsEl.innerHTML = (data.wr_bands || []).map(b => {
+      const col = _perfColor(b.wr);
+      const pct = b.wr !== null ? (b.wr * 100).toFixed(1) + '%' : '—';
+      const fillW = b.wr !== null ? (b.wr * 100) + '%' : '0%';
+      const pillCls = b.training ? 'training' : 'non-training';
+      const pillTxt = b.training ? 'XGB' : 'skip';
+      return `<div class="wr-band-row">
+        <div class="wr-band-header">
+          <span class="wr-band-label">
+            ${escapeHtml(b.label)}
+            <span class="wr-band-pill ${pillCls}">${pillTxt}</span>
+          </span>
+          <span class="wr-band-stat">${pct} <span style="color:var(--text-muted)">(${b.correct}/${b.n})</span></span>
+        </div>
+        <div class="wr-band-track">
+          <div class="wr-band-fill" style="width:${fillW};background:${col}"></div>
+        </div>
+      </div>`;
+    }).join('');
+
+    // WR by UTC hour
+    const hourGrid = document.getElementById('wr-hour-grid');
+    const hourLabels = document.getElementById('wr-hour-labels');
+    const hours = data.wr_hour || [];
+    const maxHourN = Math.max(1, ...hours.map(h => h.n || 0));
+    hourGrid.innerHTML = hours.map(h => {
+      const wr = h.wr;
+      const col = h.n < 3 ? 'rgba(255,255,255,.1)' : _perfColor(wr);
+      const pct = h.n < 3 ? 15 : Math.max(15, (wr || 0) * 100);
+      const title = h.n >= 3 ? `${h.hour}h: ${_perfWrTxt(wr)} (${h.correct}/${h.n})` : `${h.hour}h: no data`;
+      return `<div class="wr-hour-bar" style="height:${pct}%;background:${col};opacity:${h.n<3?.3:1}" title="${title}"></div>`;
+    }).join('');
+    hourLabels.innerHTML = hours.map((h, i) =>
+      `<span>${i % 4 === 0 ? h.hour : ''}</span>`
+    ).join('');
+
+    // Ghost orbit ticker (latest ghost)
+    renderGhostTicker(data.last_ghost);
+
+    STATE.perfLoaded = true;
+  } catch(e) { console.error('Perf load error:', e); }
+}
+
 // ── REFRESH ALL ──
 async function refreshAll() {
   try {
@@ -1811,6 +2203,10 @@ async function refreshAll() {
 
     // Lazy load ghosts on overview tab
     if (STATE.ghostMode && STATE.currentTab === 'overview' && !STATE.ghostsLoaded) loadGhosts();
+    // Refresh perf tab if active (reset perfLoaded so it re-fetches on next visit too)
+    if (STATE.currentTab === 'perf') { STATE.perfLoaded = false; loadPerf(); }
+    // Always update ghost ticker in overview if ghost mode on
+    if (STATE.ghostMode) apiFetch('/cockpit/api/performance').then(d => renderGhostTicker(d.last_ghost)).catch(()=>{});
 
     document.getElementById('connection-status').textContent = 'Connected';
     document.getElementById('connection-status').style.background = 'var(--green-dim)';
@@ -1841,7 +2237,11 @@ function toggleSetting(key) {
 
   if (key === 'ghostMode') {
     document.getElementById('ghost-section').style.display = STATE.ghostMode ? '' : 'none';
-    if (STATE.ghostMode) { STATE.ghostsLoaded = false; loadGhosts(); }
+    document.getElementById('ghost-ticker-wrap').style.display = STATE.ghostMode ? '' : 'none';
+    if (STATE.ghostMode) {
+      STATE.ghostsLoaded = false; loadGhosts();
+      apiFetch('/cockpit/api/performance').then(d => renderGhostTicker(d.last_ghost)).catch(()=>{});
+    }
   }
   if (key === 'davideMode') applyDavideMode();
 }

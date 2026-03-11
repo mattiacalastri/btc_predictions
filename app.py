@@ -8755,6 +8755,171 @@ def cockpit_ghosts():
     return jsonify({"ghosts": ghosts}), 200
 
 
+@app.route("/cockpit/api/performance", methods=["GET"])
+def cockpit_performance():
+    """Ghost performance analytics: equity curve, WR by direction/hour/band.
+
+    Query params:
+      cutoff (str): ISO date like 2026-03-09 (default: env PERF_CUTOFF or 2026-03-09)
+      limit  (int): max equity curve points (default 400)
+    """
+    err = _check_cockpit_auth()
+    if err:
+        return err
+
+    _DEFAULT_CUTOFF = os.environ.get("PERF_CUTOFF", "2026-03-09")
+    cutoff = request.args.get("cutoff", _DEFAULT_CUTOFF)
+    limit  = min(int(request.args.get("limit", 400)), 800)
+
+    _TRAINING_CONF = 0.58  # threshold for XGB training eligibility
+    _BAND_DEFS = [
+        (0.50, 0.55), (0.55, 0.58), (0.58, 0.61),
+        (0.61, 0.64), (0.64, 0.68), (0.68, 1.00),
+    ]
+
+    empty = {
+        "cutoff": cutoff, "all_equity": [], "training_equity": [],
+        "wr_direction": {}, "wr_hour": [], "wr_bands": [],
+        "summary": {}, "last_ghost": None,
+    }
+
+    try:
+        sb_url, sb_key = _sb_config()
+        if not sb_url or not sb_key:
+            return jsonify(empty), 200
+        headers = {"apikey": sb_key, "Authorization": f"Bearer {sb_key}"}
+
+        # Fetch resolved ghost signals after cutoff (max 800, chrono order)
+        resp = _sb_session.get(
+            f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
+            f"?select=id,direction,confidence,ghost_correct,created_at"
+            f"&bet_taken=eq.false&ghost_correct=not.is.null"
+            f"&created_at=gte.{cutoff}T00:00:00Z"
+            f"&order=created_at.asc&limit={limit}",
+            headers=headers, timeout=8,
+        )
+        if not resp.ok:
+            app.logger.warning("[PERF] Supabase fetch failed: %s", resp.status_code)
+            return jsonify(empty), 200
+
+        rows = _safe_json(resp, "cockpit_performance") or []
+        if not rows:
+            return jsonify(empty), 200
+
+        # ── Equity curves ──────────────────────────────────────────────────
+        all_equity = []
+        train_equity = []
+        cum_all = cum_train = 0
+        for r in rows:
+            correct = r.get("ghost_correct")
+            conf    = float(r.get("confidence") or 0)
+            ts      = (r.get("created_at") or "")[:16].replace("T", " ")
+            delta   = 1 if correct else -1
+            cum_all += delta
+            all_equity.append({"t": ts, "cum": cum_all, "win": bool(correct)})
+            if conf >= _TRAINING_CONF:
+                cum_train += delta
+                train_equity.append({"t": ts, "cum": cum_train, "win": bool(correct)})
+
+        # ── WR by direction ────────────────────────────────────────────────
+        wr_dir = {}
+        for d in ("UP", "DOWN"):
+            sub = [r for r in rows if (r.get("direction") or "").upper() == d]
+            wins = sum(1 for r in sub if r.get("ghost_correct"))
+            wr_dir[d] = {
+                "n": len(sub),
+                "correct": wins,
+                "wr": round(wins / len(sub), 4) if sub else None,
+            }
+
+        # ── WR by UTC hour ─────────────────────────────────────────────────
+        hour_buckets = [{} for _ in range(24)]
+        for r in rows:
+            try:
+                h = int((r.get("created_at") or "T00")[11:13])
+                b = hour_buckets[h]
+                b["n"]       = b.get("n", 0) + 1
+                b["correct"] = b.get("correct", 0) + (1 if r.get("ghost_correct") else 0)
+            except Exception:
+                pass
+        wr_hour = []
+        for h, b in enumerate(hour_buckets):
+            n = b.get("n", 0)
+            c = b.get("correct", 0)
+            wr_hour.append({
+                "hour": h,
+                "n": n,
+                "correct": c,
+                "wr": round(c / n, 4) if n >= 3 else None,
+            })
+
+        # ── WR by confidence band ──────────────────────────────────────────
+        wr_bands = []
+        for lo, hi in _BAND_DEFS:
+            sub = [
+                r for r in rows
+                if r.get("confidence") is not None
+                and lo <= float(r["confidence"]) < hi
+            ]
+            wins = sum(1 for r in sub if r.get("ghost_correct"))
+            label = f"{lo:.2f}-{hi:.2f}" if hi < 1.0 else "0.68+"
+            wr_bands.append({
+                "label": label,
+                "lo": lo,
+                "n": len(sub),
+                "correct": wins,
+                "wr": round(wins / len(sub), 4) if sub else None,
+                "training": lo >= _TRAINING_CONF,
+            })
+
+        # ── Latest ghost signal ────────────────────────────────────────────
+        resp2 = _sb_session.get(
+            f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
+            f"?select=direction,confidence,ghost_correct,created_at"
+            f"&bet_taken=eq.false&order=created_at.desc&limit=1",
+            headers=headers, timeout=4,
+        )
+        last_ghost = None
+        if resp2.ok:
+            lg = (_safe_json(resp2, "perf_last_ghost") or [None])[0]
+            if lg:
+                last_ghost = {
+                    "direction":     lg.get("direction"),
+                    "confidence":    lg.get("confidence"),
+                    "ghost_correct": lg.get("ghost_correct"),
+                    "created_at":    lg.get("created_at"),
+                }
+
+        total_all   = len(rows)
+        wins_all    = sum(1 for r in rows if r.get("ghost_correct"))
+        train_rows  = [r for r in rows if float(r.get("confidence") or 0) >= _TRAINING_CONF]
+        wins_train  = sum(1 for r in train_rows if r.get("ghost_correct"))
+
+        return jsonify({
+            "cutoff":          cutoff,
+            "all_equity":      all_equity,
+            "training_equity": train_equity,
+            "wr_direction":    wr_dir,
+            "wr_hour":         wr_hour,
+            "wr_bands":        wr_bands,
+            "last_ghost":      last_ghost,
+            "summary": {
+                "total_all":      total_all,
+                "wins_all":       wins_all,
+                "wr_all":         round(wins_all / total_all, 4) if total_all else None,
+                "total_training": len(train_rows),
+                "wins_training":  wins_train,
+                "wr_training":    round(wins_train / len(train_rows), 4) if train_rows else None,
+                "cutoff_date":    cutoff,
+                "training_conf":  _TRAINING_CONF,
+            },
+        }), 200
+
+    except Exception as e:
+        app.logger.exception("[PERF] Error: %s", e)
+        return jsonify(empty), 200
+
+
 # ── FIXER VERIFY (Second Check post-fix) ────────────────────────────────────
 
 @app.route("/fixer-verify", methods=["POST"])
