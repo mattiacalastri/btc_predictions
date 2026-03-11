@@ -58,3 +58,7 @@ node_modules/
 package-lock.json
 package.json
 screenshots/
+
+# Artefatti generati e script locali
+output.pdf
+run_claude_task.sh
