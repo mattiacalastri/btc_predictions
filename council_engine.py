@@ -5,7 +5,6 @@ Members: TECNICO (Claude Sonnet), SENTIMENT (Gemini Flash), QUANT (XGBoost local
 Designed to be imported by app.py. Zero circular imports.
 """
 import os
-import re
 import json
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -96,17 +95,22 @@ def _build_sentiment_message(payload: dict) -> str:
 # ── JSON parser ────────────────────────────────────────────────────────────────
 
 def _parse_llm_json(text: str) -> dict:
-    """Extract JSON dict from LLM response text (handles markdown code blocks)."""
+    """Extract JSON dict from LLM response text (handles markdown code blocks).
+
+    Uses outermost-brace strategy instead of regex to correctly handle nested JSON objects
+    (e.g. {"nested": {"key": "val"}}), which r'\{[^{}]+\}' would fail to match.
+    """
     text = (text or "").strip()
     try:
         return json.loads(text)
     except (json.JSONDecodeError, ValueError):
         pass
-    m = re.search(r'\{[^{}]+\}', text, re.DOTALL)
-    if m:
+    start = text.find('{')
+    end = text.rfind('}') + 1
+    if start >= 0 and end > start:
         try:
-            return json.loads(m.group(0))
-        except (json.JSONDecodeError, ValueError):
+            return json.loads(text[start:end])
+        except json.JSONDecodeError:
             pass
     return {}
 

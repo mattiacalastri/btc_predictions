@@ -487,6 +487,12 @@ def main():
     df = load_data(args.data)
     df_clean, active_cols = prepare_features(df, log)
 
+    # [sess.263] Filter poison band: conf 0.54-0.56 has WR 36.7% — paradoxically worse
+    # than conf 0.50-0.55 (WR 57%). Including these rows teaches XGB the wrong signal.
+    _before = len(df_clean)
+    df_clean = df_clean[~((df_clean["confidence"] >= 0.54) & (df_clean["confidence"] <= 0.56))]
+    log(f"[{now()}] Band filter 0.54-0.56 rimosso: {_before - len(df_clean)} righe → {len(df_clean)} rimaste")
+
     # Minimum sample guard — with < 50 rows, CV splits are too small
     # and metrics are statistically meaningless (high variance, no significance).
     MIN_SAMPLES = 50

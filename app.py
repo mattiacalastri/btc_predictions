@@ -2386,12 +2386,13 @@ def place_bet():
         # If council flipped direction and it's counter-trend, fall back to original
         # [FIX7] Removed _regime_name == "TRENDING" constraint: filter now fires in ALL
         # regimes (TRENDING, RANGING, VOLATILE) when trend is strong enough.
-        # Threshold lowered 0.3→0.2 to catch intra-session downtrends classified as RANGING.
+        # Threshold raised 0.2→0.4 (sess.263): at BTC $83k, 0.2% was almost always active
+        # ($166 EMA spread), blocking 30-40% of valid signals. 0.4% = $332 spread, noise-resistant.
         if TREND_ALIGN_FILTER:
             _regime_name = _regime_data.get("regime_name", "")
             _trend_dir = _regime_data.get("trend_direction", "")
             _trend_str = _regime_data.get("trend_strength", 0.0)
-            if (_trend_str > 0.2
+            if (_trend_str > 0.4
                     and _trend_dir
                     and direction != _trend_dir):
                 # Council flipped direction? Fall back to original if it aligns with trend
@@ -4824,7 +4825,7 @@ def ai_predict():
         _parsed_conf = max(0.50, min(0.68, float(parsed.get("confidence", 0.55))))
         _ts_raw = data.get('technical_score', {})
         _ts_value = float(_ts_raw.get('value', 0)) if isinstance(_ts_raw, dict) else float(_ts_raw or 0)
-        _AC_CEILING = 0.65
+        _AC_CEILING = 0.63  # sess.263: 0.65→0.63, gap vs CONF_THRESHOLD(0.62) = 0.01 (was 0.03)
         _AC_TECH_THRESHOLD = 4.0
         if abs(_ts_value) >= _AC_TECH_THRESHOLD and _parsed_conf > _AC_CEILING:
             app.logger.info(
