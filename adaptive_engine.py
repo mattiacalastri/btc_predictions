@@ -350,12 +350,18 @@ class AdaptiveEngine:
         return best_threshold, best_label, best_exp
 
     def _find_confidence_ceiling(self, rows: list) -> tuple:
-        """Find the lowest confidence band with WR < 35% (n >= 10).
+        """Find the lowest confidence band with WR < 25% (n >= 25).
         Returns (ceiling_value, worst_band_label).
         If no band is bad enough, returns (None, None) — no ceiling applied.
+
+        Thresholds (Option C sess.274):
+        - _WR_CEILING_THRESHOLD 0.35→0.25: only truly catastrophic bands trigger
+          (0.58-0.61 at WR=32.8% no longer triggers; avoids CONF_THRESHOLD deadlock)
+        - _MIN_SAMPLES_CEILING 10→25: need statistical confidence before blocking
+          (13 samples in 0.61-0.64 is too few to block an entire confidence tier)
         """
-        _WR_CEILING_THRESHOLD = 0.35  # bands below this WR get capped
-        _MIN_SAMPLES_CEILING = 10     # need enough data to be confident
+        _WR_CEILING_THRESHOLD = 0.25  # bands below this WR get capped
+        _MIN_SAMPLES_CEILING = 25     # need enough data to be confident
 
         ceiling = None
         worst_label = None
