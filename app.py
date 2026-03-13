@@ -665,6 +665,11 @@ SLIPPAGE_MAX_PCT = _safe_float(
     default=0.005, min_v=0.0, max_v=0.1
 )
 SUPABASE_TABLE = os.environ.get("SUPABASE_TABLE", "btc_predictions")
+
+
+def _conf_threshold() -> float:
+    """Single source of truth for confidence threshold. Reads live from Railway env."""
+    return float(os.environ.get("CONF_THRESHOLD", "0.62"))
 _ALLOWED_TABLES = {"btc_predictions", "sandbox_btc_predictions"}
 if SUPABASE_TABLE not in _ALLOWED_TABLES:
     raise ValueError(f"SUPABASE_TABLE '{SUPABASE_TABLE}' not in whitelist {_ALLOWED_TABLES}")
@@ -1097,7 +1102,7 @@ def health():
         "capital": capital,
         "wallet_equity": wallet_equity,
         "base_size": base_size,
-        "confidence_threshold": float(os.environ.get("CONF_THRESHOLD", "0.62")),
+        "confidence_threshold": _conf_threshold(),
         "xgb_gate_active": _clean_bets >= _XGB_GATE_MIN_BETS,
         "xgb_clean_bets": _clean_bets,
         "xgb_min_bets": _XGB_GATE_MIN_BETS,
@@ -1125,7 +1130,7 @@ def get_config():
         "dead_hours_utc": sorted(list(DEAD_HOURS_UTC)),
         "dry_run": DRY_RUN,
         "paused": bool(_BOT_PAUSED),
-        "conf_threshold": float(os.environ.get("CONF_THRESHOLD", "0.62")),
+        "conf_threshold": _conf_threshold(),
     })
 
 
@@ -1154,7 +1159,7 @@ def brain_state():
         "version": VERSION,
         "paused": bool(_BOT_PAUSED),
         "dry_run": DRY_RUN,
-        "conf_threshold": float(os.environ.get("CONF_THRESHOLD", "0.62")),
+        "conf_threshold": _conf_threshold(),
         "capital": float(os.environ.get("CAPITAL_USD") or os.environ.get("CAPITAL", 100)),
     }
 
@@ -2610,7 +2615,11 @@ def place_bet():
         except Exception as _pf_err:
             app.logger.warning(f"[FIX9] Pre-flight cap check failed (fail-open): {_pf_err}")
 
-        pos = get_open_position(symbol)
+        try:
+            pos = get_open_position(symbol)
+        except Exception as _gop_err:
+            app.logger.warning(f"[PLACE_BET] get_open_position failed: {_gop_err} — aborting to prevent blind trade")
+            return jsonify({"status": "skipped", "reason": f"position_fetch_failed: {type(_gop_err).__name__}"}), 503
         trade = get_trade_client()
         base_size = size  # preserve original size from payload
 
@@ -3124,6 +3133,9 @@ def place_bet():
             "raw": result,
         }), (200 if ok else 400)
 
+    except SystemExit as e:
+        app.logger.warning(f"[PLACE_BET] SystemExit caught (gunicorn shutdown mid-request): code={e.code}")
+        return jsonify({"status": "error", "error": "worker_shutdown", "code": str(e.code)}), 503
     except Exception as e:
         app.logger.exception("Endpoint error")
         _push_cockpit_log("app", "error", "Place bet FAILED", str(e),
@@ -6400,7 +6412,7 @@ def training_status():
         "calibration_cooldown_remaining_secs": cal_remaining_secs,
         # Bot configuration & model status (for Training Tab in dashboard)
         "dead_hours": sorted(list(DEAD_HOURS_UTC)),
-        "confidence_threshold": float(os.environ.get("CONF_THRESHOLD", "0.62")),
+        "confidence_threshold": _conf_threshold(),
         "base_size_btc": float(os.environ.get("BASE_SIZE", "0.002")),
         "xgb_loaded": _XGB_MODEL is not None,
         "correctness_loaded": _xgb_correctness is not None,
@@ -6461,7 +6473,7 @@ def confidence_stats():
             else: buckets["0.75-0.80"] += 1
 
         # Threshold corrente
-        threshold = float(os.environ.get("CONF_THRESHOLD", "0.62"))
+        threshold = _conf_threshold()
         below_threshold = sum(1 for c in confs if c < threshold)
 
         # Trend: ultimi 10 vs precedenti

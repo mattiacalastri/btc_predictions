@@ -1,21 +1,21 @@
 # CLAUDE.md — BTC Predictor Bot
-> Aggiornato: 2026-03-11 sess.231 | Leggi PRIMA di toccare qualsiasi file o n8n
+> Aggiornato: 2026-03-13 sess.274 | Leggi PRIMA di toccare qualsiasi file o n8n
 
 ---
 
 ## STATO ATTUALE (aggiorna ad ogni sessione)
-- **BOT: PAUSED** — v2.6.2 | Ghost WR 50% (11 Mar, solo 2 segnali conf≥0.60) | Phase 3 LIVE
-- **GO/NO-GO FALLITO**: ghost WR conf≥0.60 troppo pochi segnali (3/2/2 dal 9→11 Mar)
-- **ROOT CAUSE Phase 3 filtering** (diagnosicato sess.231):
-  - PRIMARY: anti-consensus ceiling `/ai-predict` system prompt (ts>3.5 → cap 0.62) + CONF_THRESHOLD=0.62 Railway → collision blocca quasi tutto
-  - SECONDARY: trending_down gate a 0.2% (troppo sensibile, quasi sempre attivo con BTC a $83k)
-  - XGB impara dai segnali PEGGIORI: banda 0.58-0.61 WR 36% > banda 0.50-0.55 WR 57% paradosso DOWN bias
-- **Calibrazioni PRONTE (non applicate)** — diff in memoria:
-  1. `app.py:2394` → `_trend_str > 0.2` → `> 0.4`
-  2. system prompt `ts>3.5: 0.62→0.64`, `ts>4.5: 0.60→0.62`
-- **DB cutoff ottimale**: 2026-03-09 (esclude DOWN bias puro 7-8 Mar, conserva 233 ghost per ACE/XGB)
-- **Wallet**: $84.39 | **conf_threshold**: 0.62 Railway | **PERF_CUTOFF**: da settare a 2026-03-09
-- **Commit sess.231**: `5c7b5f4` — cockpit PERF tab + ghost orbit ticker
+- **BOT: PAUSED** — v2.6.2 | GO/NO-GO in corso | ⏳ push `44d543f`+`ab7b58d` manuale richiesto
+- **2 FIX DEPLOYATI (push pendente)**:
+  1. `app.py` commit `44d543f` — prompt ceiling ts 3.5-4.5: 0.62→0.64 | ts>4.5: 0.60→0.62
+  2. `adaptive_engine.py` commit `ab7b58d` — ACE ceiling: `_WR_THRESHOLD=0.35→0.25`, `_MIN_SAMPLES=10→25`
+- **ROOT CAUSE RISOLTO** (diagnosicato + fixato sess.274):
+  - Deadlock silenzioso: ACE confidence_ceiling=0.58 (banda 0.58-0.61 WR=32.8% n=61) + CONF_THRESHOLD=0.62 → 0 trade possibili al resume
+  - Fix: Option C — ceiling solo per bande con WR<25% E n>=25 → ceiling=None con dati attuali
+  - trending_down gate già a 0.4 (applicato sess.263, CLAUDE.md era outdated)
+- **WR per banda (500 segnali, 13 Mar)**:
+  - 0.50-0.55: WR 52.9% n=119 | 0.55-0.58: WR 49.3% n=300 | 0.58-0.61: WR 32.8% n=61 | 0.61-0.64: WR 23.1% n=13
+  - Inversione confermata: confidenza crescente = WR calante. Strutturale, non artefatto
+- **Wallet**: $84.39 | **conf_threshold**: 0.60 Railway (verificato live — CLAUDE.md era 0.62, errato) | **154/154 test verdi**
 
 ## INFRASTRUTTURA RAPIDA
 ```
@@ -73,9 +73,9 @@ curl -X POST https://n8n.srv1432354.hstgr.cloud/webhook/rescue-wf02 -d '{"id": B
 ```
 
 ## TOP 3 TASK APERTI
-1. **P0** — Monitorare ghost WR 11-12-13 Mar → GO/NO-GO LIVE (target ≥55% 3gg)
-2. **P0** — ✅ DONE Crash Prevention sess.192: 9 fix + Polygon gas dinamico + 880 phantom tx cleaned. Deploy `8c8e035`
-3. **P1** — ✅ DONE Code Audit Fase 2: 79 test nuovi (portfolio+council), 4 bug fix build_dataset
+1. **✅ DONE 13 Mar** — Deploy `415f802..2d3f5d4` LIVE su Railway
+2. **P0** — Monitorare ghost WR conf≥0.60 post-deploy → target ≥55% per 3gg consecutivi
+3. **P1** — Fase B data enrichment: `weekly_trend` (BTC 1w) + `btc_vs_200ma` (macro filter)
 
 ## DASHBOARD — accesso unico
 ```
