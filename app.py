@@ -2392,7 +2392,17 @@ def place_bet():
             _regime_name = _regime_data.get("regime_name", "")
             _trend_dir = _regime_data.get("trend_direction", "")
             _trend_str = _regime_data.get("trend_strength", 0.0)
-            if (_trend_str > 0.4
+            # sess.274 audit: regime-adaptive threshold (was fixed 0.4 for all regimes)
+            # RANGING: 0.50 (EMA noise floor ~0.15%, ranging spread 0.25-0.45% = false gate)
+            # VOLATILE: 0.40 (original — signal is real trend)
+            # TRENDING/other: 0.30 (strict — strong trend must be respected)
+            if _regime_name == "RANGING":
+                _trend_gate_threshold = 0.50
+            elif _regime_name == "VOLATILE":
+                _trend_gate_threshold = 0.40
+            else:
+                _trend_gate_threshold = 0.30
+            if (_trend_str > _trend_gate_threshold
                     and _trend_dir
                     and direction != _trend_dir):
                 # Council flipped direction? Fall back to original if it aligns with trend
@@ -4825,7 +4835,7 @@ def ai_predict():
         _parsed_conf = max(0.50, min(0.68, float(parsed.get("confidence", 0.55))))
         _ts_raw = data.get('technical_score', {})
         _ts_value = float(_ts_raw.get('value', 0)) if isinstance(_ts_raw, dict) else float(_ts_raw or 0)
-        _AC_CEILING = 0.63  # sess.263: 0.65→0.63, gap vs CONF_THRESHOLD(0.62) = 0.01 (was 0.03)
+        _AC_CEILING = 0.65  # sess.274 audit: 0.63→0.65, gap vs CONF_THRESHOLD(0.62) = 0.03 (restored)
         _AC_TECH_THRESHOLD = 4.0
         if abs(_ts_value) >= _AC_TECH_THRESHOLD and _parsed_conf > _AC_CEILING:
             app.logger.info(
