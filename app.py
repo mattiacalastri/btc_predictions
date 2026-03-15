@@ -8057,7 +8057,7 @@ def api_audit():
 
     select_cols = (
         "id,direction,confidence,correct,pnl_usd,created_at,"
-        "signal_price,exit_price,onchain_commit_tx,onchain_resolve_tx"
+        "signal_price,btc_price_exit,onchain_commit_tx,onchain_resolve_tx"
     )
     url = (
         f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
