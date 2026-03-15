@@ -413,28 +413,78 @@ body.heartbeat-offline { animation: hb-flat 4s linear infinite; }
 .ghost-ticker-result.pending { color: var(--text-muted); }
 .ghost-ticker-meta { font-size: 10px; color: var(--text-muted); margin-top: 3px; }
 
-/* ── AGENTS GRID ── */
-.agents-grid {
-  display: grid; grid-template-columns: 1fr;
-  gap: 10px;
-}
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   BLOOMBERG COMMAND CENTER — Agents Tab v3
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
-/* ── AGENT CARD ── */
-.agent-card {
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: 12px; padding: 16px;
-  transition: all 0.25s; position: relative; overflow: hidden;
-  cursor: pointer;
+/* ── AGENTS TICKER TAPE ── */
+@keyframes tickerScroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
 }
-.agent-card:hover { border-color: var(--accent); background: var(--bg-card-hover); }
-.agent-card.running { border-left: 3px solid var(--accent); }
-.agent-card.done { border-left: 3px solid var(--green); }
-.agent-card.error { border-left: 3px solid var(--red); }
-.agent-card.pending { border-left: 3px solid var(--text-muted); }
-.agent-card.idle { border-left: 3px solid var(--blue); }
+.agents-ticker {
+  background: linear-gradient(90deg, #0d1117 0%, #111827 50%, #0d1117 100%);
+  border: 1px solid rgba(0,212,170,0.12); border-radius: 4px;
+  overflow: hidden; margin-bottom: 12px; height: 28px;
+  position: relative;
+}
+.agents-ticker::before, .agents-ticker::after {
+  content: ''; position: absolute; top: 0; width: 40px; height: 100%; z-index: 2;
+  pointer-events: none;
+}
+.agents-ticker::before { left: 0; background: linear-gradient(90deg, #0d1117, transparent); }
+.agents-ticker::after { right: 0; background: linear-gradient(270deg, #0d1117, transparent); }
+.ticker-track {
+  display: flex; align-items: center; height: 100%;
+  animation: tickerScroll 40s linear infinite;
+  white-space: nowrap;
+}
+.ticker-item {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 0 16px; font-size: 10px; font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.5px;
+}
+.ticker-dot {
+  width: 5px; height: 5px; border-radius: 50%; display: inline-block;
+}
+.ticker-name { color: var(--text-secondary); font-weight: 600; }
+.ticker-status { font-weight: 700; }
+.ticker-time { color: var(--text-muted); font-size: 9px; }
+.ticker-sep { color: rgba(255,255,255,0.1); padding: 0 4px; }
+
+/* ── SYSTEM HEALTH BAR ── */
+.sys-health {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;
+  margin-bottom: 14px;
+}
+.sys-health-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 6px; padding: 10px 12px; text-align: center;
+  position: relative; overflow: hidden;
+  transition: all 0.3s;
+}
+.sys-health-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0;
+  height: 2px; transition: background 0.3s;
+}
+.sys-health-card[data-health="good"]::before { background: #00ff88; }
+.sys-health-card[data-health="warn"]::before { background: var(--yellow); }
+.sys-health-card[data-health="bad"]::before { background: var(--red); }
+.sys-health-card[data-health="off"]::before { background: var(--text-muted); }
+.sys-health-label {
+  font-size: 8px; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--text-muted); font-weight: 700; margin-bottom: 4px;
+}
+.sys-health-value {
+  font-size: 18px; font-weight: 700; font-family: 'JetBrains Mono', monospace;
+}
+.sys-health-sub {
+  font-size: 9px; color: var(--text-muted); margin-top: 2px;
+  font-family: 'JetBrains Mono', monospace;
+}
 
 /* ── AGENTS SECTIONS ── */
-.agents-section { margin-bottom: 20px; }
+.agents-section { margin-bottom: 16px; }
 .agents-section-head {
   display: flex; justify-content: space-between; align-items: center;
   padding: 8px 0; margin-bottom: 8px; border-bottom: 1px solid var(--border);
@@ -447,76 +497,124 @@ body.heartbeat-offline { animation: hb-flat 4s linear infinite; }
 /* ── n8n FILTER BUTTONS ── */
 .n8n-filter-btn {
   background: transparent; border: 1px solid var(--border); color: var(--text-muted);
-  font-size: 9px; padding: 3px 8px; border-radius: 4px; cursor: pointer;
+  font-size: 9px; padding: 3px 8px; border-radius: 2px; cursor: pointer;
   letter-spacing: 1px; font-weight: 600; transition: all 0.2s;
+  font-family: 'JetBrains Mono', monospace;
 }
 .n8n-filter-btn:hover { border-color: var(--text-secondary); color: var(--text-secondary); }
 .n8n-filter-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
 
-/* ── n8n GRID + CARD ── */
-.n8n-grid {
-  display: flex; flex-direction: column; gap: 4px;
-}
-.n8n-card {
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: 10px; padding: 14px; transition: all 0.2s;
-}
-.n8n-card:hover { border-color: var(--accent); background: var(--bg-card-hover); }
-.n8n-card-name { font-weight: 700; font-size: 13px; margin-bottom: 2px; }
-.n8n-card-role { font-size: 10px; color: var(--text-muted); letter-spacing: 1px; }
-.n8n-card-id { font-size: 9px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
-.n8n-badge {
-  font-size: 8px; padding: 2px 7px; border-radius: 3px; font-weight: 700;
-  letter-spacing: 1px;
-}
-.n8n-badge.active { background: rgba(0,212,170,0.15); color: var(--accent); }
-.n8n-badge.inactive { background: rgba(255,255,255,0.05); color: var(--text-muted); }
-.n8n-badge.error { background: rgba(239,68,68,0.15); color: var(--red); }
-.n8n-badge.success { background: rgba(0,255,136,0.12); color: #00ff88; }
-.n8n-sparkline { display: flex; gap: 3px; align-items: center; margin-top: 8px; }
-.n8n-spark-dot {
-  width: 10px; height: 10px; border-radius: 2px; display: inline-block;
-}
-.n8n-code-badge {
-  font-size: 8px; padding: 1px 5px; border-radius: 3px; font-weight: 700;
-  letter-spacing: 1px; background: rgba(255,255,255,0.06); margin-right: 4px;
-}
+/* ── n8n GRID (flat) ── */
+.n8n-grid { display: flex; flex-direction: column; gap: 4px; }
 
-/* ── DEPARTMENT HEADERS ── */
-.dept-group { margin-bottom: 16px; }
+/* ── DEPARTMENT GROUP ── */
+.dept-group { margin-bottom: 14px; }
 .dept-header {
-  display: flex; align-items: center; gap: 8px; padding: 6px 0; margin-bottom: 8px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+  margin-bottom: 6px; border-radius: 4px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.02) 0%, transparent 100%);
+  border-left: 3px solid;
 }
-.dept-icon { font-size: 14px; }
+.dept-icon { font-size: 13px; line-height: 1; }
 .dept-label {
-  font-size: 10px; font-weight: 700; letter-spacing: 2px;
-  text-transform: uppercase;
-}
-.dept-desc {
-  font-size: 9px; color: var(--text-muted); margin-left: auto; letter-spacing: 0.5px;
+  font-size: 10px; font-weight: 700; letter-spacing: 2.5px;
+  text-transform: uppercase; font-family: 'JetBrains Mono', monospace;
 }
 .dept-count {
-  font-size: 9px; padding: 1px 6px; border-radius: 3px;
+  font-size: 9px; padding: 2px 7px; border-radius: 2px;
   font-weight: 700; letter-spacing: 1px;
+  font-family: 'JetBrains Mono', monospace;
+}
+.dept-health-bar {
+  width: 60px; height: 4px; border-radius: 2px;
+  background: rgba(255,255,255,0.06); overflow: hidden; margin-left: 6px;
+}
+.dept-health-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+.dept-desc {
+  font-size: 9px; color: var(--text-muted); margin-left: auto; letter-spacing: 0.5px;
+  font-family: 'JetBrains Mono', monospace;
 }
 .dept-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 6px;
 }
 
-/* ── LAUNCHD TABLE ── */
+/* ── n8n CARD — Bloomberg compact ── */
+.n8n-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 4px; padding: 10px 12px; transition: all 0.2s;
+  position: relative; overflow: hidden;
+}
+.n8n-card:hover { border-color: rgba(255,255,255,0.15); background: var(--bg-card-hover); }
+.n8n-card[data-active="false"] { opacity: 0.45; }
+.n8n-card-name {
+  font-weight: 700; font-size: 11px; margin-bottom: 1px;
+  font-family: 'JetBrains Mono', monospace; letter-spacing: 0.3px;
+}
+.n8n-card-role { font-size: 9px; color: var(--text-muted); letter-spacing: 0.5px; }
+.n8n-card-id {
+  font-size: 8px; color: rgba(255,255,255,0.15);
+  font-family: 'JetBrains Mono', monospace;
+}
+.n8n-badge {
+  font-size: 7px; padding: 2px 6px; border-radius: 2px; font-weight: 700;
+  letter-spacing: 1.5px; font-family: 'JetBrains Mono', monospace;
+}
+.n8n-badge.active { background: rgba(0,212,170,0.12); color: var(--accent); }
+.n8n-badge.inactive { background: rgba(255,255,255,0.04); color: var(--text-muted); }
+.n8n-badge.error { background: rgba(239,68,68,0.15); color: var(--red); }
+.n8n-badge.success { background: rgba(0,255,136,0.1); color: #00ff88; }
+.n8n-sparkline { display: flex; gap: 2px; align-items: center; margin-top: 6px; }
+.n8n-spark-dot {
+  width: 8px; height: 8px; border-radius: 1px; display: inline-block;
+}
+.n8n-code-badge {
+  font-size: 7px; padding: 1px 4px; border-radius: 2px; font-weight: 700;
+  letter-spacing: 1.5px; background: rgba(255,255,255,0.06); margin-right: 4px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ── AGENT CARD (orchestrator) — enhanced ── */
+.agents-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 6px;
+}
+.agent-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 4px; padding: 12px;
+  transition: all 0.25s; position: relative; overflow: hidden;
+  cursor: pointer;
+}
+.agent-card:hover { border-color: rgba(255,255,255,0.15); background: var(--bg-card-hover); }
+.agent-card.running { border-left: 3px solid var(--accent); }
+.agent-card.running::after {
+  content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0,212,170,0.03), transparent);
+  animation: scanline 2s linear infinite;
+}
+@keyframes scanline {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+.agent-card.done { border-left: 3px solid var(--green); }
+.agent-card.error { border-left: 3px solid var(--red); }
+.agent-card.pending { border-left: 3px solid var(--text-muted); }
+.agent-card.idle { border-left: 3px solid var(--blue); opacity: 0.7; }
+
+/* ── LAUNCHD TABLE — Bloomberg style ── */
 .launchd-wrap { overflow-x: auto; }
 .launchd-tbl {
-  width: 100%; border-collapse: collapse; font-size: 11px;
+  width: 100%; border-collapse: collapse; font-size: 10px;
+  font-family: 'JetBrains Mono', monospace;
 }
 .launchd-tbl th {
-  text-align: left; padding: 6px 10px; font-size: 9px; letter-spacing: 1px;
+  text-align: left; padding: 6px 10px; font-size: 8px; letter-spacing: 2px;
   color: var(--text-muted); border-bottom: 1px solid var(--border);
-  text-transform: uppercase;
+  text-transform: uppercase; font-weight: 600;
 }
 .launchd-tbl td {
-  padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.04);
+  padding: 6px 10px; border-bottom: 1px solid rgba(255,255,255,0.03);
 }
+.launchd-tbl tr:hover td { background: rgba(255,255,255,0.02); }
 
 .agent-header {
   display: flex; justify-content: space-between; align-items: flex-start;
@@ -1218,32 +1316,68 @@ body.heartbeat-offline { animation: hb-flat 4s linear infinite; }
       </div>
     </div>
 
-    <!-- TAB: AGENTS (Unified) -->
+    <!-- TAB: AGENTS — Bloomberg Command Center v3 -->
     <div class="tab-panel" id="panel-agents">
-      <div class="global-actions">
+
+      <!-- LIVE TICKER TAPE -->
+      <div class="agents-ticker" id="agents-ticker">
+        <div class="ticker-track" id="ticker-track"></div>
+      </div>
+
+      <!-- SYSTEM HEALTH OVERVIEW -->
+      <div class="sys-health" id="sys-health">
+        <div class="sys-health-card" data-health="off" id="sh-n8n">
+          <div class="sys-health-label">n8n Workflows</div>
+          <div class="sys-health-value" id="sh-n8n-val">--</div>
+          <div class="sys-health-sub" id="sh-n8n-sub">loading</div>
+        </div>
+        <div class="sys-health-card" data-health="off" id="sh-clones">
+          <div class="sys-health-label">Orchestrator</div>
+          <div class="sys-health-value" id="sh-clones-val">--</div>
+          <div class="sys-health-sub" id="sh-clones-sub">6 clones</div>
+        </div>
+        <div class="sys-health-card" data-health="off" id="sh-errors">
+          <div class="sys-health-label">Errors</div>
+          <div class="sys-health-value" id="sh-errors-val" style="color:var(--red)">--</div>
+          <div class="sys-health-sub" id="sh-errors-sub">last 5 exec</div>
+        </div>
+        <div class="sys-health-card" data-health="off" id="sh-uptime">
+          <div class="sys-health-label">Success Rate</div>
+          <div class="sys-health-value" id="sh-uptime-val">--</div>
+          <div class="sys-health-sub" id="sh-uptime-sub">all workflows</div>
+        </div>
+        <div class="sys-health-card" data-health="off" id="sh-local">
+          <div class="sys-health-label">Local Tasks</div>
+          <div class="sys-health-value" id="sh-local-val">5</div>
+          <div class="sys-health-sub" id="sh-local-sub">launchd</div>
+        </div>
+      </div>
+
+      <!-- ACTION BAR -->
+      <div class="global-actions" style="margin-bottom:12px">
         <button class="action-btn accent" id="btn-bot-toggle" onclick="toggleBotPause()">&#9208; Pause Bot</button>
         <button class="action-btn danger" onclick="resetAllAgents()">&#8635; Reset All</button>
         <button class="action-btn" onclick="downloadReport()">&#8615; Report</button>
         <button class="action-btn" onclick="refreshAll()">&#8635; Refresh</button>
       </div>
 
-      <!-- SECTION 1: n8n Workflows -->
+      <!-- SECTION 1: n8n Workflows by Department -->
       <div class="agents-section">
         <div class="agents-section-head">
           <span class="agents-section-title">n8n Workflows</span>
           <div style="display:flex;align-items:center;gap:6px">
-            <div id="n8nFilters" style="display:flex;gap:4px">
+            <div id="n8nFilters" style="display:flex;gap:3px">
               <button class="n8n-filter-btn active" data-filter="all" onclick="filterN8n('all')">ALL</button>
               <button class="n8n-filter-btn" data-filter="active" onclick="filterN8n('active')">ACTIVE</button>
               <button class="n8n-filter-btn" data-filter="inactive" onclick="filterN8n('inactive')">INACTIVE</button>
               <button class="n8n-filter-btn" data-filter="error" onclick="filterN8n('error')">ERROR</button>
             </div>
-            <button class="action-btn" onclick="refreshN8nAgents()" style="padding:4px 10px;font-size:10px">&#8635; n8n</button>
+            <button class="action-btn" onclick="refreshN8nAgents()" style="padding:3px 8px;font-size:9px;font-family:'JetBrains Mono',monospace">&#8635; n8n</button>
           </div>
         </div>
         <div class="n8n-grid" id="n8n-grid">
-          <div style="grid-column:1/-1;padding:20px;color:var(--text-muted);text-align:center;font-size:11px;letter-spacing:1px">
-            Premi Refresh per caricare i workflow n8n.
+          <div style="padding:20px;color:var(--text-muted);text-align:center;font-size:10px;letter-spacing:2px;font-family:'JetBrains Mono',monospace">
+            AWAITING DATA FEED...
           </div>
         </div>
       </div>
@@ -3020,6 +3154,102 @@ function renderN8nGrid(data, errorMsg) {
 
     grid.appendChild(group);
   });
+
+  // Update system health + ticker from the data
+  _updateSystemHealth(wfs);
+  _updateTicker(wfs);
+}
+
+function _updateSystemHealth(wfs) {
+  const active = wfs.filter(w => w.active).length;
+  const total = wfs.length;
+  const errors = wfs.filter(w => {
+    const s = w.last_execution?.status;
+    return s === 'crashed' || s === 'error';
+  }).length;
+  const withRate = wfs.filter(w => w.success_rate != null);
+  const avgRate = withRate.length ? Math.round(withRate.reduce((a, w) => a + w.success_rate, 0) / withRate.length) : 0;
+
+  const shN8n = document.getElementById('sh-n8n');
+  const shN8nVal = document.getElementById('sh-n8n-val');
+  const shN8nSub = document.getElementById('sh-n8n-sub');
+  shN8nVal.textContent = active + '/' + total;
+  shN8nSub.textContent = 'active';
+  shN8n.dataset.health = active >= total * 0.6 ? 'good' : active > 0 ? 'warn' : 'bad';
+  shN8nVal.style.color = active >= total * 0.6 ? '#00ff88' : active > 0 ? 'var(--yellow)' : 'var(--red)';
+
+  const shErr = document.getElementById('sh-errors');
+  const shErrVal = document.getElementById('sh-errors-val');
+  shErrVal.textContent = errors;
+  shErr.dataset.health = errors === 0 ? 'good' : errors <= 2 ? 'warn' : 'bad';
+  shErrVal.style.color = errors === 0 ? '#00ff88' : 'var(--red)';
+
+  const shUp = document.getElementById('sh-uptime');
+  const shUpVal = document.getElementById('sh-uptime-val');
+  shUpVal.textContent = avgRate + '%';
+  shUp.dataset.health = avgRate >= 90 ? 'good' : avgRate >= 70 ? 'warn' : 'bad';
+  shUpVal.style.color = avgRate >= 90 ? '#00ff88' : avgRate >= 70 ? 'var(--yellow)' : 'var(--red)';
+
+  const shClones = document.getElementById('sh-clones');
+  shClones.dataset.health = 'good';
+  document.getElementById('sh-clones-val').style.color = 'var(--blue)';
+  document.getElementById('sh-clones-val').textContent = '6';
+
+  document.getElementById('sh-local').dataset.health = 'good';
+  document.getElementById('sh-local-val').style.color = 'var(--accent)';
+}
+
+function _updateTicker(wfs) {
+  const track = document.getElementById('ticker-track');
+  if (!track) return;
+  track.textContent = '';
+
+  // Build ticker items (duplicate for seamless loop)
+  const items = [];
+  wfs.forEach(wf => {
+    const lastEx = wf.last_execution;
+    const status = lastEx?.status || (wf.active ? 'idle' : 'off');
+    const dotColor = status === 'success' ? '#00ff88' : (status === 'crashed' || status === 'error') ? 'var(--red)' : status === 'idle' ? 'var(--yellow)' : '#333';
+    const statusColor = status === 'success' ? '#00ff88' : (status === 'crashed' || status === 'error') ? 'var(--red)' : 'var(--text-muted)';
+    const time = lastEx?.started_at ? _n8nRelTime(lastEx.started_at) : '';
+
+    const item = document.createElement('span');
+    item.className = 'ticker-item';
+
+    const dot = document.createElement('span');
+    dot.className = 'ticker-dot';
+    dot.style.background = dotColor;
+    if (status === 'success') dot.style.boxShadow = '0 0 6px ' + dotColor;
+
+    const name = document.createElement('span');
+    name.className = 'ticker-name';
+    name.textContent = (wf.name || '').replace('BTC_', '');
+
+    const st = document.createElement('span');
+    st.className = 'ticker-status';
+    st.style.color = statusColor;
+    st.textContent = status.toUpperCase();
+
+    item.append(dot, name, st);
+
+    if (time) {
+      const t = document.createElement('span');
+      t.className = 'ticker-time';
+      t.textContent = time;
+      item.appendChild(t);
+    }
+
+    items.push(item);
+
+    const sep = document.createElement('span');
+    sep.className = 'ticker-sep';
+    sep.textContent = '|';
+    items.push(sep);
+  });
+
+  // Append twice for seamless scroll
+  items.forEach(el => track.appendChild(el));
+  items.forEach(el => track.appendChild(el.cloneNode(true)));
 }
 
 function filterN8n(filter) {
