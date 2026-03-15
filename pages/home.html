@@ -100,15 +100,27 @@ a{color:inherit}
 .hero-h1 .grad{background:linear-gradient(135deg,var(--accent) 0%,var(--blue) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .hero-sub{font-size:18px;color:var(--muted);max-width:540px;line-height:1.7;margin-bottom:48px}
 
-/* TICKER */
-.ticker{display:flex;align-items:center;gap:20px;padding:14px 28px;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:36px;font-family:var(--font-mono);font-size:12px;flex-wrap:wrap;justify-content:center}
-.ticker-item{display:flex;align-items:center;gap:8px}
-.ticker-label{color:var(--muted);font-size:10px;letter-spacing:1.2px;text-transform:uppercase}
-.ticker-val{color:var(--accent);font-weight:700;font-size:15px;letter-spacing:-0.3px}
-.ticker-sep{width:1px;height:18px;background:var(--border)}
-.mini-curve{display:flex;align-items:flex-end;gap:2px;height:32px;padding:2px 0}
-.mini-curve .bar{width:4px;background:var(--accent);border-radius:1px;opacity:0.5;transition:opacity 0.3s}
-.mini-curve:hover .bar{opacity:0.8}
+/* TERMINAL BOX */
+.terminal{max-width:640px;width:100%;margin-bottom:40px;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--card);font-family:var(--font-mono)}
+.terminal-header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:rgba(255,255,255,0.02);border-bottom:1px solid var(--border)}
+.terminal-dots{display:flex;gap:6px}
+.terminal-dot{width:8px;height:8px;border-radius:50%}
+.terminal-dot.r{background:#ff4466}.terminal-dot.y{background:#ffaa00}.terminal-dot.g{background:#00ff88}
+.terminal-title{font-size:10px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase}
+.terminal-status{font-size:10px;letter-spacing:1px;display:flex;align-items:center;gap:6px}
+.terminal-body{padding:16px 20px}
+.terminal-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.03)}
+.terminal-row:last-child{border-bottom:none}
+.terminal-row .t-label{font-size:11px;color:var(--muted);letter-spacing:0.8px}
+.terminal-row .t-val{font-size:13px;font-weight:600;color:var(--text);letter-spacing:-0.2px}
+.terminal-row .t-val.green{color:var(--accent)}
+.terminal-row .t-val.red{color:var(--danger)}
+.terminal-row .t-val.orange{color:#ff8844}
+.terminal-row .t-val.blue{color:var(--blue)}
+.terminal-row .t-val.warn{color:var(--warn)}
+.terminal-row .t-val.dim{color:var(--muted)}
+.terminal-mini-curve{display:flex;align-items:flex-end;gap:2px;height:28px}
+.terminal-mini-curve .bar{width:3px;background:var(--accent);border-radius:1px;opacity:0.45}
 .change-pos{color:#00ff88}.change-neg{color:#ff4466}.fg-fear{color:#ff8844}.fg-greed{color:#44ff88}.fg-neutral{color:var(--muted)}
 
 /* BUTTONS */
@@ -246,24 +258,49 @@ a{color:inherit}
   <div class="hero-badge reveal"><span class="live-dot"></span>System Live — Reading Markets 24/7</div>
   <h2 class="hero-h1 reveal">Bitcoin is not<br>predictable.<br>It's <span class="grad">readable.</span></h2>
   <p class="hero-sub reveal">Autonomous AI trading system combining Claude Sonnet + XGBoost with every signal committed on-chain before execution. Fully transparent. Fully auditable.</p>
-  <div class="ticker reveal">
-    <span class="live-dot"></span>
-    <div class="ticker-item"><span class="ticker-label">BTC/USD</span><span class="ticker-val" id="btcPrice">&mdash;</span></div>
-    <span id="btcChange" style="font-size:11px"></span>
-    <div class="ticker-sep"></div>
-    <div class="ticker-item"><span class="ticker-label">F&amp;G</span><span class="ticker-val" id="fgVal" style="font-size:12px">&mdash;</span></div>
-    <div class="ticker-sep"></div>
-    <div class="ticker-item"><span class="ticker-label">AI WR</span><span class="ticker-val" id="ghostWr" style="font-size:13px">&mdash;</span></div>
-    <div class="ticker-sep"></div>
-    <div class="ticker-item"><span class="ticker-label">Signals</span><span class="ticker-val" id="totalSignals">&mdash;</span></div>
-    <div class="ticker-sep"></div>
-    <div class="mini-curve" aria-hidden="true">
-      <div class="bar" style="height:25%"></div><div class="bar" style="height:40%"></div>
-      <div class="bar" style="height:30%"></div><div class="bar" style="height:50%"></div>
-      <div class="bar" style="height:38%"></div><div class="bar" style="height:55%"></div>
-      <div class="bar" style="height:42%"></div><div class="bar" style="height:62%"></div>
-      <div class="bar" style="height:48%"></div><div class="bar" style="height:68%"></div>
-      <div class="bar" style="height:52%"></div><div class="bar" style="height:72%"></div>
+  <div class="terminal reveal">
+    <div class="terminal-header">
+      <div class="terminal-dots"><span class="terminal-dot r"></span><span class="terminal-dot y"></span><span class="terminal-dot g"></span></div>
+      <span class="terminal-title">btcpredictor.io/health</span>
+      <span class="terminal-status" id="botStatusBadge"><span class="live-dot"></span> <span id="botStatusText" style="color:var(--accent)">connecting</span></span>
+    </div>
+    <div class="terminal-body">
+      <div class="terminal-row">
+        <span class="t-label">BTC / USD</span>
+        <span class="t-val green" id="btcPrice">&mdash;</span>
+      </div>
+      <div class="terminal-row">
+        <span class="t-label">24h Change</span>
+        <span class="t-val" id="btcChange">&mdash;</span>
+      </div>
+      <div class="terminal-row">
+        <span class="t-label">Fear &amp; Greed</span>
+        <span class="t-val" id="fgVal">&mdash;</span>
+      </div>
+      <div class="terminal-row">
+        <span class="t-label">AI Win Rate</span>
+        <span class="t-val" id="ghostWr">&mdash;</span>
+      </div>
+      <div class="terminal-row">
+        <span class="t-label">Total Signals</span>
+        <span class="t-val green" id="totalSignals">&mdash;</span>
+      </div>
+      <div class="terminal-row">
+        <span class="t-label">Equity</span>
+        <span class="t-val green" id="walletEquity">&mdash;</span>
+      </div>
+      <div class="terminal-row">
+        <span class="t-label">XGB Gate</span>
+        <span class="t-val" id="xgbGate">&mdash;</span>
+      </div>
+      <div class="terminal-row">
+        <span class="t-label">Council</span>
+        <span class="t-val" id="councilVal">&mdash;</span>
+      </div>
+      <div class="terminal-row">
+        <span class="t-label">Version</span>
+        <span class="t-val dim" id="botVersion">&mdash;</span>
+      </div>
     </div>
   </div>
   <div class="hero-ctas reveal">
@@ -463,55 +500,94 @@ a{color:inherit}
     }catch(_){return;}
     var health=results[0],pub=results[1];
 
+    // Health data — terminal box
     if(health&&health.status==='fulfilled'){
       var h=health.value;
-      if(h.wallet_equity){
-        var eq=Number(h.wallet_equity);
-        counterValues['statEquity']=eq;
-        var eqEl=document.getElementById('statEquity');
-        if(eqEl&&eqEl.textContent==='0')animateCounter(eqEl,eq);
-      }
-    }
 
-    if(pub&&pub.status==='fulfilled'){
-      var s=pub.value;
-
-      // Fear & Greed — safe DOM
-      if(s.fear_greed_value!==undefined){
-        var fg=s.fear_greed_value;
-        var fgEl=document.getElementById('fgVal');
-        if(fgEl){
-          fgEl.textContent=fg;
-          fgEl.className='ticker-val';
-          if(fg<=45)fgEl.style.color='#ff8844';
-          else if(fg<=55)fgEl.style.color='var(--muted)';
-          else fgEl.style.color='#44ff88';
-          fgEl.style.fontSize='12px';
+      // Bot status
+      var statusEl=document.getElementById('botStatusText');
+      var dotEl=document.querySelector('.terminal-status .live-dot');
+      if(statusEl){
+        if(h.bot_paused||h.paused){
+          statusEl.textContent='PAUSED';
+          statusEl.style.color='#ffaa00';
+          if(dotEl){dotEl.style.background='#ffaa00';dotEl.style.boxShadow='0 0 8px #ffaa00';}
+        }else{
+          statusEl.textContent='LIVE';
+          statusEl.style.color='#00ff88';
         }
       }
 
-      // 24h change — safe DOM
+      // Equity
+      if(h.wallet_equity){
+        var eq=Number(h.wallet_equity);
+        var eqTermEl=document.getElementById('walletEquity');
+        if(eqTermEl)eqTermEl.textContent='$'+eq.toFixed(2);
+        counterValues['statEquity']=eq;
+        var eqStatEl=document.getElementById('statEquity');
+        if(eqStatEl&&eqStatEl.textContent==='0')animateCounter(eqStatEl,eq);
+      }
+
+      // XGB gate
+      var xEl=document.getElementById('xgbGate');
+      if(xEl&&h.xgb_clean_bets!==undefined){
+        xEl.textContent=h.xgb_clean_bets+'/'+h.xgb_min_bets;
+        xEl.className='t-val '+(h.xgb_gate_active?'green':'warn');
+      }
+
+      // Council
+      var cEl=document.getElementById('councilVal');
+      if(cEl&&h.council_mode_active!==undefined){
+        cEl.textContent=h.council_mode_active?'ON':'OFF';
+        cEl.className='t-val '+(h.council_mode_active?'green':'dim');
+      }
+
+      // Version
+      var vEl=document.getElementById('botVersion');
+      if(vEl&&h.version)vEl.textContent='v'+h.version;
+    }
+
+    // Public stats — terminal box + stat cards
+    if(pub&&pub.status==='fulfilled'){
+      var s=pub.value;
+
+      // Fear & Greed
+      if(s.fear_greed_value!==undefined){
+        var fg=s.fear_greed_value;
+        var lbl=s.fear_greed_label||(fg<=25?'Extreme Fear':fg<=45?'Fear':fg<=55?'Neutral':fg<=75?'Greed':'Extreme Greed');
+        var fgEl=document.getElementById('fgVal');
+        if(fgEl){
+          fgEl.textContent=fg+' \u00B7 '+lbl;
+          fgEl.className='t-val '+(fg<=45?'orange':fg<=55?'dim':'green');
+        }
+      }
+
+      // 24h change
       if(s.btc_change_24h!==undefined){
         var c=s.btc_change_24h;
         var chgEl=document.getElementById('btcChange');
         if(chgEl){
           var sign=c>=0?'+':'';
           chgEl.textContent=sign+c.toFixed(2)+'%';
-          chgEl.style.color=c>=0?'#00ff88':'#ff4466';
+          chgEl.className='t-val '+(c>=0?'green':'red');
         }
       }
 
-      // Ghost WR — safe DOM
+      // Ghost WR
       if(s.ghost_wr!==undefined){
         var wr=s.ghost_wr;
-        var wrTickerEl=document.getElementById('ghostWr');
-        if(wrTickerEl)wrTickerEl.textContent=wr+'%';
+        var n=s.ghost_n?' (last '+s.ghost_n+')':'';
+        var wrEl=document.getElementById('ghostWr');
+        if(wrEl){
+          wrEl.textContent=wr+'%'+n;
+          wrEl.className='t-val '+(wr>=50?'green':'red');
+        }
         counterValues['statWr']=wr;
         var wrStatEl=document.getElementById('statWr');
         if(wrStatEl&&wrStatEl.textContent==='0')animateCounter(wrStatEl,wr);
       }
 
-      // Total signals — safe DOM
+      // Total signals
       if(s.total_bets!==undefined){
         var tb=s.total_bets;
         var tsEl=document.getElementById('totalSignals');
