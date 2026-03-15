@@ -208,7 +208,7 @@ h2 em{font-style:italic;color:var(--orange);}
 .counter-inner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
 .counter-num{font-family:var(--mono);font-size:36px;color:#fff;line-height:1;}
 .counter-of{font-family:var(--sans);font-size:11px;color:var(--muted);margin-top:4px;}
-.registry-tiers{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:32px;}
+.registry-tiers{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;}
 .tier{background:var(--void);border:1px solid var(--border);border-radius:10px;padding:20px 16px;text-align:center;transition:border-color 0.2s,background 0.2s;cursor:pointer;}
 .tier:hover,.tier.selected{border-color:var(--orange);background:rgba(247,147,26,0.04);}
 .tier-icon{font-size:24px;margin-bottom:8px;}
@@ -478,6 +478,27 @@ footer{border-top:1px solid var(--border);padding:40px 0;font-family:var(--sans)
         <div class="tier-desc">First 20 receive direct access to raw model outputs and early feature previews.</div>
       </div>
     </div>
+    <p style="font-family:var(--mono);font-size:10px;color:var(--dim);text-align:center;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:12px;">Conviction Tiers</p>
+    <div class="registry-tiers" id="tiers-high">
+      <div class="tier" data-pol="25" data-wei="25e18" data-label="Architect" onclick="selectTier(this)">
+        <div class="tier-icon">🔱</div>
+        <div class="tier-name">Architect</div>
+        <div class="tier-amount">25 <span>POL</span></div>
+        <div class="tier-desc">Name engraved in the Architect Registry. Priority access to v3.0 beta + private signal channel.</div>
+      </div>
+      <div class="tier" data-pol="50" data-wei="5e19" data-label="Patron" onclick="selectTier(this)">
+        <div class="tier-icon">👑</div>
+        <div class="tier-name">Patron</div>
+        <div class="tier-amount">50 <span>POL</span></div>
+        <div class="tier-desc">Direct line to the founder. Monthly strategy call. Your name on the Contributors page, permanently.</div>
+      </div>
+      <div class="tier" data-pol="100" data-wei="1e20" data-label="Genesis" onclick="selectTier(this)">
+        <div class="tier-icon">💎</div>
+        <div class="tier-name">Genesis</div>
+        <div class="tier-amount">100 <span>POL</span></div>
+        <div class="tier-desc">The highest tier. Genesis-level on-chain badge. Co-author credit on the open dataset. Legend status.</div>
+      </div>
+    </div>
     <p style="font-family:var(--sans);font-size:12px;color:var(--muted);text-align:center;">
       POL ≈ $0.40 at time of writing. Amounts are symbolic — it's the on-chain record that matters.
     </p>
@@ -595,9 +616,9 @@ footer{border-top:1px solid var(--border);padding:40px 0;font-family:var(--sans)
       <div class="roadmap-item">
         <div class="roadmap-dot active">⚡</div>
         <div class="roadmap-content">
-          <div class="roadmap-tag now">Now · v2.6.0 Live</div>
-          <div class="roadmap-title">XGBoost Dual-Gate + On-Chain Audit</div>
-          <div class="roadmap-desc">Claude Sonnet + XGBoost predictions, every signal committed on Polygon before execution. 13 data sources. Real money, real losses, real data.</div>
+          <div class="roadmap-tag now">Now · v2.6.2 Live</div>
+          <div class="roadmap-title">XGBoost + F&G Regime Filter + On-Chain Audit</div>
+          <div class="roadmap-desc">Claude Sonnet + XGBoost predictions with Fear & Greed regime-aware confidence. Every signal committed on Polygon before execution. 13 data sources. Real money, real losses, real data.</div>
         </div>
       </div>
       <div class="roadmap-item">
@@ -740,6 +761,9 @@ footer{border-top:1px solid var(--border);padding:40px 0;font-family:var(--sans)
       <button class="cta-amount" data-pol="1" data-wei="1e18" onclick="selectCtaAmount(this)">1 POL</button>
       <button class="cta-amount selected" data-pol="5" data-wei="5e18" onclick="selectCtaAmount(this)">5 POL</button>
       <button class="cta-amount" data-pol="10" data-wei="1e19" onclick="selectCtaAmount(this)">10 POL</button>
+      <button class="cta-amount" data-pol="25" data-wei="25e18" onclick="selectCtaAmount(this)">25 POL</button>
+      <button class="cta-amount" data-pol="50" data-wei="5e19" onclick="selectCtaAmount(this)">50 POL</button>
+      <button class="cta-amount" data-pol="100" data-wei="1e20" onclick="selectCtaAmount(this)">100 POL</button>
     </div>
 
     <!-- Primary CTA -->
