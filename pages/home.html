@@ -142,7 +142,7 @@ a{color:inherit}
 /* FOUNDER */
 .founder-section{text-align:center;padding:80px 32px 40px;border-top:1px solid var(--border)}
 .founder-badge{display:inline-flex;align-items:center;gap:12px;padding:12px 24px;border:1px solid var(--border);border-radius:40px;background:var(--card);margin-bottom:16px}
-.founder-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--blue));display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:14px;font-weight:800;color:#000}
+.founder-avatar{width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid rgba(0,255,136,0.2)}
 .founder-info{text-align:left}
 .founder-name{font-family:var(--font-display);font-size:14px;font-weight:700;letter-spacing:-0.3px}
 .founder-role{font-family:var(--font-mono);font-size:10px;color:var(--muted);letter-spacing:0.5px}
@@ -280,6 +280,7 @@ a{color:inherit}
 
 <!-- SECTION 1: HERO -->
 <section class="hero">
+  <canvas id="heroCanvas" aria-hidden="true" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0"></canvas>
   <div class="hero-glow"></div>
   <div class="hero-glow-2"></div>
   <div class="hero-badge reveal"><span class="live-dot"></span>System Live — Reading Markets 24/7</div>
@@ -455,7 +456,7 @@ a{color:inherit}
 <section class="founder-section">
   <div class="reveal">
     <div class="founder-badge">
-      <div class="founder-avatar">MC</div>
+      <img class="founder-avatar" src="https://mattiacalastri.com/wp-content/uploads/2026/03/mattia-calastri-hero-2026.png" alt="Mattia Calastri" width="36" height="36" loading="lazy">
       <div class="founder-info">
         <div class="founder-name">Mattia Calastri</div>
         <div class="founder-role">Builder &amp; Solo Developer</div>
@@ -692,6 +693,98 @@ a{color:inherit}
     }
     fetchPrice();
     setInterval(fetchPrice,15000);
+  })();
+
+  // Hero canvas — particle network
+  (function(){
+    var canvas=document.getElementById('heroCanvas');
+    if(!canvas)return;
+    var ctx=canvas.getContext('2d');
+    var particles=[];
+    var count=60;
+    var maxDist=120;
+    var mouse={x:-1000,y:-1000};
+    var raf;
+    var reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if(reducedMotion)return;
+
+    function resize(){
+      var hero=canvas.parentElement;
+      canvas.width=hero.offsetWidth;
+      canvas.height=hero.offsetHeight;
+    }
+    resize();
+    window.addEventListener('resize',resize);
+
+    // Throttle mouse on mobile
+    var isMobile=window.innerWidth<768;
+    if(!isMobile){
+      canvas.parentElement.addEventListener('mousemove',function(e){
+        var rect=canvas.getBoundingClientRect();
+        mouse.x=e.clientX-rect.left;
+        mouse.y=e.clientY-rect.top;
+      });
+      canvas.parentElement.addEventListener('mouseleave',function(){mouse.x=-1000;mouse.y=-1000;});
+    }
+
+    for(var i=0;i<count;i++){
+      particles.push({
+        x:Math.random()*2000,
+        y:Math.random()*1200,
+        vx:(Math.random()-0.5)*0.3,
+        vy:(Math.random()-0.5)*0.3,
+        r:Math.random()*1.5+0.5
+      });
+    }
+
+    function draw(){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      var w=canvas.width,h=canvas.height;
+
+      for(var i=0;i<particles.length;i++){
+        var a=particles[i];
+        a.x+=a.vx;a.y+=a.vy;
+        if(a.x<0)a.x=w;if(a.x>w)a.x=0;
+        if(a.y<0)a.y=h;if(a.y>h)a.y=0;
+
+        // Draw particle
+        ctx.beginPath();
+        ctx.arc(a.x,a.y,a.r,0,Math.PI*2);
+        ctx.fillStyle='rgba(0,255,136,0.25)';
+        ctx.fill();
+
+        // Mouse glow
+        var dm=Math.hypot(a.x-mouse.x,a.y-mouse.y);
+        if(dm<150){
+          ctx.beginPath();
+          ctx.arc(a.x,a.y,a.r+2,0,Math.PI*2);
+          ctx.fillStyle='rgba(0,255,136,'+(0.4*(1-dm/150))+')';
+          ctx.fill();
+        }
+
+        // Lines between close particles
+        for(var j=i+1;j<particles.length;j++){
+          var b=particles[j];
+          var d=Math.hypot(a.x-b.x,a.y-b.y);
+          if(d<maxDist){
+            ctx.beginPath();
+            ctx.moveTo(a.x,a.y);
+            ctx.lineTo(b.x,b.y);
+            ctx.strokeStyle='rgba(0,255,136,'+(0.08*(1-d/maxDist))+')';
+            ctx.lineWidth=0.5;
+            ctx.stroke();
+          }
+        }
+      }
+      raf=requestAnimationFrame(draw);
+    }
+
+    // Only animate when hero is visible
+    var heroObs=new IntersectionObserver(function(entries){
+      if(entries[0].isIntersecting){if(!raf)draw();}
+      else{if(raf){cancelAnimationFrame(raf);raf=null;}}
+    },{threshold:0});
+    heroObs.observe(canvas.parentElement);
   })();
 
   // GNAV burger
