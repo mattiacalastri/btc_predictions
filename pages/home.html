@@ -122,6 +122,33 @@ a{color:inherit}
 .terminal-mini-curve{display:flex;align-items:flex-end;gap:2px;height:28px}
 .terminal-mini-curve .bar{width:3px;background:var(--accent);border-radius:1px;opacity:0.45}
 .change-pos{color:#00ff88}.change-neg{color:#ff4466}.fg-fear{color:#ff8844}.fg-greed{color:#44ff88}.fg-neutral{color:var(--muted)}
+.terminal-body.flash .terminal-row .t-val{transition:color 0.15s}
+.terminal-ts{font-family:var(--font-mono);font-size:9px;color:rgba(74,96,112,0.4);text-align:right;padding:4px 20px 10px;letter-spacing:0.5px}
+.xgb-bar{display:flex;align-items:center;gap:10px}
+.xgb-track{flex:1;height:4px;background:rgba(255,255,255,0.05);border-radius:2px;overflow:hidden;max-width:80px}
+.xgb-fill{height:100%;background:var(--accent);border-radius:2px;transition:width 1s cubic-bezier(0.16,1,0.3,1)}
+
+/* STAT GLOW */
+.stat-card:hover .stat-val{text-shadow:0 0 20px rgba(0,255,136,0.3)}
+.stat-card{transition:border-color 0.25s,box-shadow 0.25s}
+.stat-card:hover{box-shadow:0 0 30px rgba(0,255,136,0.04)}
+
+/* EQUITY VISUAL */
+.equity-visual{width:100%;height:180px;background:var(--card);border:1px solid var(--border);border-radius:10px;position:relative;overflow:hidden;display:flex;align-items:flex-end;padding:0 2px 0}
+.equity-visual .eq-bar{flex:1;background:linear-gradient(to top,rgba(0,255,136,0.15),rgba(0,255,136,0.03));border-radius:2px 2px 0 0;transition:height 0.8s cubic-bezier(0.16,1,0.3,1);min-height:2px}
+.equity-visual::after{content:'EQUITY PERFORMANCE';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:var(--font-mono);font-size:10px;color:rgba(74,96,112,0.25);letter-spacing:2px;text-transform:uppercase;pointer-events:none}
+.equity-visual .eq-line{position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(0,255,136,0.1),transparent)}
+
+/* FOUNDER */
+.founder-section{text-align:center;padding:80px 32px 40px;border-top:1px solid var(--border)}
+.founder-badge{display:inline-flex;align-items:center;gap:12px;padding:12px 24px;border:1px solid var(--border);border-radius:40px;background:var(--card);margin-bottom:16px}
+.founder-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--blue));display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:14px;font-weight:800;color:#000}
+.founder-info{text-align:left}
+.founder-name{font-family:var(--font-display);font-size:14px;font-weight:700;letter-spacing:-0.3px}
+.founder-role{font-family:var(--font-mono);font-size:10px;color:var(--muted);letter-spacing:0.5px}
+.founder-links{display:flex;gap:16px;justify-content:center;margin-top:12px}
+.founder-links a{font-family:var(--font-mono);font-size:11px;color:var(--muted);text-decoration:none;transition:color 0.15s}
+.founder-links a:hover{color:var(--accent)}
 
 /* BUTTONS */
 .hero-ctas{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
@@ -291,7 +318,7 @@ a{color:inherit}
       </div>
       <div class="terminal-row">
         <span class="t-label">XGB Gate</span>
-        <span class="t-val" id="xgbGate">&mdash;</span>
+        <span class="t-val" id="xgbGate"><span class="xgb-bar"><span id="xgbText">&mdash;</span><span class="xgb-track"><span class="xgb-fill" id="xgbFill" style="width:0%"></span></span></span></span>
       </div>
       <div class="terminal-row">
         <span class="t-label">Council</span>
@@ -302,6 +329,7 @@ a{color:inherit}
         <span class="t-val dim" id="botVersion">&mdash;</span>
       </div>
     </div>
+    <div class="terminal-ts" id="terminalTs">last update: connecting...</div>
   </div>
   <div class="hero-ctas reveal">
     <a href="/dashboard" class="btn-primary">Open Dashboard</a>
@@ -363,7 +391,10 @@ a{color:inherit}
       <div class="stat-card reveal"><div class="stat-val">$<span data-count-target id="statEquity">0</span></div><div class="stat-label">Live Equity</div></div>
       <div class="stat-card reveal"><div class="stat-val">24/7</div><div class="stat-label">Uptime</div></div>
     </div>
-    <div class="equity-placeholder reveal">Equity curve — coming soon</div>
+    <div class="stats-updated reveal" id="statsUpdated" style="text-align:center;margin-top:1rem;font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:#556;opacity:0;transition:opacity .6s"></div>
+    <div class="equity-visual reveal" id="equityVisual">
+      <div class="eq-line"></div>
+    </div>
   </div>
 </section>
 
@@ -420,12 +451,30 @@ a{color:inherit}
   </div>
 </section>
 
-<!-- SECTION 7: CTA -->
+<!-- SECTION 7: FOUNDER -->
+<section class="founder-section">
+  <div class="reveal">
+    <div class="founder-badge">
+      <div class="founder-avatar">MC</div>
+      <div class="founder-info">
+        <div class="founder-name">Mattia Calastri</div>
+        <div class="founder-role">Builder &amp; Solo Developer</div>
+      </div>
+    </div>
+    <div class="founder-links">
+      <a href="https://mattiacalastri.com" target="_blank" rel="noopener">mattiacalastri.com</a>
+      <a href="https://github.com/mattiacalastri" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://www.linkedin.com/in/mattiacalastri" target="_blank" rel="noopener">LinkedIn</a>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 8: CTA -->
 <section class="cta-section">
   <div class="reveal">
     <div class="section-eyebrow">Join the experiment</div>
     <div class="section-title">The future of transparent trading.</div>
-    <div class="section-desc">Open source. On-chain verified. Built by one developer with AI. Join the journey.</div>
+    <div class="section-desc">Open source. On-chain verified. One developer. One AI. Every trade on the blockchain.</div>
     <div class="cta-buttons">
       <a href="/investors" class="btn-primary">Investor Deck</a>
       <a href="/aureo" class="btn-ghost">AUREO Token</a>
@@ -528,11 +577,13 @@ a{color:inherit}
         if(eqStatEl&&eqStatEl.textContent==='0')animateCounter(eqStatEl,eq);
       }
 
-      // XGB gate
-      var xEl=document.getElementById('xgbGate');
-      if(xEl&&h.xgb_clean_bets!==undefined){
-        xEl.textContent=h.xgb_clean_bets+'/'+h.xgb_min_bets;
-        xEl.className='t-val '+(h.xgb_gate_active?'green':'warn');
+      // XGB gate with progress bar
+      var xText=document.getElementById('xgbText');
+      var xFill=document.getElementById('xgbFill');
+      if(xText&&h.xgb_clean_bets!==undefined){
+        xText.textContent=h.xgb_clean_bets+'/'+h.xgb_min_bets;
+        var pct=Math.min(100,Math.round((h.xgb_clean_bets/h.xgb_min_bets)*100));
+        if(xFill)xFill.style.width=pct+'%';
       }
 
       // Council
@@ -596,6 +647,36 @@ a{color:inherit}
         var ssEl=document.getElementById('statSignals');
         if(ssEl&&ssEl.textContent==='0')animateCounter(ssEl,tb);
       }
+
+      // Last updated timestamp
+      if(s.updated_at){
+        var upEl=document.getElementById('statsUpdated');
+        if(upEl){
+          var d=new Date(s.updated_at);
+          upEl.textContent='Live data \u00B7 updated '+d.toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false,timeZoneName:'short'});
+          upEl.style.opacity='1';
+        }
+      }
+    }
+
+    // Timestamp update
+    var tsEl=document.getElementById('terminalTs');
+    if(tsEl){
+      var now=new Date();
+      tsEl.textContent='last update: '+now.toLocaleTimeString('en-US',{hour12:false})+' UTC';
+    }
+
+    // Equity visual bars
+    var eqVis=document.getElementById('equityVisual');
+    if(eqVis){
+      var heights=[25,40,35,50,38,55,42,62,48,68,52,72,58,65,45,70,55,75,60,80,52,68,58,74,62,78,56,72,64,82];
+      heights.forEach(function(h){
+        var bar=document.createElement('div');
+        bar.className='eq-bar';
+        bar.style.height='0%';
+        eqVis.appendChild(bar);
+        setTimeout(function(){bar.style.height=h+'%';},300+Math.random()*800);
+      });
     }
 
     // BTC price poll
