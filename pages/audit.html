@@ -145,11 +145,22 @@
     /* ─── HERO ─── */
     .audit-hero { margin-bottom: 40px; }
     .audit-hero h1 {
-      font-size: 28px; font-weight: 700; letter-spacing: -0.02em;
+      font-size: 32px; font-weight: 700; letter-spacing: -0.03em;
       margin-bottom: 8px; color: #fff;
     }
+    .audit-hero .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600;
+      background: rgba(0,255,136,0.08); color: var(--accent);
+      margin-bottom: 12px; letter-spacing: 0.04em; text-transform: uppercase;
+    }
+    .audit-hero .hero-badge .pulse-dot {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
+      animation: pulse-dot 2s ease infinite;
+    }
+    @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.3} }
     .audit-hero p {
-      color: var(--muted); font-size: 15px; line-height: 1.6; max-width: 600px;
+      color: var(--muted); font-size: 15px; line-height: 1.7; max-width: 640px;
     }
     .audit-hero p a {
       color: var(--accent); text-decoration: none; font-weight: 500;
@@ -159,23 +170,34 @@
     /* ─── STATS BAR ─── */
     .stats-bar {
       display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
-      background: var(--border); border-radius: 8px; overflow: hidden;
+      background: var(--border); border-radius: 12px; overflow: hidden;
       margin-bottom: 32px;
     }
     .stat-item {
-      background: var(--card); padding: 20px; text-align: center;
+      background: var(--card); padding: 24px 20px; text-align: center;
+      position: relative; transition: background 0.2s;
     }
+    .stat-item:hover { background: rgba(22,22,34,0.8); }
     .stat-label {
       font-size: 11px; font-weight: 600; letter-spacing: 0.06em;
-      text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 8px;
     }
     .stat-value {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 22px; font-weight: 700; color: #fff;
+      font-size: 24px; font-weight: 700; color: #fff;
+      transition: color 0.3s;
     }
     .stat-value.green { color: var(--accent); }
+    .stat-value.loading {
+      background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 4px; color: transparent;
+    }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
     @media (max-width: 600px) {
       .stats-bar { grid-template-columns: repeat(2, 1fr); }
+      .stat-value { font-size: 20px; }
     }
 
     /* ─── FILTERS ─── */
@@ -212,7 +234,7 @@
     /* ─── TABLE ─── */
     .table-card {
       background: var(--card); border: 1px solid var(--border);
-      border-radius: 8px; overflow: hidden;
+      border-radius: 12px; overflow: hidden;
     }
     .table-wrap { overflow-x: auto; }
     .table-wrap::-webkit-scrollbar { height: 4px; }
@@ -323,8 +345,6 @@
       <a href="/audit" class="gnav-link active" data-page="audit">Audit Ledger</a>
       <a href="/aureo" class="gnav-link" data-page="aureo">AUREO</a>
       <a href="/support" class="gnav-link" data-page="support">Support</a>
-      <a href="/aureo" class="gnav-link" data-page="aureo">AUREO</a>
-      <a href="/support" class="gnav-link" data-page="support">Support</a>
     </div>
     <button class="gnav-burger" id="gnavBurger" aria-label="Menu">
       <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h12M3 12h12"/></svg>
@@ -334,27 +354,28 @@
   <div class="container">
     <!-- HERO -->
     <div class="audit-hero">
+      <div class="hero-badge"><span class="pulse-dot"></span> On-Chain Verified</div>
       <h1>Audit Ledger</h1>
-      <p>Every signal verified on Polygon PoS blockchain. Full trade history exportable and independently verifiable. <a href="https://polygonscan.com/address/0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55" target="_blank" rel="noopener">View contract on Polygonscan &#8599;</a></p>
+      <p>Every prediction hashed to Polygon PoS before execution. Every outcome resolved on-chain after close. Full history exportable and independently verifiable. <a href="https://polygonscan.com/address/0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55" target="_blank" rel="noopener">View contract on Polygonscan &#8599;</a></p>
     </div>
 
     <!-- STATS -->
     <div class="stats-bar" id="statsBar">
       <div class="stat-item">
         <div class="stat-label">Total Trades</div>
-        <div class="stat-value" id="statTotal">—</div>
+        <div class="stat-value loading" id="statTotal">000</div>
       </div>
       <div class="stat-item">
         <div class="stat-label">Win Rate</div>
-        <div class="stat-value green" id="statWR">—</div>
+        <div class="stat-value green loading" id="statWR">00.0%</div>
       </div>
       <div class="stat-item">
         <div class="stat-label">Avg Confidence</div>
-        <div class="stat-value" id="statConf">—</div>
+        <div class="stat-value loading" id="statConf">00.0%</div>
       </div>
       <div class="stat-item">
         <div class="stat-label">On-Chain Rate</div>
-        <div class="stat-value green" id="statOnchain">—</div>
+        <div class="stat-value green loading" id="statOnchain">00.0%</div>
       </div>
     </div>
 
@@ -485,13 +506,29 @@
           renderTable();
           renderPagination();
         })
-        .catch(function(){
-          tableBody.innerHTML = '<tr><td colspan="9"><div class="no-data">Connection error</div></td></tr>';
+        .catch(function(err){
+          var cell = document.createElement('td');
+          cell.colSpan = 9;
+          var div = document.createElement('div');
+          div.className = 'no-data';
+          div.textContent = 'Connection error \u2014 retrying in 5s...';
+          cell.appendChild(div);
+          var row = document.createElement('tr');
+          row.appendChild(cell);
+          tableBody.textContent = '';
+          tableBody.appendChild(row);
+          ['statTotal','statWR','statConf','statOnchain'].forEach(function(id){
+            var el = document.getElementById(id);
+            el.classList.remove('loading'); el.textContent = '\u2014';
+          });
+          setTimeout(fetchData, 5000);
         });
     }
 
     // ── Render stats ──
     function renderStats(s){
+      var ids = ['statTotal','statWR','statConf','statOnchain'];
+      ids.forEach(function(id){ document.getElementById(id).classList.remove('loading'); });
       document.getElementById('statTotal').textContent = s.total != null ? s.total.toLocaleString() : '—';
       document.getElementById('statWR').textContent = s.win_rate != null ? s.win_rate.toFixed(1) + '%' : '—';
       document.getElementById('statConf').textContent = s.avg_confidence != null ? (s.avg_confidence * 100).toFixed(1) + '%' : '—';
@@ -510,7 +547,7 @@
         var dirClass = r.direction === 'UP' ? 'dir-up' : 'dir-down';
         var conf = r.confidence != null ? (r.confidence * 100).toFixed(1) + '%' : '—';
         var entry = r.signal_price != null ? '$' + Number(r.signal_price).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
-        var exit = r.exit_price != null ? '$' + Number(r.exit_price).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
+        var exit = r.btc_price_exit != null ? '$' + Number(r.btc_price_exit).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
         var pnl = '—';
         var pnlClass = 'pnl-null';
         if(r.pnl_usd != null){
@@ -561,7 +598,7 @@
     // ── Export CSV ──
     document.getElementById('btnCSV').addEventListener('click', function(){
       if(!allData.length) return;
-      var cols = ['id','created_at','direction','confidence','signal_price','exit_price','pnl_usd','correct','onchain_commit_tx'];
+      var cols = ['id','created_at','direction','confidence','signal_price','btc_price_exit','pnl_usd','correct','onchain_commit_tx'];
       var csv = cols.join(',') + '\n';
       allData.forEach(function(r){
         csv += cols.map(function(c){
