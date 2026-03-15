@@ -3313,6 +3313,66 @@ def get_btc_price():
 
 
 
+# ── SUPPORT FEED (on-chain tx to support wallet — cached 10min) ───────────────
+
+_support_feed_cache: dict = {}
+_SUPPORT_WALLET = "0x7Ac896F18ce52a0520dA49C3129520f7B70d51f0"
+
+@app.route("/support-feed", methods=["GET"])
+def support_feed():
+    """Return recent incoming POL transactions to support wallet from PolygonScan."""
+    global _support_feed_cache
+    now = time.time()
+    if _support_feed_cache.get("ts", 0) > now - 600:
+        return jsonify(_support_feed_cache["data"])
+
+    result = {"transactions": [], "total_pol": 0, "supporter_count": 0}
+    try:
+        r = _ext_session.get(
+            "https://api.polygonscan.com/api"
+            f"?module=account&action=txlist&address={_SUPPORT_WALLET}"
+            "&startblock=0&endblock=99999999&sort=desc&page=1&offset=20",
+            timeout=8,
+        )
+        data = r.json() if r.ok else {}
+        txs = data.get("result", [])
+        if not isinstance(txs, list):
+            txs = []
+
+        seen_wallets = set()
+        total_wei = 0
+        feed = []
+        for tx in txs:
+            # Only incoming native POL transfers (not outgoing, not errors)
+            if tx.get("to", "").lower() != _SUPPORT_WALLET.lower():
+                continue
+            if tx.get("isError") == "1":
+                continue
+            value_wei = int(tx.get("value", "0"))
+            if value_wei == 0:
+                continue
+
+            pol = value_wei / 1e18
+            total_wei += value_wei
+            seen_wallets.add(tx.get("from", "").lower())
+            feed.append({
+                "from": tx.get("from", "")[:6] + "..." + tx.get("from", "")[-4:],
+                "from_full": tx.get("from", ""),
+                "amount_pol": round(pol, 2),
+                "timestamp": int(tx.get("timeStamp", "0")),
+                "tx_hash": tx.get("hash", ""),
+            })
+
+        result["transactions"] = feed[:10]  # last 10
+        result["total_pol"] = round(total_wei / 1e18, 2)
+        result["supporter_count"] = len(seen_wallets)
+    except Exception as e:
+        app.logger.warning("[SUPPORT_FEED] PolygonScan fetch failed: %s", e)
+
+    _support_feed_cache = {"ts": now, "data": result}
+    return jsonify(result)
+
+
 # ── PUBLIC STATS (homepage — no auth, cached 5min) ───────────────────────────
 
 _public_stats_cache: dict = {}
@@ -3360,22 +3420,21 @@ def public_stats():
     except Exception as e:
         app.logger.warning("[PUBLIC_STATS] Kraken ticker fetch failed: %s", e)
 
-    # 3. Ghost WR last 20 — Supabase (anon key, read-only)
-    # Colonne reali: confidence (non conf_score), ghost_correct (non correct)
+    # 3. Ghost WR ALL-TIME — Supabase (anon key, read-only)
+    # All ghost evaluations with conf>=0.60 (no limit — full truth)
     try:
         sb_url, sb_key = _sb_config()
         if sb_url and sb_key:
             ghost_url = (
                 f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
-                "?select=ghost_correct,confidence"
+                "?select=ghost_correct"
                 "&bet_taken=eq.false&ghost_correct=not.is.null"
                 "&confidence=gte.0.60"
-                "&order=created_at.desc&limit=20"
             )
             _gh_resp = _sb_session.get(
                 ghost_url,
                 headers={"apikey": sb_key, "Authorization": f"Bearer {sb_key}"},
-                timeout=4
+                timeout=5
             )
             gh = _safe_json(_gh_resp, "ghost_wr") or []
             if isinstance(gh, list) and gh:
@@ -3385,27 +3444,30 @@ def public_stats():
     except Exception as e:
         app.logger.warning("[PUBLIC_STATS] ghost WR fetch failed: %s", e)
 
-    # 4. Total real bets — Supabase count header
+    # 4. Total signals — ALL generated (ghost + real, resolved only)
     try:
         sb_url, sb_key = _sb_config()
         if sb_url and sb_key:
             count_resp = _sb_session.get(
                 f"{sb_url}/rest/v1/{SUPABASE_TABLE}"
-                "?select=id&bet_taken=eq.true&correct=not.is.null"
+                "?select=id"
+                "&or=(correct.not.is.null,ghost_correct.not.is.null)"
                 "&close_reason=neq.data_gap&limit=0",
                 headers={
                     "apikey": sb_key,
                     "Authorization": f"Bearer {sb_key}",
                     "Prefer": "count=exact",
                 },
-                timeout=4
+                timeout=5
             )
             cr = count_resp.headers.get("content-range", "")
             total = cr.split("/")[-1] if "/" in cr else None
             if total and total.isdigit():
                 result["total_bets"] = int(total)
     except Exception as e:
-        app.logger.warning("[PUBLIC_STATS] total bets count failed: %s", e)
+        app.logger.warning("[PUBLIC_STATS] total signals count failed: %s", e)
+
+    result["updated_at"] = _dt.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
     with _CACHE_LOCK:
         _public_stats_cache = {"ts": now, "data": result}
