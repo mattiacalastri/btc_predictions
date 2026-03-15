@@ -13,6 +13,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import sentry_sdk
+from sentry_sdk.integrations.flask import FlaskIntegration
 import anthropic
 import httpx
 import certifi
@@ -66,10 +67,22 @@ _tg_session = _build_session()       # Telegram Bot API
 _n8n_session = _build_session()      # n8n webhooks
 _ext_session = _build_session()      # external APIs (alternative.me, Google, etc.)
 
+def _sentry_before_send(event, hint):
+    """Filter out Railway container restarts (SystemExit) — not real bugs."""
+    if hint.get("exc_info"):
+        exc = hint["exc_info"][1]
+        if isinstance(exc, SystemExit):
+            return None
+    return event
+
 sentry_sdk.init(
     dsn=os.environ.get("SENTRY_DSN", ""),
-    traces_sample_rate=0.0,   # solo error monitoring, no performance tracing
+    release=os.environ.get("RAILWAY_GIT_COMMIT_SHA", VERSION),
+    environment=os.environ.get("RAILWAY_ENVIRONMENT_NAME", "production"),
+    traces_sample_rate=0.05,
     send_default_pii=False,
+    before_send=_sentry_before_send,
+    integrations=[FlaskIntegration(transaction_style="url")],
 )
 
 app = Flask(__name__)

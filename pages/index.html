@@ -22,10 +22,17 @@
         Sentry.onLoad(function(){
           Sentry.init({
             dsn:"https://c892859215f1e7703459ccf162cd4833@o4510954494885888.ingest.de.sentry.io/4510956436783184",
+            release:"btcpredictor-dashboard@2.6.2",
+            environment:"production",
             tracesSampleRate:0.2,
             replaysSessionSampleRate:0,
             replaysOnErrorSampleRate:0.5,
             sendDefaultPii:false,
+            beforeSend:function(event,hint){
+              var exc=hint&&hint.originalException;
+              if(exc&&exc.message&&/null.*classList|null.*style|null.*textContent/.test(exc.message))return null;
+              return event;
+            },
           });
         });
       }
