@@ -99,7 +99,7 @@ if(localStorage.getItem('btcp_ga_consent')==='granted'){
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
 /* ── RESET & VARS ── */
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -319,6 +319,11 @@ footer{border-top:1px solid var(--border);padding:40px 0;font-family:var(--sans)
 .cta-amount{font-family:var(--mono);font-size:15px;font-weight:500;padding:10px 24px;border-radius:40px;border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer;transition:all 0.2s;}
 .cta-amount:hover{border-color:rgba(255,255,255,0.25);color:var(--text);}
 .cta-amount.selected{border-color:var(--orange);color:var(--orange);background:rgba(247,147,26,0.08);}
+/* ── LOADING PULSE ── */
+@keyframes statPulse{0%,100%{opacity:.3}50%{opacity:.8}}
+.loading-pulse{animation:statPulse 1.4s ease-in-out infinite;color:var(--dim)!important;font-size:18px!important;}
+.stat-val.stat-error{color:var(--dim);font-size:11px!important;cursor:pointer;}
+.stat-val.stat-error:hover{color:var(--muted);}
 </style>
 </head>
 <body>
@@ -364,19 +369,19 @@ footer{border-top:1px solid var(--border);padding:40px 0;font-family:var(--sans)
   <div class="wrap">
     <div class="stats-grid">
       <div class="stat-box">
-        <div class="stat-val orange" id="stat-equity">—</div>
+        <div class="stat-val orange loading-pulse" id="stat-equity">···</div>
         <div class="stat-lbl">Wallet Equity</div>
       </div>
       <div class="stat-box">
-        <div class="stat-val" id="stat-wr">—</div>
+        <div class="stat-val loading-pulse" id="stat-wr">···</div>
         <div class="stat-lbl">Win Rate</div>
       </div>
       <div class="stat-box">
-        <div class="stat-val" id="stat-bets">—</div>
+        <div class="stat-val loading-pulse" id="stat-bets">···</div>
         <div class="stat-lbl">Total Bets</div>
       </div>
       <div class="stat-box">
-        <div class="stat-val" id="stat-version">—</div>
+        <div class="stat-val loading-pulse" id="stat-version">···</div>
         <div class="stat-lbl">Bot Version</div>
       </div>
     </div>
@@ -880,39 +885,64 @@ function selectCtaAmount(el){
   document.getElementById('ctaMetamaskLink').href = mm;
 }
 
-// ── LIVE STATS from /health + /public-stats ──
-async function loadStats(){
-  // Step 1: health endpoint (public, no auth)
+// ── LIVE STATS from /health + /public-stats (with retry) ──
+function clearPulse(el){ el.classList.remove('loading-pulse'); }
+function setStatError(id, label){
+  const el = document.getElementById(id);
+  el.textContent = 'retry ↻';
+  el.className = 'stat-val stat-error';
+  el.title = 'Click to retry loading ' + label;
+  el.onclick = function(){ el.className = 'stat-val loading-pulse'; el.textContent = '···'; el.onclick = null; loadStats(); };
+}
+
+async function loadStats(attempt){
+  attempt = attempt || 1;
+  var healthOk = false, statsOk = false;
+
+  // Step 1: health endpoint
   try {
     const r = await fetch('/health');
     const d = await r.json();
+    healthOk = true;
     const eq = d.wallet_equity != null ? '$' + d.wallet_equity.toFixed(2) : '—';
-    document.getElementById('stat-equity').textContent = eq;
-    document.getElementById('stat-version').textContent = 'v' + (d.version || '—');
+    const eqEl = document.getElementById('stat-equity');
+    clearPulse(eqEl); eqEl.textContent = eq;
+    const verEl = document.getElementById('stat-version');
+    clearPulse(verEl); verEl.textContent = 'v' + (d.version || '—');
     document.getElementById('stat-ts').textContent = new Date(d.serverTime).toLocaleTimeString();
     document.getElementById('hero-live-text').textContent =
       (d.paused ? 'Ghost mode' : 'Bot LIVE') + ' · equity ' + eq + ' · v' + (d.version || '—');
   } catch(e){
     document.getElementById('hero-live-text').textContent = 'Bot LIVE on Polygon';
+    if(attempt >= 3){ setStatError('stat-equity','equity'); setStatError('stat-version','version'); }
   }
 
-  // Step 2: public-stats endpoint (public, no auth — WR + bets)
+  // Step 2: public-stats endpoint
   try {
     const r2 = await fetch('/public-stats');
     if(r2.ok){
+      statsOk = true;
       const ps = await r2.json();
       const wr = ps.ghost_wr != null ? ps.ghost_wr + '%' : '—';
       const bets = ps.total_bets != null ? ps.total_bets : '—';
-      document.getElementById('stat-wr').textContent = wr;
-      document.getElementById('stat-bets').textContent = bets;
-      document.getElementById('story-wr').textContent = wr;
       const wrEl = document.getElementById('stat-wr');
+      clearPulse(wrEl); wrEl.textContent = wr;
+      const betsEl = document.getElementById('stat-bets');
+      clearPulse(betsEl); betsEl.textContent = bets;
+      document.getElementById('story-wr').textContent = wr;
       const wrNum = parseFloat(wr);
       if(!isNaN(wrNum)){
         wrEl.className = 'stat-val ' + (wrNum >= 50 ? 'green' : wrNum >= 40 ? 'orange' : 'red');
       }
     }
-  } catch(e){ /* public-stats not available — stats stay as — */ }
+  } catch(e){
+    if(attempt >= 3){ setStatError('stat-wr','win rate'); setStatError('stat-bets','total bets'); }
+  }
+
+  // Auto-retry (max 3 attempts, 3s delay)
+  if((!healthOk || !statsOk) && attempt < 3){
+    setTimeout(function(){ loadStats(attempt + 1); }, 3000);
+  }
 }
 
 // ── REGISTRY COUNTER (simulated until real endpoint) ──

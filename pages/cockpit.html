@@ -431,6 +431,7 @@ body.heartbeat-offline { animation: hb-flat 4s linear infinite; }
 .agent-card.done { border-left: 3px solid var(--green); }
 .agent-card.error { border-left: 3px solid var(--red); }
 .agent-card.pending { border-left: 3px solid var(--text-muted); }
+.agent-card.idle { border-left: 3px solid var(--blue); }
 
 .agent-header {
   display: flex; justify-content: space-between; align-items: flex-start;
@@ -447,6 +448,7 @@ body.heartbeat-offline { animation: hb-flat 4s linear infinite; }
 .status-dot.done { background: var(--green); }
 .status-dot.error { background: var(--red); }
 .status-dot.pending { background: var(--text-muted); }
+.status-dot.idle { background: var(--blue); }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
 /* Asimov Badge */
@@ -1814,7 +1816,7 @@ function updateSysInfo(ov) {
 // ── ASIMOV BADGE ──
 function asimovLevel(agent) {
   if (agent.status === 'error') return 'L0';
-  if (agent.status === 'done' || agent.status === 'pending') return 'L1';
+  if (agent.status === 'done' || agent.status === 'pending' || agent.status === 'idle') return 'L1';
   if (agent.status === 'running') {
     const pct = agent.max_budget > 0 ? (agent.cost_usd / agent.max_budget) * 100 : 0;
     return pct > 90 ? 'L3' : 'L2';
