@@ -67,361 +67,155 @@ if(localStorage.getItem('btcp_ga_consent')==='granted'){
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg:      #0a0a0f;
-    --surface: #0d1117;
-    --card:    #111820;
-    --border:  #1e2d3d;
-    --accent:  #00ff88;
-    --blue:    #00aaff;
-    --text:    #e8f0fe;
-    --muted:   #4a6070;
-    --danger:  #ff4466;
-    --warn:    #ffaa00;
-  }
+:root {
+  --bg:#0a0a0f;--surface:#0d1117;--card:#111820;--border:#1e2d3d;
+  --accent:#00ff88;--blue:#00aaff;--orange:#f7931a;--text:#e8f0fe;--muted:#4a6070;
+  --danger:#ff4466;--warn:#ffaa00;
+  --font-display:'Syne',sans-serif;--font-mono:'JetBrains Mono',monospace;--font-body:'Inter',-apple-system,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;scroll-behavior:smooth}
+body{background:var(--bg);font-family:var(--font-body);padding-top:48px;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:0.35}
+body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,255,136,0.015) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,136,0.015) 1px,transparent 1px);background-size:80px 80px;pointer-events:none;z-index:0}
+.page{position:relative;z-index:1}
+.container{max-width:1080px;margin:0 auto;padding:0 32px}
+.section{padding:120px 0}
+.section-eyebrow{font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--accent);margin-bottom:16px}
+.section-title{font-family:var(--font-display);font-size:42px;font-weight:800;letter-spacing:-1.5px;line-height:1.1;margin-bottom:16px}
+.section-desc{font-size:17px;color:var(--muted);line-height:1.65;max-width:480px}
+.reveal{opacity:0;transform:translateY(28px);transition:opacity 0.7s cubic-bezier(0.16,1,0.3,1),transform 0.7s cubic-bezier(0.16,1,0.3,1)}
+.reveal.visible{opacity:1;transform:translateY(0)}
+@media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
+a{color:inherit}
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+/* HERO */
+.hero{min-height:calc(100vh - 48px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:80px 32px;position:relative;overflow:hidden}
+.hero-glow{position:absolute;width:700px;height:700px;border-radius:50%;background:radial-gradient(circle,rgba(0,255,136,0.05) 0%,transparent 65%);top:50%;left:50%;transform:translate(-50%,-55%);pointer-events:none}
+.hero-glow-2{position:absolute;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(0,170,255,0.03) 0%,transparent 65%);top:35%;left:60%;transform:translate(-50%,-50%);pointer-events:none}
+.hero-badge{font-family:var(--font-mono);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);border:1px solid rgba(0,255,136,0.2);padding:8px 20px;border-radius:24px;margin-bottom:40px;background:rgba(0,255,136,0.03);display:inline-flex;align-items:center;gap:10px}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);animation:pulse 2s ease-in-out infinite;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.3;transform:scale(0.7)}}
+.hero-h1{font-family:var(--font-display);font-size:72px;font-weight:800;line-height:1.02;letter-spacing:-3px;margin-bottom:28px;max-width:720px}
+.hero-h1 .grad{background:linear-gradient(135deg,var(--accent) 0%,var(--blue) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-sub{font-size:18px;color:var(--muted);max-width:540px;line-height:1.7;margin-bottom:48px}
 
-  html, body {
-    height: 100%;
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'JetBrains Mono', monospace;
-    -webkit-font-smoothing: antialiased;
-    padding-top: 48px;
-  }
+/* TICKER */
+.ticker{display:flex;align-items:center;gap:20px;padding:14px 28px;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:36px;font-family:var(--font-mono);font-size:12px;flex-wrap:wrap;justify-content:center}
+.ticker-item{display:flex;align-items:center;gap:8px}
+.ticker-label{color:var(--muted);font-size:10px;letter-spacing:1.2px;text-transform:uppercase}
+.ticker-val{color:var(--accent);font-weight:700;font-size:15px;letter-spacing:-0.3px}
+.ticker-sep{width:1px;height:18px;background:var(--border)}
+.mini-curve{display:flex;align-items:flex-end;gap:2px;height:32px;padding:2px 0}
+.mini-curve .bar{width:4px;background:var(--accent);border-radius:1px;opacity:0.5;transition:opacity 0.3s}
+.mini-curve:hover .bar{opacity:0.8}
+.change-pos{color:#00ff88}.change-neg{color:#ff4466}.fg-fear{color:#ff8844}.fg-greed{color:#44ff88}.fg-neutral{color:var(--muted)}
 
-  /* ── Noise texture overlay ── */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
-    pointer-events: none;
-    z-index: 0;
-    opacity: 0.4;
-  }
+/* BUTTONS */
+.hero-ctas{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+.btn-primary{font-family:var(--font-body);font-size:14px;font-weight:600;color:#000;background:var(--accent);padding:13px 30px;border-radius:8px;text-decoration:none;border:none;cursor:pointer;transition:background 0.2s,transform 0.15s;display:inline-block}
+.btn-primary:hover{background:#33ffaa;transform:translateY(-1px)}
+.btn-ghost{font-family:var(--font-body);font-size:14px;font-weight:500;color:var(--text);background:transparent;padding:13px 30px;border-radius:8px;border:1px solid var(--border);text-decoration:none;cursor:pointer;transition:border-color 0.2s,background 0.2s;display:inline-block}
+.btn-ghost:hover{border-color:rgba(255,255,255,0.2);background:rgba(255,255,255,0.03)}
 
-  /* ── Subtle grid ── */
-  body::after {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(0,255,136,0.02) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,255,136,0.02) 1px, transparent 1px);
-    background-size: 60px 60px;
-    pointer-events: none;
-    z-index: 0;
-  }
+/* STEPS */
+.steps-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;margin-top:56px}
+.step-card{background:var(--card);border:1px solid var(--border);padding:36px 24px 28px;position:relative;transition:border-color 0.25s}
+.step-card:hover{border-color:rgba(0,255,136,0.25)}
+.step-num{font-family:var(--font-display);font-size:56px;font-weight:800;color:rgba(0,255,136,0.06);line-height:1;margin-bottom:20px;letter-spacing:-2px}
+.step-icon{width:40px;height:40px;border-radius:8px;background:rgba(0,255,136,0.06);border:1px solid rgba(0,255,136,0.12);display:flex;align-items:center;justify-content:center;margin-bottom:20px}
+.step-icon svg{width:20px;height:20px;stroke:var(--accent);fill:none;stroke-width:1.5}
+.step-card h3{font-family:var(--font-display);font-size:17px;font-weight:700;margin-bottom:10px;letter-spacing:-0.3px}
+.step-card p{font-size:13px;color:var(--muted);line-height:1.65}
+.step-arrow{position:absolute;right:-10px;top:50%;transform:translateY(-50%);z-index:2;color:rgba(0,255,136,0.3);font-size:14px;font-family:var(--font-mono)}
 
-  /* ── Layout ── */
-  .wrapper {
-    position: relative;
-    z-index: 1;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 40px 20px;
-  }
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;margin-top:56px;margin-bottom:32px}
+.stat-card{background:var(--card);border:1px solid var(--border);padding:32px 24px;text-align:center;transition:border-color 0.25s}
+.stat-card:hover{border-color:rgba(0,255,136,0.2)}
+.stat-val{font-family:var(--font-display);font-size:40px;font-weight:800;color:var(--accent);letter-spacing:-1.5px;margin-bottom:8px}
+.stat-suffix{font-size:20px;opacity:0.6}
+.stat-label{font-family:var(--font-mono);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
+.equity-placeholder{width:100%;height:180px;background:var(--card);border:1px solid var(--border);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:12px;color:rgba(74,96,112,0.5);letter-spacing:1px;text-transform:uppercase;position:relative;overflow:hidden}
+.equity-placeholder::before{content:'';position:absolute;bottom:0;left:0;right:0;height:60%;background:linear-gradient(to top,rgba(0,255,136,0.02),transparent);pointer-events:none}
 
-  /* ── Header / brand ── */
-  .brand {
-    text-align: center;
-    margin-bottom: 56px;
-  }
+/* ON-CHAIN */
+.chain-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px;margin-top:56px}
+.chain-card{background:var(--card);border:1px solid var(--border);padding:44px 36px;transition:border-color 0.25s}
+.chain-card:hover{border-color:rgba(0,170,255,0.25)}
+.chain-card h3{font-family:var(--font-display);font-size:22px;font-weight:700;margin-bottom:14px;letter-spacing:-0.5px}
+.chain-card p{font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:24px}
+.chain-link{font-family:var(--font-mono);font-size:12px;color:var(--blue);text-decoration:none;letter-spacing:0.3px;display:inline-flex;align-items:center;gap:6px;transition:gap 0.2s}
+.chain-link:hover{gap:10px}
 
-  .brand-mark {
-    width: 48px;
-    height: 48px;
-    border: 1px solid rgba(0,255,136,0.25);
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 28px;
-    margin: 0 auto 20px;
-    background: rgba(0,255,136,0.04);
-    color: var(--accent);
-    box-shadow: 0 0 24px rgba(0,255,136,0.08);
-  }
+/* TECH */
+.tech-section{text-align:center}
+.tech-pills{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:48px;max-width:720px;margin-left:auto;margin-right:auto}
+.tech-pill{font-family:var(--font-mono);font-size:12px;padding:9px 18px;border:1px solid var(--border);border-radius:24px;color:var(--muted);background:var(--card);letter-spacing:0.3px;transition:border-color 0.2s,color 0.2s}
+.tech-pill:hover{border-color:rgba(255,255,255,0.15);color:var(--text)}
+.tech-pill.core{border-color:rgba(0,255,136,0.25);color:var(--accent);background:rgba(0,255,136,0.04)}
+.tech-pill.core:hover{border-color:rgba(0,255,136,0.45)}
 
-  .brand-name {
-    font-family: 'Syne', sans-serif;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 6px;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 10px;
-  }
-  .brand-name span { color: var(--accent); }
+/* MANIFESTO */
+.manifesto-section{text-align:center;padding:140px 32px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);position:relative}
+.manifesto-section::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(247,147,26,0.02) 0%,transparent 60%);pointer-events:none}
+.manifesto-quote{font-family:var(--font-display);font-size:34px;font-weight:700;line-height:1.35;max-width:680px;margin:0 auto 20px;letter-spacing:-0.5px;position:relative}
+.manifesto-quote .hl{color:var(--orange)}
+.manifesto-attr{font-family:var(--font-mono);font-size:11px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:36px}
 
-  .brand-tagline {
-    font-size: 10px;
-    color: var(--muted);
-    letter-spacing: 2px;
-    text-transform: uppercase;
-  }
+/* CTA */
+.cta-section{text-align:center;padding:120px 32px}
+.cta-section .section-desc{margin:0 auto 44px}
+.cta-buttons{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
 
-  /* ── Live price strip ── */
-  .price-strip {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    font-size: 10px;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    color: var(--muted);
-    padding: 8px 20px;
-    border: 1px solid var(--border);
-    border-bottom: none;
-    background: rgba(255,255,255,0.02);
-    flex-wrap: wrap;
-  }
+/* FOOTER */
+.site-footer{border-top:1px solid var(--border);padding:44px 0}
+.footer-inner{display:flex;justify-content:space-between;align-items:flex-start;gap:32px;flex-wrap:wrap}
+.footer-left{font-family:var(--font-mono);font-size:11px;color:var(--muted);line-height:2;letter-spacing:0.3px}
+.footer-links{display:flex;gap:24px;flex-wrap:wrap}
+.footer-links a{font-family:var(--font-mono);font-size:11px;color:var(--muted);text-decoration:none;letter-spacing:0.3px;transition:color 0.15s}
+.footer-links a:hover{color:var(--accent)}
 
-  .stats-strip {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    font-size: 9px;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    color: rgba(200,208,224,0.35);
-    margin-bottom: 48px;
-    padding: 7px 20px;
-    border: 1px solid var(--border);
-    background: rgba(255,255,255,0.01);
-    flex-wrap: wrap;
-  }
+/* GNAV */
+.gnav{position:fixed;top:0;left:0;right:0;z-index:9000;height:48px;background:rgba(10,10,15,0.8);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif}
+.gnav-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:#fff;font-size:14px;font-weight:600;letter-spacing:-0.01em}
+.gnav-mark{width:24px;height:24px;border-radius:50%;object-fit:cover;flex-shrink:0}
+.gnav-name{white-space:nowrap}
+.gnav-links{display:flex;align-items:center;gap:4px}
+.gnav-link{text-decoration:none;color:rgba(255,255,255,0.5);font-size:13px;font-weight:400;padding:6px 12px;border-radius:6px;transition:color 0.2s,background 0.2s;white-space:nowrap}
+.gnav-link:hover{color:rgba(255,255,255,0.9);background:rgba(255,255,255,0.04)}
+.gnav-link.active{color:#fff}
+.gnav-link.active::after{content:'';display:block;height:1px;background:#00ff88;margin-top:2px;border-radius:1px}
+.gnav-burger{display:none;align-items:center;justify-content:center;background:none;border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);padding:6px 8px;border-radius:6px;cursor:pointer;transition:border-color 0.2s,color 0.2s}
+.gnav-burger:hover{border-color:rgba(255,255,255,0.25);color:rgba(255,255,255,0.9)}
+@media(max-width:768px){
+.gnav-links{display:flex;position:fixed;top:48px;right:0;width:260px;height:calc(100vh - 48px);z-index:9001;background:rgba(10,10,15,0.96);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-left:1px solid rgba(0,255,136,0.15);box-shadow:-4px 0 20px rgba(0,0,0,0.5);flex-direction:column;align-items:stretch;padding:12px 0;gap:0;overflow-y:auto;transform:translateX(100%);visibility:hidden;pointer-events:none;transition:transform 0.25s cubic-bezier(0.4,0,0.2,1),visibility 0s 0.25s}
+.gnav-links.gnav-open{transform:translateX(0);visibility:visible;pointer-events:auto;transition:transform 0.25s cubic-bezier(0.4,0,0.2,1),visibility 0s 0s}
+.gnav-link{font-size:14px;padding:12px 20px;border-radius:0;color:rgba(255,255,255,0.75)}
+.gnav-link.active::after{display:none}
+.gnav-link.active{background:rgba(0,255,136,0.08);color:#fff}
+.gnav-burger{display:flex}
+}
 
-  .price-val {
-    font-family: 'Syne', sans-serif;
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--accent);
-    letter-spacing: -0.5px;
-  }
-
-  .change-pos { color: #00ff88; }
-  .change-neg { color: #ff4466; }
-  .fg-fear    { color: #ff8844; }
-  .fg-greed   { color: #44ff88; }
-  .fg-neutral { color: var(--muted); }
-  .wr-good    { color: #00ff88; }
-  .wr-bad     { color: #ff4466; }
-
-  .price-sep {
-    width: 1px;
-    height: 12px;
-    background: var(--border);
-  }
-
-  .live-dot {
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: var(--accent);
-    animation: pulse 1.5s ease-in-out infinite;
-    flex-shrink: 0;
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50%       { opacity: 0.4; transform: scale(0.7); }
-  }
-
-  /* ── Navigation grid ── */
-  .nav-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 2px;
-    width: 100%;
-    max-width: 560px;
-    margin-bottom: 2px;
-  }
-
-  .nav-card {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    padding: 28px 24px;
-    background: var(--card);
-    border: 1px solid var(--border);
-    text-decoration: none;
-    color: var(--text);
-    position: relative;
-    overflow: hidden;
-    transition: border-color 0.2s, background 0.2s;
-    cursor: pointer;
-  }
-
-  .nav-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: var(--accent);
-    opacity: 0;
-    transition: opacity 0.2s;
-  }
-
-  .nav-card:hover {
-    border-color: rgba(0,255,136,0.35);
-    background: rgba(0,255,136,0.03);
-  }
-  .nav-card:hover::before { opacity: 1; }
-
-  .nav-card-eyebrow {
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: var(--accent);
-    margin-bottom: 12px;
-  }
-
-  .nav-card-title {
-    font-family: 'Syne', sans-serif;
-    font-size: 22px;
-    font-weight: 800;
-    color: var(--text);
-    letter-spacing: -0.5px;
-    line-height: 1;
-    margin-bottom: 10px;
-  }
-
-  .nav-card-desc {
-    font-size: 10px;
-    color: var(--muted);
-    line-height: 1.6;
-    letter-spacing: 0.5px;
-    flex-grow: 1;
-    margin-bottom: 20px;
-  }
-
-  .nav-card-cta {
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 2.5px;
-    text-transform: uppercase;
-    color: var(--accent);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    transition: gap 0.2s;
-  }
-  .nav-card:hover .nav-card-cta { gap: 10px; }
-
-  .nav-card-arrow {
-    font-size: 11px;
-    line-height: 1;
-  }
-
-  /* Manifesto card variant — slightly warmer */
-  .nav-card.manifesto:hover {
-    border-color: rgba(247,147,26,0.35);
-    background: rgba(247,147,26,0.025);
-  }
-  .nav-card.manifesto::before { background: #f7931a; }
-  .nav-card.manifesto .nav-card-eyebrow { color: #f7931a; }
-  .nav-card.manifesto .nav-card-cta { color: #f7931a; }
-
-  /* ── Stats row (1 row below cards) ── */
-  .meta-row {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 2px;
-    width: 100%;
-    max-width: 560px;
-    margin-bottom: 48px;
-  }
-
-  .meta-cell {
-    background: rgba(255,255,255,0.015);
-    border: 1px solid var(--border);
-    padding: 10px 16px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-  }
-
-  .meta-label {
-    font-size: 9px;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
-
-  .meta-val {
-    font-size: 10px;
-    font-weight: 600;
-    color: var(--text);
-    letter-spacing: 0.5px;
-  }
-  .meta-val.green { color: var(--accent); }
-
-  /* ── Footer ── */
-  .footer {
-    font-size: 9px;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    color: var(--muted);
-    text-align: center;
-    line-height: 2;
-  }
-  .footer a {
-    color: var(--muted);
-    text-decoration: none;
-    transition: color 0.15s;
-  }
-  .footer a:hover { color: var(--accent); }
-  .footer-sep { margin: 0 10px; opacity: 0.4; }
-
-  /* ── Fade-in on load ── */
-  .wrapper { animation: fadeUp 0.5s ease both; }
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(12px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  /* ── Mobile ── */
-  @media (max-width: 560px) {
-    .nav-grid  { grid-template-columns: 1fr; }
-    .meta-row  { grid-template-columns: 1fr; }
-    .brand     { margin-bottom: 36px; }
-    .nav-card  { padding: 22px 18px; }
-    .price-strip { flex-wrap: wrap; gap: 10px; }
-  }
-
-  /* ─── UNIFIED GNAV ─── */
-  .gnav{position:fixed;top:0;left:0;right:0;z-index:9000;height:48px;background:rgba(10,10,15,0.8);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;}
-  .gnav-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:#fff;font-size:14px;font-weight:600;letter-spacing:-0.01em;}
-  .gnav-mark{width:24px;height:24px;border-radius:50%;object-fit:cover;flex-shrink:0;}
-  .gnav-name{white-space:nowrap;}
-  .gnav-links{display:flex;align-items:center;gap:4px;}
-  .gnav-link{text-decoration:none;color:rgba(255,255,255,0.5);font-size:13px;font-weight:400;padding:6px 12px;border-radius:6px;transition:color 0.2s,background 0.2s;white-space:nowrap;}
-  .gnav-link:hover{color:rgba(255,255,255,0.9);background:rgba(255,255,255,0.04);}
-  .gnav-link.active{color:#fff;}
-  .gnav-link.active::after{content:'';display:block;height:1px;background:#00ff88;margin-top:2px;border-radius:1px;}
-  .gnav-private{position:relative;padding-left:22px;}
-  .gnav-private::before{content:'';position:absolute;left:10px;top:50%;transform:translateY(-50%);width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,0.2);}
-  .gnav-burger{display:none;align-items:center;justify-content:center;background:none;border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);padding:6px 8px;border-radius:6px;cursor:pointer;transition:border-color 0.2s,color 0.2s;}
-  .gnav-burger:hover{border-color:rgba(255,255,255,0.25);color:rgba(255,255,255,0.9);}
-  @media(max-width:768px){
-  .gnav-links{display:flex;position:fixed;top:48px;right:0;width:260px;height:calc(100vh - 48px);z-index:9001;background:rgba(10,10,15,0.96);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-left:1px solid rgba(0,255,136,0.15);box-shadow:-4px 0 20px rgba(0,0,0,0.5);flex-direction:column;align-items:stretch;padding:12px 0;gap:0;overflow-y:auto;transform:translateX(100%);visibility:hidden;pointer-events:none;transition:transform 0.25s cubic-bezier(0.4,0,0.2,1),visibility 0s 0.25s;}
-  .gnav-links.gnav-open{transform:translateX(0);visibility:visible;pointer-events:auto;transition:transform 0.25s cubic-bezier(0.4,0,0.2,1),visibility 0s 0s;}
-  .gnav-link{font-size:14px;padding:12px 20px;border-radius:0;color:rgba(255,255,255,0.75);}
-  .gnav-link.active::after{display:none;}
-  .gnav-link.active{background:rgba(0,255,136,0.08);color:#fff;}
-  .gnav-burger{display:flex;}
-  }
+/* RESPONSIVE */
+@media(max-width:900px){
+.steps-grid{grid-template-columns:1fr 1fr}.step-arrow{display:none}
+.stats-grid{grid-template-columns:1fr 1fr}.hero-h1{font-size:48px;letter-spacing:-2px}
+.section-title{font-size:32px}.manifesto-quote{font-size:26px}
+}
+@media(max-width:560px){
+.hero-h1{font-size:38px;letter-spacing:-1.5px}.hero-sub{font-size:15px}
+.hero{padding:60px 20px}.steps-grid{grid-template-columns:1fr}
+.stats-grid{grid-template-columns:1fr 1fr}.chain-grid{grid-template-columns:1fr}
+.section{padding:80px 0}.container{padding:0 20px}
+.section-title{font-size:28px}.stat-val{font-size:32px}
+.ticker{gap:12px;padding:12px 16px}.footer-inner{flex-direction:column}
+.manifesto-section{padding:80px 20px}.manifesto-quote{font-size:22px}
+}
 </style>
 </head>
 <body>
+
 <nav class="gnav">
   <a href="/" class="gnav-brand">
     <img src="/static/marketing_assets/logo-channel.png" alt="BTC Predictor" class="gnav-mark">
@@ -440,202 +234,323 @@ if(localStorage.getItem('btcp_ga_consent')==='granted'){
     <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h12M3 12h12"/></svg>
   </button>
 </nav>
+
 <h1 style="position:absolute;left:-9999px;visibility:hidden;">BTC Predictor — AI Bitcoin Trading Bot with On-Chain Audit</h1>
-<div class="wrapper">
 
-  <!-- Brand -->
-  <div class="brand">
-    <div class="brand-mark">₿</div>
-    <div class="brand-name">BTC<span>PREDICTOR</span>.IO</div>
-    <div class="brand-tagline">Not predictable &mdash; readable</div>
-  </div>
+<div class="page">
 
-  <!-- Live price strip -->
-  <div class="price-strip">
-    <div class="live-dot"></div>
-    <span>BTC/USD</span>
-    <span class="price-val" id="btcPrice">—</span>
-    <span id="btcChange" style="font-size:9px;opacity:0.6"></span>
-    <div class="price-sep"></div>
-    <span id="fgVal">F&amp;G —</span>
-    <div class="price-sep"></div>
-    <span id="walletVal">equity —</span>
-  </div>
-
-  <!-- Secondary stats strip -->
-  <div class="stats-strip">
-    <span id="ghostWr">AI WR —</span>
-    <div class="price-sep"></div>
-    <span id="totalSignals">— signals</span>
-    <div class="price-sep"></div>
-    <span id="councilStatus">council —</span>
-    <div class="price-sep"></div>
-    <span id="xgbStatus">xgb —</span>
-  </div>
-
-  <!-- Nav cards -->
-  <div class="nav-grid">
-
-    <a href="/dashboard" class="nav-card">
-      <div>
-        <div class="nav-card-eyebrow">Live system</div>
-        <div class="nav-card-title">Dashboard</div>
-        <div class="nav-card-desc">
-          Real-time signals, open positions,<br>
-          equity curve and full trade history.<br>
-          Every bet on-chain before execution.
-        </div>
-      </div>
-      <div class="nav-card-cta">
-        Enter <span class="nav-card-arrow">→</span>
-      </div>
-    </a>
-
-    <a href="/manifesto" class="nav-card manifesto">
-      <div>
-        <div class="nav-card-eyebrow">The thesis</div>
-        <div class="nav-card-title">Manifesto</div>
-        <div class="nav-card-desc">
-          Why inefficient markets with<br>
-          enough data and AI become readable.<br>
-          The story of this project.
-        </div>
-      </div>
-      <div class="nav-card-cta">
-        Read <span class="nav-card-arrow">→</span>
-      </div>
-    </a>
-
-  </div>
-
-  <!-- Meta row -->
-  <div class="meta-row">
-    <div class="meta-cell">
-      <span class="meta-label">Track record</span>
-      <span class="meta-val green" id="metaBets">— bets</span>
-    </div>
-    <div class="meta-cell">
-      <span class="meta-label">On-chain audit</span>
-      <span class="meta-val">
-        <a href="https://polygonscan.com/address/0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55"
-           target="_blank" rel="noopener"
-           style="color:var(--blue);text-decoration:none;font-size:9px;letter-spacing:1px;">
-          Polygon PoS ↗
-        </a>
-      </span>
+<!-- SECTION 1: HERO -->
+<section class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-glow-2"></div>
+  <div class="hero-badge reveal"><span class="live-dot"></span>System Live — Reading Markets 24/7</div>
+  <h2 class="hero-h1 reveal">Bitcoin is not<br>predictable.<br>It's <span class="grad">readable.</span></h2>
+  <p class="hero-sub reveal">Autonomous AI trading system combining Claude Sonnet + XGBoost with every signal committed on-chain before execution. Fully transparent. Fully auditable.</p>
+  <div class="ticker reveal">
+    <span class="live-dot"></span>
+    <div class="ticker-item"><span class="ticker-label">BTC/USD</span><span class="ticker-val" id="btcPrice">&mdash;</span></div>
+    <span id="btcChange" style="font-size:11px"></span>
+    <div class="ticker-sep"></div>
+    <div class="ticker-item"><span class="ticker-label">F&amp;G</span><span class="ticker-val" id="fgVal" style="font-size:12px">&mdash;</span></div>
+    <div class="ticker-sep"></div>
+    <div class="ticker-item"><span class="ticker-label">AI WR</span><span class="ticker-val" id="ghostWr" style="font-size:13px">&mdash;</span></div>
+    <div class="ticker-sep"></div>
+    <div class="ticker-item"><span class="ticker-label">Signals</span><span class="ticker-val" id="totalSignals">&mdash;</span></div>
+    <div class="ticker-sep"></div>
+    <div class="mini-curve" aria-hidden="true">
+      <div class="bar" style="height:25%"></div><div class="bar" style="height:40%"></div>
+      <div class="bar" style="height:30%"></div><div class="bar" style="height:50%"></div>
+      <div class="bar" style="height:38%"></div><div class="bar" style="height:55%"></div>
+      <div class="bar" style="height:42%"></div><div class="bar" style="height:62%"></div>
+      <div class="bar" style="height:48%"></div><div class="bar" style="height:68%"></div>
+      <div class="bar" style="height:52%"></div><div class="bar" style="height:72%"></div>
     </div>
   </div>
-
-  <!-- Footer -->
-  <div class="footer">
-    <span class="footer-sep">·</span>
-    <a href="/manifesto">Manifesto</a>
-    <span class="footer-sep">·</span>
-    <a href="https://github.com/mattiacalastri/btc_predictions" target="_blank" rel="noopener">GitHub ↗</a>
-    <br>
-    btcpredictor.io &mdash; open source &mdash; MIT license
-    <br>
-    <span style="font-size:9px;opacity:0.5">AI-generated signals &mdash; Not financial advice &mdash; <a href="/legal" style="color:inherit">Legal</a></span>
+  <div class="hero-ctas reveal">
+    <a href="/dashboard" class="btn-primary">Open Dashboard</a>
+    <a href="/manifesto" class="btn-ghost">Read Manifesto</a>
   </div>
+</section>
+
+<!-- SECTION 2: HOW IT WORKS -->
+<section class="section" id="how-it-works">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-eyebrow">How it works</div>
+      <div class="section-title">Four gates. Zero trust.</div>
+      <div class="section-desc">Every signal passes through a multi-layer AI pipeline before a single dollar moves.</div>
+    </div>
+    <div class="steps-grid">
+      <div class="step-card reveal">
+        <div class="step-num">01</div>
+        <div class="step-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg></div>
+        <h3>Data Ingest</h3>
+        <p>13 sources: order books, funding rates, CVD, Fear &amp; Greed, SOPR, exchange flows, macro indicators.</p>
+        <span class="step-arrow">&rarr;</span>
+      </div>
+      <div class="step-card reveal">
+        <div class="step-num">02</div>
+        <div class="step-icon"><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/><path d="M9 21h6M10 17v4M14 17v4"/></svg></div>
+        <h3>Dual AI Gate</h3>
+        <p>Claude Sonnet analyzes narrative context. XGBoost scores statistical patterns. Both must agree.</p>
+        <span class="step-arrow">&rarr;</span>
+      </div>
+      <div class="step-card reveal">
+        <div class="step-num">03</div>
+        <div class="step-icon"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3v4M8 3v4M2 11h20"/></svg></div>
+        <h3>On-Chain Commit</h3>
+        <p>Signal hash committed to Polygon before execution. Immutable proof of prediction timing.</p>
+        <span class="step-arrow">&rarr;</span>
+      </div>
+      <div class="step-card reveal">
+        <div class="step-num">04</div>
+        <div class="step-icon"><svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+        <h3>Execute &amp; Monitor</h3>
+        <p>Kraken Futures execution. Dynamic SL/TP. Position monitoring every 5 minutes. Auto-close on timeout.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 3: TRACK RECORD -->
+<section class="section" id="track-record">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-eyebrow">Track record</div>
+      <div class="section-title">The numbers speak.</div>
+      <div class="section-desc">Real performance. Real money. Real-time updates from the live system.</div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card reveal"><div class="stat-val"><span data-count-target id="statSignals">0</span></div><div class="stat-label">Total Signals</div></div>
+      <div class="stat-card reveal"><div class="stat-val"><span data-count-target id="statWr">0</span><span class="stat-suffix">%</span></div><div class="stat-label">Ghost Win Rate</div></div>
+      <div class="stat-card reveal"><div class="stat-val">$<span data-count-target id="statEquity">0</span></div><div class="stat-label">Live Equity</div></div>
+      <div class="stat-card reveal"><div class="stat-val">24/7</div><div class="stat-label">Uptime</div></div>
+    </div>
+    <div class="equity-placeholder reveal">Equity curve — coming soon</div>
+  </div>
+</section>
+
+<!-- SECTION 4: ON-CHAIN -->
+<section class="section" id="on-chain">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-eyebrow">On-chain audit</div>
+      <div class="section-title">Verify, don't trust.</div>
+      <div class="section-desc">Every prediction committed to Polygon PoS before execution. Every result resolved on-chain.</div>
+    </div>
+    <div class="chain-grid">
+      <div class="chain-card reveal">
+        <h3>Immutable Audit Trail</h3>
+        <p>Each signal's hash is committed to the blockchain before the trade executes. This creates a tamper-proof timeline proving we predicted before we acted.</p>
+        <a href="https://polygonscan.com/address/0xe4661F7dB62644951Eb1F9Fd23DB90e647833a55" class="chain-link" target="_blank" rel="noopener">View on PolygonScan <span>&rarr;</span></a>
+      </div>
+      <div class="chain-card reveal">
+        <h3>Smart Contract</h3>
+        <p>BTCBotAudit.sol on Polygon PoS. Two functions: commitPrediction() before entry, resolvePrediction() after close. Open source, verifiable.</p>
+        <a href="https://github.com/mattiacalastri/btc_predictions" class="chain-link" target="_blank" rel="noopener">View Source on GitHub <span>&rarr;</span></a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 5: TECH STACK -->
+<section class="section tech-section" id="tech">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-eyebrow">Tech stack</div>
+      <div class="section-title">Built different.</div>
+      <div class="section-desc" style="margin:0 auto">13 data sources. Dual AI engine. On-chain integrity. Open source.</div>
+    </div>
+    <div class="tech-pills reveal">
+      <span class="tech-pill core">Claude Sonnet 4</span><span class="tech-pill core">XGBoost</span>
+      <span class="tech-pill">Kraken Futures</span><span class="tech-pill core">Polygon PoS</span>
+      <span class="tech-pill">Fear &amp; Greed Index</span><span class="tech-pill">Funding Rates</span>
+      <span class="tech-pill">CVD Analysis</span><span class="tech-pill">Order Book Depth</span>
+      <span class="tech-pill">SOPR</span><span class="tech-pill">Exchange Flows</span>
+      <span class="tech-pill">Long/Short Ratio</span><span class="tech-pill">Macro Indicators</span>
+      <span class="tech-pill">Open Interest</span><span class="tech-pill">Flask + Railway</span>
+      <span class="tech-pill">Supabase</span><span class="tech-pill">n8n Orchestration</span>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 6: MANIFESTO -->
+<section class="manifesto-section">
+  <div class="reveal">
+    <p class="manifesto-quote">&ldquo;Markets are not random. They are <span class="hl">complex systems</span> with readable patterns &mdash; if you have enough data and the right intelligence to interpret it.&rdquo;</p>
+    <p class="manifesto-attr">&mdash; from the BTC Predictor Manifesto</p>
+    <a href="/manifesto" class="btn-ghost">Read the Full Manifesto</a>
+  </div>
+</section>
+
+<!-- SECTION 7: CTA -->
+<section class="cta-section">
+  <div class="reveal">
+    <div class="section-eyebrow">Join the experiment</div>
+    <div class="section-title">The future of transparent trading.</div>
+    <div class="section-desc">Open source. On-chain verified. Built by one developer with AI. Join the journey.</div>
+    <div class="cta-buttons">
+      <a href="/investors" class="btn-primary">Investor Deck</a>
+      <a href="/aureo" class="btn-ghost">AUREO Token</a>
+      <a href="https://github.com/mattiacalastri/btc_predictions" class="btn-ghost" target="_blank" rel="noopener">GitHub</a>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 8: FOOTER -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-left">btcpredictor.io &mdash; open source &mdash; MIT license<br><span style="opacity:0.5">AI-generated signals &mdash; Not financial advice &mdash; <a href="/legal" style="color:inherit;text-decoration:none">Legal</a></span></div>
+      <div class="footer-links">
+        <a href="/manifesto">Manifesto</a><a href="/audit">Audit</a>
+        <a href="https://github.com/mattiacalastri/btc_predictions" target="_blank" rel="noopener">GitHub</a>
+        <a href="/privacy">Privacy</a><a href="/legal">Legal</a>
+      </div>
+    </div>
+  </div>
+</footer>
 
 </div>
 
 <script>
-(async () => {
-
-  // ── 1. Health + public stats in parallel ────────────────────────────────
-  const [health, pub] = await Promise.allSettled([
-    fetch('/health',        { signal: AbortSignal.timeout(8000) }).then(r => r.json()),
-    fetch('/public-stats',  { signal: AbortSignal.timeout(8000) }).then(r => r.json()),
-  ]);
-
-  // Equity + Council + XGB dal /health
-  if (health.status === 'fulfilled') {
-    const h = health.value;
-    if (h.wallet_equity)
-      document.getElementById('walletVal').textContent =
-        'equity $' + Number(h.wallet_equity).toFixed(2);
-
-    // Council status
-    const cEl = document.getElementById('councilStatus');
-    if (h.council_mode_active !== undefined)
-      cEl.textContent = h.council_mode_active ? 'council on' : 'council off';
-
-    // XGB gate
-    const xEl = document.getElementById('xgbStatus');
-    if (h.xgb_clean_bets !== undefined && h.xgb_min_bets !== undefined)
-      xEl.textContent = `xgb ${h.xgb_clean_bets}/${h.xgb_min_bets}`;
-  }
-
-  // F&G + ghost WR + 24h change + total bets dal /public-stats
-  if (pub.status === 'fulfilled') {
-    const s = pub.value;
-
-    // Fear & Greed con colore
-    if (s.fear_greed_value !== undefined) {
-      const fg  = s.fear_greed_value;
-      const lbl = s.fear_greed_label || (
-        fg <= 25 ? 'Extreme Fear' : fg <= 45 ? 'Fear' :
-        fg <= 55 ? 'Neutral'      : fg <= 75 ? 'Greed' : 'Extreme Greed'
-      );
-      const cls = fg <= 45 ? 'fg-fear' : fg <= 55 ? 'fg-neutral' : 'fg-greed';
-      const el  = document.getElementById('fgVal');
-      el.innerHTML = `F&amp;G <span class="${cls}">${fg} · ${lbl}</span>`;
-    }
-
-    // 24h change
-    if (s.btc_change_24h !== undefined) {
-      const c   = s.btc_change_24h;
-      const cls = c >= 0 ? 'change-pos' : 'change-neg';
-      const sign = c >= 0 ? '+' : '';
-      document.getElementById('btcChange').innerHTML =
-        `<span class="${cls}">${sign}${c.toFixed(2)}%</span>`;
-    }
-
-    // Ghost WR
-    if (s.ghost_wr !== undefined) {
-      const wr  = s.ghost_wr;
-      const cls = wr >= 50 ? 'wr-good' : 'wr-bad';
-      const n   = s.ghost_n ? ` last${s.ghost_n}` : '';
-      document.getElementById('ghostWr').innerHTML =
-        `AI WR <span class="${cls}">${wr}%</span>${n}`;
-    }
-
-    // Total signals
-    if (s.total_bets !== undefined) {
-      document.getElementById('totalSignals').textContent =
-        s.total_bets + ' signals';
-      document.getElementById('metaBets').textContent =
-        s.total_bets + ' bets';
-    }
-  }
-
-  // ── 2. BTC price — poll ogni 15s ────────────────────────────────────────
-  async function fetchPrice() {
-    try {
-      const d = await fetch('/btc-price', { signal: AbortSignal.timeout(6000) })
-        .then(r => r.json());
-      const price = d.price || d.mark_price || d.last_price;
-      if (price) {
-        document.getElementById('btcPrice').textContent =
-          '$' + Number(price).toLocaleString('en-US', {
-            minimumFractionDigits: 0, maximumFractionDigits: 0
-          });
-      }
-    } catch (_) {}
-  }
-  fetchPrice();
-  setInterval(fetchPrice, 15000);
-
-})();
-</script>
-
-<!-- ── GDPR COOKIE BANNER v2 (centralizzato) ──────────────────────── -->
-<script src="/static/cookie-banner.js" defer></script>
-<script>
 (function(){
-  (function(){var b=document.getElementById('gnavBurger'),l=document.getElementById('gnavLinks');if(!b||!l)return;var BG='<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h12M3 12h12"/></svg>',CL='<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4l10 10M14 4L4 14"/></svg>';function o(){l.style.height=(window.innerHeight-48)+'px';l.classList.add('gnav-open');b.innerHTML=CL;}function c(){l.style.height='';l.classList.remove('gnav-open');b.innerHTML=BG;}b.addEventListener('click',function(e){e.stopPropagation();l.classList.contains('gnav-open')?c():o();});l.querySelectorAll('.gnav-link').forEach(function(a){a.addEventListener('click',c);});document.addEventListener('click',function(e){if(!l.contains(e.target)&&!b.contains(e.target))c();});})();
+  'use strict';
+
+  // Scroll reveal
+  var revealObs = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){e.target.classList.add('visible');revealObs.unobserve(e.target);}
+    });
+  },{threshold:0.1,rootMargin:'0px 0px -40px 0px'});
+  document.querySelectorAll('.reveal').forEach(function(el,i){
+    el.style.transitionDelay=(i%4)*80+'ms';
+    revealObs.observe(el);
+  });
+
+  // Animated counters
+  var counterValues={};
+  function animateCounter(el,target){
+    var duration=1200,startTime=null,isDecimal=target%1!==0;
+    function step(ts){
+      if(!startTime)startTime=ts;
+      var progress=Math.min((ts-startTime)/duration,1);
+      var eased=1-Math.pow(1-progress,3);
+      var current=Math.round(eased*target*(isDecimal?100:1))/(isDecimal?100:1);
+      el.textContent=isDecimal?current.toFixed(2):current;
+      if(progress<1)requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+  var counterObs=new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting&&counterValues[e.target.id]){
+        animateCounter(e.target,counterValues[e.target.id]);
+        counterObs.unobserve(e.target);
+      }
+    });
+  },{threshold:0.5});
+  document.querySelectorAll('[data-count-target]').forEach(function(el){counterObs.observe(el);});
+
+  // API Data — safe DOM updates (no innerHTML for untrusted content)
+  (async function(){
+    var results;
+    try{
+      results=await Promise.allSettled([
+        fetch('/health',{signal:AbortSignal.timeout(8000)}).then(function(r){return r.json();}),
+        fetch('/public-stats',{signal:AbortSignal.timeout(8000)}).then(function(r){return r.json();})
+      ]);
+    }catch(_){return;}
+    var health=results[0],pub=results[1];
+
+    if(health&&health.status==='fulfilled'){
+      var h=health.value;
+      if(h.wallet_equity){
+        var eq=Number(h.wallet_equity);
+        counterValues['statEquity']=eq;
+        var eqEl=document.getElementById('statEquity');
+        if(eqEl&&eqEl.textContent==='0')animateCounter(eqEl,eq);
+      }
+    }
+
+    if(pub&&pub.status==='fulfilled'){
+      var s=pub.value;
+
+      // Fear & Greed — safe DOM
+      if(s.fear_greed_value!==undefined){
+        var fg=s.fear_greed_value;
+        var fgEl=document.getElementById('fgVal');
+        if(fgEl){
+          fgEl.textContent=fg;
+          fgEl.className='ticker-val';
+          if(fg<=45)fgEl.style.color='#ff8844';
+          else if(fg<=55)fgEl.style.color='var(--muted)';
+          else fgEl.style.color='#44ff88';
+          fgEl.style.fontSize='12px';
+        }
+      }
+
+      // 24h change — safe DOM
+      if(s.btc_change_24h!==undefined){
+        var c=s.btc_change_24h;
+        var chgEl=document.getElementById('btcChange');
+        if(chgEl){
+          var sign=c>=0?'+':'';
+          chgEl.textContent=sign+c.toFixed(2)+'%';
+          chgEl.style.color=c>=0?'#00ff88':'#ff4466';
+        }
+      }
+
+      // Ghost WR — safe DOM
+      if(s.ghost_wr!==undefined){
+        var wr=s.ghost_wr;
+        var wrTickerEl=document.getElementById('ghostWr');
+        if(wrTickerEl)wrTickerEl.textContent=wr+'%';
+        counterValues['statWr']=wr;
+        var wrStatEl=document.getElementById('statWr');
+        if(wrStatEl&&wrStatEl.textContent==='0')animateCounter(wrStatEl,wr);
+      }
+
+      // Total signals — safe DOM
+      if(s.total_bets!==undefined){
+        var tb=s.total_bets;
+        var tsEl=document.getElementById('totalSignals');
+        if(tsEl)tsEl.textContent=tb;
+        counterValues['statSignals']=tb;
+        var ssEl=document.getElementById('statSignals');
+        if(ssEl&&ssEl.textContent==='0')animateCounter(ssEl,tb);
+      }
+    }
+
+    // BTC price poll
+    async function fetchPrice(){
+      try{
+        var d=await fetch('/btc-price',{signal:AbortSignal.timeout(6000)}).then(function(r){return r.json();});
+        var price=d.price||d.mark_price||d.last_price;
+        if(price){
+          var el=document.getElementById('btcPrice');
+          if(el)el.textContent='$'+Number(price).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0});
+        }
+      }catch(_){}
+    }
+    fetchPrice();
+    setInterval(fetchPrice,15000);
+  })();
+
+  // GNAV burger
+  (function(){
+    var b=document.getElementById('gnavBurger'),l=document.getElementById('gnavLinks');
+    if(!b||!l)return;
+    var BG='<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h12M3 12h12"/></svg>';
+    var CL='<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4l10 10M14 4L4 14"/></svg>';
+    function open(){l.style.height=(window.innerHeight-48)+'px';l.classList.add('gnav-open');b.innerHTML=CL;}
+    function close(){l.style.height='';l.classList.remove('gnav-open');b.innerHTML=BG;}
+    b.addEventListener('click',function(e){e.stopPropagation();l.classList.contains('gnav-open')?close():open();});
+    l.querySelectorAll('.gnav-link').forEach(function(a){a.addEventListener('click',close);});
+    document.addEventListener('click',function(e){if(!l.contains(e.target)&&!b.contains(e.target))close();});
+  })();
 })();
 </script>
+<script src="/static/cookie-banner.js" defer></script>
 </body>
 </html>
