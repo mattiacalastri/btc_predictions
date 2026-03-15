@@ -548,7 +548,7 @@ def get_calibrated_wr(conf):
 # (soglia live: n>=8 && WR<45%; 11h ha 7 bet — incluso come prior di calibrazione)
 # Fallback dead hours. Updated sess.173 from ghost WR data analysis.
 # Old: {5, 7, 10, 11, 17, 19}. New: based on 0% WR hours in ghost bets post-7 Mar.
-DEAD_HOURS_UTC: set = {0, 1, 2, 7, 17, 18, 22}
+DEAD_HOURS_UTC: set = {1, 2, 6, 11, 14, 16, 18, 19, 21}
 _DEAD_HOURS_LOCK = threading.Lock()
 
 def refresh_calibration():
@@ -648,7 +648,7 @@ def refresh_dead_hours():
                 dead.add(h)
         # Fallback: updated sess.173 based on ghost WR data (0h,1h,2h,7h,17h,18h,22h = 0%)
         with _DEAD_HOURS_LOCK:
-            DEAD_HOURS_UTC = dead if dead else {0, 1, 2, 7, 17, 18, 22}
+            DEAD_HOURS_UTC = dead if dead else {1, 2, 6, 11, 14, 16, 18, 19, 21}
         app.logger.info(f"[CAL] Dead hours updated: {sorted(DEAD_HOURS_UTC)}")
         return {"ok": True, "dead_hours": sorted(DEAD_HOURS_UTC), "hour_stats": hour_stats}
     except Exception as e:
@@ -4652,6 +4652,14 @@ _AI_PREDICT_SYSTEM = (
     "- Short Squeeze + crowd_short_contrarian: -0.20, CAP 0.55-0.58\n"
     "- < 3 categories align: -0.05\n"
     "- Final clamp: [0.50, 0.68]\n\n"
+    "## FEAR & GREED REGIME FILTER\n"
+    "Read Fear & Greed Index value from data.\n"
+    "F&G < 20 (Extreme Fear): Market is ALREADY oversold. DOWN signals in extreme fear are LATE entries — "
+    "the selling pressure is exhausted, not beginning. Apply -0.05 penalty to DOWN confidence. "
+    "Prefer HOLD (confidence 0.50-0.53) over DOWN unless derivatives AND taker flow BOTH strongly confirm selling pressure.\n"
+    "F&G < 10: Force DOWN confidence to 0.50 (effective HOLD). Only UP signals allowed with normal confidence.\n"
+    "F&G > 80 (Extreme Greed): Same logic inverted — UP signals are late entries. Apply -0.05 penalty to UP confidence.\n"
+    "CRITICAL: Fear ≠ opportunity to short. Fear = opportunity to buy (contrarian). Greed = opportunity to sell (contrarian).\n\n"
     "## ANTI-BIAS CHECK\n"
     "Before answering: Is direction data-driven or 'safe feeling'? Would flipping EMA flip your call? "
     "Is your confidence high because indicators agree, or because you have genuine edge? Agreement ≠ edge.\n\n"
@@ -4845,6 +4853,7 @@ def ai_predict():
         # Applied HERE so n8n stores the capped value in Supabase.
         # Previously this only ran in place_bet() which ghost bets never reach.
         _parsed_conf = max(0.50, min(0.68, float(parsed.get("confidence", 0.55))))
+        _parsed_dir = parsed.get("direction", "").upper()
         _ts_raw = data.get('technical_score', {})
         _ts_value = float(_ts_raw.get('value', 0)) if isinstance(_ts_raw, dict) else float(_ts_raw or 0)
         _AC_CEILING = 0.65  # sess.274 audit: 0.63→0.65, gap vs CONF_THRESHOLD(0.62) = 0.03 (restored)
@@ -4855,6 +4864,37 @@ def ai_predict():
                 f"conf {_parsed_conf:.3f} → {_AC_CEILING:.3f}"
             )
             _parsed_conf = _AC_CEILING
+
+        # ── sess.295: F&G Extreme Regime — deterministic DOWN penalty ─────
+        # Data shows: F&G<20 + DOWN = 32.8% WR (500 ghost bets).
+        # Extreme Fear = already oversold → DOWN is contrarian-late.
+        _fg_raw = data.get('data', [{}])
+        if isinstance(_fg_raw, list) and _fg_raw:
+            _fg_val = int(_fg_raw[0].get('value', 50) or 50)
+        else:
+            _fg_val = int(data.get('fear_greed_value', data.get('fear_greed', 50)) or 50)
+
+        if _fg_val < 25 and _parsed_dir == "DOWN":
+            _prev_conf = _parsed_conf
+            if _fg_val < 10:
+                _parsed_conf = 0.50  # F&G < 10: force HOLD on DOWN
+                app.logger.info(
+                    f"[AI_PREDICT] F&G extreme ({_fg_val}): DOWN forced to HOLD, "
+                    f"conf {_prev_conf:.3f} → 0.50"
+                )
+            else:
+                _parsed_conf = max(0.50, _parsed_conf - 0.05)  # F&G < 25: -0.05 penalty
+                app.logger.info(
+                    f"[AI_PREDICT] F&G fear penalty ({_fg_val}): DOWN conf "
+                    f"{_prev_conf:.3f} → {_parsed_conf:.3f}"
+                )
+        elif _fg_val > 80 and _parsed_dir == "UP":
+            _prev_conf = _parsed_conf
+            _parsed_conf = max(0.50, _parsed_conf - 0.05)  # F&G > 80: -0.05 on UP
+            app.logger.info(
+                f"[AI_PREDICT] F&G greed penalty ({_fg_val}): UP conf "
+                f"{_prev_conf:.3f} → {_parsed_conf:.3f}"
+            )
 
         # Wrap in "output" key to match n8n $json.output.* references
         return jsonify({
