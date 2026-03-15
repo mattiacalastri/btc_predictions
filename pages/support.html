@@ -324,6 +324,39 @@ footer{border-top:1px solid var(--border);padding:40px 0;font-family:var(--sans)
 .loading-pulse{animation:statPulse 1.4s ease-in-out infinite;color:var(--dim)!important;font-size:18px!important;}
 .stat-val.stat-error{color:var(--dim);font-size:11px!important;cursor:pointer;}
 .stat-val.stat-error:hover{color:var(--muted);}
+
+/* ── LIVE FEED ── */
+.feed-section{max-width:600px;margin:0 auto;padding-top:32px;}
+.feed-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.feed-title{font-family:var(--mono);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.15em;}
+.feed-live{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;color:var(--green);}
+.feed-live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;}
+.feed-list{display:flex;flex-direction:column;gap:2px;}
+.feed-item{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-family:var(--mono);font-size:12px;transition:border-color 0.2s;animation:feedIn 0.4s ease-out;}
+.feed-item:hover{border-color:rgba(0,212,255,0.3);}
+.feed-from{color:var(--cyan);}
+.feed-from a{color:inherit;text-decoration:none;border-bottom:1px solid transparent;}
+.feed-from a:hover{border-bottom-color:var(--cyan);}
+.feed-amount{color:var(--orange);font-weight:500;}
+.feed-time{color:var(--dim);font-size:10px;}
+.feed-empty{text-align:center;padding:24px;color:var(--dim);font-family:var(--sans);font-size:13px;}
+@keyframes feedIn{from{opacity:0;transform:translateY(-8px);}to{opacity:1;transform:translateY(0);}}
+
+/* ── PROGRESS BAR ── */
+.progress-section{max-width:400px;margin:0 auto 32px;text-align:center;}
+.progress-label{font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:8px;}
+.progress-bar{height:6px;background:var(--dim);border-radius:3px;overflow:hidden;position:relative;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--orange),var(--gold));border-radius:3px;transition:width 1.5s ease;width:0;}
+.progress-stats{display:flex;justify-content:space-between;margin-top:6px;font-family:var(--mono);font-size:10px;color:var(--muted);}
+.progress-stats .current{color:var(--orange);}
+
+/* ── FAQ ACCORDION ── */
+.faq-item{cursor:pointer;user-select:none;}
+.faq-q{display:flex;justify-content:space-between;align-items:center;}
+.faq-q::after{content:'+';font-family:var(--mono);font-size:18px;color:var(--dim);transition:transform 0.3s,color 0.3s;flex-shrink:0;margin-left:12px;}
+.faq-item.open .faq-q::after{content:'−';color:var(--orange);}
+.faq-a{max-height:0;overflow:hidden;transition:max-height 0.35s ease,opacity 0.3s ease;opacity:0;}
+.faq-item.open .faq-a{max-height:300px;opacity:1;}
 </style>
 </head>
 <body>
@@ -454,6 +487,18 @@ footer{border-top:1px solid var(--border);padding:40px 0;font-family:var(--sans)
           <span class="counter-num" id="registry-count">0</span>
           <span class="counter-of">/ 100 founding</span>
         </div>
+      </div>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="progress-section">
+      <div class="progress-label">Funding Progress</div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+      <div class="progress-stats">
+        <span class="current" id="progressCurrent">0 POL</span>
+        <span id="progressGoal">Goal: 500 POL</span>
       </div>
     </div>
 
@@ -605,6 +650,21 @@ footer{border-top:1px solid var(--border);padding:40px 0;font-family:var(--sans)
   </div>
 </section>
 
+<!-- LIVE FEED -->
+<section id="live-feed" style="padding:40px 0 0;">
+  <div class="wrap">
+    <div class="feed-section">
+      <div class="feed-header">
+        <span class="feed-title">Recent Supporters</span>
+        <span class="feed-live"><span class="feed-live-dot"></span> On-chain · Polygon</span>
+      </div>
+      <div class="feed-list" id="feedList">
+        <div class="feed-empty loading-pulse">Loading on-chain data...</div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <hr class="divider">
 
 <!-- ROADMAP -->
@@ -702,16 +762,16 @@ footer{border-top:1px solid var(--border);padding:40px 0;font-family:var(--sans)
     <div class="section-label">Common Questions</div>
     <h2>You should be<br><em>skeptical.</em></h2>
     <div style="margin-top:32px;">
-      <div class="faq-item">
+      <div class="faq-item open" onclick="toggleFaq(this)">
         <div class="faq-q">The win rate is low. Why would I support this?</div>
-        <div class="faq-a">
+        <div class="faq-a" style="max-height:300px;opacity:1;">
           <strong>Because the win rate is published.</strong> That skepticism is exactly what this project was built for.
           On-chain, you verify — you don't trust. A system that hides losing months is the red flag,
           not the one that publishes them. We're in the data collection phase.
           Statistical significance requires hundreds of bets, not dozens.
         </div>
       </div>
-      <div class="faq-item">
+      <div class="faq-item" onclick="toggleFaq(this)">
         <div class="faq-q">What do I get in return?</div>
         <div class="faq-a">
           A permanent on-chain record that you were here early. Founding tier contributors get
@@ -719,7 +779,7 @@ footer{border-top:1px solid var(--border);padding:40px 0;font-family:var(--sans)
           this first is immutable.</strong> You can't buy your way in retroactively.
         </div>
       </div>
-      <div class="faq-item">
+      <div class="faq-item" onclick="toggleFaq(this)">
         <div class="faq-q">Is my contribution safe? Can I verify it?</div>
         <div class="faq-a">
           Yes. Your transaction goes directly to <code style="font-family:var(--mono);font-size:13px;color:var(--cyan);">0x7Ac896F18ce52a0520dA49C3129520f7B70d51f0</code> on Polygon.
@@ -727,14 +787,14 @@ footer{border-top:1px solid var(--border);padding:40px 0;font-family:var(--sans)
           it's a direct transfer. <strong>Always verify the address yourself before sending.</strong>
         </div>
       </div>
-      <div class="faq-item">
+      <div class="faq-item" onclick="toggleFaq(this)">
         <div class="faq-q">I don't have time to set this up right now.</div>
         <div class="faq-a">
           The transaction takes 11 seconds on Polygon. You've already spent longer reading this page.
           If you have MetaMask installed, tap "Open in MetaMask" and it pre-fills everything.
         </div>
       </div>
-      <div class="faq-item">
+      <div class="faq-item" onclick="toggleFaq(this)">
         <div class="faq-q">1 POL is too small to matter, isn't it?</div>
         <div class="faq-a">
           <strong>The first block in any chain is exactly that size.</strong> What matters is that it exists —
@@ -969,26 +1029,97 @@ async function loadStats(attempt){
   }
 }
 
-// ── REGISTRY COUNTER (simulated until real endpoint) ──
+// ── REGISTRY COUNTER ──
 function animateCounter(target){
-  const el  = document.getElementById('registry-count');
-  const arc = document.getElementById('counterArc');
-  const circumference = 2 * Math.PI * 65; // ~408
-  let current = 0;
-  const step = Math.ceil(target/40);
-  const interval = setInterval(()=>{
+  var el  = document.getElementById('registry-count');
+  var arc = document.getElementById('counterArc');
+  var circumference = 2 * Math.PI * 65;
+  var current = 0;
+  var step = Math.ceil(target/40) || 1;
+  var iv = setInterval(function(){
     current = Math.min(current+step, target);
     el.textContent = current;
-    const offset = circumference - (current/100)*circumference;
+    var offset = circumference - (current/100)*circumference;
     arc.style.strokeDashoffset = offset;
-    if(current >= target) clearInterval(interval);
+    if(current >= target) clearInterval(iv);
   }, 40);
 }
-// Load real count from public-contributions if available
-fetch('/public-contributions').then(r=>r.json()).then(d=>{
-  const count = Array.isArray(d) ? d.length : (d.count || 3);
-  animateCounter(Math.min(count, 100));
-}).catch(()=>animateCounter(3));
+
+// ── PROGRESS BAR ──
+var FUNDING_GOAL = 500;
+function updateProgress(totalPol){
+  var pct = Math.min((totalPol / FUNDING_GOAL) * 100, 100);
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressCurrent').textContent = totalPol + ' POL';
+  document.getElementById('progressGoal').textContent = (totalPol >= FUNDING_GOAL ? 'Goal reached!' : 'Goal: ' + FUNDING_GOAL + ' POL');
+}
+
+// ── LIVE FEED (DOM-safe, no innerHTML) ──
+function timeAgo(ts){
+  var diff = Math.floor(Date.now()/1000) - ts;
+  if(diff < 60) return diff + 's ago';
+  if(diff < 3600) return Math.floor(diff/60) + 'm ago';
+  if(diff < 86400) return Math.floor(diff/3600) + 'h ago';
+  return Math.floor(diff/86400) + 'd ago';
+}
+
+function renderFeed(txs){
+  var list = document.getElementById('feedList');
+  list.textContent = '';
+  if(!txs || txs.length === 0){
+    var empty = document.createElement('div');
+    empty.className = 'feed-empty';
+    empty.textContent = 'Be the first to support \u2014 your wallet will appear here permanently.';
+    list.appendChild(empty);
+    return;
+  }
+  txs.forEach(function(tx){
+    var item = document.createElement('div');
+    item.className = 'feed-item';
+    var fromSpan = document.createElement('span');
+    fromSpan.className = 'feed-from';
+    var link = document.createElement('a');
+    link.href = 'https://polygonscan.com/tx/' + encodeURIComponent(tx.tx_hash);
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.textContent = tx.from;
+    fromSpan.appendChild(link);
+    var amountSpan = document.createElement('span');
+    amountSpan.className = 'feed-amount';
+    amountSpan.textContent = tx.amount_pol + ' POL';
+    var timeSpan = document.createElement('span');
+    timeSpan.className = 'feed-time';
+    timeSpan.textContent = timeAgo(tx.timestamp);
+    item.appendChild(fromSpan);
+    item.appendChild(amountSpan);
+    item.appendChild(timeSpan);
+    list.appendChild(item);
+  });
+}
+
+// ── LOAD SUPPORT FEED (counter + progress + live feed) ──
+fetch('/support-feed').then(function(r){ return r.json(); }).then(function(d){
+  animateCounter(Math.min(d.supporter_count || 0, 100));
+  updateProgress(d.total_pol || 0);
+  renderFeed(d.transactions || []);
+}).catch(function(){
+  animateCounter(0);
+  updateProgress(0);
+  renderFeed([]);
+});
+
+// ── FAQ ACCORDION ──
+function toggleFaq(el){
+  el.classList.toggle('open');
+  var a = el.querySelector('.faq-a');
+  if(el.classList.contains('open')){
+    a.style.maxHeight = a.scrollHeight + 'px';
+    a.style.opacity = '1';
+  } else {
+    a.style.maxHeight = '0';
+    a.style.opacity = '0';
+  }
+}
 
 // ── NAV BURGER ──
 (function(){var b=document.getElementById('gnavBurger'),l=document.getElementById('gnavLinks');if(!b||!l)return;b.setAttribute('aria-expanded','false');var BG='<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h12M3 12h12"/></svg>',CL='<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4l10 10M14 4L4 14"/></svg>';function o(){l.style.height=(window.innerHeight-48)+'px';l.classList.add('gnav-open');b.innerHTML=CL;b.setAttribute('aria-expanded','true');}function c(){l.style.height='';l.classList.remove('gnav-open');b.innerHTML=BG;b.setAttribute('aria-expanded','false');}b.addEventListener('click',function(e){e.stopPropagation();l.classList.contains('gnav-open')?c():o();});l.querySelectorAll('.gnav-link').forEach(function(a){a.addEventListener('click',c);});document.addEventListener('click',function(e){if(!l.contains(e.target)&&!b.contains(e.target))c();});})();

@@ -3328,14 +3328,14 @@ def support_feed():
 
     result = {"transactions": [], "total_pol": 0, "supporter_count": 0}
     try:
+        # Blockscout V2 API — free, no API key, Polygon PoS
         r = _ext_session.get(
-            "https://api.polygonscan.com/api"
-            f"?module=account&action=txlist&address={_SUPPORT_WALLET}"
-            "&startblock=0&endblock=99999999&sort=desc&page=1&offset=20",
+            f"https://polygon.blockscout.com/api/v2/addresses/{_SUPPORT_WALLET}/transactions"
+            "?filter=to",
             timeout=8,
         )
         data = r.json() if r.ok else {}
-        txs = data.get("result", [])
+        txs = data.get("items", [])
         if not isinstance(txs, list):
             txs = []
 
@@ -3343,31 +3343,41 @@ def support_feed():
         total_wei = 0
         feed = []
         for tx in txs:
-            # Only incoming native POL transfers (not outgoing, not errors)
-            if tx.get("to", "").lower() != _SUPPORT_WALLET.lower():
-                continue
-            if tx.get("isError") == "1":
+            # Only successful incoming native POL transfers
+            if tx.get("status") == "error":
                 continue
             value_wei = int(tx.get("value", "0"))
             if value_wei == 0:
                 continue
 
+            from_addr = tx.get("from", {}).get("hash", "") if isinstance(tx.get("from"), dict) else str(tx.get("from", ""))
+            tx_hash = tx.get("hash", "")
+
             pol = value_wei / 1e18
             total_wei += value_wei
-            seen_wallets.add(tx.get("from", "").lower())
+            seen_wallets.add(from_addr.lower())
+
+            # Parse timestamp from ISO format
+            ts_str = tx.get("timestamp", "")
+            try:
+                from datetime import datetime
+                ts = int(datetime.fromisoformat(ts_str.replace("Z", "+00:00")).timestamp())
+            except Exception:
+                ts = 0
+
             feed.append({
-                "from": tx.get("from", "")[:6] + "..." + tx.get("from", "")[-4:],
-                "from_full": tx.get("from", ""),
+                "from": from_addr[:6] + "..." + from_addr[-4:] if len(from_addr) > 10 else from_addr,
+                "from_full": from_addr,
                 "amount_pol": round(pol, 2),
-                "timestamp": int(tx.get("timeStamp", "0")),
-                "tx_hash": tx.get("hash", ""),
+                "timestamp": ts,
+                "tx_hash": tx_hash,
             })
 
-        result["transactions"] = feed[:10]  # last 10
+        result["transactions"] = feed[:10]
         result["total_pol"] = round(total_wei / 1e18, 2)
         result["supporter_count"] = len(seen_wallets)
     except Exception as e:
-        app.logger.warning("[SUPPORT_FEED] PolygonScan fetch failed: %s", e)
+        app.logger.warning("[SUPPORT_FEED] Blockscout fetch failed: %s", e)
 
     _support_feed_cache = {"ts": now, "data": result}
     return jsonify(result)
