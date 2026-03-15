@@ -433,6 +433,69 @@ body.heartbeat-offline { animation: hb-flat 4s linear infinite; }
 .agent-card.pending { border-left: 3px solid var(--text-muted); }
 .agent-card.idle { border-left: 3px solid var(--blue); }
 
+/* ── AGENTS SECTIONS ── */
+.agents-section { margin-bottom: 20px; }
+.agents-section-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 0; margin-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.agents-section-title {
+  font-size: 11px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--text-secondary);
+}
+
+/* ── n8n FILTER BUTTONS ── */
+.n8n-filter-btn {
+  background: transparent; border: 1px solid var(--border); color: var(--text-muted);
+  font-size: 9px; padding: 3px 8px; border-radius: 4px; cursor: pointer;
+  letter-spacing: 1px; font-weight: 600; transition: all 0.2s;
+}
+.n8n-filter-btn:hover { border-color: var(--text-secondary); color: var(--text-secondary); }
+.n8n-filter-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+/* ── n8n GRID + CARD ── */
+.n8n-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px;
+}
+.n8n-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px; transition: all 0.2s;
+}
+.n8n-card:hover { border-color: var(--accent); background: var(--bg-card-hover); }
+.n8n-card-name { font-weight: 700; font-size: 13px; margin-bottom: 2px; }
+.n8n-card-role { font-size: 10px; color: var(--text-muted); letter-spacing: 1px; }
+.n8n-card-id { font-size: 9px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+.n8n-badge {
+  font-size: 8px; padding: 2px 7px; border-radius: 3px; font-weight: 700;
+  letter-spacing: 1px;
+}
+.n8n-badge.active { background: rgba(0,212,170,0.15); color: var(--accent); }
+.n8n-badge.inactive { background: rgba(255,255,255,0.05); color: var(--text-muted); }
+.n8n-badge.error { background: rgba(239,68,68,0.15); color: var(--red); }
+.n8n-badge.success { background: rgba(0,255,136,0.12); color: #00ff88; }
+.n8n-sparkline { display: flex; gap: 3px; align-items: center; margin-top: 8px; }
+.n8n-spark-dot {
+  width: 10px; height: 10px; border-radius: 2px; display: inline-block;
+}
+.n8n-code-badge {
+  font-size: 8px; padding: 1px 5px; border-radius: 3px; font-weight: 700;
+  letter-spacing: 1px; background: rgba(255,255,255,0.06); margin-right: 4px;
+}
+
+/* ── LAUNCHD TABLE ── */
+.launchd-wrap { overflow-x: auto; }
+.launchd-tbl {
+  width: 100%; border-collapse: collapse; font-size: 11px;
+}
+.launchd-tbl th {
+  text-align: left; padding: 6px 10px; font-size: 9px; letter-spacing: 1px;
+  color: var(--text-muted); border-bottom: 1px solid var(--border);
+  text-transform: uppercase;
+}
+.launchd-tbl td {
+  padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
 .agent-header {
   display: flex; justify-content: space-between; align-items: flex-start;
   margin-bottom: 10px;
@@ -1133,7 +1196,7 @@ body.heartbeat-offline { animation: hb-flat 4s linear infinite; }
       </div>
     </div>
 
-    <!-- TAB: AGENTS -->
+    <!-- TAB: AGENTS (Unified) -->
     <div class="tab-panel" id="panel-agents">
       <div class="global-actions">
         <button class="action-btn accent" id="btn-bot-toggle" onclick="toggleBotPause()">&#9208; Pause Bot</button>
@@ -1141,8 +1204,51 @@ body.heartbeat-offline { animation: hb-flat 4s linear infinite; }
         <button class="action-btn" onclick="downloadReport()">&#8615; Report</button>
         <button class="action-btn" onclick="refreshAll()">&#8635; Refresh</button>
       </div>
-      <div class="agents-grid" id="agents-grid">
-        <!-- Populated by JS -->
+
+      <!-- SECTION 1: n8n Workflows -->
+      <div class="agents-section">
+        <div class="agents-section-head">
+          <span class="agents-section-title">n8n Workflows</span>
+          <div style="display:flex;align-items:center;gap:6px">
+            <div id="n8nFilters" style="display:flex;gap:4px">
+              <button class="n8n-filter-btn active" data-filter="all" onclick="filterN8n('all')">ALL</button>
+              <button class="n8n-filter-btn" data-filter="active" onclick="filterN8n('active')">ACTIVE</button>
+              <button class="n8n-filter-btn" data-filter="inactive" onclick="filterN8n('inactive')">INACTIVE</button>
+              <button class="n8n-filter-btn" data-filter="error" onclick="filterN8n('error')">ERROR</button>
+            </div>
+            <button class="action-btn" onclick="refreshN8nAgents()" style="padding:4px 10px;font-size:10px">&#8635; n8n</button>
+          </div>
+        </div>
+        <div class="n8n-grid" id="n8n-grid">
+          <div style="grid-column:1/-1;padding:20px;color:var(--text-muted);text-align:center;font-size:11px;letter-spacing:1px">
+            Premi Refresh per caricare i workflow n8n.
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 2: Claude Orchestrator Clones -->
+      <div class="agents-section">
+        <div class="agents-section-head">
+          <span class="agents-section-title">Claude Orchestrator</span>
+          <span style="font-size:10px;color:var(--text-muted);letter-spacing:1px">6 specialized clones</span>
+        </div>
+        <div class="agents-grid" id="agents-grid">
+          <!-- Populated by JS from cockpit_events -->
+        </div>
+      </div>
+
+      <!-- SECTION 3: launchd Local Agents -->
+      <div class="agents-section">
+        <div class="agents-section-head">
+          <span class="agents-section-title">launchd Agents</span>
+          <span style="font-size:10px;color:var(--text-muted);letter-spacing:1px">macOS local</span>
+        </div>
+        <div class="launchd-wrap" id="launchd-wrap">
+          <table class="launchd-tbl" id="launchd-tbl">
+            <thead><tr><th>Agent</th><th>Schedule</th><th>Status</th></tr></thead>
+            <tbody id="launchd-body"></tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -1616,6 +1722,7 @@ function switchTab(tab) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
   if (tab === 'overview' && STATE.ghostMode && !STATE.ghostsLoaded) loadGhosts();
+  if (tab === 'agents' && !STATE.n8nLoaded) refreshN8nAgents();
   if (tab === 'ops') opsInitOnce();
   if (tab === 'perf' && !STATE.perfLoaded) loadPerf();
 }
@@ -2202,6 +2309,9 @@ async function refreshAll() {
     renderAgents(agents);
     renderLog(logData.logs || []);
     renderMetrics(overviewData);
+    // Lazy-load n8n workflows on agents tab (non-blocking)
+    if (STATE.currentTab === 'agents' && !STATE.n8nLoaded) refreshN8nAgents();
+    renderLaunchdAgents();
 
     // Lazy load ghosts on overview tab
     if (STATE.ghostMode && STATE.currentTab === 'overview' && !STATE.ghostsLoaded) loadGhosts();
@@ -2650,6 +2760,227 @@ function formatElapsed(sec) {
 function escapeHtml(s) {
   if (!s) return '';
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── n8n WORKFLOW META (personality map from dashboard) ──
+// Note: all dynamic content passed through escapeHtml() before innerHTML assignment
+const _WF_META = {
+  '00':  { code: 'ERR', role: 'Error Notifier',       accent: '#ff4444' },
+  '01':  { code: 'SIG', role: 'Signal Generator',     accent: '#00ff88' },
+  '02':  { code: 'TRD', role: 'Position Monitor',     accent: '#00aaff' },
+  '03':  { code: 'BAL', role: 'Balance Guardian',     accent: '#ffaa00' },
+  '04':  { code: 'LLM', role: 'LLM Analyst',          accent: '#aa66ff' },
+  '05':  { code: 'VRF', role: 'Result Auditor',       accent: '#00ff88' },
+  '06':  { code: 'MNT', role: 'System Janitor',       accent: '#4a6070' },
+  '07':  { code: 'CMD', role: 'Command Center',       accent: '#00ccff' },
+  '08':  { code: 'MON', role: 'Position Watchdog',    accent: '#ffaa00' },
+  '09':  { code: 'SOC', role: 'Social Media',         accent: '#ff6fd8' },
+  '09A': { code: 'SOC', role: 'Social Media Manager', accent: '#ff6fd8' },
+  '09B': { code: 'PUB', role: 'Social Publisher',     accent: '#ff6fd8' },
+  '10':  { code: 'ANA', role: 'Analytics & Reports',  accent: '#4a9fff' },
+  '11':  { code: 'CNT', role: 'Channel Content',      accent: '#ff9f4a' },
+  '12':  { code: 'EML', role: 'Email Handler',        accent: '#4affea' },
+};
+
+STATE.n8nLoaded = false;
+
+function _n8nRelTime(iso) {
+  if (!iso) return '';
+  const diff = Date.now() - new Date(iso).getTime();
+  const s = Math.floor(diff / 1000);
+  if (s < 60)  return s + 's ago';
+  const m = Math.floor(s / 60);
+  if (m < 60)  return m + 'm ago';
+  const h = Math.floor(m / 60);
+  if (h < 24)  return h + 'h ago';
+  return Math.floor(h / 24) + 'd ago';
+}
+
+async function refreshN8nAgents() {
+  const grid = document.getElementById('n8n-grid');
+  grid.textContent = '';
+  const loadMsg = document.createElement('div');
+  loadMsg.style.cssText = 'grid-column:1/-1;padding:20px;color:var(--text-muted);text-align:center;font-size:11px;letter-spacing:1px';
+  loadMsg.textContent = 'Loading n8n workflows...';
+  grid.appendChild(loadMsg);
+  try {
+    const resp = await fetch(`${API_BASE}/n8n-status`, { signal: AbortSignal.timeout(15000) });
+    const data = resp.ok ? await resp.json() : null;
+    renderN8nGrid(data);
+    STATE.n8nLoaded = true;
+  } catch (e) {
+    renderN8nGrid(null, e.message);
+  }
+}
+
+function renderN8nGrid(data, errorMsg) {
+  const grid = document.getElementById('n8n-grid');
+  grid.textContent = '';
+
+  if (!data || data.status !== 'ok') {
+    const errDiv = document.createElement('div');
+    errDiv.style.cssText = 'grid-column:1/-1;padding:24px;color:var(--red);font-size:11px;letter-spacing:1px';
+    errDiv.textContent = 'n8n unavailable: ' + (errorMsg || (data && data.error) || 'Railway non raggiungibile');
+    grid.appendChild(errDiv);
+    return;
+  }
+  const wfs = data.workflows || [];
+  if (!wfs.length) {
+    const emptyDiv = document.createElement('div');
+    emptyDiv.style.cssText = 'grid-column:1/-1;padding:24px;color:var(--text-muted);font-size:11px';
+    emptyDiv.textContent = 'No workflows found';
+    grid.appendChild(emptyDiv);
+    return;
+  }
+
+  wfs.forEach(wf => {
+    const isActive = wf.active;
+    const lastEx = wf.last_execution;
+    const status = lastEx?.status || null;
+    const execHistory = wf.exec_history || [];
+    const successRate = wf.success_rate;
+
+    const name3 = (wf.name || '').substring(0, 3);
+    const name2 = (wf.name || '').substring(0, 2);
+    const meta = _WF_META[name3] || _WF_META[name2] || { code: 'BOT', role: 'Automation', accent: '#4a6070' };
+
+    let borderCol = '#2a2a2a', dotCol = '#444';
+    if (!isActive) { /* dim */ }
+    else if (status === 'success') { borderCol = meta.accent; dotCol = meta.accent; }
+    else if (status === 'crashed' || status === 'error') { borderCol = 'var(--red)'; dotCol = 'var(--red)'; }
+    else { borderCol = 'var(--yellow)'; dotCol = 'var(--yellow)'; }
+
+    const card = document.createElement('div');
+    card.className = 'n8n-card';
+    card.dataset.active = isActive;
+    card.dataset.status = status || 'none';
+    card.style.borderLeft = '3px solid ' + borderCol;
+
+    // Header row
+    const header = document.createElement('div');
+    header.style.cssText = 'display:flex;justify-content:space-between;align-items:flex-start';
+
+    const left = document.createElement('div');
+    // Name with dot
+    const nameRow = document.createElement('div');
+    nameRow.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:3px';
+    const dot = document.createElement('span');
+    dot.style.cssText = 'width:8px;height:8px;border-radius:50%;display:inline-block;background:' + dotCol;
+    const nameEl = document.createElement('span');
+    nameEl.className = 'n8n-card-name';
+    nameEl.textContent = wf.name || wf.id;
+    nameRow.append(dot, nameEl);
+
+    const roleEl = document.createElement('div');
+    roleEl.className = 'n8n-card-role';
+    const codeBadge = document.createElement('span');
+    codeBadge.className = 'n8n-code-badge';
+    codeBadge.style.color = meta.accent;
+    codeBadge.textContent = meta.code;
+    roleEl.append(codeBadge, document.createTextNode(meta.role));
+
+    const idEl = document.createElement('div');
+    idEl.className = 'n8n-card-id';
+    idEl.textContent = wf.id;
+
+    left.append(nameRow, roleEl, idEl);
+
+    const right = document.createElement('div');
+    right.style.textAlign = 'right';
+    const actBadge = document.createElement('span');
+    actBadge.className = 'n8n-badge ' + (isActive ? 'active' : 'inactive');
+    actBadge.textContent = isActive ? 'ACTIVE' : 'INACTIVE';
+    right.appendChild(actBadge);
+
+    header.append(left, right);
+    card.appendChild(header);
+
+    // Status row
+    const statusRow = document.createElement('div');
+    statusRow.style.cssText = 'display:flex;align-items:center;gap:8px;margin-top:8px';
+    if (status) {
+      const sBadge = document.createElement('span');
+      sBadge.className = 'n8n-badge';
+      if (status === 'success') { sBadge.classList.add('success'); sBadge.textContent = 'SUCCESS'; }
+      else if (status === 'crashed' || status === 'error') { sBadge.classList.add('error'); sBadge.textContent = status.toUpperCase(); }
+      else { sBadge.style.cssText = 'background:rgba(255,170,0,0.15);color:var(--yellow)'; sBadge.textContent = status.toUpperCase(); }
+      statusRow.appendChild(sBadge);
+    }
+    if (lastEx?.started_at) {
+      const timeEl = document.createElement('span');
+      timeEl.style.cssText = 'font-size:10px;color:var(--text-muted)';
+      timeEl.textContent = _n8nRelTime(lastEx.started_at);
+      statusRow.appendChild(timeEl);
+    }
+    card.appendChild(statusRow);
+
+    // Sparkline
+    if (execHistory.length) {
+      const sparkDiv = document.createElement('div');
+      sparkDiv.className = 'n8n-sparkline';
+      execHistory.forEach(s => {
+        const sp = document.createElement('span');
+        sp.className = 'n8n-spark-dot';
+        sp.title = s;
+        sp.style.background = s === 'success' ? '#00ff88' : (s === 'crashed' || s === 'error') ? 'var(--red)' : '#2a3a4a';
+        sparkDiv.appendChild(sp);
+      });
+      if (successRate != null) {
+        const srEl = document.createElement('span');
+        srEl.style.cssText = 'font-size:9px;margin-left:5px;color:' + (successRate >= 80 ? '#00ff88' : successRate >= 50 ? 'var(--yellow)' : 'var(--red)');
+        srEl.textContent = successRate + '%';
+        sparkDiv.appendChild(srEl);
+      }
+      card.appendChild(sparkDiv);
+    }
+
+    grid.appendChild(card);
+  });
+}
+
+function filterN8n(filter) {
+  document.querySelectorAll('#n8nFilters .n8n-filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === filter));
+  document.querySelectorAll('#n8n-grid .n8n-card').forEach(card => {
+    const active = card.dataset.active === 'true';
+    const st = card.dataset.status;
+    const isErr = st === 'crashed' || st === 'error';
+    const show = filter === 'all'
+      || (filter === 'active' && active)
+      || (filter === 'inactive' && !active)
+      || (filter === 'error' && isErr);
+    card.style.display = show ? '' : 'none';
+  });
+}
+
+// ── LAUNCHD AGENTS ──
+const _LAUNCHD_AGENTS = [
+  { name: 'Morning Orchestrator', schedule: '07:30 daily', label: 'com.btcpredictor.morning' },
+  { name: 'Ghost Evaluator', schedule: 'Every 30min', label: 'com.btcpredictor.ghost' },
+  { name: 'Dead Hours Refresh', schedule: 'Every 6h', label: 'com.btcpredictor.deadhours' },
+  { name: 'Calibration Refresh', schedule: 'Every 4h', label: 'com.btcpredictor.calibration' },
+  { name: 'Gmail Drafts Check', schedule: 'Session start', label: 'manual' },
+];
+
+function renderLaunchdAgents() {
+  const tbody = document.getElementById('launchd-body');
+  if (!tbody) return;
+  tbody.textContent = '';
+  _LAUNCHD_AGENTS.forEach(a => {
+    const tr = document.createElement('tr');
+    const td1 = document.createElement('td');
+    td1.style.fontWeight = '600';
+    td1.textContent = a.name;
+    const td2 = document.createElement('td');
+    td2.style.cssText = 'color:var(--text-muted);font-size:10px';
+    td2.textContent = a.schedule;
+    const td3 = document.createElement('td');
+    const badge = document.createElement('span');
+    badge.style.cssText = 'font-size:9px;color:var(--text-muted);letter-spacing:1px';
+    badge.textContent = 'LOCAL';
+    td3.appendChild(badge);
+    tr.append(td1, td2, td3);
+    tbody.appendChild(tr);
+  });
 }
 </script>
 <script>
