@@ -455,7 +455,7 @@ body.heartbeat-offline { animation: hb-flat 4s linear infinite; }
 
 /* ── n8n GRID + CARD ── */
 .n8n-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px;
+  display: flex; flex-direction: column; gap: 4px;
 }
 .n8n-card {
   background: var(--bg-card); border: 1px solid var(--border);
@@ -480,6 +480,28 @@ body.heartbeat-offline { animation: hb-flat 4s linear infinite; }
 .n8n-code-badge {
   font-size: 8px; padding: 1px 5px; border-radius: 3px; font-weight: 700;
   letter-spacing: 1px; background: rgba(255,255,255,0.06); margin-right: 4px;
+}
+
+/* ── DEPARTMENT HEADERS ── */
+.dept-group { margin-bottom: 16px; }
+.dept-header {
+  display: flex; align-items: center; gap: 8px; padding: 6px 0; margin-bottom: 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.dept-icon { font-size: 14px; }
+.dept-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.dept-desc {
+  font-size: 9px; color: var(--text-muted); margin-left: auto; letter-spacing: 0.5px;
+}
+.dept-count {
+  font-size: 9px; padding: 1px 6px; border-radius: 3px;
+  font-weight: 700; letter-spacing: 1px;
+}
+.dept-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px;
 }
 
 /* ── LAUNCHD TABLE ── */
@@ -2765,22 +2787,31 @@ function escapeHtml(s) {
 // ── n8n WORKFLOW META (personality map from dashboard) ──
 // Note: all dynamic content passed through escapeHtml() before innerHTML assignment
 const _WF_META = {
-  '00':  { code: 'ERR', role: 'Error Notifier',       accent: '#ff4444' },
-  '01':  { code: 'SIG', role: 'Signal Generator',     accent: '#00ff88' },
-  '02':  { code: 'TRD', role: 'Position Monitor',     accent: '#00aaff' },
-  '03':  { code: 'BAL', role: 'Balance Guardian',     accent: '#ffaa00' },
-  '04':  { code: 'LLM', role: 'LLM Analyst',          accent: '#aa66ff' },
-  '05':  { code: 'VRF', role: 'Result Auditor',       accent: '#00ff88' },
-  '06':  { code: 'MNT', role: 'System Janitor',       accent: '#4a6070' },
-  '07':  { code: 'CMD', role: 'Command Center',       accent: '#00ccff' },
-  '08':  { code: 'MON', role: 'Position Watchdog',    accent: '#ffaa00' },
-  '09':  { code: 'SOC', role: 'Social Media',         accent: '#ff6fd8' },
-  '09A': { code: 'SOC', role: 'Social Media Manager', accent: '#ff6fd8' },
-  '09B': { code: 'PUB', role: 'Social Publisher',     accent: '#ff6fd8' },
-  '10':  { code: 'ANA', role: 'Analytics & Reports',  accent: '#4a9fff' },
-  '11':  { code: 'CNT', role: 'Channel Content',      accent: '#ff9f4a' },
-  '12':  { code: 'EML', role: 'Email Handler',        accent: '#4affea' },
+  '00':  { code: 'ERR', role: 'Error Notifier',       accent: '#ff4444', dept: 'risk' },
+  '01':  { code: 'SIG', role: 'Signal Generator',     accent: '#00ff88', dept: 'trading' },
+  '02':  { code: 'TRD', role: 'Position Monitor',     accent: '#00aaff', dept: 'trading' },
+  '03':  { code: 'BAL', role: 'Balance Guardian',     accent: '#ffaa00', dept: 'risk' },
+  '04':  { code: 'LLM', role: 'LLM Analyst',          accent: '#aa66ff', dept: 'content' },
+  '05':  { code: 'VRF', role: 'Result Auditor',       accent: '#00ff88', dept: 'trading' },
+  '06':  { code: 'MNT', role: 'System Janitor',       accent: '#4a6070', dept: 'ops' },
+  '07':  { code: 'CMD', role: 'Command Center',       accent: '#00ccff', dept: 'ops' },
+  '08':  { code: 'MON', role: 'Position Watchdog',    accent: '#ffaa00', dept: 'risk' },
+  '09':  { code: 'SOC', role: 'Social Media',         accent: '#ff6fd8', dept: 'content' },
+  '09A': { code: 'SOC', role: 'Social Media Manager', accent: '#ff6fd8', dept: 'content' },
+  '09B': { code: 'PUB', role: 'Social Publisher',     accent: '#ff6fd8', dept: 'content' },
+  '10':  { code: 'ANA', role: 'Analytics & Reports',  accent: '#4a9fff', dept: 'analytics' },
+  '11':  { code: 'CNT', role: 'Channel Content',      accent: '#ff9f4a', dept: 'content' },
+  '12':  { code: 'EML', role: 'Email Handler',        accent: '#4affea', dept: 'analytics' },
 };
+
+const _DEPARTMENTS = {
+  trading:   { label: 'Signal & Trading',    icon: '\u26A1', accent: '#00ff88', desc: 'Core pipeline: signal \u2192 trade \u2192 verify' },
+  risk:      { label: 'Risk & Monitoring',   icon: '\uD83D\uDEE1\uFE0F', accent: '#ff4444', desc: 'Errors, wallet, positions, alerts' },
+  ops:       { label: 'Operations',          icon: '\u2699\uFE0F', accent: '#00ccff', desc: 'System health, commands, compliance' },
+  content:   { label: 'Content & Social',    icon: '\uD83D\uDCE2', accent: '#ff6fd8', desc: 'Talker, social media, channel' },
+  analytics: { label: 'Analytics & Comms',   icon: '\uD83D\uDCCA', accent: '#4a9fff', desc: 'Reports, SEO, email' },
+};
+const _DEPT_ORDER = ['trading', 'risk', 'ops', 'content', 'analytics'];
 
 STATE.n8nLoaded = false;
 
@@ -2813,13 +2844,114 @@ async function refreshN8nAgents() {
   }
 }
 
+function _buildN8nCard(wf) {
+  const isActive = wf.active;
+  const lastEx = wf.last_execution;
+  const status = lastEx?.status || null;
+  const execHistory = wf.exec_history || [];
+  const successRate = wf.success_rate;
+
+  const name3 = (wf.name || '').substring(0, 3);
+  const name2 = (wf.name || '').substring(0, 2);
+  const meta = _WF_META[name3] || _WF_META[name2] || { code: 'BOT', role: 'Automation', accent: '#4a6070', dept: 'ops' };
+
+  let borderCol = '#2a2a2a', dotCol = '#444';
+  if (!isActive) { /* dim */ }
+  else if (status === 'success') { borderCol = meta.accent; dotCol = meta.accent; }
+  else if (status === 'crashed' || status === 'error') { borderCol = 'var(--red)'; dotCol = 'var(--red)'; }
+  else { borderCol = 'var(--yellow)'; dotCol = 'var(--yellow)'; }
+
+  const card = document.createElement('div');
+  card.className = 'n8n-card';
+  card.dataset.active = isActive;
+  card.dataset.status = status || 'none';
+  card.dataset.dept = meta.dept || 'ops';
+  card.style.borderLeft = '3px solid ' + borderCol;
+
+  const header = document.createElement('div');
+  header.style.cssText = 'display:flex;justify-content:space-between;align-items:flex-start';
+
+  const left = document.createElement('div');
+  const nameRow = document.createElement('div');
+  nameRow.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:3px';
+  const dot = document.createElement('span');
+  dot.style.cssText = 'width:8px;height:8px;border-radius:50%;display:inline-block;background:' + dotCol;
+  const nameEl = document.createElement('span');
+  nameEl.className = 'n8n-card-name';
+  nameEl.textContent = wf.name || wf.id;
+  nameRow.append(dot, nameEl);
+
+  const roleEl = document.createElement('div');
+  roleEl.className = 'n8n-card-role';
+  const codeBadge = document.createElement('span');
+  codeBadge.className = 'n8n-code-badge';
+  codeBadge.style.color = meta.accent;
+  codeBadge.textContent = meta.code;
+  roleEl.append(codeBadge, document.createTextNode(meta.role));
+
+  const idEl = document.createElement('div');
+  idEl.className = 'n8n-card-id';
+  idEl.textContent = wf.id;
+
+  left.append(nameRow, roleEl, idEl);
+
+  const right = document.createElement('div');
+  right.style.textAlign = 'right';
+  const actBadge = document.createElement('span');
+  actBadge.className = 'n8n-badge ' + (isActive ? 'active' : 'inactive');
+  actBadge.textContent = isActive ? 'ACTIVE' : 'INACTIVE';
+  right.appendChild(actBadge);
+
+  header.append(left, right);
+  card.appendChild(header);
+
+  const statusRow = document.createElement('div');
+  statusRow.style.cssText = 'display:flex;align-items:center;gap:8px;margin-top:8px';
+  if (status) {
+    const sBadge = document.createElement('span');
+    sBadge.className = 'n8n-badge';
+    if (status === 'success') { sBadge.classList.add('success'); sBadge.textContent = 'SUCCESS'; }
+    else if (status === 'crashed' || status === 'error') { sBadge.classList.add('error'); sBadge.textContent = status.toUpperCase(); }
+    else { sBadge.style.cssText = 'background:rgba(255,170,0,0.15);color:var(--yellow)'; sBadge.textContent = status.toUpperCase(); }
+    statusRow.appendChild(sBadge);
+  }
+  if (lastEx?.started_at) {
+    const timeEl = document.createElement('span');
+    timeEl.style.cssText = 'font-size:10px;color:var(--text-muted)';
+    timeEl.textContent = _n8nRelTime(lastEx.started_at);
+    statusRow.appendChild(timeEl);
+  }
+  card.appendChild(statusRow);
+
+  if (execHistory.length) {
+    const sparkDiv = document.createElement('div');
+    sparkDiv.className = 'n8n-sparkline';
+    execHistory.forEach(s => {
+      const sp = document.createElement('span');
+      sp.className = 'n8n-spark-dot';
+      sp.title = s;
+      sp.style.background = s === 'success' ? '#00ff88' : (s === 'crashed' || s === 'error') ? 'var(--red)' : '#2a3a4a';
+      sparkDiv.appendChild(sp);
+    });
+    if (successRate != null) {
+      const srEl = document.createElement('span');
+      srEl.style.cssText = 'font-size:9px;margin-left:5px;color:' + (successRate >= 80 ? '#00ff88' : successRate >= 50 ? 'var(--yellow)' : 'var(--red)');
+      srEl.textContent = successRate + '%';
+      sparkDiv.appendChild(srEl);
+    }
+    card.appendChild(sparkDiv);
+  }
+
+  return card;
+}
+
 function renderN8nGrid(data, errorMsg) {
   const grid = document.getElementById('n8n-grid');
   grid.textContent = '';
 
   if (!data || data.status !== 'ok') {
     const errDiv = document.createElement('div');
-    errDiv.style.cssText = 'grid-column:1/-1;padding:24px;color:var(--red);font-size:11px;letter-spacing:1px';
+    errDiv.style.cssText = 'padding:24px;color:var(--red);font-size:11px;letter-spacing:1px';
     errDiv.textContent = 'n8n unavailable: ' + (errorMsg || (data && data.error) || 'Railway non raggiungibile');
     grid.appendChild(errDiv);
     return;
@@ -2827,119 +2959,72 @@ function renderN8nGrid(data, errorMsg) {
   const wfs = data.workflows || [];
   if (!wfs.length) {
     const emptyDiv = document.createElement('div');
-    emptyDiv.style.cssText = 'grid-column:1/-1;padding:24px;color:var(--text-muted);font-size:11px';
+    emptyDiv.style.cssText = 'padding:24px;color:var(--text-muted);font-size:11px';
     emptyDiv.textContent = 'No workflows found';
     grid.appendChild(emptyDiv);
     return;
   }
 
+  // Group workflows by department
+  const grouped = {};
   wfs.forEach(wf => {
-    const isActive = wf.active;
-    const lastEx = wf.last_execution;
-    const status = lastEx?.status || null;
-    const execHistory = wf.exec_history || [];
-    const successRate = wf.success_rate;
-
     const name3 = (wf.name || '').substring(0, 3);
     const name2 = (wf.name || '').substring(0, 2);
-    const meta = _WF_META[name3] || _WF_META[name2] || { code: 'BOT', role: 'Automation', accent: '#4a6070' };
+    const meta = _WF_META[name3] || _WF_META[name2] || { dept: 'ops' };
+    const dept = meta.dept || 'ops';
+    if (!grouped[dept]) grouped[dept] = [];
+    grouped[dept].push(wf);
+  });
 
-    let borderCol = '#2a2a2a', dotCol = '#444';
-    if (!isActive) { /* dim */ }
-    else if (status === 'success') { borderCol = meta.accent; dotCol = meta.accent; }
-    else if (status === 'crashed' || status === 'error') { borderCol = 'var(--red)'; dotCol = 'var(--red)'; }
-    else { borderCol = 'var(--yellow)'; dotCol = 'var(--yellow)'; }
+  // Render by department in order
+  _DEPT_ORDER.forEach(deptKey => {
+    const deptWfs = grouped[deptKey];
+    if (!deptWfs || !deptWfs.length) return;
 
-    const card = document.createElement('div');
-    card.className = 'n8n-card';
-    card.dataset.active = isActive;
-    card.dataset.status = status || 'none';
-    card.style.borderLeft = '3px solid ' + borderCol;
+    const dept = _DEPARTMENTS[deptKey];
+    const group = document.createElement('div');
+    group.className = 'dept-group';
+    group.dataset.dept = deptKey;
 
-    // Header row
-    const header = document.createElement('div');
-    header.style.cssText = 'display:flex;justify-content:space-between;align-items:flex-start';
+    // Department header
+    const hdr = document.createElement('div');
+    hdr.className = 'dept-header';
 
-    const left = document.createElement('div');
-    // Name with dot
-    const nameRow = document.createElement('div');
-    nameRow.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:3px';
-    const dot = document.createElement('span');
-    dot.style.cssText = 'width:8px;height:8px;border-radius:50%;display:inline-block;background:' + dotCol;
-    const nameEl = document.createElement('span');
-    nameEl.className = 'n8n-card-name';
-    nameEl.textContent = wf.name || wf.id;
-    nameRow.append(dot, nameEl);
+    const icon = document.createElement('span');
+    icon.className = 'dept-icon';
+    icon.textContent = dept.icon;
 
-    const roleEl = document.createElement('div');
-    roleEl.className = 'n8n-card-role';
-    const codeBadge = document.createElement('span');
-    codeBadge.className = 'n8n-code-badge';
-    codeBadge.style.color = meta.accent;
-    codeBadge.textContent = meta.code;
-    roleEl.append(codeBadge, document.createTextNode(meta.role));
+    const label = document.createElement('span');
+    label.className = 'dept-label';
+    label.style.color = dept.accent;
+    label.textContent = dept.label;
 
-    const idEl = document.createElement('div');
-    idEl.className = 'n8n-card-id';
-    idEl.textContent = wf.id;
+    const count = document.createElement('span');
+    count.className = 'dept-count';
+    count.style.cssText = 'background:' + dept.accent + '22;color:' + dept.accent;
+    const activeCount = deptWfs.filter(w => w.active).length;
+    count.textContent = activeCount + '/' + deptWfs.length;
 
-    left.append(nameRow, roleEl, idEl);
+    const desc = document.createElement('span');
+    desc.className = 'dept-desc';
+    desc.textContent = dept.desc;
 
-    const right = document.createElement('div');
-    right.style.textAlign = 'right';
-    const actBadge = document.createElement('span');
-    actBadge.className = 'n8n-badge ' + (isActive ? 'active' : 'inactive');
-    actBadge.textContent = isActive ? 'ACTIVE' : 'INACTIVE';
-    right.appendChild(actBadge);
+    hdr.append(icon, label, count, desc);
+    group.appendChild(hdr);
 
-    header.append(left, right);
-    card.appendChild(header);
+    // Card grid for this department
+    const deptGrid = document.createElement('div');
+    deptGrid.className = 'dept-grid';
+    deptWfs.forEach(wf => deptGrid.appendChild(_buildN8nCard(wf)));
+    group.appendChild(deptGrid);
 
-    // Status row
-    const statusRow = document.createElement('div');
-    statusRow.style.cssText = 'display:flex;align-items:center;gap:8px;margin-top:8px';
-    if (status) {
-      const sBadge = document.createElement('span');
-      sBadge.className = 'n8n-badge';
-      if (status === 'success') { sBadge.classList.add('success'); sBadge.textContent = 'SUCCESS'; }
-      else if (status === 'crashed' || status === 'error') { sBadge.classList.add('error'); sBadge.textContent = status.toUpperCase(); }
-      else { sBadge.style.cssText = 'background:rgba(255,170,0,0.15);color:var(--yellow)'; sBadge.textContent = status.toUpperCase(); }
-      statusRow.appendChild(sBadge);
-    }
-    if (lastEx?.started_at) {
-      const timeEl = document.createElement('span');
-      timeEl.style.cssText = 'font-size:10px;color:var(--text-muted)';
-      timeEl.textContent = _n8nRelTime(lastEx.started_at);
-      statusRow.appendChild(timeEl);
-    }
-    card.appendChild(statusRow);
-
-    // Sparkline
-    if (execHistory.length) {
-      const sparkDiv = document.createElement('div');
-      sparkDiv.className = 'n8n-sparkline';
-      execHistory.forEach(s => {
-        const sp = document.createElement('span');
-        sp.className = 'n8n-spark-dot';
-        sp.title = s;
-        sp.style.background = s === 'success' ? '#00ff88' : (s === 'crashed' || s === 'error') ? 'var(--red)' : '#2a3a4a';
-        sparkDiv.appendChild(sp);
-      });
-      if (successRate != null) {
-        const srEl = document.createElement('span');
-        srEl.style.cssText = 'font-size:9px;margin-left:5px;color:' + (successRate >= 80 ? '#00ff88' : successRate >= 50 ? 'var(--yellow)' : 'var(--red)');
-        srEl.textContent = successRate + '%';
-        sparkDiv.appendChild(srEl);
-      }
-      card.appendChild(sparkDiv);
-    }
-
-    grid.appendChild(card);
+    grid.appendChild(group);
   });
 }
 
 function filterN8n(filter) {
   document.querySelectorAll('#n8nFilters .n8n-filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === filter));
+  // Filter cards
   document.querySelectorAll('#n8n-grid .n8n-card').forEach(card => {
     const active = card.dataset.active === 'true';
     const st = card.dataset.status;
@@ -2949,6 +3034,11 @@ function filterN8n(filter) {
       || (filter === 'inactive' && !active)
       || (filter === 'error' && isErr);
     card.style.display = show ? '' : 'none';
+  });
+  // Hide empty department groups
+  document.querySelectorAll('#n8n-grid .dept-group').forEach(group => {
+    const visibleCards = group.querySelectorAll('.n8n-card:not([style*="display: none"])').length;
+    group.style.display = visibleCards > 0 ? '' : 'none';
   });
 }
 
